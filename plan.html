@@ -4454,6 +4454,7 @@
             <span class="my-foods-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span>
             <div class="my-foods-text">
                 <div class="my-foods-title">Моите храни и продукти</div>
+                <div class="my-foods-sub" id="myFoodsSub" hidden></div>
             </div>
             <i class="fas fa-chevron-right my-foods-arrow"></i>
         </a>
@@ -5367,6 +5368,7 @@
                 
                 // REQUIREMENT 3: Display plan justification
                 displayPlanJustification();
+                renderFoodChoiceNote();
                 
                 // Macros visualization moved to guidelines.html
                 
@@ -5388,6 +5390,25 @@
                 }
                 showError('Възникна грешка при показването на плана. Опитай отново; ако се повтаря, пиши ни от профила.', false);
             }
+        }
+
+        // „Избери храни“: какво от избора не влезе и с какво е допълнено (dietPlan.foodChoice от двигателя).
+        function renderFoodChoiceNote() {
+            const el = document.getElementById('myFoodsSub');
+            if (!el) return;
+            const fc = dietPlan && dietPlan.foodChoice;
+            const list = (arr) => {
+                const names = (Array.isArray(arr) ? arr : []).map(String).filter(Boolean);
+                return names.length > 4 ? names.slice(0, 4).join(', ') + ' и още ' + (names.length - 4) : names.join(', ');
+            };
+            const parts = [];
+            if (fc) {
+                if (fc.notAllowed && fc.notAllowed.length) parts.push('Не влизат заради режима ти: ' + list(fc.notAllowed) + '.');
+                if (fc.unresolved && fc.unresolved.length) parts.push('Не разпознахме: ' + list(fc.unresolved) + '.');
+                if (fc.added && fc.added.length) parts.push('За балансирани хранения добавихме: ' + list(fc.added) + '.');
+            }
+            el.textContent = parts.join(' ');
+            el.hidden = !parts.length;
         }
 
         // Store welcome message and plan justification; show modal on first load of new plan

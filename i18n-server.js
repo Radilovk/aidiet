@@ -54,6 +54,7 @@ Rules:
 - The source is Bulgarian even where it looks like Russian; translate it fully into ${name}.
 - Keep numbers, units (g, kcal, ml, kg), emoji, punctuation at the edges, and anything inside {curly braces} unchanged.
 - Food and dish names: the usual ${name} name; a Bulgarian dish with no equivalent keeps its name in Latin letters with a short gloss only if needed.
+- Bulgarian dairy is specific: "сирене" is white brine cheese (feta-style), never generic cheese; "кашкавал" is kashkaval, a yellow semi-hard cheese; "извара" is quark / cottage cheese; "кисело мляко" is plain yogurt; "прясно мляко" is milk.
 - "Eatologix" stays as is. Do not add quotes, notes or explanations.
 Return ONLY a JSON array of strings with exactly ${list.length} items, in the same order.
 

@@ -502,7 +502,7 @@
 <div class="fp-submit-wrap">
     <button class="btn-submit" id="btnSubmit" onclick="handleSubmit()" disabled>
         <i class="fas fa-bolt"></i>
-        <span>Генерирай план с избраните</span>
+        <span id="btnSubmitLabel">Генерирай план с избраните</span>
     </button>
 </div>
 
@@ -575,7 +575,7 @@ const CATALOG = [
         items: [
             'Пилешки гърди', 'Пилешко бутче', 'Пуешко филе', 'Говеждо (постно)',
             'Свинско (постно)', 'Яйца', 'Яйчни белтъци', 'Сьомга', 'Риба тон (консерва)',
-            'Скумрия', 'Треска', 'Тилапия', 'Скариди', 'Тофу', 'Темпе',
+            'Скумрия', 'Треска', 'Хек', 'Пъстърва', 'Тилапия', 'Скариди', 'Кайма', 'Тофу', 'Темпе',
             'Протеин (суроватка)', 'Протеин (растителен)'
         ]
     },
@@ -586,7 +586,7 @@ const CATALOG = [
         items: [
             'Кисело мляко (2%)', 'Кисело мляко (0%)', 'Гръцко кисело мляко',
             'Извара (кварк)', 'Извара (нискомаслена)', 'Сирене', 'Кашкавал (нискомаслен)',
-            'Рикота', 'Мляко (2%)', 'Растително мляко'
+            'Рикота', 'Моцарела', 'Кефир', 'Скир', 'Мляко (2%)', 'Растително мляко'
         ]
     },
     {
@@ -597,7 +597,8 @@ const CATALOG = [
             'Броколи', 'Спанак', 'Зеле', 'Карфиол', 'Зелен фасул', 'Краставица',
             'Домат', 'Чери домати', 'Чушка', 'Морков', 'Целина', 'Тиквичка',
             'Патладжан', 'Праз', 'Лук', 'Чесън', 'Рукола', 'Маруля',
-            'Аспержи', 'Гъби', 'Картофи (обикновени)', 'Сладки картофи (батат)'
+            'Аспержи', 'Гъби', 'Тиква', 'Цвекло', 'Брюкселско зеле',
+            'Картофи (обикновени)', 'Сладки картофи (батат)'
         ]
     },
     {
@@ -607,8 +608,8 @@ const CATALOG = [
         items: [
             'Овесени ядки', 'Ориз (бял)', 'Ориз (кафяв)', 'Киноа',
             'Леща', 'Нахут', 'Черен боб', 'Бял боб', 'Елда',
-            'Просо', 'Пълнозърнест хляб', 'Ръжен хляб', 'Тортила (пълнозърнеста)',
-            'Паста (пълнозърнеста)', 'Царевица'
+            'Просо', 'Булгур', 'Кус-кус', 'Пълнозърнест хляб', 'Ръжен хляб', 'Тортила (пълнозърнеста)',
+            'Паста (пълнозърнеста)', 'Царевица', 'Грах'
         ]
     },
     {
@@ -616,9 +617,9 @@ const CATALOG = [
         icon: '🥑',
         label: 'Мазнини и ядки',
         items: [
-            'Авокадо', 'Зехтин', 'Кокосово масло', 'Слънчогледово масло',
+            'Авокадо', 'Зехтин', 'Маслини', 'Кокосово масло', 'Слънчогледово масло',
             'Бадеми', 'Орехи', 'Кашу', 'Лешници', 'Фъстъци',
-            'Фъстъчено масло', 'Бадемово масло', 'Семена чиа', 'Ленено семе',
+            'Шамфъстък', 'Фъстъчено масло', 'Бадемово масло', 'Тахан', 'Семена чиа', 'Ленено семе',
             'Тиквени семки', 'Слънчогледови семки'
         ]
     },
@@ -640,8 +641,8 @@ const CATALOG = [
         items: [
             'Соев сос', 'Хумус', 'Горчица',
             'Лимонов сок', 'Оцет (ябълков)', 'Доматено пюре',
-            'Кокосово мляко', 'Мед', 'Стевия', 'Канела',
-            'Куркума', 'Джинджифил', 'Чили', 'Черен пипер'
+            'Кокосова сметана', 'Мед', 'Черен шоколад', 'Канела',
+            'Куркума', 'Джинджифил'
         ]
     }
 ];
@@ -658,12 +659,24 @@ const selected = {}; // { itemName: true }
  *
  * Admin blacklist API response: { blacklist: Array<string | {item: string, mode: string}> }
  */
+// Сложни имена, в които думата значи друго — същото правило като двигателя
+// (nutrition-engine/policy.js): „ядки“ не са овесените ядки, „мляко“ не е растителното.
+const COMPOUND_WORDS = [
+    /(овесени) ядки/gu,
+    /(фъстъчено|бадемово|кокосово|слънчогледово|ленено|тиквено|сусамово|лешниково) масло/gu,
+    /(растително|соево|кокосово|бадемово|овесено|оризово) мляко/gu,
+];
+const maskCompounds = s => COMPOUND_WORDS.reduce((k, re) => k.replace(re, '$1 §'), s);
+
 function isBlocked(itemName, blockedTerms) {
     const itemLower = itemName.toLowerCase();
+    const item = maskCompounds(itemLower);
     return blockedTerms.some(term => {
         if (term.length < 3) return false; // skip very short terms to avoid false positives
         const termLower = term.toLowerCase();
-        return itemLower.includes(termLower) || termLower.includes(itemLower);
+        if (itemLower === termLower) return true;
+        const t = maskCompounds(termLower);
+        return item.includes(t) || t.includes(item);
     });
 }
 
@@ -892,7 +905,10 @@ function updateTotal() {
     const count = Object.keys(selected).length;
     document.getElementById('totalCount').textContent = count;
     document.getElementById('totalWord').textContent = productWord(count);
-    document.getElementById('btnSubmit').disabled = count === 0;
+    // Без избор, но със запазен списък — бутонът връща плана към всички продукти.
+    const resetMode = count === 0 && hasSavedChoice();
+    document.getElementById('btnSubmit').disabled = count === 0 && !resetMode;
+    document.getElementById('btnSubmitLabel').textContent = resetMode ? 'Генерирай план с всички продукти' : 'Генерирай план с избраните';
 
     // Amber warning when selection is below the minimum needed for a valid plan
     const bar = document.getElementById('fpBarCount');
@@ -966,11 +982,109 @@ function getUnselectedVisibleItems(blockedTerms) {
     return unselected;
 }
 
+// ── Generation (shared by „с избраните“ and „с всички продукти“) ────────────
+async function generateFromPicker(userData, loadingText) {
+    setLoading(true, loadingText, 'Това може да отнеме до няколко минути');
+
+    const jobId = crypto.randomUUID();
+    const startRes = await fetch(`${WORKER_URL}/api/generate-plan-async`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...userData, _jobId: jobId })
+    });
+    if (!startRes.ok) {
+        const errData = await startRes.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${startRes.status}`);
+    }
+    const startData = await startRes.json();
+    if (!startData.success || !startData.jobId) {
+        throw new Error(startData.error || 'Неуспешно стартиране на генерирането');
+    }
+
+    const activeJobId = startData.jobId;
+    const MAX_POLLS = 72;
+    const POLL_BASE_DELAY = 5000;
+    const POLL_MAX_DELAY = 30000;
+    let polls = 0;
+    const nextPollDelay = () => Math.min(POLL_MAX_DELAY, POLL_BASE_DELAY * Math.pow(2, Math.min(polls - 1, 2)));
+
+    const poll = async () => {
+        polls++;
+        if (polls > MAX_POLLS) throw new Error('Генерирането отне твърде дълго. Моля, опитай отново.');
+        const statusRes = await fetch(`${WORKER_URL}/api/plan-job-status?jobId=${encodeURIComponent(activeJobId)}`);
+        if (!statusRes.ok) {
+            if (statusRes.status === 429 || statusRes.status >= 500) {
+                await new Promise(r => setTimeout(r, nextPollDelay()));
+                return poll();
+            }
+            throw new Error(`Грешка при проверка на статуса (${statusRes.status})`);
+        }
+        const statusData = await statusRes.json();
+        if (statusData.status === 'completed') return statusData;
+        if (statusData.status === 'failed') throw new Error(statusData.error || 'Генерирането на плана не успя');
+        if (statusData.status === 'not_found') throw new Error('Сесията за генериране е изтекла.');
+        await new Promise(r => setTimeout(r, nextPollDelay()));
+        return poll();
+    };
+
+    const result = await poll();
+    if (!result.success || !result.plan) {
+        throw new Error(result.error || 'Невалиден отговор от сървъра');
+    }
+
+    localStorage.setItem('dietPlan', JSON.stringify(result.plan));
+    if (result.userId) localStorage.setItem('userId', result.userId);
+    localStorage.removeItem('hasSeenPlanJustification');
+
+    // Demo: increment plan generation counter
+    incrementDemoFoodPickerCount();
+
+    setLoading(true, 'Пренасочване към плана…');
+    await new Promise(r => setTimeout(r, 700));
+    window.location.href = 'index.html?app=1&tab=plan';
+}
+
+// Изборът е запазен в профила (userFoodList / userFoodExclude) — може да се изчисти.
+function savedUserData() {
+    try { return JSON.parse(localStorage.getItem('userData') || 'null'); } catch (e) { return null; }
+}
+function hasSavedChoice() {
+    const u = savedUserData();
+    return !!u && ((Array.isArray(u.userFoodList) && u.userFoodList.length > 0)
+        || (Array.isArray(u.userFoodExclude) && u.userFoodExclude.length > 0));
+}
+
+// Без избрани продукти: планът се сглобява отново от всички продукти.
+async function resetChoiceAndGenerate() {
+    const userData = savedUserData();
+    if (!userData) return;
+    delete userData.userFoodList;
+    delete userData.userFoodExclude;
+    localStorage.setItem('userData', JSON.stringify(userData));
+    localStorage.removeItem('userFoodList');
+    hideError();
+    try {
+        await generateFromPicker(userData, 'Генериране на план с всички продукти…');
+    } catch (err) {
+        setLoading(false);
+        showError(`Грешка при изпращане: ${err.message}. Провери връзката и опитай пак.`);
+    }
+}
+
 // ── Submit ─────────────────────────────────────────────────────────────────
 async function handleSubmit() {
     const list = Object.keys(selected);
     if (list.length === 0) {
-        showToast('Избери поне един продукт!', true);
+        if (!hasSavedChoice()) {
+            showToast('Избери поне един продукт!', true);
+            return;
+        }
+        if (!isDemoLimitUnlocked() && getDemoFoodPickerCount() >= DEMO_MAX_PLAN_GENERATIONS) {
+            showDemoNotice();
+            showToast('Демо лимит: само 1 генериране е позволено.', true);
+            return;
+        }
+        await resetChoiceAndGenerate();
         return;
     }
 
@@ -1054,64 +1168,7 @@ async function handleSubmit() {
             }
             localStorage.setItem('userData', JSON.stringify(userData));
 
-            setLoading(true, 'Генериране на план с избраните продукти…', 'Това може да отнеме до няколко минути');
-
-            const jobId = crypto.randomUUID();
-            const startRes = await fetch(`${WORKER_URL}/api/generate-plan-async`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...userData, _jobId: jobId })
-            });
-            if (!startRes.ok) {
-                const errData = await startRes.json().catch(() => ({}));
-                throw new Error(errData.error || `HTTP ${startRes.status}`);
-            }
-            const startData = await startRes.json();
-            if (!startData.success || !startData.jobId) {
-                throw new Error(startData.error || 'Неуспешно стартиране на генерирането');
-            }
-
-            const activeJobId = startData.jobId;
-            const MAX_POLLS = 72;
-            const POLL_BASE_DELAY = 5000;
-            const POLL_MAX_DELAY = 30000;
-            let polls = 0;
-            const nextPollDelay = () => Math.min(POLL_MAX_DELAY, POLL_BASE_DELAY * Math.pow(2, Math.min(polls - 1, 2)));
-
-            const poll = async () => {
-                polls++;
-                if (polls > MAX_POLLS) throw new Error('Генерирането отне твърде дълго. Моля, опитай отново.');
-                const statusRes = await fetch(`${WORKER_URL}/api/plan-job-status?jobId=${encodeURIComponent(activeJobId)}`);
-                if (!statusRes.ok) {
-                    if (statusRes.status === 429 || statusRes.status >= 500) {
-                        await new Promise(r => setTimeout(r, nextPollDelay()));
-                        return poll();
-                    }
-                    throw new Error(`Грешка при проверка на статуса (${statusRes.status})`);
-                }
-                const statusData = await statusRes.json();
-                if (statusData.status === 'completed') return statusData;
-                if (statusData.status === 'failed') throw new Error(statusData.error || 'Генерирането на плана не успя');
-                if (statusData.status === 'not_found') throw new Error('Сесията за генериране е изтекла.');
-                await new Promise(r => setTimeout(r, nextPollDelay()));
-                return poll();
-            };
-
-            const result = await poll();
-            if (!result.success || !result.plan) {
-                throw new Error(result.error || 'Невалиден отговор от сървъра');
-            }
-
-            localStorage.setItem('dietPlan', JSON.stringify(result.plan));
-            if (result.userId) localStorage.setItem('userId', result.userId);
-            localStorage.removeItem('hasSeenPlanJustification');
-
-            // Demo: increment plan generation counter
-            incrementDemoFoodPickerCount();
-
-            setLoading(true, 'Пренасочване към плана…');
-            await new Promise(r => setTimeout(r, 700));
-            window.location.href = 'index.html?app=1&tab=plan';
+            await generateFromPicker(userData, 'Генериране на план с избраните продукти…');
 
         } else {
             // No existing profile — redirect to questionnaire so the user can fill it in
@@ -1139,7 +1196,7 @@ function setLoading(active, text, sub) {
         btn.disabled = true;
     } else {
         overlay.classList.remove('active');
-        btn.disabled = Object.keys(selected).length === 0;
+        btn.disabled = Object.keys(selected).length === 0 && !hasSavedChoice();
     }
 }
 

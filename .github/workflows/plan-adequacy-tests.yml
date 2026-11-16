@@ -13,6 +13,9 @@ on:
       - 'food-nutrition.js'
       - 'meal-solver.js'
       - 'scripts/test-solver.mjs'
+      - 'nutrition-engine/**'
+      - 'food-picker.html'
+      - 'scripts/test-food-picker*.mjs'
       - '.github/workflows/plan-adequacy-tests.yml'
   pull_request:
     paths:
@@ -24,6 +27,9 @@ on:
       - 'food-nutrition.js'
       - 'meal-solver.js'
       - 'scripts/test-solver.mjs'
+      - 'nutrition-engine/**'
+      - 'food-picker.html'
+      - 'scripts/test-food-picker*.mjs'
       - '.github/workflows/plan-adequacy-tests.yml'
 
 jobs:
@@ -47,3 +53,9 @@ jobs:
 
       - name: Universality stress (catalog pools)
         run: node test-universality-stress.mjs
+
+      - name: Food picker (Избери храни → менюто)
+        run: npm run test:food-picker
+
+      - name: Region (сезон по полукълбо, кухня)
+        run: npm run test:region

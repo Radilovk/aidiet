@@ -74,6 +74,7 @@ import {
   mergePlanModifications,
 } from './nutrition-engine/index.js';
 import { buildEngineStrategy } from './nutrition-engine/strategy.js';
+import { choiceVocabulary, unresolvedChoiceNames, normalizeChoiceNames } from './nutrition-engine/food-choice.js';
 import {
   VOCABULARY,
   collectFreeText,
@@ -3180,9 +3181,22 @@ function invalidateCustomPromptsCache(key = null) {
 /**
  * Generate nutrition plan from questionnaire data using multi-step approach
  */
+/**
+ * Държавата на клиента (Cloudflare: request.cf.country) — само за сезона по
+ * полукълбото и кухнята на менюто (nutrition-engine/region.js). Код от 2 букви.
+ */
+function withRequestCountry(data, request) {
+  const country = String(/** @type {any} */ (request)?.cf?.country || '');
+  // XX — неизвестна, T1 — Tor: тогава остава записаната (или никаква — България по подразбиране).
+  if (data && typeof data === 'object' && /^[A-Z]{2}$/.test(country) && country !== 'XX' && country !== 'T1') {
+    data.country = country;
+  }
+  return data;
+}
+
 async function handleGeneratePlan(request, env, ctx) {
   try {
-    const data = normalizeQuestionnaireData(await request.json());
+    const data = withRequestCountry(normalizeQuestionnaireData(await request.json()), request);
     if (!data.name || !data.age || !data.weight || !data.height) {
       console.error('handleGeneratePlan: Missing required fields');
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
@@ -3621,7 +3635,7 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     delete rawBody._userId;
     delete rawBody._idToken;
 
-    const data = normalizeQuestionnaireData(rawBody);
+    const data = withRequestCountry(normalizeQuestionnaireData(rawBody), request);
     if (!data.name || !data.age || !data.weight || !data.height) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
@@ -5796,7 +5810,7 @@ async function syncActivatedPlanToUserProfile(env, clientData, clientId) {
 /** Отговорите, от които двигателят сглобява менюто — промяна в тях означава ново меню. */
 const ENGINE_INPUT_ANSWER_KEYS = [
   'planModifications', 'dietDislike', 'dietLove', 'dietPreference', 'medicalConditions',
-  'foodCravings', 'eatingHabits', 'mealsPerDay', 'userFoodList',
+  'foodCravings', 'eatingHabits', 'mealsPerDay', 'userFoodList', 'userFoodExclude',
 ];
 const engineInputsOf = (answers) => JSON.stringify(ENGINE_INPUT_ANSWER_KEYS.map(k => answers?.[k] ?? null));
 
@@ -8327,6 +8341,8 @@ function assembleEnginePlan(data, analysis, options = {}) {
   }, strategy);
   plan.analysis = analysis;
   plan.strategy = strategy;
+  // „Избери храни“: какво от избора не влезе и с какво е допълнено — показва се в плана.
+  if (engine.foodChoice) plan.foodChoice = engine.foodChoice;
   // Паметта за изборите на клиента пътува с плана (без отделен запис).
   if (options.dishPreference && Object.keys(options.dishPreference).length) plan.dishPreference = options.dishPreference;
   plan._meta = {
@@ -8426,6 +8442,7 @@ function personalHacks(plan, baseHacks, protocolHacks = null) {
  * КОНТЕКСТА на вече разбрания профил и връща допълнителни кодове (кеш по текста).
  */
 async function applyIntakeHints(env, data) {
+  await applyFoodChoiceNames(env, data);
   const items = collectFreeText(data);
   // Динамичните и протоколните въпроси — с текста на въпроса (без дублиране на свободния текст).
   const freeFields = new Set(items.map(i => i.field));
@@ -8456,6 +8473,26 @@ async function applyIntakeHints(env, data) {
   const hints = normalizeIntakeHints(raw);
   if (hints) data._aiHints = { ...hints, hash };
   else delete data._aiHints;
+}
+
+/**
+ * „Избери храни“: собствени продукти, които двигателят не разпознава (друг език,
+ * друг запис) — AI ги свежда до храните на двигателя, само от затворения речник.
+ * Без промпт в KV или при грешка непознатите остават в отчета на плана (foodChoice).
+ */
+async function applyFoodChoiceNames(env, data) {
+  const names = unresolvedChoiceNames(data);
+  if (!names.length) {
+    delete data._foodChoiceNames;
+    return;
+  }
+  const hash = textHash(names.map(text => ({ field: 'food_choice', text })));
+  if (data._foodChoiceNames?.hash === hash) return;
+  const raw = await aiHelperJson(env, 'admin_food_choice_prompt', {
+    names: names.map(n => `- ${n}`).join('\n'),
+    foods: choiceVocabulary().join(', '),
+  }, { ...data, lang: '' }, 'food_choice'); // без указание за език: отговорът са имена от речника
+  data._foodChoiceNames = { names: normalizeChoiceNames(raw, names), hash };
 }
 
 /* ─── Съвет: алгоритъм + AI (nutrition-engine/council.js) ───────────────── */
@@ -9726,6 +9763,7 @@ const AI_TASKS = {
   intake_hints: { tier: 'main', thinking: 'low' },
   menu_review: { tier: 'main', thinking: 'low' },
   feedback_hints: { tier: 'lite', thinking: 'low' },
+  food_choice: { tier: 'lite', thinking: 'minimal', maxTokens: 600 },
   // Съветът (алгоритъм + AI): клинична преценка — мисли повече; отговорът на възражението — по-кратко.
   // Цената: ниско мислене; отговорът на възражението — по-евтиният модел.
   goal_council: { tier: 'main', thinking: 'low', maxTokens: 700 },
@@ -11250,6 +11288,7 @@ function getPromptKVKey(type) {
     'intake_hints': 'admin_intake_hints_prompt',
     'menu_review': 'admin_menu_review_prompt',
     'feedback_hints': 'admin_feedback_hints_prompt',
+    'food_choice': 'admin_food_choice_prompt',
     'document_assessment': 'admin_document_assessment_prompt'
   };
   
@@ -11330,6 +11369,7 @@ async function handleGetDefaultPrompt(request, env) {
       'intake_hints': 'admin_intake_hints_prompt',
       'menu_review': 'admin_menu_review_prompt',
       'feedback_hints': 'admin_feedback_hints_prompt',
+      'food_choice': 'admin_food_choice_prompt',
       'document_assessment': 'admin_document_assessment_prompt'
     };
     

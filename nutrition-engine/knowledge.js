@@ -143,6 +143,7 @@ export function foodByCatalogName(name) {
  * @property {Array<[string, number]>} fixed
  * @property {string[]} sides
  * @property {string[]|null} seasonsOnly
+ * @property {string|null} cuisine     „bg“ — българската кухня (region.js: по-рядко извън дома ѝ)
  * @property {string|null} requires
  * @property {boolean} fruitPaired
  * @property {boolean} fruitAlone    плод без белтък/мазнина — не и при инсулинова резистентност
@@ -178,6 +179,7 @@ export const DISHES = dishesDoc.dishes.map(d => {
     fixed: d.fixed || [],
     sides: d.sides || [],
     seasonsOnly: d.seasonsOnly || null,
+    cuisine: d.cuisine || null,
     requires: d.requires || null,
     fruitPaired: !!d.fruitPaired,
     fruitAlone: !!d.fruitAlone,

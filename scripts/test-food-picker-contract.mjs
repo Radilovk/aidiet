@@ -14,7 +14,10 @@ const workerSrc = readFileSync('worker.entry.js', 'utf8');
 const foodPickerSrc = readFileSync('food-picker.html', 'utf8');
 
 assert(readFileSync('nutrition-engine/index.js', 'utf8').includes('userFoodList'), 'engine handles userFoodList');
-assert(readFileSync('questionnaire-engine-map.js', 'utf8').includes('userFoodExclude'), 'blocked terms include userFoodExclude');
+assert(readFileSync('nutrition-engine/index.js', 'utf8').includes('userFoodExclude'), 'engine handles userFoodExclude (exact foods, not blocked terms)');
+assert(workerSrc.includes("'userFoodList', 'userFoodExclude'"), 'both picker lists trigger a new menu');
+assert(workerSrc.includes('plan.foodChoice = engine.foodChoice'), 'the choice report travels with the plan');
+assert(readFileSync('plan.html', 'utf8').includes('renderFoodChoiceNote'), 'plan shows the choice report');
 assert(!foodPickerSrc.includes('/api/admin/set-mainlist'), 'food-picker does not mutate global mainlist');
 assert(!foodPickerSrc.includes('/api/admin/set-blacklist'), 'food-picker does not mutate global blacklist');
 assert(foodPickerSrc.includes('generate-plan-async'), 'food-picker uses async generation');

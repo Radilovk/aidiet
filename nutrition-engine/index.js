@@ -11,6 +11,8 @@
 import { compileProfile, slotsFor, reproductiveStatus } from '../profile-code.js';
 import { macroTargetsFor } from '../macro-targets.js';
 import { extractQuestionnaireBlockedTerms } from '../questionnaire-engine-map.js';
+import { withChoiceNames, choiceReport } from './food-choice.js';
+import { regionOf } from './region.js';
 import { interactionsFor } from '../drug-interactions.js';
 import { buildFoodPolicy } from './policy.js';
 import { prescribe } from './prescription.js';
@@ -164,7 +166,10 @@ export function buildNutritionPlan(userData, options) {
     date: options.date,
     sweetsCraving: hasSweetsCraving(userData),
     extraExcludeFlags: mods.includes('gentle_digestion') ? ['high_fodmap'] : [],
-    onlyFoods: Array.isArray(userData?.userFoodList) ? userData.userFoodList.map(String) : [],
+    region: regionOf(userData || {}),
+    // „Избери храни“ — с превода на собствените продукти от AI (worker: applyFoodChoiceNames).
+    onlyFoods: withChoiceNames(userData?.userFoodList, userData?._foodChoiceNames?.names),
+    excludeFoods: withChoiceNames(userData?.userFoodExclude, userData?._foodChoiceNames?.names),
   });
   // Рефлукс: без хранене 2–3 часа преди лягане — късната закуска отпада.
   const slots = policy.noLateMeal && profile.slots.length > 3 ? profile.slots.filter(s => s !== 'Хранене 5') : profile.slots;
@@ -239,7 +244,8 @@ export function buildNutritionPlan(userData, options) {
     micro,
   } : { quality, micro };
 
-  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods, metabolicPlan };
+  const foodChoice = choiceReport(policy, week.days, week.stats);
+  return { profile, policy, prescription, weekPlan, freeDayNumber, stats: week.stats, macros, modifications: mods, metabolicPlan, ...(foodChoice ? { foodChoice } : {}) };
 }
 
 /** Хранителната схема с думи — както диетологът я дава на клиента. */
