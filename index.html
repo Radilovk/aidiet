@@ -664,6 +664,10 @@
             color: var(--lp-accent);
             white-space: nowrap;
         }
+        /* В заглавията на разделите наклоненият текст може да е цяло изречение — пренася се. */
+        .lp-h2 em { white-space: normal; }
+        /* Нищо не разпъва страницата встрани (иначе мобилният браузър смалява цялата страница). */
+        html { overflow-x: clip; }
         .lp-wrap { width: min(1160px, 100%); margin: 0 auto; padding: 0 24px; }
 
         /* --- HERO --- */
@@ -2218,7 +2222,7 @@
                     <span class="lp-line lp-enter" style="--d:2"><em>личен</em> план.</span>
                     <span class="lp-line lp-line--logic lp-enter" style="--d:2">Логичен избор.</span>
                 </h1>
-                <p class="lp-lead lp-enter" style="--d:3">Общите принципи и съвети са за всеки — значи конкретно за никого. Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад изчисленията стои екип от лекари и диетолози. Резултатът от всичко това е твой.</p>
+                <p class="lp-lead lp-enter" style="--d:3">Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад изчисленията стои екип от лекари и диетолози. Резултатът от всичко това е твой.</p>
                 <div class="cta-group lp-enter" style="--d:4">
                     <a href="questionnaire2.html" class="nav-btn lp-btn" id="heroCTABtn">Създай моя план</a>
                     <button type="button" class="btn-outline lp-btn-ghost" id="heroLoginBtn" onclick="window.indexOpenLoginModal()">Вход</button>
