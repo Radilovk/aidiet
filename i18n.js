@@ -33,7 +33,8 @@
     var API = 'https://aidiet.radilov-k.workers.dev';
     // Страници със собствен речник (останалите ползват common + резервния превод).
     var PAGE_DICTS = ['index', 'questionnaire2', 'plan', 'profile', 'analysis', 'plan-pending', 'guidelines',
-        'quick-answer', 'game-analytics', 'features', 'help', 'privacy-policy', 'terms', 'delete-account', 'warning'];
+        'quick-answer', 'game-analytics', 'features', 'help', 'privacy-policy', 'terms', 'delete-account', 'warning',
+        'emoeat-landing', 'emoeat'];
     var CYR = /[Ѐ-ӿ]/;
     // Руският също е на кирилица: текст с ы, э, ё (няма ги в българския) вече е на руски — не се превежда.
     var RU_ONLY = /[ыэёЫЭЁ]/;
@@ -298,10 +299,12 @@
         var s = document.currentScript && document.currentScript.src;
         return s ? s.replace(/[^/]*$/, '') : './';
     })();
-    var page = (location.pathname.split('/').pop() || 'index.html').replace(/\.html?$/, '') || 'index';
+    // <meta name="i18n-page"> — когато адресът не казва коя е страницата (напр. emoeat.app/ → emoeat-landing).
+    var pageMeta = document.querySelector('meta[name="i18n-page"]');
+    var page = (pageMeta && pageMeta.content) || (location.pathname.split('/').pop() || 'index.html').replace(/\.html?$/, '') || 'index';
     var files = ['common'];
     if (PAGE_DICTS.indexOf(page) >= 0) files.push(page);
-    var V = '20261114a';
+    var V = '20261116a';
 
     api.ready = Promise.all(files.map(function (f) {
         return fetch(base + 'i18n/' + lang + '/' + f + '.json?v=' + V)

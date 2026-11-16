@@ -11798,7 +11798,7 @@ async function handleGenerateEmoeatAnalysis(request, env) {
       EMOEAT_TOKEN_LIMIT,
       'emoeat_analysis',
       null,
-      null,
+      { lang: data.lang },   // езикът на клиента (i18n.js го добавя в тялото) → текстът на неговия език
       null
     );
 
