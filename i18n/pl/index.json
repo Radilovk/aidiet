@@ -164,14 +164,10 @@
   "Логичен избор.": "Logiczny wybór.",
   "EmoEat — емоционално хранене": "EmoEat — jedzenie emocjonalne",
   "IrisMap — ирисов анализ": "IrisMap — analiza tęczówki",
-  "Общите принципи и съвети са за всеки — значи конкретно за никого. Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Професионален екип от медицински специалисти стои зад мощни изчислителни алгоритми. Резултатът от всичко това остава за Теб!": "Ogólne zasady i porady są dla wszystkich — czyli dla nikogo konkretnego. Tworzymy plan naprawdę dopasowany do Ciebie: co, ile i kiedy jeść, zgodnie z Twoim ciałem, zdrowiem i celem. Za zaawansowanymi algorytmami obliczeniowymi stoi profesjonalny zespół specjalistów medycznych. A efekt tego wszystkiego należy do Ciebie!",
   "Подновява се всяка седмица": "Odnawiany co tydzień",
   "Не поредната интернет диета.": "Nie kolejna dieta z internetu.",
   "Система, съобразена изцяло с твоето тяло.": "System w pełni dopasowany do Twojego ciała.",
   "Твой личен AI консултант": "Twój osobisty doradca AI",
-  "Адаптираме всичко за теб": "Dopasowujemy wszystko do Ciebie",
-  "Конкретни насоки за хранителни добавки и активности": "Konkretne wskazówki dotyczące suplementów i aktywności",
-  "Препоръки и активност, съобразени с Теб и твоята цел!": "Zalecenia i aktywność dopasowane do Ciebie i Twojego celu!",
   "Хранене, медицина, спорт и психология. Зад всичко стои екип от специалисти.": "Żywienie, medycyna, sport i psychologia. Za wszystkim stoi zespół specjalistów.",
   "Емоционално хранене: откъде идва гладът за определени храни. Резултатът влиза направо в плана ти.": "Jedzenie emocjonalne: skąd bierze się ochota na określone produkty. Wynik trafia prosto do Twojego planu.",
   "Ирисов анализ по снимка на окото. Резултатите от ирисовата карта влизат в плана като допълнителни данни.": "Analiza tęczówki na podstawie zdjęcia oka. Wyniki mapy tęczówki trafiają do planu jako dodatkowe dane.",
@@ -179,7 +175,11 @@
   "Енергия, нутриенти и ограничения според здравето ти и приема на лекарства. Специалист преглежда резултата.": "Energia, składniki odżywcze i ograniczenia zależne od Twojego zdrowia i przyjmowanych leków. Specjalista sprawdza wynik.",
   "Планът е в приложението — меню, препоръки, напомняния, консултант.": "Plan jest w aplikacji — menu, zalecenia, przypomnienia, doradca.",
   "Ние изчисляваме как.": "My obliczamy, jak.",
-  "приложение на телефона": "aplikacja w telefonie"
+  "приложение на телефона": "aplikacja w telefonie",
+  "Общите принципи и съвети са за всеки — значи конкретно за никого. Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад изчисленията стои екип от лекари и диетолози. Резултатът от всичко това е твой.": "Ogólne zasady i porady są dla wszystkich — czyli dla nikogo konkretnego. Tworzymy plan naprawdę dopasowany do Ciebie: co, ile i kiedy jeść, zgodnie z Twoim ciałem, zdrowiem i celem. Za obliczeniami stoi zespół lekarzy i dietetyków. Efekt należy do Ciebie.",
+  "Адаптираме всичко към теб": "Dopasowujemy wszystko do Ciebie",
+  "Конкретни насоки за хранителни добавки и движение": "Konkretne wskazówki dotyczące suplementów i ruchu",
+  "Препоръки и активност, съобразени с теб и с целта ти.": "Zalecenia i aktywność dopasowane do Ciebie i Twojego celu."
  },
  "keys": {
   "day.mock.0": "P",

@@ -2,7 +2,7 @@
 // Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v52'; // v52: редакциите на лендинга
+const CACHE_NAME = 'nutriplan-v53'; // v53: правописни поправки в лендинга
 // Android приложението (Capacitor) е на https://localhost и носи файловете си —
 // там service worker само връща стари версии след обновяване. Самоизключва се.
 const IS_NATIVE_APP_ORIGIN = self.location.origin === 'https://localhost';
