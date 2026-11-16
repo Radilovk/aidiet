@@ -56,3 +56,6 @@ jobs:
 
       - name: Food picker (Избери храни → менюто)
         run: npm run test:food-picker
+
+      - name: Region (сезон по полукълбо, кухня)
+        run: npm run test:region

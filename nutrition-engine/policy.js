@@ -10,6 +10,7 @@ import {
 } from './knowledge.js';
 import { normalizeFoodKey } from '../food-utils.js';
 import { resolveFoodChoice, restrictedGroupsOf } from './food-choice.js';
+import { regionOf, seasonFor, FOREIGN_CUISINE_PENALTY } from './region.js';
 
 /** @typedef {ReturnType<typeof import('../profile-code.js').compileProfile>} Profile */
 
@@ -17,11 +18,9 @@ import { resolveFoodChoice, restrictedGroupsOf } from './food-choice.js';
 const MIN_UNIVERSALITY = 3;
 const NICHE = /лаврак|патеш|заеш|агнеш|дивеч|амарант|темпе/i;
 
-const MONTH_SEASON = ['winter', 'winter', 'spring', 'spring', 'spring', 'summer',
-  'summer', 'summer', 'autumn', 'autumn', 'autumn', 'winter'];
-
+/** Сезонът в северното полукълбо (за клиента — seasonFor от region.js). */
 export function seasonOf(date = new Date()) {
-  return MONTH_SEASON[date.getMonth()];
+  return seasonFor(date, 'north');
 }
 
 function words(text) {
@@ -76,14 +75,16 @@ function activeRules(profile) {
 
 /**
  * @param {Profile} profile
- * @param {{ blockedTerms?: string[], loves?: string, adherence?: Map<string, number>|null, date?: Date, sweetsCraving?: boolean, extraExcludeFlags?: string[], onlyFoods?: string[], excludeFoods?: string[], relaxGroups?: string[] }} [options]
+ * @param {{ blockedTerms?: string[], loves?: string, adherence?: Map<string, number>|null, date?: Date, sweetsCraving?: boolean, extraExcludeFlags?: string[], onlyFoods?: string[], excludeFoods?: string[], relaxGroups?: string[], region?: ReturnType<typeof regionOf> }} [options]
  */
 export function buildFoodPolicy(profile, options = {}) {
   const style = STYLES[profile.diet?.style] ? profile.diet.style : 'balanced';
   const styleDef = STYLES[style];
   const pattern = PATTERNS[profile.diet?.pattern] ? profile.diet.pattern : 'omnivore';
   const rules = activeRules(profile);
-  const season = seasonOf(options.date || new Date());
+  // Къде е клиентът: сезонът по полукълбото (в тропиците — без сезон) и кухнята.
+  const region = options.region || regionOf({});
+  const season = seasonFor(options.date || new Date(), region.climate);
 
   const excludeFlags = new Set([...(styleDef.excludeFlags || []), ...(options.extraExcludeFlags || [])]);
   const excludeKinds = new Set();
@@ -150,7 +151,7 @@ export function buildFoodPolicy(profile, options = {}) {
     if (preferFoods.has(id)) score += 1.5;
     if (loves.some(term => matchesTerm(f, term)) || picked.has(id)) score += 2;
     const seasons = SEASONS[id];
-    if (seasons) score += seasons.includes(season) ? 0.5 : -0.5;
+    if (seasons && season) score += seasons.includes(season) ? 0.5 : -0.5;
     if (adherence) {
       const ratio = adherence.get(normalizeFoodKey(f.nutritionKey));
       if (ratio != null && ratio < 0.6) score -= 2 * (0.6 - ratio) / 0.6;
@@ -215,6 +216,9 @@ export function buildFoodPolicy(profile, options = {}) {
     pattern,
     patternDef: PATTERNS[pattern],
     season,
+    region,
+    /** Ястие от българската кухня за клиент извън дома ѝ — по-рядко, не забранено. */
+    dishPenalty: (dish, kind) => (!region.localCuisine && dish.cuisine === 'bg' ? FOREIGN_CUISINE_PENALTY[kind] || 0 : 0),
     rules: rules.map(r => ({ code: r.code, label: r.label, basis: r.basis })),
     allowed,
     preference,

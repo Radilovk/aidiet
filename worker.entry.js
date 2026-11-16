@@ -3181,9 +3181,22 @@ function invalidateCustomPromptsCache(key = null) {
 /**
  * Generate nutrition plan from questionnaire data using multi-step approach
  */
+/**
+ * Държавата на клиента (Cloudflare: request.cf.country) — само за сезона по
+ * полукълбото и кухнята на менюто (nutrition-engine/region.js). Код от 2 букви.
+ */
+function withRequestCountry(data, request) {
+  const country = String(/** @type {any} */ (request)?.cf?.country || '');
+  // XX — неизвестна, T1 — Tor: тогава остава записаната (или никаква — България по подразбиране).
+  if (data && typeof data === 'object' && /^[A-Z]{2}$/.test(country) && country !== 'XX' && country !== 'T1') {
+    data.country = country;
+  }
+  return data;
+}
+
 async function handleGeneratePlan(request, env, ctx) {
   try {
-    const data = normalizeQuestionnaireData(await request.json());
+    const data = withRequestCountry(normalizeQuestionnaireData(await request.json()), request);
     if (!data.name || !data.age || !data.weight || !data.height) {
       console.error('handleGeneratePlan: Missing required fields');
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
@@ -3622,7 +3635,7 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     delete rawBody._userId;
     delete rawBody._idToken;
 
-    const data = normalizeQuestionnaireData(rawBody);
+    const data = withRequestCountry(normalizeQuestionnaireData(rawBody), request);
     if (!data.name || !data.age || !data.weight || !data.height) {
       return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }

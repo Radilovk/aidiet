@@ -12,6 +12,7 @@ import { compileProfile, slotsFor, reproductiveStatus } from '../profile-code.js
 import { macroTargetsFor } from '../macro-targets.js';
 import { extractQuestionnaireBlockedTerms } from '../questionnaire-engine-map.js';
 import { withChoiceNames, choiceReport } from './food-choice.js';
+import { regionOf } from './region.js';
 import { interactionsFor } from '../drug-interactions.js';
 import { buildFoodPolicy } from './policy.js';
 import { prescribe } from './prescription.js';
@@ -165,6 +166,7 @@ export function buildNutritionPlan(userData, options) {
     date: options.date,
     sweetsCraving: hasSweetsCraving(userData),
     extraExcludeFlags: mods.includes('gentle_digestion') ? ['high_fodmap'] : [],
+    region: regionOf(userData || {}),
     // „Избери храни“ — с превода на собствените продукти от AI (worker: applyFoodChoiceNames).
     onlyFoods: withChoiceNames(userData?.userFoodList, userData?._foodChoiceNames?.names),
     excludeFoods: withChoiceNames(userData?.userFoodExclude, userData?._foodChoiceNames?.names),

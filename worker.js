@@ -11464,6 +11464,7 @@ Rules:
 - The source is Bulgarian even where it looks like Russian; translate it fully into ${name}.
 - Keep numbers, units (g, kcal, ml, kg), emoji, punctuation at the edges, and anything inside {curly braces} unchanged.
 - Food and dish names: the usual ${name} name; a Bulgarian dish with no equivalent keeps its name in Latin letters with a short gloss only if needed.
+- Bulgarian dairy is specific: "\u0441\u0438\u0440\u0435\u043D\u0435" is white brine cheese (feta-style), never generic cheese; "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B" is kashkaval, a yellow semi-hard cheese; "\u0438\u0437\u0432\u0430\u0440\u0430" is quark / cottage cheese; "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E" is plain yogurt; "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E" is milk.
 - "Eatologix" stays as is. Do not add quotes, notes or explanations.
 Return ONLY a JSON array of strings with exactly ${list4.length} items, in the same order.
 
@@ -31306,7 +31307,7 @@ var clinical_default = {
 
 // data/engine/dishes.json
 var dishes_default = {
-  about: "\u042F\u0441\u0442\u0438\u044F \u043A\u0430\u0442\u043E \u0440\u0435\u0446\u0435\u043F\u0442\u0443\u0440\u043D\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430: \u0432\u0441\u044F\u043A\u0430 \u0447\u0430\u0441\u0442 \u0435 \u043E\u0431\u043C\u0435\u043D\u043D\u0430 \u0433\u0440\u0443\u043F\u0430 \u0441 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 \u0438 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D \u0432 \u043F\u043E\u0440\u0446\u0438\u0438. \u0413\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u0438 \u2014 \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435, \u043A\u043E\u0438\u0442\u043E \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430\u0442\u0430 \u0441\u0445\u0435\u043C\u0430 \u0434\u0430\u0432\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E. \u0427\u0430\u0441\u0442\u0438 \u0441 \u043C\u0438\u043D\u0438\u043C\u0443\u043C 0 \u043E\u0442\u043F\u0430\u0434\u0430\u0442, \u043A\u043E\u0433\u0430\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u043D\u044F\u043C\u0430 \u0442\u0430\u043A\u0430\u0432\u0430 \u043F\u043E\u0440\u0446\u0438\u044F \u0438\u043B\u0438 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0435 \u0438\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0430 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. fixed \u0441\u0430 \u0432\u043A\u0443\u0441\u043E\u0432\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0438 \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u043E\u0438\u0442\u043E \u043D\u0435 \u0441\u0435 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430\u0442 \u0438 \u043E\u0442\u043F\u0430\u0434\u0430\u0442, \u0430\u043A\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0433\u0438 \u0438\u0437\u043A\u043B\u044E\u0447\u0432\u0430.",
+  about: '\u042F\u0441\u0442\u0438\u044F \u043A\u0430\u0442\u043E \u0440\u0435\u0446\u0435\u043F\u0442\u0443\u0440\u043D\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430: \u0432\u0441\u044F\u043A\u0430 \u0447\u0430\u0441\u0442 \u0435 \u043E\u0431\u043C\u0435\u043D\u043D\u0430 \u0433\u0440\u0443\u043F\u0430 \u0441 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 \u0438 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D \u0432 \u043F\u043E\u0440\u0446\u0438\u0438. \u0413\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u0438 \u2014 \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435, \u043A\u043E\u0438\u0442\u043E \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430\u0442\u0430 \u0441\u0445\u0435\u043C\u0430 \u0434\u0430\u0432\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E. \u0427\u0430\u0441\u0442\u0438 \u0441 \u043C\u0438\u043D\u0438\u043C\u0443\u043C 0 \u043E\u0442\u043F\u0430\u0434\u0430\u0442, \u043A\u043E\u0433\u0430\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u043D\u044F\u043C\u0430 \u0442\u0430\u043A\u0430\u0432\u0430 \u043F\u043E\u0440\u0446\u0438\u044F \u0438\u043B\u0438 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0435 \u0438\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0430 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. fixed \u0441\u0430 \u0432\u043A\u0443\u0441\u043E\u0432\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0438 \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u043E\u0438\u0442\u043E \u043D\u0435 \u0441\u0435 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430\u0442 \u0438 \u043E\u0442\u043F\u0430\u0434\u0430\u0442, \u0430\u043A\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0433\u0438 \u0438\u0437\u043A\u043B\u044E\u0447\u0432\u0430. cuisine: "bg" \u2014 \u044F\u0441\u0442\u0438\u0435 \u043E\u0442 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0430\u0442\u0430 \u043A\u0443\u0445\u043D\u044F: \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442 \u0438\u0437\u0432\u044A\u043D \u0411\u0430\u043B\u043A\u0430\u043D\u0438\u0442\u0435, \u043A\u043E\u0439\u0442\u043E \u043D\u0435 \u043F\u0438\u0448\u0435 \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438, \u0438\u0434\u0432\u0430 \u043F\u043E-\u0440\u044F\u0434\u043A\u043E (nutrition-engine/region.js).',
   seasons: {
     veg_tomato: [
       "summer",
@@ -32853,6 +32854,7 @@ var dishes_default = {
         "main"
       ],
       category: "red",
+      cuisine: "bg",
       name: "\u0413\u044E\u0432\u0435\u0447 \u0441 \u0442\u0435\u043B\u0435\u0448\u043A\u043E",
       prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u043A\u0443\u0431\u0447\u0435\u0442\u0430\u0442\u0430 \u0442\u0435\u043B\u0435\u0448\u043A\u043E \u0432 \u0437\u0435\u0445\u0442\u0438\u043D\u0430 \u0441 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 40 \u043C\u0438\u043D\u0443\u0442\u0438. \u041F\u0440\u0435\u0445\u0432\u044A\u0440\u043B\u0438 \u0432 \u0433\u044E\u0432\u0435\u0447 \u0437\u0430\u0435\u0434\u043D\u043E \u0441 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438\u0442\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438\u0442\u0435, \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u0438 \u0438 \u043F\u0435\u0447\u0438 \u043D\u0430 180\xB0C \u043E\u043A\u043E\u043B\u043E 40 \u043C\u0438\u043D\u0443\u0442\u0438.",
       parts: [
@@ -32946,6 +32948,7 @@ var dishes_default = {
         "main"
       ],
       category: "red",
+      cuisine: "bg",
       name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435",
       prep: "\u0417\u0430\u043F\u0435\u0447\u0430\u0442\u0430\u0439 \u043C\u0435\u0441\u043E\u0442\u043E \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0432 \u0437\u0435\u0445\u0442\u0438\u043D\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u043E\u0442\u043E \u0437\u0435\u043B\u0435, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u0437\u0430\u0434\u0443\u0448\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A 30 \u043C\u0438\u043D\u0443\u0442\u0438. \u041A\u0430\u0440\u0442\u043E\u0444\u0438\u0442\u0435 \u0434\u043E\u0431\u0430\u0432\u0438 \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0432 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 15 \u043C\u0438\u043D\u0443\u0442\u0438.",
       parts: [
@@ -33111,6 +33114,7 @@ var dishes_default = {
         "main"
       ],
       category: "red",
+      cuisine: "bg",
       name: "\u041A\u0430\u0432\u044A\u0440\u043C\u0430",
       prep: "\u0417\u0430\u043F\u044A\u0440\u0436\u0438 \u043C\u0435\u0441\u043E\u0442\u043E \u0432 \u0437\u0435\u0445\u0442\u0438\u043D\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u0437\u0430\u0434\u0443\u0448\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438 \u0441 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430, \u0441\u043E\u043B \u0438 \u0447\u0443\u0431\u0440\u0438\u0446\u0430. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430.",
       parts: [
@@ -33445,6 +33449,7 @@ var dishes_default = {
         "main"
       ],
       category: "red",
+      cuisine: "bg",
       name: "\u0421\u0430\u0440\u043C\u0438 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435",
       prep: "\u0421\u043C\u0435\u0441\u0438 \u043A\u0430\u0439\u043C\u0430\u0442\u0430 \u0438 \u043E\u0440\u0438\u0437\u0430 \u0441 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438\u0442\u0435 \u0438 \u0437\u0435\u0445\u0442\u0438\u043D\u0430 \u0438 \u0437\u0430\u0432\u0438\u0439 \u0432 \u043B\u0438\u0441\u0442\u0430\u0442\u0430 \u0437\u0435\u043B\u0435. \u041D\u0430\u0440\u0435\u0434\u0438 \u0441\u0430\u0440\u043C\u0438\u0442\u0435 \u0432 \u0442\u0435\u043D\u0434\u0436\u0435\u0440\u0430, \u0437\u0430\u043B\u0435\u0439 \u0441 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D \u043E\u043A\u043E\u043B\u043E 1 \u0447\u0430\u0441.",
       parts: [
@@ -33891,6 +33896,7 @@ var dishes_default = {
         "main"
       ],
       category: "fish",
+      cuisine: "bg",
       name: "\u0420\u0438\u0431\u0430 \u043F\u043B\u0430\u043A\u0438\u044F",
       prep: "\u041D\u0430\u0440\u0435\u0434\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438\u0442\u0435 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0432 \u0442\u0430\u0432\u0430, \u0441\u043B\u043E\u0436\u0438 \u0440\u0438\u0431\u0430\u0442\u0430 \u043E\u0442\u0433\u043E\u0440\u0435, \u043F\u043E\u043B\u0435\u0439 \u0441\u044A\u0441 \u0437\u0435\u0445\u0442\u0438\u043D\u0430 \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u0438 \u0441 \u0434\u0430\u0444\u0438\u043D\u043E\u0432 \u043B\u0438\u0441\u0442 \u0438 \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440. \u041F\u0435\u0447\u0438 \u043D\u0430 190\xB0C \u043E\u043A\u043E\u043B\u043E 30 \u043C\u0438\u043D\u0443\u0442\u0438.",
       parts: [
@@ -33979,6 +33985,7 @@ var dishes_default = {
         "main"
       ],
       category: "fish",
+      cuisine: "bg",
       name: "\u0420\u0438\u0431\u0435\u043D\u0430 \u0447\u043E\u0440\u0431\u0430",
       prep: "\u0421\u0432\u0430\u0440\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430 \u0432 \u043F\u043E\u0434\u0441\u043E\u043B\u0435\u043D\u0430 \u0432\u043E\u0434\u0430 15 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u0431\u0430\u0432\u0438 \u0440\u0438\u0431\u0430\u0442\u0430 \u043D\u0430 \u043F\u0430\u0440\u0447\u0435\u0442\u0430 \u0438 \u0432\u0430\u0440\u0438 \u043E\u0449\u0435 10 \u043C\u0438\u043D\u0443\u0442\u0438. \u041E\u0432\u043A\u0443\u0441\u0438 \u0441\u044A\u0441 \u0437\u0435\u0445\u0442\u0438\u043D, \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u043C\u0430\u0433\u0434\u0430\u043D\u043E\u0437.",
       parts: [
@@ -35381,6 +35388,7 @@ var dishes_default = {
         "breakfast"
       ],
       category: "veggie",
+      cuisine: "bg",
       breakfastCategory: "eggs",
       name: "\u041C\u0438\u0448\u043C\u0430\u0448",
       prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438\u0442\u0435 \u0447\u0443\u0448\u043A\u0438 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438 \u0432 \u0437\u0435\u0445\u0442\u0438\u043D\u0430 8\u201310 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0442\u0440\u043E\u0448\u0435\u043D\u043E\u0442\u043E \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0440\u0430\u0437\u0431\u0438\u0442\u0438\u0442\u0435 \u044F\u0439\u0446\u0430 \u0438 \u0431\u044A\u0440\u043A\u0430\u0439, \u0434\u043E\u043A\u0430\u0442\u043E \u0441\u0435 \u0441\u0442\u0435\u0433\u043D\u0430\u0442.",
@@ -36195,6 +36203,7 @@ var dishes_default = {
         "main"
       ],
       category: "veggie",
+      cuisine: "bg",
       name: "\u0428\u043E\u043F\u0441\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
       prep: "\u041D\u0430\u0440\u0435\u0436\u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435, \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438\u0442\u0435 \u0438 \u0447\u0443\u0448\u043A\u0438\u0442\u0435, \u043E\u0432\u043A\u0443\u0441\u0438 \u0441\u044A\u0441 \u0437\u0435\u0445\u0442\u0438\u043D \u0438 \u0441\u043E\u043B \u0438 \u043D\u0430\u0441\u0442\u044A\u0440\u0436\u0438 \u0441\u0438\u0440\u0435\u043D\u0435\u0442\u043E \u043E\u0442\u0433\u043E\u0440\u0435. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435.",
       parts: [
@@ -36903,6 +36912,7 @@ var dishes_default = {
         "breakfast"
       ],
       category: "eggs",
+      cuisine: "bg",
       name: "\u042F\u0439\u0446\u0430 \u043F\u043E \u043F\u0430\u043D\u0430\u0433\u044E\u0440\u0441\u043A\u0438",
       prep: "\u041F\u043E\u0448\u0438\u0440\u0430\u0439 \u044F\u0439\u0446\u0430\u0442\u0430 3 \u043C\u0438\u043D\u0443\u0442\u0438 \u0432 \u043B\u0435\u043A\u043E \u0432\u0440\u044F\u0449\u0430 \u0432\u043E\u0434\u0430 \u0441 \u043C\u0430\u043B\u043A\u043E \u043E\u0446\u0435\u0442. \u0421\u043B\u043E\u0436\u0438 \u0433\u0438 \u0432\u044A\u0440\u0445\u0443 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E (\u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0441 \u043C\u0430\u043B\u043A\u043E \u0447\u0435\u0441\u044A\u043D) \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0445\u043B\u044F\u0431\u0430.",
       parts: [
@@ -37764,6 +37774,7 @@ var dishes_default = {
         "breakfast"
       ],
       category: "porridge",
+      cuisine: "bg",
       name: "\u041F\u043E\u043F\u0430\u0440\u0430 \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435",
       prep: "\u041D\u0430\u0442\u0440\u043E\u0448\u0438 \u0445\u043B\u044F\u0431\u0430 \u0432 \u043A\u0443\u043F\u0430, \u0437\u0430\u043B\u0435\u0439 \u0433\u043E \u0441 \u0433\u043E\u0440\u0435\u0449\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E, \u0434\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0442\u0440\u043E\u0448\u0435\u043D\u043E\u0442\u043E \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u043C\u0430\u0441\u043B\u043E\u0442\u043E \u0438 \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439.",
       parts: [
@@ -38936,6 +38947,7 @@ var dishes_default = {
         "snack"
       ],
       category: "dairy",
+      cuisine: "bg",
       name: "\u0422\u0430\u0440\u0430\u0442\u043E\u0440",
       prep: "\u041D\u0430\u0441\u0442\u044A\u0440\u0436\u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430\u0442\u0430, \u0441\u043C\u0435\u0441\u0438 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E, \u0441\u0442\u0443\u0434\u0435\u043D\u0430 \u0432\u043E\u0434\u0430, \u043A\u043E\u043F\u044A\u0440, \u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0447\u0435\u0441\u044A\u043D \u0438 \u0441\u0447\u0443\u043A\u0430\u043D\u0438\u0442\u0435 \u043E\u0440\u0435\u0445\u0438. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u043E\u0445\u043B\u0430\u0434\u0435\u043D.",
       parts: [
@@ -38992,6 +39004,7 @@ var dishes_default = {
         "late"
       ],
       category: "dairy",
+      cuisine: "bg",
       name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0421\u043D\u0435\u0436\u0430\u043D\u043A\u0430",
       prep: "\u041D\u0430\u0440\u0435\u0436\u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430\u0442\u0430 \u043D\u0430 \u0441\u0438\u0442\u043D\u043E \u0438 \u044F \u0441\u043C\u0435\u0441\u0438 \u0441 \u0446\u0435\u0434\u0435\u043D\u043E\u0442\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u043A\u043E\u043F\u044A\u0440, \u043F\u043E \u0436\u0435\u043B\u0430\u043D\u0438\u0435 \u0447\u0435\u0441\u044A\u043D \u0438 \u0441\u0447\u0443\u043A\u0430\u043D\u0438\u0442\u0435 \u043E\u0440\u0435\u0445\u0438.",
       parts: [
@@ -40288,6 +40301,7 @@ var DISHES = dishesDoc.dishes.map((d) => {
     fixed: d.fixed || [],
     sides: d.sides || [],
     seasonsOnly: d.seasonsOnly || null,
+    cuisine: d.cuisine || null,
     requires: d.requires || null,
     fruitPaired: !!d.fruitPaired,
     fruitAlone: !!d.fruitAlone
@@ -41745,10 +41759,79 @@ function choiceReport(policy, days, stats = {}) {
   };
 }
 
-// nutrition-engine/policy.js
-var MIN_UNIVERSALITY = 3;
-var NICHE = /лаврак|патеш|заеш|агнеш|дивеч|амарант|темпе/i;
-var MONTH_SEASON = [
+// nutrition-engine/region.js
+var SOUTHERN = /* @__PURE__ */ new Set(["AU", "NZ", "AR", "CL", "UY", "PY", "ZA", "LS", "SZ", "NA", "BW"]);
+var TROPICAL = /* @__PURE__ */ new Set([
+  "SG",
+  "MY",
+  "ID",
+  "TH",
+  "VN",
+  "PH",
+  "KH",
+  "LA",
+  "MM",
+  "LK",
+  "BN",
+  "TL",
+  "BR",
+  "CO",
+  "VE",
+  "EC",
+  "PE",
+  "BO",
+  "CR",
+  "PA",
+  "GT",
+  "HN",
+  "NI",
+  "SV",
+  "BZ",
+  "DO",
+  "CU",
+  "JM",
+  "PR",
+  "HT",
+  "TT",
+  "BS",
+  "BB",
+  "NG",
+  "GH",
+  "CI",
+  "CM",
+  "KE",
+  "TZ",
+  "UG",
+  "RW",
+  "ET",
+  "SN",
+  "CD",
+  "CG",
+  "GA",
+  "AO",
+  "MZ",
+  "MG",
+  "ZM",
+  "ZW",
+  "MW",
+  "BJ",
+  "TG",
+  "SL",
+  "LR",
+  "GN",
+  "ML",
+  "BF",
+  "SO",
+  "MU",
+  "SC",
+  "FJ",
+  "PG",
+  "WS",
+  "TO",
+  "MV"
+]);
+var BALKAN = /* @__PURE__ */ new Set(["BG", "MK", "RS", "GR", "RO", "TR", "AL", "ME", "BA", "HR", "SI", "XK", "MD", "CY"]);
+var NORTH_SEASONS = [
   "winter",
   "winter",
   "spring",
@@ -41762,9 +41845,23 @@ var MONTH_SEASON = [
   "autumn",
   "winter"
 ];
-function seasonOf(date = /* @__PURE__ */ new Date()) {
-  return MONTH_SEASON[date.getMonth()];
+function regionOf(userData = {}) {
+  const country = /^[A-Za-z]{2}$/.test(String(userData?.country || "")) ? String(userData.country).toUpperCase() : "";
+  const lang = String(userData?.lang || "").toLowerCase();
+  const climate = TROPICAL.has(country) ? "tropical" : SOUTHERN.has(country) ? "south" : "north";
+  const localCuisine = !lang || lang === "bg" || !country || BALKAN.has(country);
+  return { country, lang: lang || "bg", climate, localCuisine };
 }
+function seasonFor(date = /* @__PURE__ */ new Date(), climate = "north") {
+  if (climate === "tropical") return null;
+  const month = climate === "south" ? (date.getMonth() + 6) % 12 : date.getMonth();
+  return NORTH_SEASONS[month];
+}
+var FOREIGN_CUISINE_PENALTY = { main: 2, breakfast: 1.5, snack: 1, late: 1 };
+
+// nutrition-engine/policy.js
+var MIN_UNIVERSALITY = 3;
+var NICHE = /лаврак|патеш|заеш|агнеш|дивеч|амарант|темпе/i;
 function words(text2) {
   return String(text2 || "").split(/[,;\n/]|\sи\s/).map((s) => normalizeFoodKey(s)).filter((s) => s && s.length >= 3);
 }
@@ -41806,7 +41903,8 @@ function buildFoodPolicy(profile, options = {}) {
   const styleDef = STYLES[style];
   const pattern = PATTERNS[profile.diet?.pattern] ? profile.diet.pattern : "omnivore";
   const rules = activeRules(profile);
-  const season = seasonOf(options.date || /* @__PURE__ */ new Date());
+  const region = options.region || regionOf({});
+  const season = seasonFor(options.date || /* @__PURE__ */ new Date(), region.climate);
   const excludeFlags = /* @__PURE__ */ new Set([...styleDef.excludeFlags || [], ...options.extraExcludeFlags || []]);
   const excludeKinds = /* @__PURE__ */ new Set();
   const excludeFoods = /* @__PURE__ */ new Set();
@@ -41863,7 +41961,7 @@ function buildFoodPolicy(profile, options = {}) {
     if (preferFoods.has(id)) score += 1.5;
     if (loves.some((term) => matchesTerm(f, term)) || picked.has(id)) score += 2;
     const seasons = SEASONS[id];
-    if (seasons) score += seasons.includes(season) ? 0.5 : -0.5;
+    if (seasons && season) score += seasons.includes(season) ? 0.5 : -0.5;
     if (adherence) {
       const ratio = adherence.get(normalizeFoodKey(f.nutritionKey));
       if (ratio != null && ratio < 0.6) score -= 2 * (0.6 - ratio) / 0.6;
@@ -41915,6 +42013,9 @@ function buildFoodPolicy(profile, options = {}) {
     pattern,
     patternDef: PATTERNS[pattern],
     season,
+    region,
+    /** Ястие от българската кухня за клиент извън дома ѝ — по-рядко, не забранено. */
+    dishPenalty: (dish, kind) => !region.localCuisine && dish.cuisine === "bg" ? FOREIGN_CUISINE_PENALTY[kind] || 0 : 0,
     rules: rules.map((r) => ({ code: r.code, label: r.label, basis: r.basis })),
     allowed,
     preference,
@@ -43838,7 +43939,7 @@ function rngFrom(seed) {
 function dishBuildable(dish, policy) {
   if (dish.requires === "sport" && !policy.sport) return false;
   if (dish.fruitAlone && policy.fruitWithProtein) return false;
-  if (dish.seasonsOnly && !dish.seasonsOnly.includes(policy.season)) return false;
+  if (dish.seasonsOnly && policy.season && !dish.seasonsOnly.includes(policy.season)) return false;
   return dish.parts.every((p) => p.range[0] === 0 || p.options.some((o) => o.every((id) => policy.allowed(id))));
 }
 var GARNISH = (() => {
@@ -44377,7 +44478,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
       }
       const ranked = pool.map((d) => ({
         d,
-        pre: -dishFit(d, plan.quota, policy, kind) * 2 - (state.dishUses.get(d.id) || 0) * 2 - (state.yesterdayDishes.has(d.id) ? 2 : 0) + rng() * 1.5
+        pre: -dishFit(d, plan.quota, policy, kind) * 2 - (state.dishUses.get(d.id) || 0) * 2 - policy.dishPenalty(d, kind) - (state.yesterdayDishes.has(d.id) ? 2 : 0) + rng() * 1.5
       })).sort((a, b) => b.pre - a.pre).slice(0, CANDIDATES_PER_MEAL);
       let candidatesBuilt = [];
       const pick3 = (candidates, mealCtx) => {
@@ -44387,7 +44488,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
           const choice = chooseOptions(d, state, mealCtx, rng, target);
           const built = buildMeal({ dish: d, choice, quota: plan.quota, target, mealKind: kind, ctx: mealCtx });
           if (!built || !built.parts.length) continue;
-          let score = scoreMeal(d, built, state, mealCtx, kind === "breakfast" ? category : null, kind);
+          let score = scoreMeal(d, built, state, mealCtx, kind === "breakfast" ? category : null, kind) - policy.dishPenalty(d, kind);
           if (simplify) score += (state.dishUses.get(d.id) || 0) * 3 - built.parts.length * 0.6 - d.fixed.length * 0.4;
           score += (dishPreference[d.id] || 0) * PREFERENCE_WEIGHT;
           candidatesBuilt.push({ dish: d, built, score });
@@ -46520,6 +46621,7 @@ function buildNutritionPlan(userData, options) {
     date: options.date,
     sweetsCraving: hasSweetsCraving(userData),
     extraExcludeFlags: mods.includes("gentle_digestion") ? ["high_fodmap"] : [],
+    region: regionOf(userData || {}),
     // „Избери храни“ — с превода на собствените продукти от AI (worker: applyFoodChoiceNames).
     onlyFoods: withChoiceNames(userData?.userFoodList, userData?._foodChoiceNames?.names),
     excludeFoods: withChoiceNames(userData?.userFoodExclude, userData?._foodChoiceNames?.names)
@@ -53059,9 +53161,19 @@ function invalidateCustomPromptsCache(key = null) {
     customPromptsCacheTime = {};
   }
 }
+function withRequestCountry(data, request) {
+  const country = String(
+    /** @type {any} */
+    request?.cf?.country || ""
+  );
+  if (data && typeof data === "object" && /^[A-Z]{2}$/.test(country) && country !== "XX" && country !== "T1") {
+    data.country = country;
+  }
+  return data;
+}
 async function handleGeneratePlan2(request, env, ctx) {
   try {
-    const data = normalizeQuestionnaireData(await request.json());
+    const data = withRequestCountry(normalizeQuestionnaireData(await request.json()), request);
     if (!data.name || !data.age || !data.weight || !data.height) {
       console.error("handleGeneratePlan: Missing required fields");
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
@@ -53408,7 +53520,7 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     delete rawBody._requireApproval;
     delete rawBody._userId;
     delete rawBody._idToken;
-    const data = normalizeQuestionnaireData(rawBody);
+    const data = withRequestCountry(normalizeQuestionnaireData(rawBody), request);
     if (!data.name || !data.age || !data.weight || !data.height) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }

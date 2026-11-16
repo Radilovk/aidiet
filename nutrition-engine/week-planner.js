@@ -73,7 +73,7 @@ function rngFrom(seed) {
 function dishBuildable(dish, policy) {
   if (dish.requires === 'sport' && !policy.sport) return false;
   if (dish.fruitAlone && policy.fruitWithProtein) return false;
-  if (dish.seasonsOnly && !dish.seasonsOnly.includes(policy.season)) return false;
+  if (dish.seasonsOnly && policy.season && !dish.seasonsOnly.includes(policy.season)) return false;
   return dish.parts.every(p => p.range[0] === 0 || p.options.some(o => o.every(id => policy.allowed(id))));
 }
 
@@ -764,6 +764,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
           d,
           pre: -dishFit(d, plan.quota, policy, kind) * 2
             - (state.dishUses.get(d.id) || 0) * 2
+            - policy.dishPenalty(d, kind)
             - (state.yesterdayDishes.has(d.id) ? 2 : 0)
             + rng() * 1.5,
         }))
@@ -779,7 +780,7 @@ export function planWeek({ prescription, policy, seed, freeDayNumber = null, pre
           const choice = chooseOptions(d, state, mealCtx, rng, target);
           const built = buildMeal({ dish: d, choice, quota: plan.quota, target, mealKind: kind, ctx: mealCtx });
           if (!built || !built.parts.length) continue;
-          let score = scoreMeal(d, built, state, mealCtx, kind === 'breakfast' ? category : null, kind);
+          let score = scoreMeal(d, built, state, mealCtx, kind === 'breakfast' ? category : null, kind) - policy.dishPenalty(d, kind);
           // Опростено: ястия с малко съставки, повторенията не се наказват.
           if (simplify) score += (state.dishUses.get(d.id) || 0) * 3 - built.parts.length * 0.6 - d.fixed.length * 0.4;
           // Какво клиентът е избирал или сменял в предишни седмици.
