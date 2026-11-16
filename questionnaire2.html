@@ -4186,7 +4186,7 @@
                             ...planPayload,
                             _jobId: jobId,
                             _clientId: savedClientId || undefined,
-                            // Резултатът от модул (EmoLogix, EyeLogix) влиза още в първия план.
+                            // Резултатът от модул (EmoEat, IrisMap) влиза още в първия план.
                             _handoff: (window.NutriPlanHandoff && window.NutriPlanHandoff.pending() || {}).token || undefined,
                             ...(replacementAuth.requireApproval ? {
                                 _requireApproval: true,

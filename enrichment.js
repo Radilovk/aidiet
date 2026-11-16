@@ -1,6 +1,6 @@
 /**
  * Обогатяване на профила с данни извън въпросника: устройства (тегло, крачки,
- * сън, приет калории), EmoLogix, изследвания, EyeLogix, други документи. Общ модул за сървъра, клиента и
+ * сън, приет калории), EmoEat, изследвания, IrisMap, други документи. Общ модул за сървъра, клиента и
  * тестовете.
  *
  * Всеки източник дава факти: { kind, key, value, unit, at, source, confidence,
@@ -317,7 +317,7 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
   const iris = deriveIris(facts);
   const siteQuiz = deriveSiteQuiz(facts);
   const documents = deriveDocuments(facts);
-  // Клиентът не се разпознава в профила от EmoLogix — остава само гласът, без кодове.
+  // Клиентът не се разпознава в профила от EmoEat — остава само гласът, без кодове.
   const emoPart = emo && resolutions.emoeat_vs_q === 'rare' ? { ...emo, hints: null } : emo;
   for (const part of [emoPart, labs, essence, digestPart, iris, siteQuiz, documents]) {
     if (!part) continue;

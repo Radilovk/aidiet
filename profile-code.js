@@ -605,7 +605,7 @@ export function compileProfile(userData = {}, overrides = {}) {
     addAll(exclusions, hints.exclusions || []);
     addAll(clinical, hints.clinical || []);
   }
-  // Обогатяването (EmoLogix, изследвания, устройства) също само ДОБАВЯ —
+  // Обогатяването (EmoEat, изследвания, устройства) също само ДОБАВЯ —
   // клиничните кодове от изследвания са предпазни хранителни правила, не диагноза.
   const enrich = data._enrichment?.hints && typeof data._enrichment.hints === 'object' ? data._enrichment.hints : null;
   if (enrich) {

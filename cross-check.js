@@ -1,15 +1,15 @@
 /**
  * Сверка между модулите и Eatologix.
  *
- * 1. Потвърждение. Ирисова находка (приоритетна система в EyeLogix), която се
+ * 1. Потвърждение. Ирисова находка (приоритетна система в IrisMap), която се
  *    подкрепя от независим източник в Eatologix — въпросник, изследвания,
- *    устройства, EmoLogix или изричен отговор на клиента — се приема за
+ *    устройства, EmoEat или изричен отговор на клиента — се приема за
  *    вероятна и влиза в адаптацията на плана с безопасна промяна в менюто.
  *    Промяната не се прилага, ако противоречи на медицинско правило
  *    (напр. повече обем при рефлукс). Калории, диагнози и лекарства не се
  *    извеждат от ириса.
  * 2. Разминаване. Когато два източника си противоречат (ирисът сочи
- *    храносмилането, а въпросникът казва „нямам оплаквания“; EyeLogix има
+ *    храносмилането, а въпросникът казва „нямам оплаквания“; IrisMap има
  *    алергия, която Eatologix не знае), се задава въпрос. Отговорът е факт
  *    („resolution“) и решава спора — до отговора нищо от спорното не се
  *    прилага.
@@ -18,7 +18,7 @@
 import { compileProfile, normLabel } from './profile-code.js';
 
 /**
- * Системите на EyeLogix → доказателства в Eatologix и действие в менюто.
+ * Системите на IrisMap → доказателства в Eatologix и действие в менюто.
  * `codes` — клинични кодове; `text` — оплаквания в свободния текст;
  * `signals` — сигнали от устройствата; `action` — код за менюто (или null);
  * `guard` — клинични кодове, при които действието е противопоказано.
@@ -30,7 +30,7 @@ export const IRIS_SYSTEMS = {
     text: /подув|газ(ове|ов)|тежест|киселин|запек|диари|рефлукс|колит|гастрит|храносмил/i,
     action: 'gentle_digestion',
     actionLabel: 'щадящо храносмилането меню',
-    ask: 'EyeLogix отбелязва храносмилането като приоритет, а във въпросника няма оплаквания. Имаш ли подуване, тежест, киселини или нередовно изхождане?',
+    ask: 'IrisMap отбелязва храносмилането като приоритет, а във въпросника няма оплаквания. Имаш ли подуване, тежест, киселини или нередовно изхождане?',
   },
   metabolic: {
     label: 'Обмяна (захар и мазнини)',
@@ -43,7 +43,7 @@ export const IRIS_SYSTEMS = {
     // (въпросникът събира „Рефлукс“ в общия код GI, затова и текстът).
     guard: ['GERD', 'GAST'],
     guardText: /рефлукс|киселин|гастрит|херни/i,
-    ask: 'EyeLogix отбелязва обмяната като приоритет, а във въпросника няма оплаквания. Имаш ли рязък глад или сънливост след хранене, или повишена захар или холестерол при изследване?',
+    ask: 'IrisMap отбелязва обмяната като приоритет, а във въпросника няма оплаквания. Имаш ли рязък глад или сънливост след хранене, или повишена захар или холестерол при изследване?',
   },
   nervous: {
     label: 'Нервна система (стрес и сън)',
@@ -52,7 +52,7 @@ export const IRIS_SYSTEMS = {
     signals: ['recovery_low', 'sleep_short'],
     behaviors: ['EMO'],
     action: null,
-    ask: 'EyeLogix отбелязва нервната система като приоритет, а във въпросника стресът е нисък. Чувстваш ли напрежение или изтощение през повечето дни?',
+    ask: 'IrisMap отбелязва нервната система като приоритет, а във въпросника стресът е нисък. Чувстваш ли напрежение или изтощение през повечето дни?',
   },
   circulatory: { label: 'Кръвообращение', codes: ['HTN', 'CVD', 'DYSL'], signals: ['bp_high'], text: /кръвно|сърдеч/i, action: null },
   endocrine: { label: 'Ендокринна система', codes: ['HYPO', 'HYPER', 'ENDO', 'PCOS', 'HORM', 'ADR', 'MENO'], text: /щитовид|хормон|цикъл/i, action: null },
@@ -118,7 +118,7 @@ export function crossCheck(data, derived, resolutions = {}) {
     for (const c of def.codes || []) if (clinical.has(c)) evidence.push(`състояние ${c}`);
     if (def.text && def.text.test(freeText)) evidence.push('оплаквания във въпросника');
     for (const sig of def.signals || []) if (signals.has(sig)) evidence.push(`устройство: ${sig}`);
-    for (const b of def.behaviors || []) if (behaviors.has(b)) evidence.push('EmoLogix / навици');
+    for (const b of def.behaviors || []) if (behaviors.has(b)) evidence.push('EmoEat / навици');
     if (s.key === 'nervous' && data?.stressLevel === 'Високо') evidence.push('висок стрес');
     const qid = `iris:${s.key}`;
     const answer = resolutions[qid];
@@ -142,7 +142,7 @@ export function crossCheck(data, derived, resolutions = {}) {
     });
   }
 
-  // ── 2. Отговорите в EyeLogix срещу отговорите в Eatologix ────────────────
+  // ── 2. Отговорите в IrisMap срещу отговорите в Eatologix ────────────────
   const q = derived?.irisRaw?.questionnaire;
   if (q) {
     const known = normLabel([data?.dietDislike, data?.['medicalConditions_Алергии'], data?.foodSensitivities].flat().filter(Boolean).join(' '));
@@ -153,7 +153,7 @@ export function crossCheck(data, derived, resolutions = {}) {
       const answer = resolutions[id];
       if (answer === 'yes') overrides.dietDislike = [overrides.dietDislike || data?.dietDislike, t].filter(Boolean).join(', ');
       else if (!answer) {
-        questions.push({ id, source: 'airis', topic: 'Непоносимост', text: `В EyeLogix е посочена непоносимост или алергия към „${t}“, а в Eatologix я няма. Да я изключим ли от плана?`, options: [{ value: 'yes', label: 'Да, изключи я' }, { value: 'no', label: 'Не е актуално' }] });
+        questions.push({ id, source: 'airis', topic: 'Непоносимост', text: `В IrisMap е посочена непоносимост или алергия към „${t}“, а в Eatologix я няма. Да я изключим ли от плана?`, options: [{ value: 'yes', label: 'Да, изключи я' }, { value: 'no', label: 'Не е актуално' }] });
       }
     }
     if (q.medications && data?.medications !== 'Да') {
@@ -165,7 +165,7 @@ export function crossCheck(data, derived, resolutions = {}) {
         overrides.medications = 'Да';
         overrides.medicationsDetails = [data?.medicationsDetails, q.medications].filter(Boolean).join('; ');
       } else if (!answer) {
-        questions.push({ id: medsId, source: 'airis', topic: 'Лекарства', text: `В EyeLogix са посочени „${q.medications.slice(0, 120)}“, а в Eatologix — че не приемаш лекарства. Приемаш ли ги в момента?`, options: [{ value: 'yes', label: 'Да, приемам ги' }, { value: 'no', label: 'Не, вече не' }] });
+        questions.push({ id: medsId, source: 'airis', topic: 'Лекарства', text: `В IrisMap са посочени „${q.medications.slice(0, 120)}“, а в Eatologix — че не приемаш лекарства. Приемаш ли ги в момента?`, options: [{ value: 'yes', label: 'Да, приемам ги' }, { value: 'no', label: 'Не, вече не' }] });
       }
     }
     const npDiet = asList(data?.dietPreference);
@@ -175,7 +175,7 @@ export function crossCheck(data, derived, resolutions = {}) {
       const answer = resolutions[id];
       if (answer === 'yes') overrides.dietPreference = [...new Set([...npDiet, npLabel])];
       else if (!answer) {
-        questions.push({ id, source: 'airis', topic: 'Режим на хранене', text: `В EyeLogix е посочен ${npLabel.toLowerCase()} режим, а в Eatologix — не. Да го приложим ли в плана?`, options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Не' }] });
+        questions.push({ id, source: 'airis', topic: 'Режим на хранене', text: `В IrisMap е посочен ${npLabel.toLowerCase()} режим, а в Eatologix — не. Да го приложим ли в плана?`, options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Не' }] });
       }
       break;
     }
@@ -186,17 +186,17 @@ export function crossCheck(data, derived, resolutions = {}) {
       const answer = resolutions[weightId];
       if (answer === 'airis') overrides.weight = String(q.weight);
       else if (!answer) {
-        questions.push({ id: weightId, source: 'airis', topic: 'Тегло', text: `Теглото в EyeLogix (${q.weight} кг) и в Eatologix (${npKg} кг) се различава. Кое е актуалното?`, options: [{ value: 'airis', label: `${q.weight} кг` }, { value: 'nutriplan', label: `${npKg} кг` }] });
+        questions.push({ id: weightId, source: 'airis', topic: 'Тегло', text: `Теглото в IrisMap (${q.weight} кг) и в Eatologix (${npKg} кг) се различава. Кое е актуалното?`, options: [{ value: 'airis', label: `${q.weight} кг` }, { value: 'nutriplan', label: `${npKg} кг` }] });
       }
     }
   }
 
-  // ── 3. EmoLogix срещу въпросника ───────────────────────────────────────
+  // ── 3. EmoEat срещу въпросника ───────────────────────────────────────
   const v = derived?.voice;
   const strong = v && v.reliable !== false && (v.intensity === 'Силно' || v.intensity === 'Осезаемо');
   const rarely = ['Рядко', 'Никога'].includes(data?.overeatingFrequency) && (!asList(data?.foodTriggers).length || said(data, 'foodTriggers', ['Нито едно']));
   if (strong && rarely && !resolutions.emoeat_vs_q) {
-    questions.push({ id: 'emoeat_vs_q', source: 'emoeat', topic: 'Емоционално хранене', text: 'EmoLogix показва, че храната често идва в отговор на емоции, а във въпросника е отбелязано, че рядко ядеш повече от планираното. Кое е по-близо до теб?', options: [{ value: 'often', label: 'Често ям при напрежение, умора или скука' }, { value: 'rare', label: 'Рядко — не се разпознавам' }] });
+    questions.push({ id: 'emoeat_vs_q', source: 'emoeat', topic: 'Емоционално хранене', text: 'EmoEat показва, че храната често идва в отговор на емоции, а във въпросника е отбелязано, че рядко ядеш повече от планираното. Кое е по-близо до теб?', options: [{ value: 'often', label: 'Често ям при напрежение, умора или скука' }, { value: 'rare', label: 'Рядко — не се разпознавам' }] });
   }
 
   // ── 4. Крачките: телефонът срещу гривната/часовника ─────────────────
@@ -210,7 +210,7 @@ export function crossCheck(data, derived, resolutions = {}) {
 
   const confirmed = hypotheses.filter(h => h.status === 'confirmed');
   if (confirmed.some(h => h.blockedBy.length)) {
-    cautions.push(`Потвърдено от EyeLogix и Eatologix, но не е приложено заради медицинско правило: ${confirmed.filter(h => h.blockedBy.length).map(h => `${h.label} (${h.blockedBy.join(', ')})`).join('; ')}.`);
+    cautions.push(`Потвърдено от IrisMap и Eatologix, но не е приложено заради медицинско правило: ${confirmed.filter(h => h.blockedBy.length).map(h => `${h.label} (${h.blockedBy.join(', ')})`).join('; ')}.`);
   }
   return { hypotheses, questions: questions.slice(0, 6), overrides, approach: [...new Set(approach)], cautions };
 }
@@ -220,7 +220,7 @@ export function crossCheckText(cc) {
   if (!cc) return '';
   const parts = [];
   const by = (st) => cc.hypotheses.filter(h => h.status === st);
-  if (by('confirmed').length) parts.push(`потвърдено от EyeLogix и Eatologix: ${by('confirmed').map(h => `${h.label} (${h.evidence.join(', ')})${h.applied ? ` → ${h.action}` : ''}`).join('; ')}`);
+  if (by('confirmed').length) parts.push(`потвърдено от IrisMap и Eatologix: ${by('confirmed').map(h => `${h.label} (${h.evidence.join(', ')})${h.applied ? ` → ${h.action}` : ''}`).join('; ')}`);
   if (by('rejected').length) parts.push(`отхвърлено от клиента: ${by('rejected').map(h => h.label).join(', ')}`);
   if (by('unconfirmed').length) parts.push(`само по ириса (без потвърждение): ${by('unconfirmed').map(h => h.label).join(', ')}`);
   if (cc.questions.length) parts.push(`неуточнени разминавания (може да попиташ клиента): ${cc.questions.map(q => q.topic).join(', ')}`);

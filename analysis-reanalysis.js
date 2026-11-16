@@ -1,6 +1,6 @@
 /**
  * Реанализ: анализът на клиента, пресметнат наново с всички данни извън
- * въпросника — изследвания, устройства, EmoLogix, EyeLogix, документи.
+ * въпросника — изследвания, устройства, EmoEat, IrisMap, документи.
  *
  * Същите правила като първоначалния анализ (analysis-deterministic.js) върху
  * обогатения профил, плюс находки, които въпросникът няма как да даде:
@@ -22,8 +22,8 @@ export const SOURCE_LABELS = {
   questionnaire: 'Въпросник',
   labs: 'Изследвания',
   device: 'Устройство',
-  emoeat: 'EmoLogix',
-  iris: 'EyeLogix',
+  emoeat: 'EmoEat',
+  iris: 'IrisMap',
   documents: 'Документ',
 };
 
@@ -126,7 +126,7 @@ export function reanalyze(baseData, enrichedData, energy = {}, sex = 'X') {
     if (DEVICE_PROBLEMS[s.code]) extra.push({ ...DEVICE_PROBLEMS[s.code](s), sources: ['device'] });
   }
 
-  // ── EyeLogix: потвърдената система засилва свързаните проблеми ──────────
+  // ── IrisMap: потвърдената система засилва свързаните проблеми ──────────
   const hypotheses = d.crossCheck?.hypotheses || [];
   const confirmed = hypotheses.filter(h => h.status === 'confirmed');
   const irisBoost = new Map();
@@ -154,7 +154,7 @@ export function reanalyze(baseData, enrichedData, energy = {}, sex = 'X') {
       if (b.codes.includes(p.code)) {
         out.sources.push('iris');
         out.severityValue = Math.min(95, p.severityValue + 4);
-        out.irisNote = `EyeLogix: ${b.label} — приоритет, потвърден от ${b.evidence.join(', ')}`;
+        out.irisNote = `IrisMap: ${b.label} — приоритет, потвърден от ${b.evidence.join(', ')}`;
         usedIris.add(system);
       }
     }

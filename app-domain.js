@@ -7,12 +7,15 @@
  * Същият подход като xbody.online (studio-platform/index.js → handleLanding).
  *
  * Включване: в Cloudflare домейнът се добавя като Custom Domain на worker-а „aidiet“
- * (и www.), а в wrangler.toml → APP_HOSTS = "eatologix.com".
+ * (и www.; .github/workflows/domain-setup.yml), а в wrangler.toml → APP_HOSTS.
+ * Домейните на модулите (emoeat.app) са в MODULE_HOSTS: своя начална страница, а страниците
+ * на Eatologix се пренасочват към eatologix.com. (GitHub Pages дава само един домейн на репо —
+ * biocode.website, затова собствените домейни минават оттук.)
  */
 const ORIGIN = 'https://biocode.website';
 
 // Страниците на другите проекти не се показват на домейна на приложението.
-// (EmoLogix — emoeat.html, emoeat-landing.html — е част от системата и минава.)
+// (EmoEat — emoeat.html, emoeat-landing.html — е част от системата и минава.)
 const OTHER_PROJECTS = /^\/(xbody|xb-studio|xems-|studio|acuity\/|fitness\/|kids|pep|reta|aix|lqto|vaprosnik|dopamine|health\.html|admin|notifications-test|pwa-test|design_presentation|samples\/|clients\/|docs\/|KV\/|migrations\/|workflows\/|viber-sender\/|scripts\/|\.github\/|CNAME$)/i;
 const list = (v) => String(v || '').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
 
@@ -20,6 +23,16 @@ export function isAppHost(env, host) {
   const bare = String(host || '').toLowerCase().replace(/^www\./, '');
   return list(env.APP_HOSTS).includes(bare);
 }
+
+// Домейните на модулите (същият worker, същите страници от сайта): начална страница и кои
+// страници остават на домейна; всичко друго (*.html) отива на основния домейн на Eatologix.
+const MODULE_HOSTS = {
+  'emoeat.app': {
+    home: '/emoeat-landing.html',
+    pages: /^\/(emoeat[^/]*\.html|privacy-policy\.html|terms\.html|help\.html|delete-account\.html)$/i
+  }
+};
+const MAIN_HOST = 'eatologix.com';
 
 /** null → не е домейнът на приложението (или е /api/) и заявката продължава към worker-а. */
 export async function handleAppDomain(request, env) {
@@ -30,9 +43,14 @@ export async function handleAppDomain(request, env) {
   if (host !== bare) return Response.redirect(`https://${bare}${url.pathname}${url.search}`, 301);
   if (url.pathname.startsWith('/api/')) return null;
   if (request.method !== 'GET' && request.method !== 'HEAD') return null;
-  if (OTHER_PROJECTS.test(url.pathname)) return Response.redirect(`https://${bare}/`, 302);
+  const mod = MODULE_HOSTS[bare];
+  if (OTHER_PROJECTS.test(url.pathname)) return Response.redirect(`https://${mod ? MAIN_HOST : bare}/`, 302);
+  // Домейн на модул: страниците на Eatologix се отварят на основния домейн.
+  if (mod && url.pathname !== '/' && /\.html$/i.test(url.pathname) && !mod.pages.test(url.pathname)) {
+    return Response.redirect(`https://${MAIN_HOST}${url.pathname}${url.search}`, 302);
+  }
 
-  const path = url.pathname === '/' ? '/index.html' : url.pathname;
+  const path = url.pathname === '/' ? (mod ? mod.home : '/index.html') : url.pathname;
   const resp = await fetch(ORIGIN + path + url.search, {
     method: request.method,
     cf: { cacheTtl: 300, cacheEverything: true },

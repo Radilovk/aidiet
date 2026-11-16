@@ -1,7 +1,7 @@
 {
   "id": "/emoeat.html",
-  "name": "EmoLogix — Емоционално Хранене",
-  "short_name": "EmoLogix",
+  "name": "EmoEat — Емоционално Хранене",
+  "short_name": "EmoEat",
   "description": "Професионален въпросник за емоционално хранене. Разкрийте подсъзнателните тригери и получете персонализирани терапевтични стратегии.",
   "start_url": "/emoeat.html",
   "scope": "/emoeat.html",

@@ -1,7 +1,7 @@
 /**
  * Предаване на данни от модулите към Eatologix (handoff).
  *
- * Eatologix е главният профил. Модулите (EmoLogix, EyeLogix — ирисов анализ)
+ * Eatologix е главният профил. Модулите (EmoEat, IrisMap — ирисов анализ)
  * водят към него и му предават обобщение на своя резултат; обратно към тях
  * не тръгват никакви данни. Пратката се пази на сървъра под еднократен,
  * неотгатваем ключ и до 30 дни; Eatologix я прибира в профила само със
@@ -41,7 +41,7 @@ function normalizeEmoeat(p) {
 }
 
 const AIRIS_GENDER = { male: 'Мъж', female: 'Жена' };
-// Състоянията от въпросника на EyeLogix → еднозначните отговори в Eatologix (останалите — в бележките).
+// Състоянията от въпросника на IrisMap → еднозначните отговори в Eatologix (останалите — в бележките).
 const AIRIS_HEALTH = {
   'Диабет 2 тип': 'Диабет / Инсулинова резистентност', 'Инсулинова резистентност': 'Диабет / Инсулинова резистентност',
   'Хипертония': 'Сърдечно-съдови заболявания', 'Автоимунен тиреоидит': 'Щитовидна жлеза (Хашимото и др.)', 'Менопауза': 'Менопауза',
@@ -208,7 +208,7 @@ const HABIT_TO = {
 };
 
 /**
- * Отговорите от въпросника на EyeLogix → предварително попълнени отговори във
+ * Отговорите от въпросника на IrisMap → предварително попълнени отговори във
  * въпросника на Eatologix. Само полета с еднозначно съответствие; клиентът
  * ги вижда и може да ги смени.
  * @returns {Record<string, any>}
@@ -229,7 +229,7 @@ export function airisPrefill(q) {
   if (q.hydration != null) out.waterIntake = WATER_BUCKET(q.hydration * 0.25);
   const diet = (q.dietaryProfile || []).map(d => DIET[d]).filter(Boolean);
   if (diet.length) out.dietPreference = [...new Set(diet)];
-  // EyeLogix понякога праща едно и също в двете полета — без повторения.
+  // IrisMap понякога праща едно и също в двете полета — без повторения.
   const dislikes = [...new Set([q.foodIntolerances, q.allergies, (q.dietaryProfile || []).includes('Безглутенова') ? 'глутен' : ''].filter(Boolean))];
   if (dislikes.length) out.dietDislike = dislikes.join(', ');
   const health = [...new Set((q.healthStatus || []).map(x => AIRIS_HEALTH[x]).filter(Boolean))];
@@ -246,7 +246,7 @@ export function airisPrefill(q) {
   }
   const extraHealth = (q.healthStatus || []).filter(x => !AIRIS_HEALTH[x]);
   const notes = [...new Set([q.complaints, q.medicalConditions].filter(Boolean)), extraHealth.length ? `състояния: ${extraHealth.join(', ')}` : ''].filter(Boolean).join('. ');
-  if (notes) out.additionalNotes = `От ирисовия анализ (EyeLogix): ${notes}`.slice(0, 800);
+  if (notes) out.additionalNotes = `От ирисовия анализ (IrisMap): ${notes}`.slice(0, 800);
   return out;
 }
 
@@ -382,7 +382,7 @@ export function handoffPreview(h) {
   if (h.source === 'emoeat') {
     return {
       source: 'emoeat',
-      title: 'Емоционален профил (EmoLogix)',
+      title: 'Емоционален профил (EmoEat)',
       lines: [h.profile.archetype?.name ? `Архетип: ${h.profile.archetype.name}` : '', h.profile.intensity ? `Интензитет: ${h.profile.intensity}` : '', h.profile.drivers.length ? `Двигатели: ${h.profile.drivers.join(', ')}` : ''].filter(Boolean),
       at: h.at,
     };
@@ -403,7 +403,7 @@ export function handoffPreview(h) {
   const a = h.analysis;
   return {
     source: 'airis',
-    title: 'Ирисов анализ (EyeLogix)',
+    title: 'Ирисов анализ (IrisMap)',
     lines: [
       a.constitution ? `Конституция: ${a.constitution}` : '',
       a.systems.filter(s => s.priority).length ? `Фокус: ${a.systems.filter(s => s.priority).map(s => s.label || s.key).join(', ')}` : '',

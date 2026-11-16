@@ -15388,7 +15388,7 @@ async function handleEnrichmentDelete(request, env) {
 const LINK_SYNC_MIN_MS = 3 * 60 * 60 * 1000;
 const LINK_TTL = 365 * 24 * 60 * 60;
 /** Къде може да върне браузърът след вход при доставчика. */
-const LINK_RETURN_HOSTS = ['biocode.website', 'www.biocode.website', 'radilovk.github.io', 'localhost', '127.0.0.1'];
+const LINK_RETURN_HOSTS = ['biocode.website', 'www.biocode.website', 'eatologix.com', 'www.eatologix.com', 'emoeat.app', 'www.emoeat.app', 'irismap.app', 'www.irismap.app', 'radilovk.github.io', 'localhost', '127.0.0.1'];
 
 function linkRedirectUri(request, provider) {
   return `${new URL(request.url).origin}/api/links/callback/${provider}`;
@@ -15731,7 +15731,7 @@ function profileContextText(d) {
   if (!d) return '';
   const v = d.voice;
   const emo = v && (v.archetype || v.intensity)
-    ? `емоционален профил (EmoLogix): ${[v.archetype ? `архетип ${v.archetype}` : '', v.intensity ? `интензитет ${v.intensity}` : '', v.drivers?.length ? `двигатели ${v.drivers.join(', ')}` : '', v.realNeed ? `реална нужда ${v.realNeed}` : ''].filter(Boolean).join(', ')}`
+    ? `емоционален профил (EmoEat):${[v.archetype ? `архетип ${v.archetype}` : '', v.intensity ? `интензитет ${v.intensity}` : '', v.drivers?.length ? `двигатели ${v.drivers.join(', ')}` : '', v.realNeed ? `реална нужда ${v.realNeed}` : ''].filter(Boolean).join(', ')}`
     : '';
   return [essenceText(d.essence, d.digest), emo, irisText(d.iris), siteQuizText(d.siteQuiz), documentsText(d.documents), crossCheckText(d.crossCheck)].filter(Boolean).join(' | ').slice(0, 3600);
 }
