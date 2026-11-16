@@ -1,0 +1,57 @@
+name: Wording — редакциите от лендингите
+
+# Чете редакциите, записани от wording-editor.js (KV wording:*), в wording/inbox.json в клона —
+# Claude ги прилага в кода и във всички езици. С clear=<id,id> (или файла wording/clear.txt)
+# изтрива приложените записи от KV.
+on:
+  workflow_dispatch:
+    inputs:
+      clear:
+        description: 'ID-та за изтриване (приложени), със запетая'
+        default: ''
+  push:
+    branches: [claude/jolly-goodall-obbojn]
+    paths: ['wording/pull.trigger', 'wording/clear.txt']
+
+permissions:
+  contents: write
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      NS: 81fc0991b2764918b682f9ca170abd4b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Изтриване на приложените
+        run: |
+          ids="${{ inputs.clear }}"
+          [ -f wording/clear.txt ] && ids="$ids,$(tr '\n' ',' < wording/clear.txt)"
+          for id in $(echo "$ids" | tr ',' ' '); do
+            [ -n "$id" ] && npx -y wrangler@4 kv key delete --namespace-id="$NS" --remote "wording:$id" && echo "изтрит $id" || true
+          done
+      - name: Четене
+        run: |
+          npx -y wrangler@4 kv key list --namespace-id="$NS" --remote --prefix "wording:" > /tmp/keys.json
+          echo '[' > wording/inbox.json; first=1
+          for k in $(jq -r '.[].name' /tmp/keys.json); do
+            v=$(npx -y wrangler@4 kv key get --namespace-id="$NS" --remote "$k" 2>/dev/null) || continue
+            [ $first = 1 ] || echo ',' >> wording/inbox.json; first=0
+            echo "$v" >> wording/inbox.json
+          done
+          echo ']' >> wording/inbox.json
+          jq . wording/inbox.json > /tmp/i.json && mv /tmp/i.json wording/inbox.json
+          echo "Записи: $(jq length wording/inbox.json)" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Запис в клона
+        run: |
+          rm -f wording/clear.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A wording
+          git diff --cached --quiet && { echo "Няма промени."; exit 0; }
+          git commit -m "wording: редакциите от лендингите ($(jq length wording/inbox.json))"
+          git push origin HEAD:${{ github.ref_name }}

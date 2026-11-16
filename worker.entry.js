@@ -12633,6 +12633,36 @@ function requireAdminAuth(request, env) {
   return null;
 }
 
+/**
+ * Редакции на текста от лендингите (wording-editor.js): собственикът редактира на място и записва;
+ * тук само се пазят (KV wording:<време>:<id>) — Claude ги чете оттам (.github/workflows/wording-pull.yml),
+ * прилага ги в кода и във всички езици. Достъп: само с X-Admin-Secret (централният guard за /api/admin/*).
+ */
+async function handleWordingSave(request, env) {
+  if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: 'bad_json' }, 400); }
+  const s = (v, n) => String(v == null ? '' : v).slice(0, n);
+  const edits = (Array.isArray(body?.edits) ? body.edits : []).slice(0, 300)
+    .map((e) => ({ old: s(e?.old, 4000), new: s(e?.new, 4000), where: s(e?.where, 300) }))
+    .filter((e) => e.old !== e.new);
+  const note = s(body?.note, 8000);
+  if (!edits.length && !note.trim()) return jsonResponse({ error: 'Няма редакции' }, 400);
+  const id = `${Date.now()}:${crypto.randomUUID().slice(0, 8)}`;
+  const rec = { id, at: new Date().toISOString(), site: s(body?.site, 60), page: s(body?.page, 120), url: s(body?.url, 500),
+    lang: s(body?.lang, 8), edits, note, status: 'new' };
+  await env.page_content.put(`wording:${id}`, JSON.stringify(rec));
+  return jsonResponse({ ok: true, id, count: edits.length });
+}
+
+async function handleWordingList(request, env) {
+  if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+  const list = await env.page_content.list({ prefix: 'wording:', limit: 200 });
+  const items = (await Promise.all(list.keys.map((k) => env.page_content.get(k.name).catch(() => null))))
+    .filter(Boolean).map((v) => { try { return JSON.parse(v); } catch { return null; } }).filter(Boolean);
+  return jsonResponse({ ok: true, items });
+}
+
 async function handleSetBlacklist(request, env) {
   if (!checkAdminSecret(request, env)) {
     return jsonResponse({ error: 'Неоторизиран достъп' }, 401);
@@ -18153,6 +18183,10 @@ export default {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === '/api/user/delete-account' && request.method === 'POST') {
         return await handleDeleteOwnAccount(request, env);
+      } else if (url.pathname === '/api/admin/wording' && request.method === 'POST') {
+        return await handleWordingSave(request, env);
+      } else if (url.pathname === '/api/admin/wording' && request.method === 'GET') {
+        return await handleWordingList(request, env);
       } else if (url.pathname === '/api/i18n/translate' && request.method === 'POST') {
         const lite = (await getAdminConfig(env)).liteModelName;
         return await handleI18nTranslate(request, env, {
