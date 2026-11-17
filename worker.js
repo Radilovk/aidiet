@@ -50554,6 +50554,9 @@ async function handleIrisGemini(request, env, url, { notify } = (
 var QUEUE_MAX = 5;
 var CRON_SCAN = 60;
 var REFIRE_MS = 3 * 3600 * 1e3;
+var FIRE_GAP_MS = 15 * 60 * 1e3;
+var LAST_FIRE_KEY = "plan_review_last_fire";
+var firedKey = (id) => `plan_review_fired:${id}`;
 var REVIEW_CRON = "*/15 * * * *";
 var FIRE_URL = "https://api.anthropic.com/v1/claude_code/routines/trig_01HVZa5YrEowsSR6z5mRbqEy/fire";
 var VERDICTS = /* @__PURE__ */ new Set(["ok", "fix", "stop"]);
@@ -50614,13 +50617,7 @@ async function unreviewed(env, scan, max) {
 async function handleReviewQueue(env, { respond }) {
   return respond({ items: await unreviewed(env, 500, QUEUE_MAX), guide: GUIDE });
 }
-async function maybeFireReview(env, { now = Date.now(), fetchImpl = fetch } = {}) {
-  if (!env.CLAUDE_REVIEW_TOKEN || !env.page_content) return "off";
-  const items = await unreviewed(env, CRON_SCAN, 20);
-  if (!items.length) return "none";
-  const sig = items.map((i) => `${i.clientId}@${i.planUpdatedAt}`).sort().join("|");
-  const last = JSON.parse(await env.page_content.get("plan_review_fired") || "null");
-  if (last && last.sig === sig && now - last.at < REFIRE_MS) return "same";
+async function fire(env, count, fetchImpl, now) {
   try {
     const r = await fetchImpl(FIRE_URL, {
       method: "POST",
@@ -50630,18 +50627,55 @@ async function maybeFireReview(env, { now = Date.now(), fetchImpl = fetch } = {}
         "anthropic-version": "2023-06-01",
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ text: `\u0427\u0430\u043A\u0430\u0449\u0438 \u043F\u0440\u0435\u0433\u043B\u0435\u0434: ${items.length}` })
+      body: JSON.stringify({ text: `\u0427\u0430\u043A\u0430\u0449\u0438 \u043F\u0440\u0435\u0433\u043B\u0435\u0434: ${count}` })
     });
     if (!r.ok) {
       console.warn("[plan-review] fire failed:", r.status);
-      return "error";
+      return false;
     }
-    await env.page_content.put("plan_review_fired", JSON.stringify({ sig, at: now }), { expirationTtl: 30 * 86400 });
-    return "fired";
+    await env.page_content.put(LAST_FIRE_KEY, JSON.stringify({ at: now }), { expirationTtl: 86400 });
+    return true;
   } catch (e) {
     console.warn("[plan-review] fire error:", e?.message);
-    return "error";
+    return false;
   }
+}
+var markFired = (env, item2, now) => env.page_content.put(
+  firedKey(item2.clientId),
+  JSON.stringify({ planUpdatedAt: item2.planUpdatedAt, at: now }),
+  { expirationTtl: 30 * 86400 }
+);
+async function alreadyFired(env, item2, now) {
+  const m = JSON.parse(await env.page_content.get(firedKey(item2.clientId)) || "null");
+  return Boolean(m && m.planUpdatedAt === item2.planUpdatedAt && now - m.at < REFIRE_MS);
+}
+async function recentlyFired(env, now) {
+  const last = JSON.parse(await env.page_content.get(LAST_FIRE_KEY) || "null");
+  return Boolean(last && now - last.at < FIRE_GAP_MS);
+}
+async function reviewOnPending(env, clientId, c, { now = Date.now(), fetchImpl = fetch } = {}) {
+  if (!env?.CLAUDE_REVIEW_TOKEN || !env.page_content) return "off";
+  if (!clientId || !isPending(c)) return "skip";
+  const item2 = { clientId, planUpdatedAt: c.planUpdatedAt || null };
+  if (await alreadyFired(env, item2, now)) return "same";
+  const r = JSON.parse(await env.page_content.get(reviewKey(clientId)) || "null");
+  if (r && r.planUpdatedAt === item2.planUpdatedAt) return "reviewed";
+  if (await recentlyFired(env, now)) return "later";
+  if (!await fire(env, 1, fetchImpl, now)) return "error";
+  await markFired(env, item2, now);
+  return "fired";
+}
+async function maybeFireReview(env, { now = Date.now(), fetchImpl = fetch } = {}) {
+  if (!env.CLAUDE_REVIEW_TOKEN || !env.page_content) return "off";
+  const items = await unreviewed(env, CRON_SCAN, 20);
+  if (!items.length) return "none";
+  const due = [];
+  for (const i of items) if (!await alreadyFired(env, i, now)) due.push(i);
+  if (!due.length) return "same";
+  if (await recentlyFired(env, now)) return "later";
+  if (!await fire(env, items.length, fetchImpl, now)) return "error";
+  for (const i of items) await markFired(env, i, now);
+  return "fired";
 }
 async function handleReviewSubmit(request, env, { respond, reconcile, notify, now = Date.now() }) {
   const b = await request.json().catch(() => null);
@@ -52958,11 +52992,21 @@ async function kvGetJSON(env, key) {
     return null;
   }
 }
+async function planReviewOnSave(env, clientId, clientData) {
+  if (clientData?.planStatus !== "pending" || !clientData?.plan) return;
+  try {
+    const r = await reviewOnPending(env, clientId, clientData);
+    if (r !== "off" && r !== "same" && r !== "reviewed") console.log(`[plan-review] ${clientId}: ${r}`);
+  } catch (e) {
+    console.warn("[plan-review] on save:", e?.message);
+  }
+}
 async function kvPutJSON(env, key, data, ttl = AI_LOG_KV_TTL) {
   if (!env?.page_content) return false;
   try {
     const options = ttl ? { expirationTtl: ttl } : void 0;
     await env.page_content.put(key, JSON.stringify(data), options);
+    if (key.startsWith("client:")) await planReviewOnSave(env, key.slice(7), data);
     return true;
   } catch (error) {
     console.error(`[KV] Failed to set key ${key}:`, error);
@@ -56260,6 +56304,7 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
     }
   }
   await env.page_content.put(`client:${session.clientId}`, JSON.stringify(clientData));
+  await planReviewOnSave(env, session.clientId, clientData);
   if (wasPreviouslyActivated && touchedPlan) {
     await deliverPlanUpdateToClient(env, clientData, session.clientId, "updated");
   }
@@ -57320,6 +57365,7 @@ async function handleUpdateClientPlan(request, env, ctx) {
       delete clientData.planReplacementPending;
     }
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+    await planReviewOnSave(env, clientId, clientData);
     if (clientData.planStatus === "pending") {
       sendPushNotificationToUser("admin", {
         title: "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u0447\u0430\u043A\u0430 \u043F\u0440\u0435\u0433\u043B\u0435\u0434",

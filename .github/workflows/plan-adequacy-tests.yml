@@ -15,6 +15,7 @@ on:
       - 'scripts/test-solver.mjs'
       - 'nutrition-engine/**'
       - 'food-picker.html'
+      - 'plan-review.js'
       - 'scripts/test-food-picker*.mjs'
       - '.github/workflows/plan-adequacy-tests.yml'
   pull_request:
@@ -29,6 +30,7 @@ on:
       - 'scripts/test-solver.mjs'
       - 'nutrition-engine/**'
       - 'food-picker.html'
+      - 'plan-review.js'
       - 'scripts/test-food-picker*.mjs'
       - '.github/workflows/plan-adequacy-tests.yml'
 
@@ -59,3 +61,6 @@ jobs:
 
       - name: Region (сезон по полукълбо, кухня)
         run: npm run test:region
+
+      - name: Plan review (Claude при всеки план за одобрение)
+        run: npm run test:plan-review

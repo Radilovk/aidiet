@@ -7,8 +7,11 @@
  * сумите (reconcilePlanStructure) и пази прегледа в KV plan_review:<clientId>. Админът вижда
  * прегледа в хъба за одобрение и решава: „Приложи корекциите“ (планът остава pending) → „Активирай“.
  *
- * Пускане: таймерът на worker-а (на 15 мин, без AI) гледа за неразгледан план и само тогава вика
- * API-то на задачата в Claude (FIRE_URL, токен в secret CLAUDE_REVIEW_TOKEN). Без токен — не прави нищо.
+ * Пускане: при всеки план, който постъпи за одобрение (записът на клиента с planStatus "pending"),
+ * worker-ът веднага вика API-то на задачата в Claude (reviewOnPending; FIRE_URL, токен в secret
+ * CLAUDE_REVIEW_TOKEN). Без токен — не прави нищо. Една сесия преглежда цялата опашка, затова между
+ * две пускания има поне 15 мин: план, дошъл междувременно, взима таймерът (на 15 мин, без AI) веднага
+ * след прозореца. Таймерът е и резервата — пуска наново план, неразгледан 3 часа след пускането.
  *
  * Всички маршрути са под /api/admin/* — пазени от централния guard (X-Admin-Secret).
  *   GET  /api/admin/plan-review/queue          → { items: [{ clientId, name, planUpdatedAt }], guide }
@@ -21,6 +24,9 @@ import { applyJsonPatches, buildPatchDocument, mergePatchDocument } from './json
 const QUEUE_MAX = 5;
 const CRON_SCAN = 60;                  // таймерът гледа само последните клиенти (новите планове са там)
 const REFIRE_MS = 3 * 3600 * 1000;     // ако прегледът не е минал (напр. ключ), нов опит след 3 часа
+const FIRE_GAP_MS = 15 * 60 * 1000;    // между две пускания: сесията вече взима всички чакащи
+const LAST_FIRE_KEY = 'plan_review_last_fire';
+const firedKey = (id) => `plan_review_fired:${id}`;
 export const REVIEW_CRON = '*/15 * * * *';
 const FIRE_URL = 'https://api.anthropic.com/v1/claude_code/routines/trig_01HVZa5YrEowsSR6z5mRbqEy/fire';
 const VERDICTS = new Set(['ok', 'fix', 'stop']);
@@ -88,17 +94,8 @@ export async function handleReviewQueue(env, { respond }) {
   return respond({ items: await unreviewed(env, 500, QUEUE_MAX), guide: GUIDE });
 }
 
-/**
- * Таймерът: има ли неразгледан план → пуска задачата в Claude (веднъж за същия набор планове;
- * повторно след 3 часа, ако още не е прегледан). → 'off' | 'none' | 'same' | 'fired' | 'error'
- */
-export async function maybeFireReview(env, { now = Date.now(), fetchImpl = fetch } = {}) {
-  if (!env.CLAUDE_REVIEW_TOKEN || !env.page_content) return 'off';
-  const items = await unreviewed(env, CRON_SCAN, 20);
-  if (!items.length) return 'none';
-  const sig = items.map((i) => `${i.clientId}@${i.planUpdatedAt}`).sort().join('|');
-  const last = JSON.parse((await env.page_content.get('plan_review_fired')) || 'null');
-  if (last && last.sig === sig && now - last.at < REFIRE_MS) return 'same';
+/** Пуска задачата в Claude. → true при успех */
+async function fire(env, count, fetchImpl, now) {
   try {
     const r = await fetchImpl(FIRE_URL, {
       method: 'POST',
@@ -108,15 +105,64 @@ export async function maybeFireReview(env, { now = Date.now(), fetchImpl = fetch
         'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text: `Чакащи преглед: ${items.length}` }),
+      body: JSON.stringify({ text: `Чакащи преглед: ${count}` }),
     });
-    if (!r.ok) { console.warn('[plan-review] fire failed:', r.status); return 'error'; }
-    await env.page_content.put('plan_review_fired', JSON.stringify({ sig, at: now }), { expirationTtl: 30 * 86400 });
-    return 'fired';
+    if (!r.ok) { console.warn('[plan-review] fire failed:', r.status); return false; }
+    await env.page_content.put(LAST_FIRE_KEY, JSON.stringify({ at: now }), { expirationTtl: 86400 });
+    return true;
   } catch (e) {
     console.warn('[plan-review] fire error:', e?.message);
-    return 'error';
+    return false;
   }
+}
+
+const markFired = (env, item, now) => env.page_content.put(firedKey(item.clientId),
+  JSON.stringify({ planUpdatedAt: item.planUpdatedAt, at: now }), { expirationTtl: 30 * 86400 });
+
+/** Пуснат ли е вече прегледът за този вариант на плана (и не е изтекъл срокът за нов опит). */
+async function alreadyFired(env, item, now) {
+  const m = JSON.parse((await env.page_content.get(firedKey(item.clientId))) || 'null');
+  return Boolean(m && m.planUpdatedAt === item.planUpdatedAt && now - m.at < REFIRE_MS);
+}
+
+async function recentlyFired(env, now) {
+  const last = JSON.parse((await env.page_content.get(LAST_FIRE_KEY)) || 'null');
+  return Boolean(last && now - last.at < FIRE_GAP_MS);
+}
+
+/**
+ * Планът постъпи за одобрение (записът на клиента) → прегледът тръгва веднага.
+ * → 'off' | 'skip' | 'reviewed' | 'same' | 'later' | 'fired' | 'error'
+ */
+export async function reviewOnPending(env, clientId, c, { now = Date.now(), fetchImpl = fetch } = {}) {
+  if (!env?.CLAUDE_REVIEW_TOKEN || !env.page_content) return 'off';
+  if (!clientId || !isPending(c)) return 'skip';
+  const item = { clientId, planUpdatedAt: c.planUpdatedAt || null };
+  if (await alreadyFired(env, item, now)) return 'same';
+  const r = JSON.parse((await env.page_content.get(reviewKey(clientId))) || 'null');
+  if (r && r.planUpdatedAt === item.planUpdatedAt) return 'reviewed';
+  if (await recentlyFired(env, now)) return 'later';   // сесията тече — таймерът го взима след прозореца
+  if (!(await fire(env, 1, fetchImpl, now))) return 'error';
+  await markFired(env, item, now);
+  return 'fired';
+}
+
+/**
+ * Таймерът (резервата): неразгледан план, за който прегледът не е пускан (дошъл по време на сесия,
+ * грешка от API-то) или е пуснат преди 3 часа без резултат → пуска задачата.
+ * → 'off' | 'none' | 'same' | 'later' | 'fired' | 'error'
+ */
+export async function maybeFireReview(env, { now = Date.now(), fetchImpl = fetch } = {}) {
+  if (!env.CLAUDE_REVIEW_TOKEN || !env.page_content) return 'off';
+  const items = await unreviewed(env, CRON_SCAN, 20);
+  if (!items.length) return 'none';
+  const due = [];
+  for (const i of items) if (!(await alreadyFired(env, i, now))) due.push(i);
+  if (!due.length) return 'same';
+  if (await recentlyFired(env, now)) return 'later';
+  if (!(await fire(env, items.length, fetchImpl, now))) return 'error';
+  for (const i of items) await markFired(env, i, now);
+  return 'fired';
 }
 
 /** POST /api/admin/plan-review/submit */
