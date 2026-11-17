@@ -10673,14 +10673,13 @@
                 var fillPct = Math.min(100, m.eaten / scaleMax * 100);
                 var over = m.eaten > m.plan * 1.1;
                 var inZone = m.eaten >= m.plan * 0.9 && !over;
-                var calNote = m.eaten === 0 ? ''
-                    : over ? '+' + (m.eaten - m.plan) + ' над плана'
+                var calNote = m.eaten === 0 ? 'Все още нищо отбелязано'
+                    : over ? 'малко над плана'
                     : inZone ? 'в целевата зона'
-                    : 'до плана: ' + (m.plan - m.eaten);
+                    : 'още има място до плана';
                 calHtml = '<div class="dc-cal' + (over ? ' is-over' : inZone ? ' is-zone' : '') + '">' +
-                    '<div class="dc-cal-row"><span class="dc-cal-num">' + m.eaten + ' <small>/ ' + m.plan + ' kcal</small></span>' +
-                    '<span class="dc-cal-note">' + calNote + '</span></div>' +
-                    (m.extraBurn > 0 ? '<div class="dc-cal-bonus">Разходът е бил по-голям с ~' + m.extraBurn + ' kcal — реалният дефицит за деня е по-голям</div>' : '') +
+                    '<div class="dc-cal-row"><span class="dc-cal-note">' + calNote + '</span></div>' +
+                    (m.extraBurn > 0 ? '<div class="dc-cal-bonus">Движиш се повече от обичайното — реалният дефицит за деня е по-голям</div>' : '') +
                     '<div class="dc-cal-track" aria-hidden="true"><span class="dc-cal-zone" style="left:' + (0.9 / 1.3 * 100).toFixed(1) + '%;width:' + (0.2 / 1.3 * 100).toFixed(1) + '%"></span>' +
                     '<span class="dc-cal-fill" style="width:' + fillPct.toFixed(1) + '%"></span></div></div>';
             }

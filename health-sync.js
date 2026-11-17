@@ -579,7 +579,8 @@
         rememberCloudSleep: rememberCloudSleep,
         // За тестове: превръщането на пробите в дни.
         _sleepByDay: sleepByDay,
-        _sumSamplesByDay: sumSamplesByDay
+        _sumSamplesByDay: sumSamplesByDay,
+        _collectFacts: collectFacts
     };
 
     // Обвивката (горният прозорец) синхронизира тихо при отваряне и при връщане
