@@ -1223,6 +1223,7 @@
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') window.NutriPlanHandleBack();
             });
+            var gaNumbers = {};
             function showExplanation(key) {
                 var info = EXPLANATIONS[key]; if(!info) return;
                 var old = document.getElementById('gameExplainOverlay'); if(old) old.remove();
@@ -1233,6 +1234,11 @@
                 var t = document.createElement('div'); t.className='game-explain-title'; t.textContent=info.title;
                 var tx= document.createElement('div'); tx.className='game-explain-text'; tx.style.whiteSpace='pre-line'; tx.textContent=info.text;
                 box.appendChild(t); box.appendChild(tx);
+                if(gaNumbers[key]) {
+                    var nm = document.createElement('div'); nm.className='game-explain-text'; nm.style.cssText='white-space:pre-line;margin-top:10px;font-weight:600';
+                    nm.textContent = gaNumbers[key];
+                    box.appendChild(nm);
+                }
                 if(info.why) {
                     var whyBtn = document.createElement('button'); whyBtn.className='game-explain-why-btn'; whyBtn.innerHTML='<i class="fas fa-flask"></i> Защо е важно';
                     whyBtn.onclick=function(){ showWhyModal(info.title, info.why); };
@@ -1452,6 +1458,16 @@
 
             html += '</div>'; // close gameMetricsDetails
 
+            // Точните числа — само в обясненията (докосване), не на екрана.
+            gaNumbers = {
+                engagement: 'Твоите числа: ангажираност ' + engagementPct + '%' + (mealAdherencePct!=null ? ', спазени хранения ' + mealAdherencePct + '%' : '') + '.',
+                calories: calBalanceByDay.some(function(v){ return v!==null; }) ? 'Твоите числа: нетен баланс за седмицата ' + (netCalBalance>0?'+':'') + netCalBalance + ' kcal.' : '',
+                stress: balancePct!=null ? 'Твоите числа: емоционален баланс ' + balancePct + '%.' : '',
+                sleep: sleepPct!=null ? 'Твоите числа: сън ' + sleepPct + '%.' : '',
+                activity: actPct!=null ? 'Твоите числа: ' + actRawPct + '% от целта' + (actStepsAvg!=null ? ', средно ~' + fmtSteps(actStepsAvg) + ' крачки на ден при цел ' + fmtSteps(actTarget) : '') + (actExtraBurn>0 ? '. Допълнителен разход ~' + actExtraBurn + ' kcal в ' + actOverDays + ' ' + (actOverDays===1?'ден':'дни') : '') + '.' : '',
+                water: waterPct!=null ? 'Твоите числа: хидратация ' + waterPct + '%.' : '',
+                health: healthScore!=null ? 'Твоите числа: навици ' + healthScore + '%.' : ''
+            };
             body.innerHTML = html;
 
             // Показателите — по важност за целта (goal-focus.js).
