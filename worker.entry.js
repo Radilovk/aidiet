@@ -140,7 +140,7 @@ import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUs
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
-import { handleReviewQueue, handleReviewSubmit, handleReviewGet, handleReviewApply, maybeFireReview, REVIEW_CRON } from './plan-review.js';
+import { handleReviewQueue, handleReviewSubmit, handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, REVIEW_CRON } from './plan-review.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, BUDGET_KEY } from './spend.js';
 
 /** Известие до админа при 50% / 100% от дневния AI таван (през Make → Telegram). */
@@ -1581,11 +1581,26 @@ async function kvGetJSON(env, key) {
   }
 }
 
+/**
+ * Всеки план, постъпил за одобрение, отива веднага на преглед от Claude (plan-review.js).
+ * Повторните записи на същия вариант не пускат нищо; грешка тук не спира записа.
+ */
+async function planReviewOnSave(env, clientId, clientData) {
+  if (clientData?.planStatus !== 'pending' || !clientData?.plan) return;
+  try {
+    const r = await reviewOnPending(env, clientId, clientData);
+    if (r !== 'off' && r !== 'same' && r !== 'reviewed') console.log(`[plan-review] ${clientId}: ${r}`);
+  } catch (e) {
+    console.warn('[plan-review] on save:', e?.message);
+  }
+}
+
 async function kvPutJSON(env, key, data, ttl = AI_LOG_KV_TTL) {
   if (!env?.page_content) return false;
   try {
     const options = ttl ? { expirationTtl: ttl } : undefined;
     await env.page_content.put(key, JSON.stringify(data), options);
+    if (key.startsWith('client:')) await planReviewOnSave(env, key.slice(7), data);
     return true;
   } catch (error) {
     console.error(`[KV] Failed to set key ${key}:`, error);
@@ -5883,6 +5898,7 @@ async function applyAssistantPatches(env, session, clientData, patches, ctx) {
   }
 
   await env.page_content.put(`client:${session.clientId}`, JSON.stringify(clientData));
+  await planReviewOnSave(env, session.clientId, clientData);
 
   if (wasPreviouslyActivated && touchedPlan) {
     await deliverPlanUpdateToClient(env, clientData, session.clientId, 'updated');
@@ -7189,6 +7205,7 @@ async function handleUpdateClientPlan(request, env, ctx) {
       delete clientData.planReplacementPending;
     }
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+    await planReviewOnSave(env, clientId, clientData);
 
     // Notify admin only if this is a first-time plan requiring review
     if (clientData.planStatus === 'pending') {
