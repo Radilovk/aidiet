@@ -1430,6 +1430,7 @@
     </script>
     <script src="./enrichment-client.js"></script>
     <script src="./persona.js"></script>
+    <script src="./bot-check.js?v=20261117a" defer></script>
 </head>
 <body data-page-theme="emoeat" data-standalone-module="emoeat">
     <!-- Skip Navigation Link (Accessibility) -->
@@ -3193,13 +3194,15 @@
         }
 
         async function requestAnalysis() {
+            // Безплатният анализ — само за хора (Turnstile; без ключ на сървъра е празно и не пречи).
+            const turnstile = window.EatologixBotCheck ? await window.EatologixBotCheck.token() : '';
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 30000);
             try {
                 const response = await fetch(`${WORKER_URL}/api/generate-emoeat-analysis`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ answers: buildAiAnswers(), profile: buildProfilePayload(), deviceId: emoDevice(), userId: emoUser() }),
+                    body: JSON.stringify({ answers: buildAiAnswers(), profile: buildProfilePayload(), deviceId: emoDevice(), userId: emoUser(), turnstile }),
                     signal: controller.signal
                 });
                 const result = await response.json();

@@ -50340,6 +50340,28 @@ function noteSpend(env, model, usage, opts) {
   });
 }
 
+// turnstile.js
+var VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+var turnstileOn = (env) => Boolean(env.TURNSTILE_SECRET_KEY);
+var turnstileSiteKey = (env) => env.TURNSTILE_SECRET_KEY && env.TURNSTILE_SITE_KEY || null;
+async function verifyTurnstile(env, token, request) {
+  if (!turnstileOn(env)) return { ok: true, off: true };
+  const t = String(token || "");
+  if (!t || t.length > 2048) return { ok: false, reason: "missing" };
+  const form3 = new URLSearchParams({ secret: env.TURNSTILE_SECRET_KEY, response: t });
+  const ip = request?.headers?.get("CF-Connecting-IP");
+  if (ip) form3.set("remoteip", ip);
+  try {
+    const r = await fetch(VERIFY_URL, { method: "POST", body: form3 });
+    const d = await r.json();
+    return d.success ? { ok: true } : { ok: false, reason: (d["error-codes"] || [])[0] || "failed" };
+  } catch (e) {
+    console.warn("turnstile verify unavailable:", e?.message);
+    return { ok: true, unavailable: true };
+  }
+}
+var BOT_MESSAGE = "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430\u0442\u0430, \u0447\u0435 \u043D\u0435 \u0441\u0442\u0435 \u0440\u043E\u0431\u043E\u0442, \u043D\u0435 \u043C\u0438\u043D\u0430. \u041F\u0440\u0435\u0437\u0430\u0440\u0435\u0434\u0435\u0442\u0435 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0430\u0442\u0430 \u0438 \u043E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u043F\u0430\u043A.";
+
 // iris-gate.js
 var TICKET_CALLS = 24;
 var TICKET_MS = 40 * 60 * 1e3;
@@ -50374,6 +50396,8 @@ async function handleIrisTicket(request, env, { respond, now = Date.now() } = (
   const credit = Number(await env.page_content.get(creditKey)) || 0;
   const paid = credit > 0;
   if (!paid) {
+    const human = await verifyTurnstile(env, body.turnstile, request);
+    if (!human.ok) return respond({ error: "bot", reason: human.reason, message: BOT_MESSAGE }, 403);
     if (!await budgetOk(env, "free", now)) {
       return respond({ error: "budget", message: "\u0411\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u0438\u0442\u0435 \u0430\u043D\u0430\u043B\u0438\u0437\u0438 \u0437\u0430 \u0434\u043D\u0435\u0441 \u0441\u0430 \u0438\u0437\u0447\u0435\u0440\u043F\u0430\u043D\u0438. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0443\u0442\u0440\u0435." }, 503);
     }
@@ -65520,6 +65544,8 @@ var worker_entry_default = {
           if (res.ok) await useEmoeatCredit(env, emoHolder);
           return res;
         }
+        const emoHuman = await verifyTurnstile(env, emoBody.turnstile, request);
+        if (!emoHuman.ok) return jsonResponse2({ error: "bot", reason: emoHuman.reason, message: BOT_MESSAGE }, 403);
         return await gatedRun(request, env, "emoeat_ai", () => handleGenerateEmoeatAnalysis(request, env));
       } else if (url.pathname === "/api/generate-longevity-protocol" && request.method === "POST") {
         return await handleGenerateLongevityProtocol(request, env);
@@ -65639,6 +65665,8 @@ var worker_entry_default = {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === "/api/user/access" && request.method === "GET") {
         return jsonResponse2(await resolveAccess(env, url.searchParams.get("userId") || ""));
+      } else if (url.pathname === "/api/turnstile/config" && request.method === "GET") {
+        return jsonResponse2({ siteKey: turnstileSiteKey(env) });
       } else if (url.pathname === "/api/iris/ticket" && request.method === "POST") {
         return await handleIrisTicket(request, env, { respond: jsonResponse2 });
       } else if (url.pathname.startsWith("/api/iris/gemini/") && request.method === "POST") {

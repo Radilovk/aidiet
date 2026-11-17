@@ -46,6 +46,7 @@ on:
       - '!billing.js'
       - '!spend.js'
       - '!iris-gate.js'
+      - '!turnstile.js'
       - '!pricing.html'
   workflow_dispatch:
 
@@ -142,6 +143,7 @@ jobs:
             --exclude 'billing.js' \
             --exclude 'spend.js' \
             --exclude 'iris-gate.js' \
+            --exclude 'turnstile.js' \
             --exclude 'pricing.html' \
             --exclude 'brand/wordmark-glyphs.json' \
             --exclude 'brand/concept-eatologix.png' \
