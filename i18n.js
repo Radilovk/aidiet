@@ -272,9 +272,9 @@
             'box-shadow:0 10px 30px -10px rgba(0,0,0,.5);max-width:calc(100vw - 32px)';
         var txt = document.createElement('span'); txt.textContent = INVITE[code]; txt.style.whiteSpace = 'nowrap';
         var yes = document.createElement('button'); yes.type = 'button'; yes.textContent = NAMES[code];
-        yes.style.cssText = 'white-space:nowrap;flex:none;border:0;border-radius:999px;padding:8px 14px;font:600 14px Inter,system-ui,sans-serif;cursor:pointer;color:#04181C;background:linear-gradient(120deg,#00E0DC,#10CC50 60%,#A0F500)';
+        yes.style.cssText = 'white-space:nowrap;flex:none;border:0;border-radius:999px;min-height:44px;padding:0 16px;font:600 14px Inter,system-ui,sans-serif;cursor:pointer;color:#04181C;background:linear-gradient(120deg,#00E0DC,#10CC50 60%,#A0F500)';
         var no = document.createElement('button'); no.type = 'button'; no.textContent = '×'; no.setAttribute('aria-label', 'Close');
-        no.style.cssText = 'border:0;background:transparent;color:#9FC9C4;font-size:20px;line-height:1;padding:4px 8px;cursor:pointer';
+        no.style.cssText = 'border:0;background:transparent;color:#9FC9C4;font-size:22px;line-height:1;min-width:44px;min-height:44px;padding:0;cursor:pointer';
         yes.onclick = function () { api.setLang(code); };
         no.onclick = function () { safeSet(INVITE_KEY, '1'); bar.remove(); };
         bar.appendChild(txt); bar.appendChild(yes); bar.appendChild(no);
