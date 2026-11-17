@@ -159,7 +159,6 @@
   "Ирисов анализ": "İris analizi",
   "Анализ по снимка на ириса. Находките влизат в плана като допълнителни данни.": "İris fotoğrafı ile analiz. Bulgular plana ek veri olarak aktarılır.",
   "Започни анализа": "Analize başla",
-  "Инсулинова резистентност, автоимунни състояния, менопауза, антиейджинг и още — 11 протокола.": "İnsülin direnci, otoimmün durumlar, menopoz, anti-aging ve daha fazlası — 11 protokol.",
   "Лична цел —": "Kişisel hedef —",
   "Логичен избор.": "Mantıklı seçim.",
   "EmoEat — емоционално хранене": "EmoEat — duygusal beslenme",
@@ -181,16 +180,16 @@
   "Препоръки и активност, съобразени с теб и с целта ти.": "Sana ve hedefine göre uyarlanmış öneriler ve aktiviteler.",
   "Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад изчисленията стои екип от лекари и диетолози. Резултатът от всичко това е твой.": "Biz sana tamamen kişiselleştirilmiş bir plan hazırlıyoruz: vücuduna, sağlığına ve hedefine göre ne, ne kadar ve ne zaman yemen gerektiği. Hesaplamaların arkasında doktorlar ve diyetisyenlerden oluşan bir ekip var. Sonuç senin.",
   "Телефон снима купа с храна": "Bir kase yemeğin fotoğrafını çeken telefon",
-  "Жена с чаша чай вечер у дома": "Akşam evde elinde bir fincan çayla bir kadın",
   "Близък план на човешко око с дигитална сканираща графика": "Dijital tarama grafiğiyle insan gözünün yakın çekimi",
-  "Замислена млада жена пред маса със здравословна храна": "Sağlıklı yiyeceklerle dolu masa başında düşünceli genç kadın",
   "Усмихната двойка в кухнята с ябълка и здравословни храни": "Mutfakta elma ve sağlıklı yiyeceklerle gülümseyen çift",
   "Силует на жена сред природата с вдигнати палци": "Doğada başparmaklarını yukarı kaldırmış kadın silüeti",
   "Усмихната жена в спортно облекло с разперени ръце край морето": "Deniz kenarında spor kıyafetleriyle kollarını açmış gülümseyen kadın",
   "Мъж измерва талията си с жълт шивашки метър": "Sarı mezurayla belini ölçen erkek",
   "Боси крака върху кантар и зелен сантиметър": "Tartı üzerinde çıplak ayaklar ve yeşil mezura",
   "Жена измерва обиколката на талията си с метър": "Bel çevresini mezurayla ölçen kadın",
-  "Жена на кантар държи зелена ябълка и поничка": "Tartı üzerinde elinde yeşil elma ve donut tutan kadın"
+  "Жена на кантар държи зелена ябълка и поничка": "Tartı üzerinde elinde yeşil elma ve donut tutan kadın",
+  "Инсулинова резистентност, автоимунни състояния, антиейджинг и още — 12 протокола.": "İnsülin direnci, otoimmün durumlar, anti-aging ve daha fazlası — 12 protokol.",
+  "Замислена жена яде сладолед на кухненска маса": "Mutfak masasında dondurma yiyen düşünceli bir kadın"
  },
  "keys": {
   "day.mock.0": "P",

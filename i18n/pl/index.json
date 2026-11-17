@@ -159,7 +159,6 @@
   "Ирисов анализ": "Analiza tęczówki",
   "Анализ по снимка на ириса. Находките влизат в плана като допълнителни данни.": "Analiza na podstawie zdjęcia tęczówki. Wyniki trafiają do planu jako dodatkowe dane.",
   "Започни анализа": "Rozpocznij analizę",
-  "Инсулинова резистентност, автоимунни състояния, менопауза, антиейджинг и още — 11 протокола.": "Insulinooporność, choroby autoimmunologiczne, menopauza, anti-aging i więcej — 11 protokołów.",
   "Лична цел —": "Osobisty cel —",
   "Логичен избор.": "Logiczny wybór.",
   "EmoEat — емоционално хранене": "EmoEat — jedzenie emocjonalne",
@@ -181,16 +180,16 @@
   "Препоръки и активност, съобразени с теб и с целта ти.": "Zalecenia i aktywność dopasowane do Ciebie i Twojego celu.",
   "Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад изчисленията стои екип от лекари и диетолози. Резултатът от всичко това е твой.": "Tworzymy plan naprawdę dopasowany do Ciebie: co, ile i kiedy jeść, zgodnie z Twoim ciałem, zdrowiem i celem. Za obliczeniami stoi zespół lekarzy i dietetyków. Efekt należy do Ciebie.",
   "Телефон снима купа с храна": "Telefon robi zdjęcie miski z jedzeniem",
-  "Жена с чаша чай вечер у дома": "Kobieta z filiżanką herbaty wieczorem w domu",
   "Близък план на човешко око с дигитална сканираща графика": "Zbliżenie na ludzkie oko z cyfrową grafiką skanującą",
-  "Замислена млада жена пред маса със здравословна храна": "Zadumana młoda kobieta przy stole ze zdrowym jedzeniem",
   "Усмихната двойка в кухнята с ябълка и здравословни храни": "Uśmiechnięta para w kuchni z jabłkiem i zdrowym jedzeniem",
   "Силует на жена сред природата с вдигнати палци": "Sylwetka kobiety na łonie natury z kciukami w górę",
   "Усмихната жена в спортно облекло с разперени ръце край морето": "Uśmiechnięta kobieta w stroju sportowym z rozłożonymi ramionami nad morzem",
   "Мъж измерва талията си с жълт шивашки метър": "Mężczyzna mierzący talię żółtym centymetrem krawieckim",
   "Боси крака върху кантар и зелен сантиметър": "Bose stopy na wadze i zielony centymetr",
   "Жена измерва обиколката на талията си с метър": "Kobieta mierząca obwód talii centymetrem",
-  "Жена на кантар държи зелена ябълка и поничка": "Kobieta na wadze trzymająca zielone jabłko i pączka"
+  "Жена на кантар държи зелена ябълка и поничка": "Kobieta na wadze trzymająca zielone jabłko i pączka",
+  "Инсулинова резистентност, автоимунни състояния, антиейджинг и още — 12 протокола.": "Insulinooporność, choroby autoimmunologiczne, anti-aging i więcej — 12 protokołów.",
+  "Замислена жена яде сладолед на кухненска маса": "Zadumana kobieta je lody przy kuchennym stole"
  },
  "keys": {
   "day.mock.0": "P",

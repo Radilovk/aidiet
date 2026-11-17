@@ -159,7 +159,6 @@
   "Ирисов анализ": "Analisi dell'iride",
   "Анализ по снимка на ириса. Находките влизат в плана като допълнителни данни.": "Analisi da una foto dell'iride. I risultati entrano nel piano come dati aggiuntivi.",
   "Започни анализа": "Inizia l'analisi",
-  "Инсулинова резистентност, автоимунни състояния, менопауза, антиейджинг и още — 11 протокола.": "Insulino-resistenza, condizioni autoimmuni, menopausa, anti-aging e altro — 11 protocolli.",
   "Лична цел —": "Obiettivo personale —",
   "Логичен избор.": "Una scelta logica.",
   "EmoEat — емоционално хранене": "EmoEat — alimentazione emotiva",
@@ -181,16 +180,16 @@
   "Препоръки и активност, съобразени с теб и с целта ти.": "Consigli e attività su misura per te e per il tuo obiettivo.",
   "Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад изчисленията стои екип от лекари и диетолози. Резултатът от всичко това е твой.": "Noi creiamo un piano davvero personalizzato: cosa, quanto e quando mangiare, in base al tuo corpo, alla tua salute e al tuo obiettivo. Dietro i calcoli c'è un team di medici e dietisti. Il risultato è tuo.",
   "Телефон снима купа с храна": "Un telefono fotografa una ciotola di cibo",
-  "Жена с чаша чай вечер у дома": "Una donna con una tazza di tè la sera a casa",
   "Близък план на човешко око с дигитална сканираща графика": "Primo piano di un occhio umano con grafica di scansione digitale",
-  "Замислена млада жена пред маса със здравословна храна": "Giovane donna pensierosa davanti a un tavolo con cibo sano",
   "Усмихната двойка в кухнята с ябълка и здравословни храни": "Coppia sorridente in cucina con una mela e cibi sani",
   "Силует на жена сред природата с вдигнати палци": "Silhouette di una donna immersa nella natura con i pollici all'insù",
   "Усмихната жена в спортно облекло с разперени ръце край морето": "Donna sorridente in abbigliamento sportivo a braccia aperte in riva al mare",
   "Мъж измерва талията си с жълт шивашки метър": "Uomo che misura il girovita con un metro giallo da sarto",
   "Боси крака върху кантар и зелен сантиметър": "Piedi scalzi su una bilancia e un metro da sarto verde",
   "Жена измерва обиколката на талията си с метър": "Donna che misura la circonferenza vita con un metro",
-  "Жена на кантар държи зелена ябълка и поничка": "Donna sulla bilancia che tiene in mano una mela verde e una ciambella"
+  "Жена на кантар държи зелена ябълка и поничка": "Donna sulla bilancia che tiene in mano una mela verde e una ciambella",
+  "Инсулинова резистентност, автоимунни състояния, антиейджинг и още — 12 протокола.": "Insulino-resistenza, condizioni autoimmuni, anti-aging e altro — 12 protocolli.",
+  "Замислена жена яде сладолед на кухненска маса": "Una donna pensierosa mangia un gelato al tavolo della cucina"
  },
  "keys": {
   "day.mock.0": "L",

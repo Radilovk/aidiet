@@ -159,7 +159,6 @@
   "Ирисов анализ": "Analiza irisului",
   "Анализ по снимка на ириса. Находките влизат в плана като допълнителни данни.": "Analiză pe baza fotografiei irisului. Constatările intră în plan ca date suplimentare.",
   "Започни анализа": "Începe analiza",
-  "Инсулинова резистентност, автоимунни състояния, менопауза, антиейджинг и още — 11 протокола.": "Rezistență la insulină, afecțiuni autoimune, menopauză, anti-aging și altele — 11 protocoale.",
   "Лична цел —": "Obiectiv personal —",
   "Логичен избор.": "Alegere logică.",
   "EmoEat — емоционално хранене": "EmoEat — alimentație emoțională",
@@ -181,16 +180,16 @@
   "Препоръки и активност, съобразени с теб и с целта ти.": "Recomandări și activitate adaptate ție și obiectivului tău.",
   "Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад изчисленията стои екип от лекари и диетолози. Резултатът от всичко това е твой.": "Noi creăm un plan cu adevărat personalizat: ce, cât și când să mănânci, în funcție de corpul, sănătatea și obiectivul tău. În spatele calculelor stă o echipă de medici și dieteticieni. Rezultatul este al tău.",
   "Телефон снима купа с храна": "Un telefon fotografiază un castron cu mâncare",
-  "Жена с чаша чай вечер у дома": "O femeie cu o cană de ceai seara acasă",
   "Близък план на човешко око с дигитална сканираща графика": "Prim-plan cu un ochi uman și o grafică digitală de scanare",
-  "Замислена млада жена пред маса със здравословна храна": "O tânără gânditoare în fața unei mese cu mâncare sănătoasă",
   "Усмихната двойка в кухнята с ябълка и здравословни храни": "Un cuplu zâmbitor în bucătărie, cu un măr și alimente sănătoase",
   "Силует на жена сред природата с вдигнати палци": "Silueta unei femei în natură, cu degetele mari ridicate",
   "Усмихната жена в спортно облекло с разперени ръце край морето": "O femeie zâmbitoare în echipament sportiv, cu brațele deschise la malul mării",
   "Мъж измерва талията си с жълт шивашки метър": "Un bărbat își măsoară talia cu un centimetru galben de croitorie",
   "Боси крака върху кантар и зелен сантиметър": "Picioare desculțe pe un cântar și un centimetru verde",
   "Жена измерва обиколката на талията си с метър": "O femeie își măsoară circumferința taliei cu un centimetru",
-  "Жена на кантар държи зелена ябълка и поничка": "O femeie pe cântar ținând un măr verde și o gogoașă"
+  "Жена на кантар държи зелена ябълка и поничка": "O femeie pe cântar ținând un măr verde și o gogoașă",
+  "Инсулинова резистентност, автоимунни състояния, антиейджинг и още — 12 протокола.": "Rezistență la insulină, afecțiuni autoimune, anti-aging și altele — 12 protocoale.",
+  "Замислена жена яде сладолед на кухненска маса": "O femeie pe gânduri mănâncă înghețată la masa din bucătărie"
  },
  "keys": {
   "day.mock.0": "L",

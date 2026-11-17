@@ -159,7 +159,6 @@
   "Ирисов анализ": "Iris analysis",
   "Анализ по снимка на ириса. Находките влизат в плана като допълнителни данни.": "Analysis from a photo of your iris. The findings feed into your plan as additional data.",
   "Започни анализа": "Start the analysis",
-  "Инсулинова резистентност, автоимунни състояния, менопауза, антиейджинг и още — 11 протокола.": "Insulin resistance, autoimmune conditions, menopause, anti-aging and more — 11 protocols.",
   "Лична цел —": "Personal goal —",
   "Логичен избор.": "The logical choice.",
   "EmoEat — емоционално хранене": "EmoEat — emotional eating",
@@ -181,16 +180,16 @@
   "Препоръки и активност, съобразени с теб и с целта ти.": "Recommendations and activity tailored to you and your goal.",
   "Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад изчисленията стои екип от лекари и диетолози. Резултатът от всичко това е твой.": "We create a truly personalised plan: what, how much and when to eat, based on your body, your health and your goal. A team of doctors and dietitians stands behind the calculations. The result of it all is yours.",
   "Телефон снима купа с храна": "A phone photographing a bowl of food",
-  "Жена с чаша чай вечер у дома": "A woman with a cup of tea at home in the evening",
   "Близък план на човешко око с дигитална сканираща графика": "Close-up of a human eye with a digital scanning graphic",
-  "Замислена млада жена пред маса със здравословна храна": "Thoughtful young woman sitting at a table with healthy food",
   "Усмихната двойка в кухнята с ябълка и здравословни храни": "Smiling couple in the kitchen with an apple and healthy food",
   "Силует на жена сред природата с вдигнати палци": "Silhouette of a woman in nature giving a thumbs-up",
   "Усмихната жена в спортно облекло с разперени ръце край морето": "Smiling woman in sportswear standing by the sea with open arms",
   "Мъж измерва талията си с жълт шивашки метър": "Man measuring his waist with a yellow tape measure",
   "Боси крака върху кантар и зелен сантиметър": "Bare feet on a scale with a green measuring tape",
   "Жена измерва обиколката на талията си с метър": "Woman measuring her waist circumference with a tape measure",
-  "Жена на кантар държи зелена ябълка и поничка": "Woman standing on a scale holding a green apple and a donut"
+  "Жена на кантар държи зелена ябълка и поничка": "Woman standing on a scale holding a green apple and a donut",
+  "Инсулинова резистентност, автоимунни състояния, антиейджинг и още — 12 протокола.": "Insulin resistance, autoimmune conditions, anti-aging and more — 12 protocols.",
+  "Замислена жена яде сладолед на кухненска маса": "A pensive woman eating ice cream at a kitchen table"
  },
  "keys": {
   "day.mock.0": "M",
