@@ -10678,7 +10678,7 @@
                     : over ? 'малко над плана'
                     : inZone ? 'в целевата зона'
                     : 'още има място до плана';
-                calHtml = '<div class="dc-cal' + (over ? ' is-over' : inZone ? ' is-zone' : '') + '" title="' + m.eaten + ' от ' + m.plan + ' kcal" aria-label="Изядено ' + m.eaten + ' от ' + m.plan + ' kcal">' +
+                calHtml = '<div class="dc-cal' + (over ? ' is-over' : inZone ? ' is-zone' : '') + '">' +
                     '<div class="dc-cal-row"><span class="dc-cal-note">' + calNote + '</span>' +
                     '<button type="button" class="dc-cal-info" aria-label="Числата за деня"><i class="fas fa-circle-info" aria-hidden="true"></i></button></div>' +
                     (m.extraBurn > 0 ? '<div class="dc-cal-bonus">Движиш се повече от обичайното — реалният дефицит за деня е по-голям</div>' : '') +
