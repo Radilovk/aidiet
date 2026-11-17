@@ -6,6 +6,7 @@
  *     <img src="…" loading="lazy" alt="…">
  *   </figure>
  *
+ * data-only="mobile" | "desktop" — снимката се показва само на телефон / само на компютър (граница 900px).
  * data-x / data-y — коя точка от снимката е в центъра на кадъра (0–100), data-z — приближение (1–4).
  * data-fx: fade | kenburns | slide | wipe | iris | blur. data-every — секунди между смените.
  * data-ratio — рамка (16/9, 4/3, 1/1, 3/4…); data-width — ширина в % от мястото.
@@ -55,6 +56,9 @@
         // място за банер в страници без снимка (EmoEat, IrisMap)
         '.ms-hero{display:block;margin:0 auto 22px;border-radius:24px;aspect-ratio:16/9;max-width:520px;width:100%;',
         '  box-shadow:0 18px 50px -24px rgba(3,40,48,.45);border:1px solid rgba(255,255,255,.12)}',
+        // снимка само за телефон / само за компютър (data-only="mobile" | "desktop"); границата е като в сайта — 900px
+        '@media (min-width: 900px){[data-slot]>img[data-only=mobile]{display:none !important}}',
+        '@media (max-width: 899px){[data-slot]>img[data-only=desktop]{display:none !important}}',
         '@media (prefers-reduced-motion: reduce){[data-slot].ms-multi>img{animation:none !important;transition:opacity .6s ease !important;clip-path:none !important;translate:none !important;filter:none !important}}'
     ].join('\n');
     (document.head || document.documentElement).appendChild(st);
@@ -67,7 +71,12 @@
         img.style.setProperty('--x', x + '%'); img.style.setProperty('--y', y + '%'); img.style.setProperty('--z', z);
     }
 
-    function imgs(slot) { return Array.prototype.filter.call(slot.children, function (n) { return n.tagName === 'IMG'; }); }
+    var DESK = window.matchMedia ? matchMedia('(min-width: 900px)') : { matches: false };
+    function all(slot) { return Array.prototype.filter.call(slot.children, function (n) { return n.tagName === 'IMG'; }); }
+    // снимките, които се показват на този екран
+    function imgs(slot) {
+        return all(slot).filter(function (n) { var o = n.getAttribute('data-only'); return !(o === 'mobile' && DESK.matches) && !(o === 'desktop' && !DESK.matches); });
+    }
 
     function setup(slot) {
         var s = slot.__ms || (slot.__ms = { i: 0, t: 0, paused: false, seen: true });
@@ -88,7 +97,7 @@
         var dots = slot.querySelector(':scope > .ms-dots'), line = slot.querySelector(':scope > .ms-line');
         if (dots) dots.remove(); if (line) line.remove();
         clearTimeout(s.t);
-        list.forEach(function (im) { im.classList.remove('ms-on', 'ms-off'); });
+        all(slot).forEach(function (im) { im.classList.remove('ms-on', 'ms-off'); });
         if (!multi) return;
         if (s.i >= list.length) s.i = 0;
         list.forEach(function (im, k) { if (k) { im.loading = 'lazy'; } });
@@ -127,6 +136,7 @@
     var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) {
         es.forEach(function (e) { var s = e.target.__ms; if (!s) return; s.seen = e.isIntersecting; schedule(e.target); });
     }) : null;
+    if (DESK.addEventListener) DESK.addEventListener('change', function () { init(); });
     document.addEventListener('visibilitychange', function () { document.querySelectorAll('[data-slot]').forEach(function (sl) { if (sl.__ms) schedule(sl); }); });
 
     function init(root) {
@@ -145,6 +155,7 @@
         pause: function (slot, on) { if (!slot.__ms) setup(slot); slot.__ms.paused = !!on; schedule(slot); },
         index: function (slot) { return slot.__ms ? slot.__ms.i : 0; },
         images: imgs,
+        all: all,
         FX: FX
     };
     if (reduce) { /* ефектите се свеждат до плавна смяна чрез CSS */ }
