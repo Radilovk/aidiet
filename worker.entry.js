@@ -137,7 +137,12 @@ import { crossCheckText } from './cross-check.js';
 import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
 import Pricing from './pricing-config.js';
 import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUsage, quotaMap, normalizeAccess, paywallEnabled, PAYWALL_KEY, usageWindow } from './access-control.js';
-import { handleBillingCheckout, handleBillingConfirm, handleBillingPortal, handleIrisUnlockStatus, refreshStripeAccess, billingReady, stripeMode } from './billing.js';
+import { handleBillingCheckout, handleBillingConfirm, handleIrisUnlockStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
+import { handleIrisTicket, handleIrisGemini } from './iris-gate.js';
+import { budgetOk, dailySpend, budgetLimit, noteSpend, BUDGET_KEY } from './spend.js';
+
+/** Известие до админа при 50% / 100% от дневния AI таван (през Make → Telegram). */
+const adminSpendNotify = (ctx) => async (text) => { notifyMake(ctx, text); };
 import { siteQuizText } from './enrichment-site.js';
 import { normalizeHandoff, handoffToFacts, prefillFor, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
@@ -1411,7 +1416,7 @@ async function checkRateLimit(env, request, endpoint) {
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*', // TODO: Restrict to specific domains in production
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Secret',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Secret, X-Iris-Ticket',
   'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
   'Content-Type': 'application/json',
   // Required so that Firebase Authentication popup can post back to the opener
@@ -3694,7 +3699,9 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       });
       if (replanGate.deny) return replanGate.deny;
     }
-    const useAI = await planUsesAI(env, explicitUserId, idToken, verifyFirebaseIdToken);
+    // Над дневния AI таван: план с AI само за платил акаунт; иначе — от алгоритъма (без разход).
+    const useAI = await planUsesAI(env, explicitUserId, idToken, verifyFirebaseIdToken)
+      && ((await budgetOk(env, 'free')) || normalizeAccess(await readAccess(env, explicitUserId)).tier !== 'start');
 
     let resolvedClientId = clientId;
     if (!resolvedClientId && data.email) {
@@ -5938,6 +5945,7 @@ async function callGeminiAssistant(env, opts) {
     throw new Error(`Gemini assistant error: ${response.status} ${errText.slice(0, 200)}`);
   }
   const data = await response.json();
+  await noteSpend(env, normalizedModel, data.usageMetadata);
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error('Gemini върна празен отговор');
   return JSON.parse(text);
@@ -6166,6 +6174,14 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
  * се брои само при успешен отговор (грешка на AI не изяжда от тавана).
  */
 async function gatedRun(request, env, feature, run, fields) {
+  // Общият дневен таван (spend.js): достигнат ли е — AI спира за неплатилите, платилите продължават.
+  if (!(await budgetOk(env, 'free'))) {
+    const body = await request.clone().json().catch(() => ({}));
+    const access = normalizeAccess(await readAccess(env, String(body?.[fields?.userId || 'userId'] || '')));
+    if (access.tier === 'start') {
+      return jsonResponse({ error: 'budget', message: 'AI функциите са временно претоварени. Опитай отново след няколко часа.' }, 503);
+    }
+  }
   const gate = await gateFeature(request, env, feature, { checkOwner: checkFirebaseOwner, respond: jsonResponse, fields });
   if (gate.deny) return gate.deny;
   const response = await run();
@@ -9948,7 +9964,8 @@ async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, ma
       }
 
       const data = await response.json();
-      
+      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(null) });
+
       // Check for safety/content filtering or other finish reasons
       if (data.candidates && data.candidates[0]) {
         const candidate = data.candidates[0];
@@ -10168,6 +10185,7 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
       }
 
       const data = await response.json();
+      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(null) });
       if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
         throw new Error('Gemini Vision returned invalid response');
       }
@@ -18162,6 +18180,17 @@ export default {
       } else if (url.pathname === '/api/generate-protocol' && request.method === 'POST') {
         return await handleGenerateProtocol(request, env);
       } else if (url.pathname === '/api/generate-emoeat-analysis' && request.method === 'POST') {
+        // Купен личен анализ (2,99 €) → кредит на устройството/акаунта; изразходва се при успех.
+        const emoBody = await request.clone().json().catch(() => ({}));
+        let emoHolder = '';
+        for (const h of [emoBody.userId, emoBody.deviceId]) {
+          if (!emoHolder && /^[A-Za-z0-9_-]{8,128}$/.test(String(h || '')) && (await emoeatCredit(env, String(h))) > 0) emoHolder = String(h);
+        }
+        if (emoHolder) {
+          const res = await handleGenerateEmoeatAnalysis(request, env);
+          if (res.ok) await useEmoeatCredit(env, emoHolder);
+          return res;
+        }
         return await gatedRun(request, env, 'emoeat_ai', () => handleGenerateEmoeatAnalysis(request, env));
       } else if (url.pathname === '/api/generate-longevity-protocol' && request.method === 'POST') {
         return await handleGenerateLongevityProtocol(request, env);
@@ -18282,19 +18311,34 @@ export default {
       } else if (url.pathname === '/api/user/save-profile' && request.method === 'POST') {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === '/api/user/access' && request.method === 'GET') {
-        const accessUserId = url.searchParams.get('userId') || '';
-        await refreshStripeAccess(env, accessUserId);   // подновен абонамент → нов период
-        return jsonResponse(await resolveAccess(env, accessUserId));
+        return jsonResponse(await resolveAccess(env, url.searchParams.get('userId') || ''));
+      } else if (url.pathname === '/api/iris/ticket' && request.method === 'POST') {
+        return await handleIrisTicket(request, env, { respond: jsonResponse });
+      } else if (url.pathname.startsWith('/api/iris/gemini/') && request.method === 'POST') {
+        return await handleIrisGemini(request, env, url, { notify: adminSpendNotify(ctx) });
+      } else if (url.pathname === '/api/admin/budget' && request.method === 'GET') {
+        return jsonResponse({ spentUsd: await dailySpend(env), limitUsd: await budgetLimit(env) });
+      } else if (url.pathname === '/api/admin/budget' && request.method === 'POST') {
+        const { limitUsd } = await request.json().catch(() => ({}));
+        if (!(Number(limitUsd) > 0)) return jsonResponse({ error: 'Невалиден таван' }, 400);
+        await env.page_content.put(BUDGET_KEY, String(Number(limitUsd)));
+        return jsonResponse({ success: true, limitUsd: Number(limitUsd) });
       } else if (url.pathname === '/api/billing/checkout' && request.method === 'POST') {
         return await handleBillingCheckout(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/billing/confirm' && request.method === 'POST') {
         return await handleBillingConfirm(request, env, { respond: jsonResponse });
-      } else if (url.pathname === '/api/billing/portal' && request.method === 'POST') {
-        return await handleBillingPortal(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/billing/iris-unlock' && request.method === 'GET') {
         return await handleIrisUnlockStatus(url, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/billing/status' && request.method === 'GET') {
-        return jsonResponse({ ready: billingReady(env), mode: stripeMode(env), prices: { plans: Pricing.PLANS.map((p) => ({ id: p.id, prices: p.prices })), products: Pricing.PRODUCTS } });
+        // ?deviceId= → коя цена за протокола важи за устройството (контролно разчитане е по-евтино).
+        const statusDevice = /^[A-Za-z0-9_-]{8,64}$/.test(url.searchParams.get('deviceId') || '') ? url.searchParams.get('deviceId') : '';
+        const statusHolder = url.searchParams.get('holder') || statusDevice;
+        return jsonResponse({
+          ready: billingReady(env), mode: stripeMode(env),
+          prices: { products: Pricing.PRODUCTS, free: Pricing.FREE },
+          ...(statusDevice ? { irisProduct: (await env.page_content.get(`iris_paid_dev:${statusDevice}`)) ? 'iris_recheck' : 'iris_protocol' } : {}),
+          ...(statusHolder ? { emoeatCredit: await emoeatCredit(env, statusHolder) } : {}),
+        });
       } else if (url.pathname === '/api/admin/paywall' && request.method === 'GET') {
         return jsonResponse({ enabled: await paywallEnabled(env) });
       } else if (url.pathname === '/api/admin/paywall' && request.method === 'POST') {
@@ -18306,7 +18350,7 @@ export default {
         const userId = url.searchParams.get('userId') || '';
         const record = await readAccess(env, userId);
         const access = normalizeAccess(record);
-        return jsonResponse({ userId, record, ...access, quotas: quotaMap(access.tier, await readUsage(env, userId, Date.now(), usageWindow(access)), access.period) });
+        return jsonResponse({ userId, record, ...access, quotas: quotaMap(access, await readUsage(env, userId, Date.now(), usageWindow(access))) });
       } else if (url.pathname === '/api/admin/access' && request.method === 'POST') {
         const body = await request.json().catch(() => ({}));
         try {

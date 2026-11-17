@@ -45,6 +45,7 @@
     "test:region": "node scripts/test-region.mjs",
     "test:access": "node scripts/test-access.mjs",
     "test:billing": "node scripts/test-billing.mjs",
+    "test:iris-gate": "node scripts/test-iris-gate.mjs",
     "test:crosscheck": "node scripts/test-crosscheck.mjs",
     "test:chat-clarify": "node scripts/test-chat-clarify.mjs",
     "test:engine": "node scripts/test-nutrition-engine.mjs",

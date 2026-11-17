@@ -1,5 +1,5 @@
 // Достъп по ниво: стената е изключена по подразбиране, нивото изтича, отказът е 402,
-// месечните тавани се броят само при успех.
+// лимитите (от плана или месечни при дадено от админа) и дневният таван се броят само при успех.
 import assert from 'node:assert/strict';
 import Pricing from '../pricing-config.js';
 import {
@@ -20,21 +20,19 @@ let n = 0;
 const ok = (name) => { n++; console.log('✅', name); };
 
 // Цени и правила
-assert.deepEqual(Pricing.PLANS.map(p => p.id), ['start', 'core', 'plus']);
+assert.deepEqual(Pricing.TIERS, ['start', 'core']);
 assert.equal(Pricing.allows('start', 'chat'), false);
 assert.equal(Pricing.allows('core', 'chat'), true);
 assert.equal(Pricing.allows('start', 'unknown_feature'), true);
-assert.equal(Pricing.quota('core', 'chat'), 50);
-assert.equal(Pricing.quota('plus', 'chat'), 200);
+assert.equal(Pricing.quota('core', 'chat'), 60);
+assert.equal(Pricing.quota('start', 'chat'), null);
 assert.equal(Pricing.quota('core', 'weekly'), null);
-assert.equal(Pricing.upgradeFor('core', 'chat'), 'plus');
-assert.equal(Pricing.upgradeFor('plus', 'chat'), null);
+assert.equal(Pricing.planQuota('plan_12w').chat, 180);
+assert.equal(Pricing.dailyCap('chat'), 20);
 assert.equal(Pricing.quotaText(1, 'replan'), '1 нов план');
 assert.equal(Pricing.quotaText(50, 'chat'), '50 въпроса');
 assert.equal(Pricing.formatPrice(8.99), '8,99 €');
-for (const tier of ['core', 'plus']) {
-  for (const f of Object.keys(Pricing.QUOTAS[tier])) assert.ok(Pricing.allows(tier, f), `${tier}:${f}`);
-}
+for (const f of Object.keys(Pricing.PLAN_QUOTA)) assert.ok(Pricing.allows('core', f), f);
 ok('нива, тавани и формат на цената');
 
 // Изключена стена: всичко е отворено, без да се чете тялото
@@ -63,15 +61,16 @@ ok('чужд токен → отказът на checkOwner');
 // Тавани
 await writeAccess(env, 'fb_user000001', { tier: 'core' });
 const now = Date.parse('2026-11-15T10:00:00Z');
-for (let i = 0; i < 5; i++) {
-  g = await gate({ userId: 'fb_user000001' }, 'menu_photo', { now });
+for (let i = 0; i < 6; i++) {
+  // дневният таван е 4 — затова в два дни
+  g = await gate({ userId: 'fb_user000001' }, 'menu_photo', { now: now + (i >= 4 ? 864e5 : 0) });
   assert.equal(g.deny, null, `снимка ${i + 1}`);
   await g.commit();
 }
-g = await gate({ userId: 'fb_user000001' }, 'menu_photo', { now });
+g = await gate({ userId: 'fb_user000001' }, 'menu_photo', { now: now + 2 * 864e5 });
 assert.equal(g.deny.status, 402); assert.equal(g.deny.data.reason, 'quota');
-assert.equal(g.deny.data.limit, 5); assert.equal(g.deny.data.upgrade, 'plus');
-ok('Core: 5 снимки на меню, шестата → 402 quota с предложение за Plus');
+assert.equal(g.deny.data.limit, 6);
+ok('Core (от админа, месечно): 6 снимки на меню, седмата → 402 quota');
 
 g = await gate({ userId: 'fb_user000001' }, 'chat', { now });
 assert.equal(g.deny, null); // без commit — неуспешна заявка не се брои
@@ -84,13 +83,13 @@ assert.notEqual(monthOf(now), monthOf(next));
 ok('новият месец започва отначало');
 
 const acc = await resolveAccess(env, 'fb_user000001', now);
-assert.deepEqual(acc.quotas.menu_photo, { used: 5, limit: 5 });
+assert.deepEqual(acc.quotas.menu_photo, { used: 6, limit: 6 });
 assert.equal(acc.quotas.weekly, undefined);
 ok('resolveAccess връща използваното и таваните');
 
-await writeAccess(env, 'fb_user000001', { tier: 'plus' });
-assert.equal((await gate({ userId: 'fb_user000001' }, 'menu_photo', { now })).deny, null);
-ok('Plus вдига тавана веднага');
+await writeAccess(env, 'fb_user000001', { tier: 'core', quota: { menu_photo: 12 } });
+assert.equal((await gate({ userId: 'fb_user000001' }, 'menu_photo', { now: now + 3 * 864e5 })).deny, null);
+ok('лимитът от записа (покупка) важи веднага');
 
 // Тяло, подадено отвън (генериране на план: _userId/_idToken)
 g = await gateFeature(null, env, 'replan', { checkOwner: ownerOk, respond, body: { userId: 'fb_user000009' } });

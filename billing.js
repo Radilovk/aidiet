@@ -1,26 +1,23 @@
 /**
- * Плащанията на Eatologix и модулите през Stripe (Checkout + портал за клиента).
+ * Плащанията през Stripe (Checkout) — само ЕДНОКРАТНИ покупки, без абонаменти.
  *
- * Режим: BILLING_MODE = 'test' (по подразбиране) | 'live'.
- *   test → STRIPE_TEST_SECRET_KEY (sk_test_…) — тестови карти, нищо не се таксува;
- *   live → STRIPE_SECRET_KEY (същият ключ, с който работи гаранцията за XBODY).
- * Без ключ за режима всичко отговаря 503 { error: 'no_stripe' } и бутоните казват „Скоро“.
+ * Продукти (цените са само в pricing-config.js, Stripe ги получава в поръчката):
+ *   - Eatologix: план за 4 седмици, за 12 седмици, продължение 4 седмици → нивото core със срок и
+ *     лимити в KV `access:<userId>` (продължение при активен план добавя срок и лимити към остатъка);
+ *   - IrisMap: личен протокол за анализ (9,99 €); контролно разчитане (6,99 €) — за устройство, което
+ *     вече е взело протокол (цената се решава тук, на сървъра);
+ *   - EmoEat: личен анализ (2,99 €) → кредит за един анализ на устройството/акаунта.
  *
- * Продукти (цените са само в pricing-config.js, Stripe ги получава в поръчката — без ръчни
- * продукти в таблото):
- *   - абонамент Core / Plus — седмица или месец (mode: subscription);
- *   - IrisMap — личен протокол, еднократно (mode: payment); сканирането и анализът са безплатни.
- *
- * Без webhook: достъпът се записва при връщане от плащането (POST /api/billing/confirm) и се
- * подновява сам при проверка на достъпа (refreshStripeAccess), когато платеният период изтича —
- * тогава worker-ът пита Stripe за абонамента. Отказан или неплатен абонамент просто изтича.
+ * Режим: BILLING_MODE = 'test' (по подразбиране) → STRIPE_TEST_SECRET_KEY; 'live' → STRIPE_SECRET_KEY
+ * (същата сметка, с която работи гаранцията за XBODY). Без ключ → 503 { error: 'no_stripe' }.
+ * Потвърждението е идемпотентно: една поръчка се записва само веднъж (KV billing:done:<id>).
+ * Правото на отказ (ЕС, цифрово съдържание): поръчката изисква съгласие за незабавна доставка.
  */
 import Pricing from './pricing-config.js';
-import { readAccess, writeAccess } from './access-control.js';
+import { readAccess, writeAccess, normalizeAccess } from './access-control.js';
 
 const API = 'https://api.stripe.com/v1/';
-const GRACE_MS = 2 * 60 * 60 * 1000;           // 2 ч след края на периода — докато Stripe таксува подновяването
-const REFRESH_BEFORE_MS = 6 * 60 * 60 * 1000;  // проверка в Stripe, когато до края остават под 6 ч
+const DAY_MS = 24 * 3600 * 1000;
 const ALLOWED_RETURN = /^https:\/\/(eatologix\.com|www\.eatologix\.com|biocode\.website|emoeat\.app|irismap\.app|www\.irismap\.app|radilovk\.github\.io)(\/|$)/;
 
 export const stripeMode = (env) => (env.BILLING_MODE === 'live' ? 'live' : 'test');
@@ -51,143 +48,131 @@ async function stripe(env, method, path, params) {
 
 const cents = (eur) => Math.round(Number(eur) * 100);
 const okReturn = (u) => (typeof u === 'string' && ALLOWED_RETURN.test(u) ? u : null);
-function withParam(u, k, v) { return u + (u.includes('?') ? '&' : '?') + `${k}=${v}`; }
+const withParam = (u, k, v) => u + (u.includes('?') ? '&' : '?') + `${k}=${v}`;
+const okUser = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ''));
+const okDevice = (id) => /^[A-Za-z0-9_-]{8,64}$/.test(String(id || ''));
 
-async function ensureCustomer(env, userId) {
-  const k = `billing:customer:${stripeMode(env)}:${userId}`;
-  const known = await env.page_content.get(k);
-  if (known) return known;
-  const c = await stripe(env, 'POST', 'customers', { metadata: { userId } });
-  await env.page_content.put(k, c.id);
-  return c.id;
+/** Плановете (за показване) и дали плащането е включено. */
+export function billingStatus(env) {
+  return { ready: billingReady(env), mode: stripeMode(env), products: Pricing.PRODUCTS };
 }
 
-/** Периодът на абонамента (новите версии на API-то го държат в елемента, старите — в абонамента). */
-function subPeriod(sub) {
-  const it = sub?.items?.data?.[0] || {};
-  const start = sub?.current_period_start || it.current_period_start;
-  const end = sub?.current_period_end || it.current_period_end;
-  return { start: start ? start * 1000 : Date.now(), end: end ? end * 1000 : null };
-}
-
-async function grantFromSubscription(env, userId, sub, meta = {}) {
-  const tier = Pricing.isTier(meta.tier) && meta.tier !== 'start' ? meta.tier : sub?.metadata?.tier;
-  const period = (meta.period || sub?.metadata?.period) === 'week' ? 'week' : 'month';
-  if (!Pricing.isTier(tier) || tier === 'start') throw new Error('Непознато ниво в абонамента');
-  const { start, end } = subPeriod(sub);
-  return writeAccess(env, userId, {
-    tier, period, periodStart: start, until: end ? new Date(end + GRACE_MS).toISOString() : null, source: 'stripe',
-    note: `Stripe ${stripeMode(env)} · ${Pricing.formatPrice(Pricing.price(tier, period))} / ${Pricing.PERIOD_LABEL[period]}`,
-    stripe: { mode: stripeMode(env), customer: sub.customer, sub: sub.id },
-  });
-}
-
-/** POST /api/billing/checkout → { url } — страницата на Stripe за плащане. */
+/** POST /api/billing/checkout { product, userId?, deviceId?, analysisId?, returnUrl?, ref? } → { url } */
 export async function handleBillingCheckout(request, env, { respond }) {
   if (!billingReady(env)) return respond({ error: 'no_stripe', mode: stripeMode(env) }, 503);
   const b = await request.json().catch(() => ({}));
   const origin = (request.headers.get('Origin') || '').replace(/\/$/, '');
+  let id = String(b.product || '');
+  let P = Pricing.product(id);
+  if (!P) return respond({ error: 'bad_request' }, 400);
+  const meta = { product: id };
+  let back;
   try {
-    if (b.product === 'iris_protocol') {
-      const P = Pricing.PRODUCTS.iris_protocol;
+    if (P.kind === 'plan') {
+      if (!okUser(b.userId)) return respond({ error: 'account', message: 'Влез в акаунта си, за да купиш план.' }, 400);
+      if (P.requiresPlan) {
+        const rec = await readAccess(env, b.userId);
+        if (!rec || rec.tier === 'start') return respond({ error: 'no_plan', message: 'Продължението е за вече купен план — избери план за 4 или 12 седмици.' }, 400);
+      }
+      meta.userId = b.userId;
+      if (/^[a-z0-9][a-z0-9-]{1,31}$/.test(String(b.ref || ''))) meta.ref = b.ref;
+      const site = /^https:\/\/(eatologix\.com|biocode\.website)$/.test(origin) ? origin : 'https://eatologix.com';
+      back = `${site}/pricing.html`;
+    } else if (P.kind === 'iris') {
       const analysisId = String(b.analysisId || '').slice(0, 80);
-      const back = okReturn(b.returnUrl);
-      if (!analysisId || !back) return respond({ error: 'bad_request' }, 400);
-      const s = await stripe(env, 'POST', 'checkout/sessions', {
-        mode: 'payment', locale: 'auto', allow_promotion_codes: 'true',
-        line_items: [{ quantity: 1, price_data: { currency: 'eur', unit_amount: cents(P.price), product_data: { name: P.name, description: P.description } } }],
-        metadata: { product: 'iris_protocol', analysisId },
-        payment_intent_data: { metadata: { product: 'iris_protocol', analysisId } },
-        success_url: withParam(back, 'paid', '{CHECKOUT_SESSION_ID}'),
-        cancel_url: back,
-      });
-      return respond({ url: s.url, mode: stripeMode(env) });
+      back = okReturn(b.returnUrl);
+      if (!analysisId || !back || !okDevice(b.deviceId)) return respond({ error: 'bad_request' }, 400);
+      // Контролно разчитане — по-ниската цена, ако устройството вече е взело протокол.
+      id = (await env.page_content.get(`iris_paid_dev:${b.deviceId}`)) ? 'iris_recheck' : 'iris_protocol';
+      P = Pricing.product(id);
+      Object.assign(meta, { product: id, analysisId, deviceId: b.deviceId });
+    } else if (P.kind === 'emoeat') {
+      back = okReturn(b.returnUrl);
+      const holder = okUser(b.userId) ? b.userId : okDevice(b.deviceId) ? b.deviceId : '';
+      if (!holder || !back) return respond({ error: 'bad_request' }, 400);
+      meta.holder = holder;
     }
-    // абонамент Core / Plus
-    const tier = b.tier, period = b.period === 'week' ? 'week' : 'month';
-    const userId = String(b.userId || '');
-    const price = Pricing.price(tier, period);
-    if (!/^fb_[A-Za-z0-9_-]{6,128}$/.test(userId)) return respond({ error: 'account', message: 'Влез в акаунта си, за да избереш ниво.' }, 400);
-    if (!price || tier === 'start') return respond({ error: 'bad_request' }, 400);
-    const plan = Pricing.plan(tier);
-    const ref = /^[a-z0-9][a-z0-9-]{1,31}$/.test(String(b.ref || '')) ? b.ref : '';
-    const site = /^https:\/\/(eatologix\.com|biocode\.website)$/.test(origin) ? origin : 'https://eatologix.com';
-    const meta = { userId, tier, period, ...(ref ? { ref } : {}) };
     const s = await stripe(env, 'POST', 'checkout/sessions', {
-      mode: 'subscription', locale: 'auto', allow_promotion_codes: 'true',
-      customer: await ensureCustomer(env, userId), client_reference_id: userId,
-      line_items: [{ quantity: 1, price_data: { currency: 'eur', unit_amount: cents(price), recurring: { interval: period },
-        product_data: { name: `Eatologix ${plan.name}` } } }],
-      metadata: meta, subscription_data: { metadata: meta },
-      success_url: `${site}/pricing.html?paid={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${site}/pricing.html`,
+      mode: 'payment', locale: 'auto', allow_promotion_codes: 'true',
+      ...(P.kind === 'plan' ? { client_reference_id: meta.userId } : {}),
+      line_items: [{ quantity: 1, price_data: { currency: 'eur', unit_amount: cents(P.price), product_data: { name: P.name, ...(P.description ? { description: P.description } : {}) } } }],
+      metadata: meta, payment_intent_data: { metadata: meta },
+      // Право на отказ: съгласието се дава с отметка преди плащането (на нашата страница); тук — напомняне.
+      custom_text: { submit: { message: 'Цифрово съдържание, доставено веднага след плащането: с поръчката губиш правото на отказ от 14 дни.' } },
+      success_url: withParam(back, 'paid', '{CHECKOUT_SESSION_ID}'),
+      cancel_url: back,
     });
-    return respond({ url: s.url, mode: stripeMode(env) });
+    return respond({ url: s.url, mode: stripeMode(env), product: id, price: P.price });
   } catch (e) {
     return respond({ error: 'stripe', message: e.message }, 502);
   }
 }
 
-/** POST /api/billing/confirm { sessionId } — след връщане от Stripe: записва достъпа / отключва протокола. */
-export async function handleBillingConfirm(request, env, { respond }) {
+/** Записва купения план: нов срок или добавка към активния. */
+async function grantPlan(env, userId, productId, sessionId, now = Date.now()) {
+  const P = Pricing.product(productId);
+  const add = Pricing.planQuota(productId);
+  const current = normalizeAccess(await readAccess(env, userId), now);
+  const active = current.tier === 'core' && current.until && current.until > now;
+  const quota = { ...add };
+  if (active && current.quota) for (const k of Object.keys(add)) quota[k] = (Number(current.quota[k]) || 0) + add[k];
+  return writeAccess(env, userId, {
+    tier: 'core',
+    periodStart: active && current.periodStart ? current.periodStart : now,
+    until: new Date((active ? current.until : now) + P.days * DAY_MS).toISOString(),
+    quota, source: 'stripe',
+    note: `${P.name} · ${Pricing.formatPrice(P.price)} · Stripe ${stripeMode(env)}`,
+    stripe: { mode: stripeMode(env), session: sessionId },
+  }, now);
+}
+
+/** POST /api/billing/confirm { sessionId } — след връщане от Stripe: записва покупката (веднъж). */
+export async function handleBillingConfirm(request, env, { respond, now = Date.now() } = {}) {
   if (!billingReady(env)) return respond({ error: 'no_stripe' }, 503);
   const { sessionId } = await request.json().catch(() => ({}));
   if (!/^cs_[A-Za-z0-9_]{10,200}$/.test(String(sessionId || ''))) return respond({ error: 'bad_request' }, 400);
+  const doneKey = `billing:done:${sessionId}`;
+  const done = await env.page_content.get(doneKey);
+  if (done) return respond({ ok: true, repeat: true, ...JSON.parse(done) });
   try {
-    const s = await stripe(env, 'GET', `checkout/sessions/${sessionId}`, { expand: ['subscription'] });
-    if (s.mode === 'subscription') {
-      if (s.status !== 'complete' || !s.subscription) return respond({ ok: false, status: s.status });
-      const userId = s.metadata?.userId || s.client_reference_id;
-      const record = await grantFromSubscription(env, userId, s.subscription, s.metadata);
-      return respond({ ok: true, product: 'subscription', userId, tier: record.tier, period: record.period, until: record.until });
+    const s = await stripe(env, 'GET', `checkout/sessions/${sessionId}`);
+    if (s.payment_status !== 'paid') return respond({ ok: false, status: s.payment_status || s.status });
+    const m = s.metadata || {};
+    const P = Pricing.product(m.product);
+    if (!P) return respond({ ok: false, status: 'unknown' });
+    let result = { product: m.product };
+    if (P.kind === 'plan') {
+      const rec = await grantPlan(env, m.userId, m.product, sessionId, now);
+      result = { ...result, userId: m.userId, tier: rec.tier, until: rec.until };
+    } else if (P.kind === 'iris') {
+      await env.page_content.put(`iris_unlock:${m.analysisId}`, JSON.stringify({ sessionId, at: now, mode: stripeMode(env) }));
+      if (m.deviceId) await env.page_content.put(`iris_paid_dev:${m.deviceId}`, String(now));
+      result = { ...result, analysisId: m.analysisId };
+    } else if (P.kind === 'emoeat') {
+      const k = `emoeat_credit:${m.holder}`;
+      await env.page_content.put(k, String((Number(await env.page_content.get(k)) || 0) + 1), { expirationTtl: 400 * 86400 });
+      result = { ...result, holder: m.holder };
     }
-    if (s.metadata?.product === 'iris_protocol') {
-      if (s.payment_status !== 'paid') return respond({ ok: false, status: s.payment_status });
-      const analysisId = s.metadata.analysisId;
-      await env.page_content.put(`iris_unlock:${analysisId}`, JSON.stringify({ sessionId, at: Date.now(), mode: stripeMode(env) }));
-      return respond({ ok: true, product: 'iris_protocol', analysisId });
-    }
-    return respond({ ok: false, status: 'unknown' });
+    await env.page_content.put(doneKey, JSON.stringify(result), { expirationTtl: 400 * 86400 });
+    return respond({ ok: true, ...result });
   } catch (e) {
     return respond({ error: 'stripe', message: e.message }, 502);
   }
 }
 
-/** GET /api/billing/iris-unlock?analysisId= → { unlocked } (напр. друго устройство или изчистен браузър). */
+/** GET /api/billing/iris-unlock?analysisId= → { unlocked } (друго устройство или изчистен браузър). */
 export async function handleIrisUnlockStatus(url, env, { respond }) {
   const id = String(url.searchParams.get('analysisId') || '').slice(0, 80);
   if (!id) return respond({ unlocked: false });
   return respond({ unlocked: Boolean(await env.page_content.get(`iris_unlock:${id}`)) });
 }
 
-/** POST /api/billing/portal { userId } → { url } — карта, фактури, отказ (порталът на Stripe). */
-export async function handleBillingPortal(request, env, { respond }) {
-  if (!billingReady(env)) return respond({ error: 'no_stripe' }, 503);
-  const { userId, returnUrl } = await request.json().catch(() => ({}));
-  const customer = userId && await env.page_content.get(`billing:customer:${stripeMode(env)}:${userId}`);
-  if (!customer) return respond({ error: 'no_customer' }, 404);
-  try {
-    const s = await stripe(env, 'POST', 'billing_portal/sessions', { customer, return_url: okReturn(returnUrl) || 'https://eatologix.com/pricing.html' });
-    return respond({ url: s.url });
-  } catch (e) {
-    return respond({ error: 'stripe', message: e.message }, 502);
-  }
+/** Кредит за личния анализ на EmoEat: има ли (и изразходване след успешен анализ). */
+export async function emoeatCredit(env, holder) {
+  if (!holder || !env.page_content) return 0;
+  return Number(await env.page_content.get(`emoeat_credit:${holder}`)) || 0;
 }
-
-/**
- * Подновяване без webhook: ако достъпът е от Stripe и периодът изтича, питаме Stripe.
- * Активен (или в пробен период) абонамент → нов период; иначе записът изтича сам.
- */
-export async function refreshStripeAccess(env, userId, now = Date.now()) {
-  if (!billingReady(env) || !userId) return;
-  const rec = await readAccess(env, userId);
-  if (rec?.source !== 'stripe' || !rec.stripe?.sub || rec.stripe.mode !== stripeMode(env)) return;
-  if (rec.until && rec.until - now > REFRESH_BEFORE_MS) return;
-  try {
-    const sub = await stripe(env, 'GET', `subscriptions/${rec.stripe.sub}`);
-    if (sub.status === 'active' || sub.status === 'trialing') await grantFromSubscription(env, userId, sub, { tier: rec.tier, period: rec.period });
-  } catch (e) {
-    console.warn('[billing] refresh', e.message);
-  }
+export async function useEmoeatCredit(env, holder) {
+  const n = await emoeatCredit(env, holder);
+  if (n > 0) await env.page_content.put(`emoeat_credit:${holder}`, String(n - 1), { expirationTtl: 400 * 86400 });
 }
-

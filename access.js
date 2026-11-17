@@ -3,7 +3,7 @@
  *
  *   await NutriPlanAccess.load()        // чете /api/user/access за текущия акаунт
  *   NutriPlanAccess.can('chat')         // true, ако функцията е отключена
- *   NutriPlanAccess.showLock('chat')    // прозорец „част от абонамента“
+ *   NutriPlanAccess.showLock('chat')    // прозорец „част от плана“
  *   NutriPlanAccess.lockCard('full_week', html) // HTML карта за вграждане
  *   await NutriPlanAccess.authFields()  // { userId, idToken } за платените заявки
  *   NutriPlanAccess.handleLocked(resp, data) // true, ако сървърът е върнал 402
@@ -77,7 +77,7 @@
         return Pricing ? Pricing.allows(state.tier, feature) : true;
     }
 
-    /** Колко остават до края на месеца (или null — без таван). */
+    /** Колко остават до края на плана (или null — без лимит). */
     function remaining(feature) {
         var q = quotaOf(feature);
         return q ? Math.max(0, q.limit - q.used) : null;
@@ -93,11 +93,6 @@
         return (Pricing && Pricing.FEATURE_LABEL[feature]) || 'Тази функция';
     }
 
-    function needPlan(feature) {
-        var need = Pricing && Pricing.FEATURE_MIN_TIER[feature];
-        return (need && Pricing.plan(need)) || null;
-    }
-
     function escapeHtml(text) {
         return String(text).replace(/[&<>"']/g, function (c) {
             return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -106,24 +101,24 @@
 
     /** HTML на заключената карта. В приложението — без цена и без линк към плащане. */
     function lockCard(feature, extraHtml) {
-        var plan = needPlan(feature);
         var hasAccount = userId().indexOf('fb_') === 0;
         var body;
         var q = quotaOf(feature);
-        if (q && q.used >= q.limit) {
-            var upgrade = Pricing && Pricing.upgradeFor(state.tier, feature);
-            var upPlan = upgrade && Pricing.plan(upgrade);
-            body = '<p class="np-lock-text">Лимитът от ' + escapeHtml(Pricing ? Pricing.quotaText(q.limit, feature) : q.limit) + ' за месеца е изчерпан. Нови — от 1-во число.</p>' +
-                (!isNativeApp() && upPlan
-                    ? '<a class="np-lock-btn" href="pricing.html?feature=' + encodeURIComponent(feature) + '" target="_top">Повече в ' + escapeHtml(upPlan.name) + '</a>'
+        var daily = state.daily && state.daily[feature];
+        if (daily) {
+            body = '<p class="np-lock-text">' + escapeHtml(daily) + '</p>';
+        } else if (q && q.used >= q.limit) {
+            body = '<p class="np-lock-text">Лимитът от ' + escapeHtml(Pricing ? Pricing.quotaText(q.limit, feature) : q.limit) + ' за плана е изчерпан. Още — с продължение на плана.</p>' +
+                (!isNativeApp()
+                    ? '<a class="np-lock-btn" href="pricing.html?feature=' + encodeURIComponent(feature) + '" target="_top">Продължи плана</a>'
                     : '');
         } else if (isNativeApp()) {
-            body = '<p class="np-lock-text">Част от абонамента' + (plan ? ' ' + escapeHtml(plan.name) : '') + '.' +
-                (hasAccount ? ' Ако вече имаш абонамент, излез и влез отново със същия акаунт.' : ' Ако вече имаш абонамент, влез със същия акаунт.') + '</p>';
+            body = '<p class="np-lock-text">Част от плана.' +
+                (hasAccount ? ' Ако вече имаш план, излез и влез отново със същия акаунт.' : ' Ако вече имаш план, влез със същия акаунт.') + '</p>';
         } else {
             var href = 'pricing.html?feature=' + encodeURIComponent(feature);
-            body = '<p class="np-lock-text">Отключва се с ' + (plan ? 'ниво ' + escapeHtml(plan.name) : 'абонамент') + '.</p>' +
-                '<a class="np-lock-btn" href="' + href + '" target="_top">Виж нивата</a>';
+            body = '<p class="np-lock-text">Отключва се с план за 4 или 12 седмици — еднократно, без абонамент.</p>' +
+                '<a class="np-lock-btn" href="' + href + '" target="_top">Виж плановете</a>';
         }
         return '<div class="np-lock" role="note"><div class="np-lock-ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>' +
             '<div class="np-lock-title">' + escapeHtml(label(feature)) + '</div>' + body + (extraHtml || '') + '</div>';
@@ -167,7 +162,10 @@
         if (!response || response.status !== 402) return false;
         var feature = (data && data.feature) || 'chat';
         state.paywall = true;
-        if (data && data.reason === 'quota' && typeof data.limit === 'number') {
+        if (data && data.reason === 'daily') {
+            state.daily = state.daily || {};
+            state.daily[feature] = data.message || 'Днешният лимит е изчерпан. Нови — утре.';
+        } else if (data && data.reason === 'quota' && typeof data.limit === 'number') {
             state.quotas[feature] = { used: data.used, limit: data.limit };
         } else {
             state.features[feature] = false;

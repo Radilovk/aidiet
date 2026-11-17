@@ -558,7 +558,7 @@ var require_pricing_config = __commonJS({
   "pricing-config.js"(exports, module) {
     (function(global) {
       "use strict";
-      var TIERS = ["start", "core", "plus"];
+      var TIERS = ["start", "core"];
       var FEATURE_MIN_TIER = {
         full_week: "core",
         // цялото седмично меню (в Start — първият ден, без AI)
@@ -575,34 +575,14 @@ var require_pricing_config = __commonJS({
         docs: "core",
         // изследвания, документи, екранни снимки от устройства
         weekly: "core",
-        // седмичното обновяване на менюто
+        // седмичната корекция на менюто
         plan_book: "core",
         // книгата на плана (PDF)
-        emoeat_ai: "core",
-        // личният текст в теста за емоционално хранене
-        iris_protocol: "plus"
-        // включен протокол от IrisMap (иначе — еднократно плащане)
+        emoeat_ai: "core"
+        // личният анализ на EmoEat (иначе — еднократно 2,99 €)
       };
-      var QUOTAS = {
-        core: {
-          month: { chat: 50, photo: 20, menu_photo: 5, docs: 2, replan: 1 },
-          week: { chat: 14, photo: 6, menu_photo: 2, docs: 1, replan: 1 }
-        },
-        plus: {
-          month: { chat: 200, photo: 90, menu_photo: 30, docs: 10, replan: 3, iris_protocol: 1 },
-          week: { chat: 50, photo: 22, menu_photo: 8, docs: 3, replan: 1 }
-        }
-      };
-      var PERIOD_LABEL = { week: "\u0441\u0435\u0434\u043C\u0438\u0446\u0430", month: "\u043C\u0435\u0441\u0435\u0446" };
-      var PRODUCTS = {
-        iris_protocol: {
-          name: "IrisMap \u2014 \u043B\u0438\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B",
-          description: "\u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u043E\u0442 \u0438\u0440\u0438\u0441\u043E\u0432\u0438\u044F \u0430\u043D\u0430\u043B\u0438\u0437: \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0438 \u0440\u0435\u0436\u0438\u043C. \u0421\u043A\u0430\u043D\u0438\u0440\u0430\u043D\u0435\u0442\u043E \u0438 \u0430\u043D\u0430\u043B\u0438\u0437\u044A\u0442 \u0441\u0430 \u0431\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u0438.",
-          price: 9.99,
-          includedIn: "plus"
-          // Plus (месечен) — 1 протокол на месец без доплащане
-        }
-      };
+      var PLAN_QUOTA = { chat: 60, photo: 30, menu_photo: 6, docs: 2, replan: 1 };
+      var DAILY_CAP = { chat: 20, photo: 10, menu_photo: 4, docs: 3 };
       var FEATURE_LABEL = {
         full_week: "\u0426\u044F\u043B\u043E\u0442\u043E \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043C\u0435\u043D\u044E",
         ai_plan: "\u041F\u044A\u043B\u043D\u0438\u044F\u0442 \u043F\u043B\u0430\u043D",
@@ -611,80 +591,104 @@ var require_pricing_config = __commonJS({
         photo: "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430",
         menu_photo: "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E\u0442\u043E",
         docs: "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438",
-        weekly: "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u043E\u0442\u043E \u043E\u0431\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435",
+        weekly: "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u0430\u0442\u0430 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u044F",
         plan_book: "\u041A\u043D\u0438\u0433\u0430\u0442\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430",
-        emoeat_ai: "\u041B\u0438\u0447\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437",
-        iris_protocol: "\u041F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u044A\u0442 \u043E\u0442 IrisMap"
+        emoeat_ai: "\u041B\u0438\u0447\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437"
       };
       var QUOTA_UNIT = {
         chat: ["\u0432\u044A\u043F\u0440\u043E\u0441", "\u0432\u044A\u043F\u0440\u043E\u0441\u0430"],
         photo: ["\u0441\u043D\u0438\u043C\u043A\u0430", "\u0441\u043D\u0438\u043C\u043A\u0438"],
         menu_photo: ["\u0441\u043D\u0438\u043C\u043A\u0430", "\u0441\u043D\u0438\u043C\u043A\u0438"],
         docs: ["\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442", "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0430"],
-        replan: ["\u043D\u043E\u0432 \u043F\u043B\u0430\u043D", "\u043D\u043E\u0432\u0438 \u043F\u043B\u0430\u043D\u0430"],
-        iris_protocol: ["\u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B", "\u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u0430"]
+        replan: ["\u043D\u043E\u0432 \u043F\u043B\u0430\u043D", "\u043D\u043E\u0432\u0438 \u043F\u043B\u0430\u043D\u0430"]
       };
-      var PLANS = [
-        {
-          id: "start",
-          name: "Start",
-          tagline: "\u0412\u0438\u0436 \u043A\u0430\u043A\u0432\u043E \u0449\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u0448",
-          prices: { month: 0 },
-          features: [
-            "\u0412\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A \u0438 \u0434\u043D\u0435\u0432\u043D\u0438 \u0446\u0435\u043B\u0438: \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u0431\u0435\u043B\u0442\u044A\u043A, \u0432\u043E\u0434\u0430",
-            "\u0415\u0434\u0438\u043D \u043F\u0440\u0438\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u043D \u043E\u0442 \u043C\u0435\u043D\u044E\u0442\u043E",
-            "\u0422\u0435\u0441\u0442 \u0437\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442",
-            "\u041A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E"
-          ]
-        },
-        {
-          id: "core",
-          name: "Core",
-          tagline: "\u0426\u0435\u043B\u0438\u044F\u0442 \u043F\u043B\u0430\u043D, \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430",
-          prices: { week: 2.99, month: 8.99 },
+      var PRODUCTS = {
+        plan_4w: {
+          kind: "plan",
+          name: "\u041F\u043B\u0430\u043D \u0437\u0430 4 \u0441\u0435\u0434\u043C\u0438\u0446\u0438",
+          price: 14.99,
+          days: 28,
+          scale: 1,
           highlight: true,
+          tagline: "\u0426\u0435\u043B\u0438\u044F\u0442 \u043F\u043B\u0430\u043D, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u043D \u043E\u0442 \u0435\u043A\u0438\u043F\u0430",
           features: [
             "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043C\u0435\u043D\u044E \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043E \u043E\u0442 \u0435\u043A\u0438\u043F\u0430",
-            "\u041E\u0431\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0435\u043D\u044E\u0442\u043E \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430",
+            "4 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u0438 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u0438 \u0441\u043F\u043E\u0440\u0435\u0434 \u043D\u0430\u043F\u0440\u0435\u0434\u044A\u043A\u0430",
             "\u0421\u043C\u044F\u043D\u0430 \u043D\u0430 \u044F\u0441\u0442\u0438\u0435 \u0441 \u0435\u0434\u043D\u043E \u0434\u043E\u043A\u043E\u0441\u0432\u0430\u043D\u0435",
-            "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u2014 50 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (14 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
-            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u2014 20 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (6 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
-            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E \u0432 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0442 \u2014 5 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (2 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
-            "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438 \u2014 2 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (1 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
-            "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u0441\u043B\u0435\u0434 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u0432 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 1 \u0437\u0430 \u043F\u0435\u0440\u0438\u043E\u0434\u0430",
-            "Health Connect \u0438 \u043A\u043D\u0438\u0433\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 (PDF)",
-            "\u041B\u0438\u0447\u0435\u043D \u0430\u043D\u0430\u043B\u0438\u0437 \u0432 \u0442\u0435\u0441\u0442\u0430 \u0437\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"
+            "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u2014 60 \u0432\u044A\u043F\u0440\u043E\u0441\u0430",
+            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u2014 30 \xB7 \u0441\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E \u2014 6",
+            "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438 \u2014 2",
+            "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u043F\u0440\u0438 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u0432 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 1",
+            "\u041A\u043D\u0438\u0433\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 (PDF) \u0438 \u043B\u0438\u0447\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437 \u043D\u0430 EmoEat"
           ]
         },
-        {
-          id: "plus",
-          name: "Plus",
-          tagline: "\u0417\u0430 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u0438 \u0432\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
-          prices: { week: 4.99, month: 14.99 },
+        plan_12w: {
+          kind: "plan",
+          name: "\u041F\u043B\u0430\u043D \u0437\u0430 12 \u0441\u0435\u0434\u043C\u0438\u0446\u0438",
+          price: 34.99,
+          days: 84,
+          scale: 3,
+          tagline: "\u0422\u0440\u0438 \u043C\u0435\u0441\u0435\u0446\u0430 \u2014 \u043E\u043A\u043E\u043B\u043E 11,66 \u20AC \u043D\u0430 4 \u0441\u0435\u0434\u043C\u0438\u0446\u0438",
           features: [
-            "\u0412\u0441\u0438\u0447\u043A\u043E \u043E\u0442 Core",
-            "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u2014 200 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (50 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
-            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u2014 90 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (22 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
-            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E \u0432 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0442 \u2014 30 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (8 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
-            "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438 \u2014 10 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (3 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
-            "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u0441\u043B\u0435\u0434 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u2014 3 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (1 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
-            "\u041F\u0440\u043E\u0442\u043E\u043A\u043E\u043B \u043E\u0442 IrisMap \u2014 1 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 \u0431\u0435\u0437 \u0434\u043E\u043F\u043B\u0430\u0449\u0430\u043D\u0435 (\u043C\u0435\u0441\u0435\u0447\u0435\u043D Plus)"
+            "\u0412\u0441\u0438\u0447\u043A\u043E \u043E\u0442 \u043F\u043B\u0430\u043D\u0430 \u0437\u0430 4 \u0441\u0435\u0434\u043C\u0438\u0446\u0438 \u2014 \u0437\u0430 12 \u0441\u0435\u0434\u043C\u0438\u0446\u0438",
+            "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u2014 180 \u0432\u044A\u043F\u0440\u043E\u0441\u0430",
+            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u2014 90 \xB7 \u0441\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E \u2014 18",
+            "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438 \u2014 6",
+            "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u043F\u0440\u0438 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u2014 3"
           ]
+        },
+        plan_continue: {
+          kind: "plan",
+          name: "\u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0435\u043D\u0438\u0435 4 \u0441\u0435\u0434\u043C\u0438\u0446\u0438",
+          price: 11.99,
+          days: 28,
+          scale: 1,
+          requiresPlan: true,
+          tagline: "\u0417\u0430 \u043A\u043E\u0439\u0442\u043E \u0432\u0435\u0447\u0435 \u0438\u043C\u0430 \u043F\u043B\u0430\u043D \u2014 \u0431\u0435\u0437 \u043D\u043E\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A",
+          features: ["\u041E\u0449\u0435 4 \u0441\u0435\u0434\u043C\u0438\u0446\u0438 \u0441 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u0438", "\u041B\u0438\u043C\u0438\u0442\u0438\u0442\u0435 \u0441\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0442 \u043A\u044A\u043C \u043E\u0441\u0442\u0430\u0442\u044A\u043A\u0430"]
+        },
+        iris_protocol: {
+          kind: "iris",
+          name: "IrisMap \u2014 \u043B\u0438\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B",
+          price: 9.99,
+          description: "\u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u043E\u0442 \u0438\u0440\u0438\u0441\u043E\u0432\u0438\u044F \u0430\u043D\u0430\u043B\u0438\u0437: \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0438 \u0440\u0435\u0436\u0438\u043C. \u0421\u043D\u0438\u043C\u043A\u0438\u0442\u0435 \u0438 \u0430\u043D\u0430\u043B\u0438\u0437\u044A\u0442 \u0441\u0430 \u0431\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u0438."
+        },
+        iris_recheck: {
+          kind: "iris",
+          name: "IrisMap \u2014 \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u043D\u043E \u0440\u0430\u0437\u0447\u0438\u0442\u0430\u043D\u0435",
+          price: 6.99,
+          description: "\u041F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u044A\u0442 \u0437\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449 \u0430\u043D\u0430\u043B\u0438\u0437 \u2014 \u0437\u0430 \u043A\u043E\u0439\u0442\u043E \u0432\u0435\u0447\u0435 \u0435 \u0432\u0437\u0435\u043B \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B."
+        },
+        emoeat_analysis: {
+          kind: "emoeat",
+          name: "EmoEat \u2014 \u043B\u0438\u0447\u0435\u043D \u0430\u043D\u0430\u043B\u0438\u0437",
+          price: 2.99,
+          description: "\u041B\u0438\u0447\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437 \u0438 \u043F\u043B\u0430\u043D\u044A\u0442 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430. \u0412\u043A\u043B\u044E\u0447\u0435\u043D \u0432 \u043F\u043B\u0430\u043D\u0430 \u043D\u0430 Eatologix."
         }
-      ];
+      };
+      var FREE = {
+        id: "start",
+        name: "\u0411\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u043E",
+        tagline: "\u0412\u0438\u0436 \u043A\u0430\u043A\u0432\u043E \u0449\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u0448",
+        features: [
+          "\u0412\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A \u0438 \u0434\u043D\u0435\u0432\u043D\u0438 \u0446\u0435\u043B\u0438: \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u0431\u0435\u043B\u0442\u044A\u043A, \u0432\u043E\u0434\u0430",
+          "\u0415\u0434\u0438\u043D \u043F\u0440\u0438\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u043D \u043E\u0442 \u043C\u0435\u043D\u044E\u0442\u043E",
+          "\u0422\u0435\u0441\u0442 \u0437\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442",
+          "\u0421\u043D\u0438\u043C\u043A\u0438 \u0438 \u0430\u043D\u0430\u043B\u0438\u0437 \u043D\u0430 \u0438\u0440\u0438\u0441\u0438\u0442\u0435 \u0432 IrisMap"
+        ]
+      };
       function plural(n, unit) {
         return n === 1 ? unit[0] : unit[1];
       }
       var api = {
         currency: "EUR",
-        PERIODS: ["week", "month"],
-        PERIOD_LABEL,
-        PRODUCTS,
         TIERS,
         FEATURE_MIN_TIER,
         FEATURE_LABEL,
-        QUOTAS,
-        PLANS,
+        PLAN_QUOTA,
+        DAILY_CAP,
+        PRODUCTS,
+        FREE,
         tierRank: function(tier) {
           return TIERS.indexOf(tier);
         },
@@ -697,33 +701,26 @@ var require_pricing_config = __commonJS({
           if (!need) return true;
           return TIERS.indexOf(tier) >= TIERS.indexOf(need);
         },
-        /** Таванът на функцията в нивото за периода (week | month) или null (без таван). */
-        quota: function(tier, feature, period) {
-          var q = QUOTAS[tier] && QUOTAS[tier][period === "week" ? "week" : "month"];
-          return q && typeof q[feature] === "number" ? q[feature] : null;
+        /** Лимитът по подразбиране за 4 седмици (записът на плана носи точния). */
+        quota: function(tier, feature) {
+          return tier === "core" && typeof PLAN_QUOTA[feature] === "number" ? PLAN_QUOTA[feature] : null;
         },
-        /** Цената на ниво за периода (или null — няма такъв период). */
-        price: function(tier, period) {
-          var p = api.plan(tier);
-          return p && p.prices && typeof p.prices[period] === "number" ? p.prices[period] : null;
+        /** Лимитите на покупка: { chat: 60, … } × мащаба на продукта. */
+        planQuota: function(productId) {
+          var p = PRODUCTS[productId], out = {};
+          if (!p || p.kind !== "plan") return out;
+          for (var k in PLAN_QUOTA) out[k] = PLAN_QUOTA[k] * (p.scale || 1);
+          return out;
         },
-        /** „50 въпроса“ */
+        dailyCap: function(feature) {
+          return typeof DAILY_CAP[feature] === "number" ? DAILY_CAP[feature] : null;
+        },
+        product: function(id) {
+          return PRODUCTS[id] || null;
+        },
         quotaText: function(n, feature) {
           var unit = QUOTA_UNIT[feature];
           return unit ? n + " " + plural(n, unit) : String(n);
-        },
-        /** Следващото ниво с по-висок таван за функцията (или null). */
-        upgradeFor: function(tier, feature, period) {
-          var cur = api.quota(tier, feature, period);
-          for (var i = TIERS.indexOf(tier) + 1; i < TIERS.length; i++) {
-            var q = api.quota(TIERS[i], feature, period);
-            if (q === null || cur === null || q > cur) return TIERS[i];
-          }
-          return null;
-        },
-        plan: function(id) {
-          for (var i = 0; i < PLANS.length; i++) if (PLANS[i].id === id) return PLANS[i];
-          return null;
         },
         formatPrice: function(value) {
           if (!value) return "0 \u20AC";
@@ -1976,8 +1973,8 @@ function mergeGameData(a, b, now = /* @__PURE__ */ new Date()) {
   const out = {};
   for (const key of /* @__PURE__ */ new Set([...Object.keys(a || {}), ...Object.keys(b || {})])) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || key < cutoff) continue;
-    const day = mergeDay(a?.[key], b?.[key]);
-    if (day && typeof day === "object") out[key] = day;
+    const day2 = mergeDay(a?.[key], b?.[key]);
+    if (day2 && typeof day2 === "object") out[key] = day2;
   }
   return out;
 }
@@ -2300,8 +2297,8 @@ function serializeProgress(userData, plan) {
   }
   return `#PG v1 ${esc2(parts.join(" | ")).slice(0, 900)}`;
 }
-function todayAndTomorrow(today) {
-  const d = Number(today?.planDay);
+function todayAndTomorrow(today2) {
+  const d = Number(today2?.planDay);
   return d >= 1 && d <= 7 ? { days: [`day${d}`, `day${d % 7 + 1}`] } : {};
 }
 function buildChatContextSections(userData, plan) {
@@ -2844,12 +2841,12 @@ function sanitizePlanBulgarian(plan) {
       plan.guidelines[key] = sanitizeBgText(plan.guidelines[key]);
     }
   }
-  for (const day of plan.days || []) {
-    day.day = sanitizeBgText(day.day);
-    day.focus = sanitizeBgText(day.focus);
-    if (Array.isArray(day.warmup)) day.warmup = day.warmup.map(sanitizeBgText);
-    if (Array.isArray(day.cooldown)) day.cooldown = day.cooldown.map(sanitizeBgText);
-    for (const ex of day.exercises || []) {
+  for (const day2 of plan.days || []) {
+    day2.day = sanitizeBgText(day2.day);
+    day2.focus = sanitizeBgText(day2.focus);
+    if (Array.isArray(day2.warmup)) day2.warmup = day2.warmup.map(sanitizeBgText);
+    if (Array.isArray(day2.cooldown)) day2.cooldown = day2.cooldown.map(sanitizeBgText);
+    for (const ex of day2.exercises || []) {
       ex.displayName = localizeExerciseDisplayName(ex.canonicalName, ex.displayName, ex.equipmentHint);
       ex.notes = sanitizeBgText(ex.notes);
     }
@@ -4209,12 +4206,12 @@ function inferExerciseModality(entryOrName) {
   return "strength";
 }
 function modalityMatchesDay(sessionType, exerciseMod) {
-  const day = normalizeText(sessionType);
+  const day2 = normalizeText(sessionType);
   const ex = exerciseMod;
-  if (day === "rest") return true;
-  if (day === "mobility") return ex === "mobility";
-  if (day === "cardio") return ex === "cardio" || ex === "mobility";
-  if (day === "hiit") return ex === "hiit" || ex === "cardio" || ex === "strength";
+  if (day2 === "rest") return true;
+  if (day2 === "mobility") return ex === "mobility";
+  if (day2 === "cardio") return ex === "cardio" || ex === "mobility";
+  if (day2 === "hiit") return ex === "hiit" || ex === "cardio" || ex === "strength";
   return ex === "strength";
 }
 function passesModality(entry, modalities = null) {
@@ -4710,9 +4707,9 @@ function placeWeek(counts) {
   for (const i of sIdx) types[i] = "S";
   const others = [...Array(counts.I).fill("I"), ...Array(counts.C).fill("C"), ...Array(counts.M).fill("M")];
   for (let i = 0; i < types.length; i++) if (!types[i]) types[i] = others.shift() || "M";
-  return DAY_NAMES.map((day, i) => {
+  return DAY_NAMES.map((day2, i) => {
     const k = active.indexOf(i);
-    return { day, index: i, kind: k === -1 ? "R" : types[k] };
+    return { day: day2, index: i, kind: k === -1 ? "R" : types[k] };
   });
 }
 var TEMPLATES = {
@@ -6377,11 +6374,11 @@ function buildWeekDayTypes(sessions, modality, goalNorm = "") {
   } else {
     types = slots.map(() => "strength");
   }
-  return DAY_NAMES2.map((day, i) => {
+  return DAY_NAMES2.map((day2, i) => {
     const slotIdx = slots.indexOf(i);
-    if (slotIdx === -1) return { day, type: "rest", focus: "\u041F\u043E\u0447\u0438\u0432\u043A\u0430" };
+    if (slotIdx === -1) return { day: day2, type: "rest", focus: "\u041F\u043E\u0447\u0438\u0432\u043A\u0430" };
     const type = types[slotIdx] || "strength";
-    return { day, type, focus: focusForDayType(type) };
+    return { day: day2, type, focus: focusForDayType(type) };
   });
 }
 function modalitiesInWeek(dayTypes = []) {
@@ -6835,8 +6832,8 @@ function allocateWeekDays(dslInput, splitInfo) {
   const { freq, goal, priority } = dslInput;
   const counts = computeWeekCounts(goal, freq);
   const slots = (TRAINING_SLOTS2[Math.min(6, Math.max(2, freq))] || TRAINING_SLOTS2[3]).slice(0, counts.S);
-  const week = DAY_NAMES3.map((day) => ({
-    day,
+  const week = DAY_NAMES3.map((day2) => ({
+    day: day2,
     dslType: "R",
     appType: "rest",
     focus: "\u043F\u043E\u0447\u0438\u0432\u043A\u0430",
@@ -6953,20 +6950,20 @@ function auditPlanDsl(plan, dslSpec) {
   let c2Days = 0;
   let ciDays = 0;
   let mDays = 0;
-  for (const day of plan.days) {
-    const dslDay = dayNameToDsl(day.day, dslSpec);
-    const appType = day.type || "rest";
+  for (const day2 of plan.days) {
+    const dslDay = dayNameToDsl(day2.day, dslSpec);
+    const appType = day2.type || "rest";
     if (appType === "strength") sDays += 1;
     if (appType === "cardio") c2Days += 1;
     if (appType === "hiit") ciDays += 1;
     if (appType === "mobility" || appType === "active-recovery") mDays += 1;
     if (dslDay && dslDay.appType !== "rest" && appType !== dslDay.appType && appType !== "active-recovery") {
       if (!(dslDay.appType === "mobility" && appType === "mobility")) {
-        issues.push(`${day.day}: \u043E\u0447\u0430\u043A\u0432\u0430\u043D type=${dslDay.appType} (DSL ${dslDay.dslType}), \u043F\u043E\u043B\u0443\u0447\u0435\u043D ${appType}`);
+        issues.push(`${day2.day}: \u043E\u0447\u0430\u043A\u0432\u0430\u043D type=${dslDay.appType} (DSL ${dslDay.dslType}), \u043F\u043E\u043B\u0443\u0447\u0435\u043D ${appType}`);
       }
     }
-    if (appType !== "strength" || !day.exercises?.length) continue;
-    const names = day.exercises.map((e) => e.canonicalName || e.displayName || "");
+    if (appType !== "strength" || !day2.exercises?.length) continue;
+    const names = day2.exercises.map((e) => e.canonicalName || e.displayName || "");
     let hasSquat = false;
     let hasHinge = false;
     for (const name of names) {
@@ -6975,19 +6972,19 @@ function auditPlanDsl(plan, dslSpec) {
       if (p.has("hinge")) hasHinge = true;
     }
     if (hasSquat && hasHinge) {
-      issues.push(`${day.day}: squat \u0438 hinge \u0432 \u0435\u0434\u043D\u0430 \u0441\u0435\u0441\u0438\u044F \u2014 \u043D\u0430\u0440\u0443\u0448\u0435\u043D DSL invariant`);
+      issues.push(`${day2.day}: squat \u0438 hinge \u0432 \u0435\u0434\u043D\u0430 \u0441\u0435\u0441\u0438\u044F \u2014 \u043D\u0430\u0440\u0443\u0448\u0435\u043D DSL invariant`);
     }
-    const counts = countStrengthSlots(day.exercises);
+    const counts = countStrengthSlots(day2.exercises);
     const maxEx = budget.compound + budget.isolation + budget.core + 1;
     if (counts.total > maxEx) {
-      issues.push(`${day.day}: \u0442\u0432\u044A\u0440\u0434\u0435 \u043C\u043D\u043E\u0433\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F (${counts.total} > ${maxEx})`);
+      issues.push(`${day2.day}: \u0442\u0432\u044A\u0440\u0434\u0435 \u043C\u043D\u043E\u0433\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F (${counts.total} > ${maxEx})`);
     }
     if (counts.main > budget.compound + budget.isolation + 1) {
-      issues.push(`${day.day}: \u0442\u0432\u044A\u0440\u0434\u0435 \u043C\u043D\u043E\u0433\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F (${counts.main} > ${budget.compound + budget.isolation + 1})`);
+      issues.push(`${day2.day}: \u0442\u0432\u044A\u0440\u0434\u0435 \u043C\u043D\u043E\u0433\u043E \u043E\u0441\u043D\u043E\u0432\u043D\u0438 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F (${counts.main} > ${budget.compound + budget.isolation + 1})`);
     }
-    const totalSets = day.exercises.reduce((s, e) => s + (Number(e.sets) || 0), 0);
+    const totalSets = day2.exercises.reduce((s, e) => s + (Number(e.sets) || 0), 0);
     if (totalSets > 0 && (totalSets < 10 || totalSets > 22)) {
-      issues.push(`${day.day}: \u043E\u0431\u0449\u0438 \u0441\u0435\u0440\u0438\u0438 ${totalSets} \u0438\u0437\u0432\u044A\u043D 12\u201320 (DSL volume)`);
+      issues.push(`${day2.day}: \u043E\u0431\u0449\u0438 \u0441\u0435\u0440\u0438\u0438 ${totalSets} \u0438\u0437\u0432\u044A\u043D 12\u201320 (DSL volume)`);
     }
   }
   if (Math.abs(sDays - (expected.S || 0)) > 1) {
@@ -7563,9 +7560,9 @@ function auditPlanGenderFit(plan, clientTags) {
   const tagSet = clientTags instanceof Set ? clientTags : new Set(clientTags || []);
   if (!tagSet.has("gender:\u0436\u0435\u043D\u0430")) return { ok: true, issues: [] };
   const exercises = [];
-  for (const day of plan?.days || []) {
-    if (day.type === "rest") continue;
-    for (const ex of day.exercises || []) {
+  for (const day2 of plan?.days || []) {
+    if (day2.type === "rest") continue;
+    for (const ex of day2.exercises || []) {
       exercises.push(String(ex.canonicalName || ex.displayName || "").trim());
     }
   }
@@ -7588,23 +7585,23 @@ function auditPlanGenderFit(plan, clientTags) {
 var HEAVY_COMPOUND_RE = /bench press|barbell squat|back squat|deadlift|hip thrust|leg press/i;
 function auditPlanSessionStructure(plan, programSpec = null) {
   const issues = [];
-  for (const day of plan?.days || []) {
-    if (day.type === "rest" && !day.exercises?.length) continue;
-    if (day.type !== "rest") {
-      if (!day.warmup?.length) issues.push(`${day.day}: \u043B\u0438\u043F\u0441\u0432\u0430 warmup (3 \u0441\u0442\u044A\u043F\u043A\u0438)`);
-      if (!day.cooldown?.length) issues.push(`${day.day}: \u043B\u0438\u043F\u0441\u0432\u0430 cooldown (3 \u0441\u0442\u044A\u043F\u043A\u0438)`);
+  for (const day2 of plan?.days || []) {
+    if (day2.type === "rest" && !day2.exercises?.length) continue;
+    if (day2.type !== "rest") {
+      if (!day2.warmup?.length) issues.push(`${day2.day}: \u043B\u0438\u043F\u0441\u0432\u0430 warmup (3 \u0441\u0442\u044A\u043F\u043A\u0438)`);
+      if (!day2.cooldown?.length) issues.push(`${day2.day}: \u043B\u0438\u043F\u0441\u0432\u0430 cooldown (3 \u0441\u0442\u044A\u043F\u043A\u0438)`);
     }
-    if (day.type === "mobility") {
-      for (const ex of day.exercises || []) {
+    if (day2.type === "mobility") {
+      for (const ex of day2.exercises || []) {
         const name = String(ex.canonicalName || ex.displayName || "");
         if (HEAVY_COMPOUND_RE.test(name)) {
-          issues.push(`${day.day}: \u201E${name}\u201C \u043D\u0435 \u0435 \u0437\u0430 \u043E\u0441\u043D\u043E\u0432\u0435\u043D mobility \u0431\u043B\u043E\u043A \u2014 \u043F\u0440\u0435\u043C\u0435\u0441\u0442\u0438 \u0432 \u0441\u0438\u043B\u043E\u0432 \u0434\u0435\u043D \u0438\u043B\u0438 \u043C\u0430\u0445\u043D\u0438`);
+          issues.push(`${day2.day}: \u201E${name}\u201C \u043D\u0435 \u0435 \u0437\u0430 \u043E\u0441\u043D\u043E\u0432\u0435\u043D mobility \u0431\u043B\u043E\u043A \u2014 \u043F\u0440\u0435\u043C\u0435\u0441\u0442\u0438 \u0432 \u0441\u0438\u043B\u043E\u0432 \u0434\u0435\u043D \u0438\u043B\u0438 \u043C\u0430\u0445\u043D\u0438`);
         }
       }
     }
-    const focus = String(day.focus || "").trim();
-    if (day.type !== "rest" && focus.length < 12) {
-      issues.push(`${day.day}: focus \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u0430 \u0441\u0435\u0441\u0438\u044F\u0442\u0430 (\u043D\u0435 \u0441\u0430\u043C\u043E \u0435\u0434\u043D\u0430 \u0434\u0443\u043C\u0430)`);
+    const focus = String(day2.focus || "").trim();
+    if (day2.type !== "rest" && focus.length < 12) {
+      issues.push(`${day2.day}: focus \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u043E\u0431\u043E\u0441\u043D\u043E\u0432\u0430 \u0441\u0435\u0441\u0438\u044F\u0442\u0430 (\u043D\u0435 \u0441\u0430\u043C\u043E \u0435\u0434\u043D\u0430 \u0434\u0443\u043C\u0430)`);
     }
   }
   return issues;
@@ -7613,33 +7610,33 @@ function auditPlanExercises(plan, { allowedEquipment = null, allowedGear = null,
   if (!index?.length) return [];
   const byNorm = new Map(index.map((e) => [normalizeText(e.name), e]));
   const issues = [];
-  for (const day of plan?.days || []) {
-    if (day.type === "rest") continue;
-    for (const ex of day.exercises || []) {
+  for (const day2 of plan?.days || []) {
+    if (day2.type === "rest") continue;
+    for (const ex of day2.exercises || []) {
       const name = String(ex.canonicalName || ex.displayName || "");
       if (isGenderDuplicateExerciseName(name)) {
-        issues.push(`${day.day}: \u201E${name}\u201C \u0435 \u043F\u043E\u043B\u043E\u0432\u043E-\u0441\u043F\u0435\u0446\u0438\u0444\u0438\u0447\u0435\u043D \u0432\u0430\u0440\u0438\u0430\u043D\u0442 \u2014 \u0438\u0437\u0431\u0435\u0440\u0438 \u043D\u0435\u0443\u0442\u0440\u0430\u043B\u043D\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u0435`);
+        issues.push(`${day2.day}: \u201E${name}\u201C \u0435 \u043F\u043E\u043B\u043E\u0432\u043E-\u0441\u043F\u0435\u0446\u0438\u0444\u0438\u0447\u0435\u043D \u0432\u0430\u0440\u0438\u0430\u043D\u0442 \u2014 \u0438\u0437\u0431\u0435\u0440\u0438 \u043D\u0435\u0443\u0442\u0440\u0430\u043B\u043D\u043E \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u0435`);
         continue;
       }
       const entry = byNorm.get(normalizeText(name));
       if (!entry) {
-        issues.push(`${day.day}: \u201E${name}\u201C \u043B\u0438\u043F\u0441\u0432\u0430 \u0432 \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0438\u044F \u043A\u0430\u0442\u0430\u043B\u043E\u0433`);
+        issues.push(`${day2.day}: \u201E${name}\u201C \u043B\u0438\u043F\u0441\u0432\u0430 \u0432 \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u0438\u044F \u043A\u0430\u0442\u0430\u043B\u043E\u0433`);
         continue;
       }
       if (exerciseProfile && !fitsExerciseProfile(entry, exerciseProfile)) {
-        issues.push(`${day.day}: \u201E${name}\u201C d${entry.diff ?? 2} > max d${exerciseProfile.maxDiff}`);
+        issues.push(`${day2.day}: \u201E${name}\u201C d${entry.diff ?? 2} > max d${exerciseProfile.maxDiff}`);
       }
       if (exerciseProfile && !passesBeginnerSafety(entry, exerciseProfile)) {
-        issues.push(`${day.day}: \u201E${name}\u201C \u043D\u0435 \u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u0437\u0430 \u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449 (skill/gear)`);
+        issues.push(`${day2.day}: \u201E${name}\u201C \u043D\u0435 \u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u0437\u0430 \u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0449 (skill/gear)`);
       }
       if (allowedGear && !passesGearFilter(entry, allowedGear)) {
-        issues.push(`${day.day}: \u201E${name}\u201C \u0438\u0437\u0438\u0441\u043A\u0432\u0430 \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435 \u0438\u0437\u0432\u044A\u043D \u043D\u0430\u043B\u0438\u0447\u043D\u043E\u0442\u043E (${(entry.gear || []).join("+")})`);
+        issues.push(`${day2.day}: \u201E${name}\u201C \u0438\u0437\u0438\u0441\u043A\u0432\u0430 \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435 \u0438\u0437\u0432\u044A\u043D \u043D\u0430\u043B\u0438\u0447\u043D\u043E\u0442\u043E (${(entry.gear || []).join("+")})`);
       }
       if (allowedEquipment && !passesEquipment(entry, allowedEquipment)) {
-        issues.push(`${day.day}: \u201E${name}\u201C \u0438\u0437\u0432\u044A\u043D \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u043E\u0442\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435 (${entry.equipment})`);
+        issues.push(`${day2.day}: \u201E${name}\u201C \u0438\u0437\u0432\u044A\u043D \u043F\u043E\u0437\u0432\u043E\u043B\u0435\u043D\u043E\u0442\u043E \u043E\u0431\u043E\u0440\u0443\u0434\u0432\u0430\u043D\u0435 (${entry.equipment})`);
       }
       if (pickedApparatus?.length && !passesApparatusFilter(entry, pickedApparatus)) {
-        issues.push(`${day.day}: \u201E${name}\u201C \u0438\u0437\u0432\u044A\u043D \u0438\u0437\u0431\u0440\u0430\u043D\u0438\u0442\u0435 \u0443\u0440\u0435\u0434\u0438`);
+        issues.push(`${day2.day}: \u201E${name}\u201C \u0438\u0437\u0432\u044A\u043D \u0438\u0437\u0431\u0440\u0430\u043D\u0438\u0442\u0435 \u0443\u0440\u0435\u0434\u0438`);
       }
     }
   }
@@ -7649,14 +7646,14 @@ function auditPlanExerciseProfile(plan, exerciseProfile, index = []) {
   if (!exerciseProfile || !index?.length) return [];
   const byNorm = new Map(index.map((e) => [normalizeText(e.name), e]));
   const issues = [];
-  for (const day of plan?.days || []) {
-    if (day.type === "rest") continue;
-    for (const ex of day.exercises || []) {
+  for (const day2 of plan?.days || []) {
+    if (day2.type === "rest") continue;
+    for (const ex of day2.exercises || []) {
       const name = String(ex.canonicalName || ex.displayName || "");
       const entry = byNorm.get(normalizeText(name));
       if (!entry) continue;
       if (!fitsExerciseProfile(entry, exerciseProfile)) {
-        issues.push(`${day.day}: \u201E${name}\u201C d${entry.diff ?? 2} > max d${exerciseProfile.maxDiff} \u043E\u0442 spec`);
+        issues.push(`${day2.day}: \u201E${name}\u201C d${entry.diff ?? 2} > max d${exerciseProfile.maxDiff} \u043E\u0442 spec`);
       }
     }
   }
@@ -7665,9 +7662,9 @@ function auditPlanExerciseProfile(plan, exerciseProfile, index = []) {
 function auditPlanConstraints(plan, constraints = {}) {
   const issues = [];
   const exclusions = constraints?.exclusions || [];
-  for (const day of plan?.days || []) {
-    if (day.type === "rest") continue;
-    for (const ex of day.exercises || []) {
+  for (const day2 of plan?.days || []) {
+    if (day2.type === "rest") continue;
+    for (const ex of day2.exercises || []) {
       const name = String(ex.canonicalName || ex.displayName || "");
       if (!passesConstraintExclusions({ name }, exclusions)) {
         issues.push(`\u0417\u0430\u0431\u0440\u0430\u043D\u0435\u043D\u043E \u043E\u0442 constraints: ${name}`);
@@ -7679,9 +7676,9 @@ function auditPlanConstraints(plan, constraints = {}) {
 function auditPlanEquipment(plan, allowedEquipment) {
   if (!allowedEquipment?.size) return { ok: true, issues: [] };
   const issues = [];
-  for (const day of plan?.days || []) {
-    if (day.type === "rest") continue;
-    for (const ex of day.exercises || []) {
+  for (const day2 of plan?.days || []) {
+    if (day2.type === "rest") continue;
+    for (const ex of day2.exercises || []) {
       const hint = normalizeText(ex.equipmentHint || "");
       if (!hint) continue;
       if (allowedEquipment.has(hint)) continue;
@@ -8399,8 +8396,8 @@ function entryToClientExercise(env, entry, { includeInstructions = true } = {}) 
 }
 function materializeExercisesFromMatch(plan) {
   if (!plan?.days) return plan;
-  for (const day of plan.days) {
-    for (const ex of day.exercises || []) {
+  for (const day2 of plan.days) {
+    for (const ex of day2.exercises || []) {
       const m = ex.match;
       if (!m?.name) continue;
       ex.canonicalName = m.name;
@@ -8467,11 +8464,11 @@ function enrichPlanWithExercises(plan, index, {
   });
   const matchIndex = eligible?.length ? eligible : index;
   const byId = new Map(index.map((e) => [String(e.id), e]));
-  for (const day of plan.days) {
+  for (const day2 of plan.days) {
     const usedIds = [];
-    const dayMainIds = new Set(day.exercises.map((ex) => ex.exerciseId && String(ex.exerciseId)).filter(Boolean));
+    const dayMainIds = new Set(day2.exercises.map((ex) => ex.exerciseId && String(ex.exerciseId)).filter(Boolean));
     const altUsed = /* @__PURE__ */ new Set();
-    for (const ex of day.exercises) {
+    for (const ex of day2.exercises) {
       const direct = ex.exerciseId ? byId.get(String(ex.exerciseId)) : null;
       if (direct) {
         ex.canonicalName = direct.name;
@@ -8484,7 +8481,7 @@ function enrichPlanWithExercises(plan, index, {
           pickedApparatus,
           limit: MAX_ALTERNATIVES,
           exerciseProfile,
-          sessionType: day.type
+          sessionType: day2.type
         };
         let alts = Array.isArray(ex.alternativeIds) ? ex.alternativeIds.map((altId) => byId.get(String(altId))).filter(Boolean) : findAlternatives(matchIndex, direct, { ...altOpts, excludeIds: [...dayMainIds, ...altUsed] });
         if (!alts.length && !Array.isArray(ex.alternativeIds)) {
@@ -8512,7 +8509,7 @@ function enrichPlanWithExercises(plan, index, {
           exerciseProfile,
           limit: 1,
           excludeIds: usedIds,
-          sessionType: day.type
+          sessionType: day2.type
         });
         if (swap.length) result = { entry: swap[0], score: 0, usedFallback: true };
         else result = null;
@@ -8520,7 +8517,7 @@ function enrichPlanWithExercises(plan, index, {
       if (!skipEquipmentSwap && eligible?.length && !result?.entry) {
         const fallback = pickEligibleFallback(eligible, {
           bodyPart: ex.bodyPart,
-          sessionType: day.type,
+          sessionType: day2.type,
           usedIds,
           exerciseProfile
         });
@@ -8542,7 +8539,7 @@ function enrichPlanWithExercises(plan, index, {
           excludeIds: [...usedIds, ...altUsed],
           limit: MAX_ALTERNATIVES,
           exerciseProfile,
-          sessionType: day.type
+          sessionType: day2.type
         });
         if (!alts.length) {
           alts = findAlternatives(matchIndex, result.entry, {
@@ -8551,7 +8548,7 @@ function enrichPlanWithExercises(plan, index, {
             excludeIds: usedIds,
             limit: MAX_ALTERNATIVES,
             exerciseProfile,
-            sessionType: day.type
+            sessionType: day2.type
           });
         }
         ex.alternatives = alts.map((alt) => entryToClientExercise(env, alt));
@@ -10007,9 +10004,9 @@ function normalizeSettings(raw) {
   const sl = s.slot || {};
   const r = s.rules || {};
   const hours = {};
-  for (const day of DAYS) {
-    const list4 = Array.isArray(s.hours && s.hours[day]) ? s.hours[day] : s.hours ? [] : d.hours[day];
-    hours[day] = list4.map((p) => [hm(p && p[0]), hm(p && p[1])]).filter((p) => p[0] && p[1] && p[0] < p[1]).slice(0, 4);
+  for (const day2 of DAYS) {
+    const list4 = Array.isArray(s.hours && s.hours[day2]) ? s.hours[day2] : s.hours ? [] : d.hours[day2];
+    hours[day2] = list4.map((p) => [hm(p && p[0]), hm(p && p[1])]).filter((p) => p[0] && p[1] && p[0] < p[1]).slice(0, 4);
   }
   let tz = str(s.timezone, 64) || d.timezone;
   try {
@@ -10108,10 +10105,10 @@ var toHm = (n) => `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 6
 function dayStarts(st, ymd2) {
   if (st.closed.includes(ymd2)) return [];
   const [y, m, d] = ymd2.split("-").map(Number);
-  const day = DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  const day2 = DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
   const step = st.slot.step || st.slot.minutes + st.slot.buffer;
   const out = [];
-  for (const [open, close] of st.hours[day] || []) {
+  for (const [open, close] of st.hours[day2] || []) {
     for (let t = toMin(open); t + st.slot.minutes <= toMin(close); t += step) out.push(toHm(t));
   }
   return out;
@@ -10595,10 +10592,10 @@ async function acuityBusy(studio, ym) {
   const st = studio.settings;
   const have = new Set(Object.values(free).flat().map((t) => `${String(t).slice(0, 10)} ${String(t).slice(11, 16)}`));
   const out = [];
-  for (const [day, list4] of Object.entries(slotsForMonth({ ...st, rules: { ...st.rules, minNoticeMin: 0 } }, ym, []))) {
+  for (const [day2, list4] of Object.entries(slotsForMonth({ ...st, rules: { ...st.rules, minNoticeMin: 0 } }, ym, []))) {
     for (const hm2 of list4) {
-      if (have.has(`${day} ${hm2}`)) continue;
-      const start = zonedMs(day, hm2, st.timezone);
+      if (have.has(`${day2} ${hm2}`)) continue;
+      const start = zonedMs(day2, hm2, st.timezone);
       out.push({ start, end: start + st.slot.minutes * 6e4 });
     }
   }
@@ -29636,19 +29633,19 @@ function buildFoodLedger(weekPlan, gameData = {}, gameWeeklyAI = {}, options = {
   if (!weekPlan || typeof weekPlan !== "object") {
     return { prescribed, eaten, version: LEDGER_VERSION };
   }
-  for (const day of Object.values(weekPlan)) {
-    if (!day?.meals?.length) continue;
-    for (const meal of day.meals) {
+  for (const day2 of Object.values(weekPlan)) {
+    if (!day2?.meals?.length) continue;
+    for (const meal of day2.meals) {
       if (meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" || meal.type === "\u041D\u0430\u043F\u0438\u0442\u043A\u0430") continue;
       for (const key of productsFromMeal(meal)) {
         prescribed.set(key, (prescribed.get(key) || 0) + 1);
       }
     }
   }
-  const today = SOFIA_DATE.format(options.now || /* @__PURE__ */ new Date());
-  const from = shiftDateKey(today, -6);
+  const today2 = SOFIA_DATE.format(options.now || /* @__PURE__ */ new Date());
+  const from = shiftDateKey(today2, -6);
   for (const [dateKey2, rec] of Object.entries(gameData || {})) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey2) || dateKey2 < from || dateKey2 > today) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey2) || dateKey2 < from || dateKey2 > today2) continue;
     const dayNum = weekdayPlanDay(dateKey2);
     const dayPlan = weekPlan[`day${dayNum}`];
     if (!dayPlan?.meals?.length) continue;
@@ -40668,10 +40665,10 @@ function recomputeMealFromDescription(meal) {
 }
 function reconcileEnginePlan(plan) {
   if (!plan?.weekPlan) return plan;
-  for (const day of Object.values(plan.weekPlan)) {
-    if (!day?.meals) continue;
-    for (const meal of day.meals) recomputeMealFromDescription(meal);
-    day.dailyTotals = dayTotals(day.meals);
+  for (const day2 of Object.values(plan.weekPlan)) {
+    if (!day2?.meals) continue;
+    for (const meal of day2.meals) recomputeMealFromDescription(meal);
+    day2.dailyTotals = dayTotals(day2.meals);
   }
   if (plan.strategy) {
     const free = Object.values(plan.strategy.weeklyScheme || {}).flatMap((d) => d?.mealBreakdown || []).find((m) => m.type === FREE_MEAL);
@@ -41800,8 +41797,8 @@ function averageMacrosFromWeek(weekPlan = {}) {
   let c = 0;
   let f = 0;
   let days = 0;
-  for (const day of Object.values(weekPlan || {})) {
-    const meals = day?.meals || [];
+  for (const day2 of Object.values(weekPlan || {})) {
+    const meals = day2?.meals || [];
     if (!meals.length || meals.some((m) => m.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435")) continue;
     for (const m of meals) {
       p += Number(m.macros?.protein) || 0;
@@ -44237,11 +44234,11 @@ function sequenceMains(counts, slots, rng) {
   const left = { ...counts };
   const out = [];
   for (let i = 0; i < slots.length; i++) {
-    const { day, type } = slots[i];
+    const { day: day2, type } = slots[i];
     const prev = out[i - 1];
-    const sameDay = slots.findIndex((s, j) => j < i && s.day === day);
+    const sameDay = slots.findIndex((s, j) => j < i && s.day === day2);
     const otherToday = sameDay >= 0 ? out[sameDay] : null;
-    const yesterday = out.filter((_, j) => slots[j].day === day - 1);
+    const yesterday = out.filter((_, j) => slots[j].day === day2 - 1);
     const options = Object.keys(left).filter((k) => left[k] > 0);
     const pool = options.length ? options : Object.keys(counts);
     let best = pool[0];
@@ -44608,11 +44605,11 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     shake: policy.allowed("pro_whey") || policy.allowed("pro_plant_protein")
   });
   const mainSlots = [];
-  for (let day = 1; day <= 7; day++) {
+  for (let day2 = 1; day2 <= 7; day2++) {
     for (const type of slots) {
       if (MEAL_KIND[type] !== "main") continue;
-      if (type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && day === freeDayNumber) continue;
-      mainSlots.push({ day, type });
+      if (type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && day2 === freeDayNumber) continue;
+      mainSlots.push({ day: day2, type });
     }
   }
   const proteinCapacity = (d) => {
@@ -44630,7 +44627,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
   const frameOf = new Map(mainSlots.map((s, i) => [`${s.day}:${s.type}`, frame[i]]));
   const swappable = new Set(frame.filter((c) => c !== "red" && c !== "fish" && !(c in policy.mainsMin) && !(c in policy.mainsMax)));
   const bCounts = breakfastCounts(policy);
-  const bFrame = sequenceMains(bCounts, [1, 2, 3, 4, 5, 6, 7].map((day) => ({ day, type: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" })), rng);
+  const bFrame = sequenceMains(bCounts, [1, 2, 3, 4, 5, 6, 7].map((day2) => ({ day: day2, type: "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 1" })), rng);
   const state = {
     dishUses: /* @__PURE__ */ new Map(),
     foodUses: /* @__PURE__ */ new Map(),
@@ -44644,8 +44641,8 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     previousWeek
   };
   const days = [];
-  for (let day = 1; day <= 7; day++) {
-    const dayRx = dayPrescriptions?.[day - 1] || prescription;
+  for (let day2 = 1; day2 <= 7; day2++) {
+    const dayRx = dayPrescriptions?.[day2 - 1] || prescription;
     ctx.appetite = Math.max(1, (dayRx.kcal || 0) / APPETITE_BASE_KCAL) * (dayRx.mealScale || 1);
     snackCtx.appetite = ctx.appetite;
     const meals = [];
@@ -44659,12 +44656,12 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
     const dayBuilt = [];
     for (const type of dayRx.slots) {
       const plan = dayRx.meals[type];
-      if (type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && day === freeDayNumber) {
+      if (type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 2" && day2 === freeDayNumber) {
         meals.push({ type: FREE_MEAL, name: FREE_MEAL, _plannedCalories: round(plan.target.kcal) });
         continue;
       }
       const kind = MEAL_KIND[type];
-      const category = kind === "main" ? frameOf.get(`${day}:${type}`) : kind === "breakfast" ? bFrame[day - 1] : null;
+      const category = kind === "main" ? frameOf.get(`${day2}:${type}`) : kind === "breakfast" ? bFrame[day2 - 1] : null;
       const maxUses = (MAX_USES_PER_WEEK[kind] ?? 3) + (simplify ? 1 : 0) - (variety && kind === "main" ? 1 : 0);
       const poolOf = (all) => {
         let list4 = all;
@@ -44708,7 +44705,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
         }
         return found;
       };
-      const avoid = slotAvoid.filter((a) => a.day === day && a.type === type).flatMap((a) => a.avoid);
+      const avoid = slotAvoid.filter((a) => a.day === day2 && a.type === type).flatMap((a) => a.avoid);
       let slotCtx = kind === "snack" ? snackCtx : ctx;
       const slotAppetite = Math.max(slotCtx.appetite || 1, kcalOf(target) / (KIND_BASE_KCAL[kind] || 550));
       if (slotAppetite > (slotCtx.appetite || 1)) slotCtx = { ...slotCtx, appetite: slotAppetite };
@@ -44772,7 +44769,7 @@ function planWeek({ prescription, policy, seed, freeDayNumber = null, previousWe
           }
         }
       }
-      if (!best) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${type} (\u0434\u0435\u043D ${day}) \u043F\u0440\u0438 \u0442\u0430\u0437\u0438 \u0434\u0438\u0435\u0442\u0430`);
+      if (!best) throw new Error(`\u041D\u044F\u043C\u0430 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u043E \u044F\u0441\u0442\u0438\u0435 \u0437\u0430 ${type} (\u0434\u0435\u043D ${day2}) \u043F\u0440\u0438 \u0442\u0430\u0437\u0438 \u0434\u0438\u0435\u0442\u0430`);
       let alternatives = pickAlternatives(best, candidatesBuilt, { kind, todayDishes, state, policy: slotCtx.policy, target });
       if (alternatives.length < MAX_ALTERNATIVES2 && !avoid.length) {
         const tried = new Set(candidatesBuilt.map((c) => c.dish.id));
@@ -45132,8 +45129,8 @@ function menuQuality(days, lib, profile, kcal) {
   const refKg = referenceWeightKg(profile);
   const proteinMin = Math.max(20, 0.3 * refKg);
   const PLANT_GROUPS = /* @__PURE__ */ new Set(["VEG", "FRU", "LEG", "STA"]);
-  for (const day of days) {
-    for (const meal of day.meals || []) {
+  for (const day2 of days) {
+    for (const meal of day2.meals || []) {
       let fishInMeal = false;
       for (const { id, grams } of meal.foods) {
         const f = lib.food(id);
@@ -46679,8 +46676,8 @@ function microReport(days, microPer1002, profile, ctx = {}) {
   const total = Object.fromEntries(NUTRIENTS.map((k) => [k, 0]));
   let grams = 0;
   let known = 0;
-  for (const day of days) {
-    for (const meal of day.meals || []) {
+  for (const day2 of days) {
+    for (const meal of day2.meals || []) {
       for (const { id, grams: g } of meal.foods || []) {
         grams += g;
         const m = microPer1002(id);
@@ -46870,8 +46867,8 @@ function buildNutritionPlan(userData, options) {
     dayPrescriptions
   });
   const weekPlan = {};
-  week.days.forEach((day, i) => {
-    weekPlan[`day${i + 1}`] = { meals: day.meals, dailyTotals: dayTotals(day.meals) };
+  week.days.forEach((day2, i) => {
+    weekPlan[`day${i + 1}`] = { meals: day2.meals, dailyTotals: dayTotals(day2.meals) };
     const d = metabolic?.days[i];
     if (d) {
       weekPlan[`day${i + 1}`].energy = {
@@ -47646,12 +47643,12 @@ function normalizeSwaps(raw, weekPlan, max = 6) {
   const list4 = Array.isArray(raw?.swaps) ? raw.swaps : [];
   const out = [];
   for (const s of list4) {
-    const day = Number(s?.day);
+    const day2 = Number(s?.day);
     const type = /^H?(\d)$/i.test(String(s?.slot || s?.type || "")) ? `\u0425\u0440\u0430\u043D\u0435\u043D\u0435 ${String(s.slot || s.type).replace(/\D/g, "")}` : String(s?.type || "");
-    const meal = weekPlan?.[`day${day}`]?.meals?.find((m) => m.type === type);
+    const meal = weekPlan?.[`day${day2}`]?.meals?.find((m) => m.type === type);
     const avoid = cleanTerms(s?.avoid, 3);
     if (!meal || !meal.macros || !avoid.length) continue;
-    out.push({ day, type, avoid, reason: String(s?.reason || "").trim().slice(0, 160) });
+    out.push({ day: day2, type, avoid, reason: String(s?.reason || "").trim().slice(0, 160) });
     if (out.length >= max) break;
   }
   return out;
@@ -47903,8 +47900,8 @@ var LIMIT = 3;
 var MAX_DISHES = 60;
 function mealSwapsOf(weekPlan) {
   const out = [];
-  for (const day of Object.values(weekPlan || {})) {
-    for (const m of day?.meals || []) {
+  for (const day2 of Object.values(weekPlan || {})) {
+    for (const m of day2?.meals || []) {
       const from = typeof m?._originalDishId === "string" ? m._originalDishId : "";
       const to = typeof m?.dishId === "string" ? m.dishId : "";
       if (from && to && from !== to) out.push({ from, to });
@@ -48889,11 +48886,11 @@ function dailySeries(facts2, kind, key = null) {
   for (const f of facts2 || []) {
     if (f.kind !== kind || f.status === "pending") continue;
     if (key && f.key !== key) continue;
-    const day = dayOf(f.at);
+    const day2 = dayOf(f.at);
     const rank = SOURCE_RANK[f.source] || 1;
-    const prev = byDay.get(day);
+    const prev = byDay.get(day2);
     if (!prev || rank > prev.rank || rank === prev.rank && Date.parse(f.at) > prev.t) {
-      byDay.set(day, { day, t: Date.parse(day + "T12:00:00Z"), value: Number(f.value), value2: f.value2, count: f.count, rank });
+      byDay.set(day2, { day: day2, t: Date.parse(day2 + "T12:00:00Z"), value: Number(f.value), value2: f.value2, count: f.count, rank });
     }
   }
   return [...byDay.values()].sort((a, b) => a.t - b.t);
@@ -48949,20 +48946,20 @@ function deviceRestDays(facts2, from, now) {
 }
 function trainingDays(facts2, from, now) {
   const days = /* @__PURE__ */ new Map();
-  for (const day of deviceRestDays(facts2, from, now)) days.set(day, { yes: false, slot: null, minutes: null, kcal: null, rest: true });
+  for (const day2 of deviceRestDays(facts2, from, now)) days.set(day2, { yes: false, slot: null, minutes: null, kcal: null, rest: true });
   for (const f of facts2 || []) {
     const t = Date.parse(f.at);
     if (!(t >= from) || t > now || f.status === "pending") continue;
-    const day = dayOf(f.at);
-    const prev = days.get(day);
+    const day2 = dayOf(f.at);
+    const prev = days.get(day2);
     if (f.kind === "train_check") {
       if (prev?.device) {
         if (!prev.slot && f.slot) prev.slot = f.slot;
         continue;
       }
-      days.set(day, { yes: Number(f.value) > 0, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null });
+      days.set(day2, { yes: Number(f.value) > 0, slot: f.slot || null, minutes: f.minutes || null, kcal: f.kcal || null });
     } else if (f.kind === "workout" && TRACKED_SOURCES.has(f.source)) {
-      days.set(day, { yes: true, slot: prev?.slot || f.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
+      days.set(day2, { yes: true, slot: prev?.slot || f.slot || null, minutes: Number(f.value) || prev?.minutes || null, kcal: prev?.kcal || null, device: true });
     }
   }
   return days;
@@ -48976,8 +48973,8 @@ function trainingPattern(facts2, now = /* @__PURE__ */ new Date()) {
   const rate = yes.length / all.length;
   const n = Array(7).fill(0);
   const k = Array(7).fill(0);
-  for (const [day, d] of all) {
-    const dow = (/* @__PURE__ */ new Date(day + "T12:00:00Z")).getUTCDay();
+  for (const [day2, d] of all) {
+    const dow = (/* @__PURE__ */ new Date(day2 + "T12:00:00Z")).getUTCDay();
     n[dow]++;
     if (d.yes) k[dow]++;
   }
@@ -49927,15 +49924,20 @@ async function paywallEnabled(env) {
 function normalizeAccess(record, now = Date.now()) {
   const tier = import_pricing_config.default.isTier(record?.tier) ? record.tier : "start";
   const until = Number(record?.until) || null;
-  const period = record?.period === "week" ? "week" : record?.period === "month" ? "month" : null;
   const periodStart = Number(record?.periodStart) || null;
+  const quota = record?.quota && typeof record.quota === "object" ? record.quota : null;
   if (tier !== "start" && until && until < now) {
-    return { tier: "start", until, expired: true, source: record?.source || "", period: null, periodStart: null };
+    return { tier: "start", until, expired: true, source: record?.source || "", periodStart: null, quota: null };
   }
-  return { tier, until, expired: false, source: record?.source || "", period, periodStart };
+  return { tier, until, expired: false, source: record?.source || "", periodStart, quota };
 }
 function usageWindow(access, now = Date.now()) {
-  return access?.period && access?.periodStart ? `p${access.periodStart}` : monthOf(now);
+  return access?.periodStart ? `p${access.periodStart}` : monthOf(now);
+}
+var dayWindow = (now = Date.now()) => `d${new Date(now).toISOString().slice(0, 10)}`;
+function limitFor(access, feature) {
+  if (access?.quota && typeof access.quota[feature] === "number") return access.quota[feature];
+  return import_pricing_config.default.quota(access?.tier, feature);
 }
 async function readAccess(env, userId) {
   if (!userId || !env.page_content) return null;
@@ -49971,10 +49973,10 @@ async function addUsage(env, userId, feature, now = Date.now(), window = monthOf
   usage[feature] = (Number(usage[feature]) || 0) + 1;
   await env.page_content.put(usageKey(userId, window), JSON.stringify(usage), { expirationTtl: USAGE_TTL_SEC });
 }
-function quotaMap(tier, usage, period) {
+function quotaMap(access, usage) {
   const out = {};
   for (const feature of Object.keys(import_pricing_config.default.FEATURE_MIN_TIER)) {
-    const limit = import_pricing_config.default.quota(tier, feature, period);
+    const limit = limitFor(access, feature);
     if (limit !== null) out[feature] = { used: Number(usage?.[feature]) || 0, limit };
   }
   return out;
@@ -49982,10 +49984,10 @@ function quotaMap(tier, usage, period) {
 async function resolveAccess(env, userId, now = Date.now()) {
   const paywall = await paywallEnabled(env);
   const access = normalizeAccess(await readAccess(env, userId), now);
-  const quotas = paywall && userId ? quotaMap(access.tier, await readUsage(env, userId, now, usageWindow(access, now)), access.period) : {};
-  return { paywall, tier: access.tier, until: access.until, period: access.period, source: access.source, expired: access.expired, features: featureMap(access.tier, paywall), quotas };
+  const quotas = paywall && userId ? quotaMap(access, await readUsage(env, userId, now, usageWindow(access, now))) : {};
+  return { paywall, tier: access.tier, until: access.until, source: access.source, expired: access.expired, features: featureMap(access.tier, paywall), quotas };
 }
-async function writeAccess(env, userId, { tier, until = null, source = "admin", note = "", period = null, periodStart = null, stripe: stripe3 = null } = {}, now = Date.now()) {
+async function writeAccess(env, userId, { tier, until = null, source = "admin", note = "", periodStart = null, quota = null, stripe: stripe3 = null } = {}, now = Date.now()) {
   if (!env.page_content) throw new Error("KV not configured");
   if (!/^fb_[A-Za-z0-9_-]{6,128}$/.test(String(userId || ""))) throw new Error("\u041D\u0438\u0432\u043E\u0442\u043E \u0441\u0435 \u0434\u0430\u0432\u0430 \u0441\u0430\u043C\u043E \u043D\u0430 \u0430\u043A\u0430\u0443\u043D\u0442 (fb_\u2026)");
   if (!import_pricing_config.default.isTier(tier)) throw new Error("\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442\u043E \u043D\u0438\u0432\u043E");
@@ -50001,7 +50003,8 @@ async function writeAccess(env, userId, { tier, until = null, source = "admin", 
     source: String(source).slice(0, 40),
     note: String(note || "").slice(0, 200),
     updatedAt: now,
-    ...period === "week" || period === "month" ? { period, periodStart: Number(periodStart) || now } : {},
+    ...periodStart ? { periodStart: Number(periodStart) } : {},
+    ...quota ? { quota } : {},
     ...stripe3 ? { stripe: stripe3 } : {}
   };
   await env.page_content.put(accessKey(userId), JSON.stringify(record));
@@ -50016,28 +50019,44 @@ async function gateFeature(request, env, feature, opts) {
   const userId = String(body?.[fields.userId || "userId"] || "");
   const label = import_pricing_config.default.FEATURE_LABEL[feature] || "\u0422\u0430\u0437\u0438 \u0444\u0443\u043D\u043A\u0446\u0438\u044F";
   const deny = (data) => ({ deny: respond({ error: "locked", feature, need: import_pricing_config.default.FEATURE_MIN_TIER[feature] || "core", ...data }, 402), commit: pass.commit });
-  if (!userId.startsWith("fb_")) return deny({ reason: "account", tier: "start", message: `${label} \u0435 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0430\u0431\u043E\u043D\u0430\u043C\u0435\u043D\u0442\u0430.` });
+  if (!userId.startsWith("fb_")) return deny({ reason: "account", tier: "start", message: `${label} \u0435 \u0447\u0430\u0441\u0442 \u043E\u0442 \u043F\u043B\u0430\u043D\u0430.` });
   const ownerErr = await checkOwner(userId, body?.[fields.idToken || "idToken"], env, request);
   if (ownerErr) return { deny: ownerErr, commit: pass.commit };
   const access = normalizeAccess(await readAccess(env, userId), now);
   const { tier } = access;
-  if (!import_pricing_config.default.allows(tier, feature)) return deny({ reason: "tier", tier, message: `${label} \u0435 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0430\u0431\u043E\u043D\u0430\u043C\u0435\u043D\u0442\u0430.` });
-  const limit = import_pricing_config.default.quota(tier, feature, access.period);
-  if (limit === null) return pass;
+  if (!import_pricing_config.default.allows(tier, feature)) return deny({ reason: "tier", tier, message: `${label} \u0435 \u0447\u0430\u0441\u0442 \u043E\u0442 \u043F\u043B\u0430\u043D\u0430.` });
+  const limit = limitFor(access, feature);
+  const daily = import_pricing_config.default.dailyCap(feature);
+  if (limit === null && daily === null) return pass;
   const window = usageWindow(access, now);
-  const used = Number((await readUsage(env, userId, now, window))[feature]) || 0;
-  if (used >= limit) {
-    const per = access.period === "week" ? "\u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430" : "\u043C\u0435\u0441\u0435\u0446\u0430";
-    return deny({
-      reason: "quota",
-      tier,
-      used,
-      limit,
-      upgrade: import_pricing_config.default.upgradeFor(tier, feature, access.period),
-      message: access.period ? `\u041B\u0438\u043C\u0438\u0442\u044A\u0442 \u043E\u0442 ${import_pricing_config.default.quotaText(limit, feature)} \u0437\u0430 ${per} \u0435 \u0438\u0437\u0447\u0435\u0440\u043F\u0430\u043D. \u041D\u043E\u0432\u0438 \u2014 \u0441\u044A\u0441 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u043E\u0442\u043E \u043F\u043B\u0430\u0449\u0430\u043D\u0435.` : `\u041B\u0438\u043C\u0438\u0442\u044A\u0442 \u043E\u0442 ${import_pricing_config.default.quotaText(limit, feature)} \u0437\u0430 \u043C\u0435\u0441\u0435\u0446\u0430 \u0435 \u0438\u0437\u0447\u0435\u0440\u043F\u0430\u043D. \u041D\u043E\u0432\u0438 \u2014 \u043E\u0442 1-\u0432\u043E \u0447\u0438\u0441\u043B\u043E.`
-    });
+  if (limit !== null) {
+    const used = Number((await readUsage(env, userId, now, window))[feature]) || 0;
+    if (used >= limit) {
+      return deny({
+        reason: "quota",
+        tier,
+        used,
+        limit,
+        message: access.periodStart ? `\u041B\u0438\u043C\u0438\u0442\u044A\u0442 \u043E\u0442 ${import_pricing_config.default.quotaText(limit, feature)} \u0437\u0430 \u043F\u043B\u0430\u043D\u0430 \u0435 \u0438\u0437\u0447\u0435\u0440\u043F\u0430\u043D. \u041E\u0449\u0435 \u2014 \u0441 \u043F\u0440\u043E\u0434\u044A\u043B\u0436\u0435\u043D\u0438\u0435 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430.` : `\u041B\u0438\u043C\u0438\u0442\u044A\u0442 \u043E\u0442 ${import_pricing_config.default.quotaText(limit, feature)} \u0437\u0430 \u043C\u0435\u0441\u0435\u0446\u0430 \u0435 \u0438\u0437\u0447\u0435\u0440\u043F\u0430\u043D. \u041D\u043E\u0432\u0438 \u2014 \u043E\u0442 1-\u0432\u043E \u0447\u0438\u0441\u043B\u043E.`
+      });
+    }
   }
-  return { deny: null, commit: () => addUsage(env, userId, feature, now, window) };
+  if (daily !== null) {
+    const usedToday = Number((await readUsage(env, userId, now, dayWindow(now)))[feature]) || 0;
+    if (usedToday >= daily) {
+      return deny({
+        reason: "daily",
+        tier,
+        used: usedToday,
+        limit: daily,
+        message: `\u0414\u043D\u0435\u0448\u043D\u0438\u044F\u0442 \u043B\u0438\u043C\u0438\u0442 \u043E\u0442 ${import_pricing_config.default.quotaText(daily, feature)} \u0435 \u0438\u0437\u0447\u0435\u0440\u043F\u0430\u043D. \u041D\u043E\u0432\u0438 \u2014 \u0443\u0442\u0440\u0435.`
+      });
+    }
+  }
+  return { deny: null, commit: async () => {
+    if (limit !== null) await addUsage(env, userId, feature, now, window);
+    if (daily !== null) await addUsage(env, userId, feature, now, dayWindow(now));
+  } };
 }
 async function planUsesAI(env, userId, idToken, verifyToken, now = Date.now()) {
   if (!await paywallEnabled(env)) return true;
@@ -50055,8 +50074,7 @@ async function planUsesAI(env, userId, idToken, verifyToken, now = Date.now()) {
 // billing.js
 var import_pricing_config2 = __toESM(require_pricing_config());
 var API = "https://api.stripe.com/v1/";
-var GRACE_MS = 2 * 60 * 60 * 1e3;
-var REFRESH_BEFORE_MS = 6 * 60 * 60 * 1e3;
+var DAY_MS4 = 24 * 3600 * 1e3;
 var ALLOWED_RETURN = /^https:\/\/(eatologix\.com|www\.eatologix\.com|biocode\.website|emoeat\.app|irismap\.app|www\.irismap\.app|radilovk\.github\.io)(\/|$)/;
 var stripeMode = (env) => env.BILLING_MODE === "live" ? "live" : "test";
 var stripeKey = (env) => stripeMode(env) === "live" ? env.STRIPE_SECRET_KEY : env.STRIPE_TEST_SECRET_KEY;
@@ -50085,110 +50103,105 @@ async function stripe2(env, method, path, params) {
 }
 var cents = (eur) => Math.round(Number(eur) * 100);
 var okReturn = (u) => typeof u === "string" && ALLOWED_RETURN.test(u) ? u : null;
-function withParam(u, k, v) {
-  return u + (u.includes("?") ? "&" : "?") + `${k}=${v}`;
-}
-async function ensureCustomer(env, userId) {
-  const k = `billing:customer:${stripeMode(env)}:${userId}`;
-  const known = await env.page_content.get(k);
-  if (known) return known;
-  const c = await stripe2(env, "POST", "customers", { metadata: { userId } });
-  await env.page_content.put(k, c.id);
-  return c.id;
-}
-function subPeriod(sub) {
-  const it = sub?.items?.data?.[0] || {};
-  const start = sub?.current_period_start || it.current_period_start;
-  const end = sub?.current_period_end || it.current_period_end;
-  return { start: start ? start * 1e3 : Date.now(), end: end ? end * 1e3 : null };
-}
-async function grantFromSubscription(env, userId, sub, meta = {}) {
-  const tier = import_pricing_config2.default.isTier(meta.tier) && meta.tier !== "start" ? meta.tier : sub?.metadata?.tier;
-  const period = (meta.period || sub?.metadata?.period) === "week" ? "week" : "month";
-  if (!import_pricing_config2.default.isTier(tier) || tier === "start") throw new Error("\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442\u043E \u043D\u0438\u0432\u043E \u0432 \u0430\u0431\u043E\u043D\u0430\u043C\u0435\u043D\u0442\u0430");
-  const { start, end } = subPeriod(sub);
-  return writeAccess(env, userId, {
-    tier,
-    period,
-    periodStart: start,
-    until: end ? new Date(end + GRACE_MS).toISOString() : null,
-    source: "stripe",
-    note: `Stripe ${stripeMode(env)} \xB7 ${import_pricing_config2.default.formatPrice(import_pricing_config2.default.price(tier, period))} / ${import_pricing_config2.default.PERIOD_LABEL[period]}`,
-    stripe: { mode: stripeMode(env), customer: sub.customer, sub: sub.id }
-  });
-}
+var withParam = (u, k, v) => u + (u.includes("?") ? "&" : "?") + `${k}=${v}`;
+var okUser = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ""));
+var okDevice = (id) => /^[A-Za-z0-9_-]{8,64}$/.test(String(id || ""));
 async function handleBillingCheckout(request, env, { respond }) {
   if (!billingReady(env)) return respond({ error: "no_stripe", mode: stripeMode(env) }, 503);
   const b = await request.json().catch(() => ({}));
   const origin = (request.headers.get("Origin") || "").replace(/\/$/, "");
+  let id = String(b.product || "");
+  let P = import_pricing_config2.default.product(id);
+  if (!P) return respond({ error: "bad_request" }, 400);
+  const meta = { product: id };
+  let back;
   try {
-    if (b.product === "iris_protocol") {
-      const P = import_pricing_config2.default.PRODUCTS.iris_protocol;
+    if (P.kind === "plan") {
+      if (!okUser(b.userId)) return respond({ error: "account", message: "\u0412\u043B\u0435\u0437 \u0432 \u0430\u043A\u0430\u0443\u043D\u0442\u0430 \u0441\u0438, \u0437\u0430 \u0434\u0430 \u043A\u0443\u043F\u0438\u0448 \u043F\u043B\u0430\u043D." }, 400);
+      if (P.requiresPlan) {
+        const rec = await readAccess(env, b.userId);
+        if (!rec || rec.tier === "start") return respond({ error: "no_plan", message: "\u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0435 \u0437\u0430 \u0432\u0435\u0447\u0435 \u043A\u0443\u043F\u0435\u043D \u043F\u043B\u0430\u043D \u2014 \u0438\u0437\u0431\u0435\u0440\u0438 \u043F\u043B\u0430\u043D \u0437\u0430 4 \u0438\u043B\u0438 12 \u0441\u0435\u0434\u043C\u0438\u0446\u0438." }, 400);
+      }
+      meta.userId = b.userId;
+      if (/^[a-z0-9][a-z0-9-]{1,31}$/.test(String(b.ref || ""))) meta.ref = b.ref;
+      const site = /^https:\/\/(eatologix\.com|biocode\.website)$/.test(origin) ? origin : "https://eatologix.com";
+      back = `${site}/pricing.html`;
+    } else if (P.kind === "iris") {
       const analysisId = String(b.analysisId || "").slice(0, 80);
-      const back = okReturn(b.returnUrl);
-      if (!analysisId || !back) return respond({ error: "bad_request" }, 400);
-      const s2 = await stripe2(env, "POST", "checkout/sessions", {
-        mode: "payment",
-        locale: "auto",
-        allow_promotion_codes: "true",
-        line_items: [{ quantity: 1, price_data: { currency: "eur", unit_amount: cents(P.price), product_data: { name: P.name, description: P.description } } }],
-        metadata: { product: "iris_protocol", analysisId },
-        payment_intent_data: { metadata: { product: "iris_protocol", analysisId } },
-        success_url: withParam(back, "paid", "{CHECKOUT_SESSION_ID}"),
-        cancel_url: back
-      });
-      return respond({ url: s2.url, mode: stripeMode(env) });
+      back = okReturn(b.returnUrl);
+      if (!analysisId || !back || !okDevice(b.deviceId)) return respond({ error: "bad_request" }, 400);
+      id = await env.page_content.get(`iris_paid_dev:${b.deviceId}`) ? "iris_recheck" : "iris_protocol";
+      P = import_pricing_config2.default.product(id);
+      Object.assign(meta, { product: id, analysisId, deviceId: b.deviceId });
+    } else if (P.kind === "emoeat") {
+      back = okReturn(b.returnUrl);
+      const holder = okUser(b.userId) ? b.userId : okDevice(b.deviceId) ? b.deviceId : "";
+      if (!holder || !back) return respond({ error: "bad_request" }, 400);
+      meta.holder = holder;
     }
-    const tier = b.tier, period = b.period === "week" ? "week" : "month";
-    const userId = String(b.userId || "");
-    const price = import_pricing_config2.default.price(tier, period);
-    if (!/^fb_[A-Za-z0-9_-]{6,128}$/.test(userId)) return respond({ error: "account", message: "\u0412\u043B\u0435\u0437 \u0432 \u0430\u043A\u0430\u0443\u043D\u0442\u0430 \u0441\u0438, \u0437\u0430 \u0434\u0430 \u0438\u0437\u0431\u0435\u0440\u0435\u0448 \u043D\u0438\u0432\u043E." }, 400);
-    if (!price || tier === "start") return respond({ error: "bad_request" }, 400);
-    const plan = import_pricing_config2.default.plan(tier);
-    const ref = /^[a-z0-9][a-z0-9-]{1,31}$/.test(String(b.ref || "")) ? b.ref : "";
-    const site = /^https:\/\/(eatologix\.com|biocode\.website)$/.test(origin) ? origin : "https://eatologix.com";
-    const meta = { userId, tier, period, ...ref ? { ref } : {} };
     const s = await stripe2(env, "POST", "checkout/sessions", {
-      mode: "subscription",
+      mode: "payment",
       locale: "auto",
       allow_promotion_codes: "true",
-      customer: await ensureCustomer(env, userId),
-      client_reference_id: userId,
-      line_items: [{ quantity: 1, price_data: {
-        currency: "eur",
-        unit_amount: cents(price),
-        recurring: { interval: period },
-        product_data: { name: `Eatologix ${plan.name}` }
-      } }],
+      ...P.kind === "plan" ? { client_reference_id: meta.userId } : {},
+      line_items: [{ quantity: 1, price_data: { currency: "eur", unit_amount: cents(P.price), product_data: { name: P.name, ...P.description ? { description: P.description } : {} } } }],
       metadata: meta,
-      subscription_data: { metadata: meta },
-      success_url: `${site}/pricing.html?paid={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${site}/pricing.html`
+      payment_intent_data: { metadata: meta },
+      // Право на отказ: съгласието се дава с отметка преди плащането (на нашата страница); тук — напомняне.
+      custom_text: { submit: { message: "\u0426\u0438\u0444\u0440\u043E\u0432\u043E \u0441\u044A\u0434\u044A\u0440\u0436\u0430\u043D\u0438\u0435, \u0434\u043E\u0441\u0442\u0430\u0432\u0435\u043D\u043E \u0432\u0435\u0434\u043D\u0430\u0433\u0430 \u0441\u043B\u0435\u0434 \u043F\u043B\u0430\u0449\u0430\u043D\u0435\u0442\u043E: \u0441 \u043F\u043E\u0440\u044A\u0447\u043A\u0430\u0442\u0430 \u0433\u0443\u0431\u0438\u0448 \u043F\u0440\u0430\u0432\u043E\u0442\u043E \u043D\u0430 \u043E\u0442\u043A\u0430\u0437 \u043E\u0442 14 \u0434\u043D\u0438." } },
+      success_url: withParam(back, "paid", "{CHECKOUT_SESSION_ID}"),
+      cancel_url: back
     });
-    return respond({ url: s.url, mode: stripeMode(env) });
+    return respond({ url: s.url, mode: stripeMode(env), product: id, price: P.price });
   } catch (e) {
     return respond({ error: "stripe", message: e.message }, 502);
   }
 }
-async function handleBillingConfirm(request, env, { respond }) {
+async function grantPlan(env, userId, productId, sessionId, now = Date.now()) {
+  const P = import_pricing_config2.default.product(productId);
+  const add = import_pricing_config2.default.planQuota(productId);
+  const current = normalizeAccess(await readAccess(env, userId), now);
+  const active = current.tier === "core" && current.until && current.until > now;
+  const quota = { ...add };
+  if (active && current.quota) for (const k of Object.keys(add)) quota[k] = (Number(current.quota[k]) || 0) + add[k];
+  return writeAccess(env, userId, {
+    tier: "core",
+    periodStart: active && current.periodStart ? current.periodStart : now,
+    until: new Date((active ? current.until : now) + P.days * DAY_MS4).toISOString(),
+    quota,
+    source: "stripe",
+    note: `${P.name} \xB7 ${import_pricing_config2.default.formatPrice(P.price)} \xB7 Stripe ${stripeMode(env)}`,
+    stripe: { mode: stripeMode(env), session: sessionId }
+  }, now);
+}
+async function handleBillingConfirm(request, env, { respond, now = Date.now() } = {}) {
   if (!billingReady(env)) return respond({ error: "no_stripe" }, 503);
   const { sessionId } = await request.json().catch(() => ({}));
   if (!/^cs_[A-Za-z0-9_]{10,200}$/.test(String(sessionId || ""))) return respond({ error: "bad_request" }, 400);
+  const doneKey = `billing:done:${sessionId}`;
+  const done = await env.page_content.get(doneKey);
+  if (done) return respond({ ok: true, repeat: true, ...JSON.parse(done) });
   try {
-    const s = await stripe2(env, "GET", `checkout/sessions/${sessionId}`, { expand: ["subscription"] });
-    if (s.mode === "subscription") {
-      if (s.status !== "complete" || !s.subscription) return respond({ ok: false, status: s.status });
-      const userId = s.metadata?.userId || s.client_reference_id;
-      const record = await grantFromSubscription(env, userId, s.subscription, s.metadata);
-      return respond({ ok: true, product: "subscription", userId, tier: record.tier, period: record.period, until: record.until });
+    const s = await stripe2(env, "GET", `checkout/sessions/${sessionId}`);
+    if (s.payment_status !== "paid") return respond({ ok: false, status: s.payment_status || s.status });
+    const m = s.metadata || {};
+    const P = import_pricing_config2.default.product(m.product);
+    if (!P) return respond({ ok: false, status: "unknown" });
+    let result = { product: m.product };
+    if (P.kind === "plan") {
+      const rec = await grantPlan(env, m.userId, m.product, sessionId, now);
+      result = { ...result, userId: m.userId, tier: rec.tier, until: rec.until };
+    } else if (P.kind === "iris") {
+      await env.page_content.put(`iris_unlock:${m.analysisId}`, JSON.stringify({ sessionId, at: now, mode: stripeMode(env) }));
+      if (m.deviceId) await env.page_content.put(`iris_paid_dev:${m.deviceId}`, String(now));
+      result = { ...result, analysisId: m.analysisId };
+    } else if (P.kind === "emoeat") {
+      const k = `emoeat_credit:${m.holder}`;
+      await env.page_content.put(k, String((Number(await env.page_content.get(k)) || 0) + 1), { expirationTtl: 400 * 86400 });
+      result = { ...result, holder: m.holder };
     }
-    if (s.metadata?.product === "iris_protocol") {
-      if (s.payment_status !== "paid") return respond({ ok: false, status: s.payment_status });
-      const analysisId = s.metadata.analysisId;
-      await env.page_content.put(`iris_unlock:${analysisId}`, JSON.stringify({ sessionId, at: Date.now(), mode: stripeMode(env) }));
-      return respond({ ok: true, product: "iris_protocol", analysisId });
-    }
-    return respond({ ok: false, status: "unknown" });
+    await env.page_content.put(doneKey, JSON.stringify(result), { expirationTtl: 400 * 86400 });
+    return respond({ ok: true, ...result });
   } catch (e) {
     return respond({ error: "stripe", message: e.message }, 502);
   }
@@ -50198,29 +50211,167 @@ async function handleIrisUnlockStatus(url, env, { respond }) {
   if (!id) return respond({ unlocked: false });
   return respond({ unlocked: Boolean(await env.page_content.get(`iris_unlock:${id}`)) });
 }
-async function handleBillingPortal(request, env, { respond }) {
-  if (!billingReady(env)) return respond({ error: "no_stripe" }, 503);
-  const { userId, returnUrl } = await request.json().catch(() => ({}));
-  const customer = userId && await env.page_content.get(`billing:customer:${stripeMode(env)}:${userId}`);
-  if (!customer) return respond({ error: "no_customer" }, 404);
+async function emoeatCredit(env, holder) {
+  if (!holder || !env.page_content) return 0;
+  return Number(await env.page_content.get(`emoeat_credit:${holder}`)) || 0;
+}
+async function useEmoeatCredit(env, holder) {
+  const n = await emoeatCredit(env, holder);
+  if (n > 0) await env.page_content.put(`emoeat_credit:${holder}`, String(n - 1), { expirationTtl: 400 * 86400 });
+}
+
+// spend.js
+var PRICES = {
+  "gemini-3.8-flash": [2, 10],
+  "gemini-3.6-flash": [1.5, 7.5],
+  "gemini-3.5-flash-lite": [0.3, 2.5],
+  "gemini-3.1-pro-preview": [2.5, 15],
+  "gemini-2.5-flash": [0.3, 2.5]
+};
+var DEFAULT_PRICE = [2, 10];
+var SHARDS = 8;
+var TTL_SEC = 3 * 24 * 3600;
+var BUDGET_KEY = "admin_daily_budget_usd";
+var today = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+function costUsd(model, usage) {
+  if (!usage) return 0;
+  const [pin, pout] = PRICES[String(model || "").replace(/^models\//, "")] || DEFAULT_PRICE;
+  const input = Number(usage.promptTokenCount) || 0;
+  const output = (Number(usage.candidatesTokenCount) || 0) + (Number(usage.thoughtsTokenCount) || 0);
+  return (input * pin + output * pout) / 1e6;
+}
+var memo = { day: "", at: 0, usd: 0 };
+async function dailySpend(env, now = Date.now()) {
+  const day2 = today(now);
+  if (memo.day === day2 && now - memo.at < 3e4) return memo.usd;
+  if (!env.page_content) return 0;
+  const vals = await Promise.all([...Array(SHARDS)].map((_, i) => env.page_content.get(`spend:${day2}:${i}`).catch(() => null)));
+  const usd = vals.reduce((s, v) => s + (Number(v) || 0), 0);
+  memo = { day: day2, at: now, usd };
+  return usd;
+}
+async function budgetLimit(env) {
   try {
-    const s = await stripe2(env, "POST", "billing_portal/sessions", { customer, return_url: okReturn(returnUrl) || "https://eatologix.com/pricing.html" });
-    return respond({ url: s.url });
-  } catch (e) {
-    return respond({ error: "stripe", message: e.message }, 502);
+    const v = Number(await env.page_content?.get(BUDGET_KEY));
+    if (v > 0) return v;
+  } catch (_) {
+  }
+  return Number(env.DAILY_AI_BUDGET_USD) > 0 ? Number(env.DAILY_AI_BUDGET_USD) : 22;
+}
+async function budgetOk(env, kind = "free", now = Date.now()) {
+  if (kind === "paid") return true;
+  return await dailySpend(env, now) < await budgetLimit(env);
+}
+async function addSpend(env, usd, { notify, now = Date.now() } = {}) {
+  if (!(usd > 0) || !env.page_content) return;
+  const day2 = today(now);
+  const key = `spend:${day2}:${Math.floor(Math.random() * SHARDS)}`;
+  try {
+    const cur = Number(await env.page_content.get(key)) || 0;
+    await env.page_content.put(key, String(Math.round((cur + usd) * 1e6) / 1e6), { expirationTtl: TTL_SEC });
+  } catch (_) {
+  }
+  if (memo.day === day2) memo.usd += usd;
+  if (!notify) return;
+  const limit = await budgetLimit(env);
+  const spent = await dailySpend(env, now);
+  for (const pct of [50, 100]) {
+    if (spent < limit * pct / 100) continue;
+    const flag = `spend_alert:${day2}:${pct}`;
+    if (await env.page_content.get(flag)) continue;
+    await env.page_content.put(flag, "1", { expirationTtl: TTL_SEC });
+    await notify(pct === 100 ? `\u26D4 AI \u0440\u0430\u0437\u0445\u043E\u0434 \u0434\u043D\u0435\u0441: $${spent.toFixed(2)} \u2014 \u0442\u0430\u0432\u0430\u043D\u044A\u0442 $${limit} \u0435 \u0434\u043E\u0441\u0442\u0438\u0433\u043D\u0430\u0442. \u0411\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u0438\u0442\u0435 AI \u0444\u0443\u043D\u043A\u0446\u0438\u0438 \u0441\u0430 \u0441\u043F\u0440\u0435\u043D\u0438 \u0434\u043E \u043F\u043E\u043B\u0443\u043D\u043E\u0449 (UTC); \u043F\u043B\u0430\u0442\u0435\u043D\u0438\u0442\u0435 \u0440\u0430\u0431\u043E\u0442\u044F\u0442.` : `\u26A0\uFE0F AI \u0440\u0430\u0437\u0445\u043E\u0434 \u0434\u043D\u0435\u0441: $${spent.toFixed(2)} \u2014 \u043F\u043E\u043B\u043E\u0432\u0438\u043D\u0430\u0442\u0430 \u043E\u0442 \u0442\u0430\u0432\u0430\u043D\u0430 $${limit}.`).catch(() => {
+    });
   }
 }
-async function refreshStripeAccess(env, userId, now = Date.now()) {
-  if (!billingReady(env) || !userId) return;
-  const rec = await readAccess(env, userId);
-  if (rec?.source !== "stripe" || !rec.stripe?.sub || rec.stripe.mode !== stripeMode(env)) return;
-  if (rec.until && rec.until - now > REFRESH_BEFORE_MS) return;
-  try {
-    const sub = await stripe2(env, "GET", `subscriptions/${rec.stripe.sub}`);
-    if (sub.status === "active" || sub.status === "trialing") await grantFromSubscription(env, userId, sub, { tier: rec.tier, period: rec.period });
-  } catch (e) {
-    console.warn("[billing] refresh", e.message);
+function noteSpend(env, model, usage, opts) {
+  return addSpend(env, costUsd(model, usage), opts).catch(() => {
+  });
+}
+
+// iris-gate.js
+var TICKET_CALLS = 24;
+var TICKET_MS = 40 * 60 * 1e3;
+var FREE_EVERY_MS = 7 * 24 * 3600 * 1e3;
+var IP_PER_DAY = 3;
+var MAX_BODY = 12 * 1024 * 1024;
+var MODELS = /* @__PURE__ */ new Set(["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"]);
+var PATH = /^\/api\/iris\/gemini\/v1beta\/models\/(gemini-[a-z0-9.\-]+):generateContent$/;
+var IRIS_CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, X-Iris-Ticket",
+  "Access-Control-Max-Age": "86400"
+};
+var day = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+var ipOf = (request) => request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown";
+var okDevice2 = (id) => /^[A-Za-z0-9_-]{8,64}$/.test(String(id || ""));
+function rand(n = 24) {
+  const b = new Uint8Array(n);
+  crypto.getRandomValues(b);
+  return [...b].map((x) => "abcdefghijklmnopqrstuvwxyz0123456789"[x % 36]).join("");
+}
+async function handleIrisTicket(request, env, { respond, now = Date.now() } = {}) {
+  if (!env.page_content) return respond({ error: "kv" }, 500);
+  const body = await request.json().catch(() => ({}));
+  const deviceId = String(body.deviceId || "");
+  if (!okDevice2(deviceId)) return respond({ error: "bad_request" }, 400);
+  const creditKey = `iris_credit:${deviceId}`;
+  const credit = Number(await env.page_content.get(creditKey)) || 0;
+  const paid = credit > 0;
+  if (!paid) {
+    if (!await budgetOk(env, "free", now)) {
+      return respond({ error: "budget", message: "\u0411\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u0438\u0442\u0435 \u0430\u043D\u0430\u043B\u0438\u0437\u0438 \u0437\u0430 \u0434\u043D\u0435\u0441 \u0441\u0430 \u0438\u0437\u0447\u0435\u0440\u043F\u0430\u043D\u0438. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0443\u0442\u0440\u0435." }, 503);
+    }
+    const dev = JSON.parse(await env.page_content.get(`iris_dev:${deviceId}`) || "null");
+    const prev = dev?.ticket ? JSON.parse(await env.page_content.get(`iris_ticket:${dev.ticket}`) || "null") : null;
+    const unfinished = prev && TICKET_CALLS - prev.calls < 13;
+    if (dev?.last && now - dev.last < FREE_EVERY_MS && !unfinished) {
+      return respond({
+        error: "weekly",
+        next: dev.last + FREE_EVERY_MS,
+        message: "\u0411\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437 \u0435 \u0432\u0435\u0434\u043D\u044A\u0436 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043D\u0430 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E. \u041A\u043E\u043D\u0442\u0440\u043E\u043B\u043D\u043E \u0440\u0430\u0437\u0447\u0438\u0442\u0430\u043D\u0435 \u043F\u043E-\u0440\u0430\u043D\u043E \u2014 \u0441 \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u0430."
+      }, 429);
+    }
+    const ipKey = `iris_ip:${ipOf(request)}:${day(now)}`;
+    const ipCount = Number(await env.page_content.get(ipKey)) || 0;
+    if (ipCount >= IP_PER_DAY) return respond({ error: "ip", message: "\u0422\u0432\u044A\u0440\u0434\u0435 \u043C\u043D\u043E\u0433\u043E \u0430\u043D\u0430\u043B\u0438\u0437\u0438 \u043E\u0442 \u0442\u0430\u0437\u0438 \u043C\u0440\u0435\u0436\u0430 \u0434\u043D\u0435\u0441. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0443\u0442\u0440\u0435." }, 429);
+    await env.page_content.put(ipKey, String(ipCount + 1), { expirationTtl: 2 * 86400 });
+  } else {
+    await env.page_content.put(creditKey, String(credit - 1), { expirationTtl: 400 * 86400 });
   }
+  const ticket = rand();
+  const expiresAt = now + TICKET_MS;
+  if (!paid) await env.page_content.put(`iris_dev:${deviceId}`, JSON.stringify({ last: now, ticket }), { expirationTtl: 8 * 86400 });
+  await env.page_content.put(`iris_ticket:${ticket}`, JSON.stringify({ calls: TICKET_CALLS, exp: expiresAt, deviceId, paid }), { expirationTtl: 3600 });
+  return respond({ ticket, calls: TICKET_CALLS, expiresAt, paid });
+}
+async function handleIrisGemini(request, env, url, { notify } = {}) {
+  const json2 = (status, message) => new Response(JSON.stringify({ error: { code: status, message } }), { status, headers: { "Content-Type": "application/json", ...IRIS_CORS } });
+  const m = url.pathname.match(PATH);
+  if (!m || !MODELS.has(m[1])) return json2(404, "model not allowed");
+  if (!env.GEMINI_API_KEY) return json2(503, "GEMINI_API_KEY is not configured");
+  const t = String(request.headers.get("X-Iris-Ticket") || "");
+  if (!/^[a-z0-9]{24}$/.test(t)) return json2(403, "ticket required");
+  const key = `iris_ticket:${t}`;
+  const rec = JSON.parse(await env.page_content.get(key) || "null");
+  if (!rec || rec.exp < Date.now() || rec.calls <= 0) return json2(403, "ticket expired");
+  if (Number(request.headers.get("Content-Length") || 0) > MAX_BODY) return json2(413, "request too large");
+  const body = await request.arrayBuffer();
+  if (body.byteLength > MAX_BODY) return json2(413, "request too large");
+  rec.calls -= 1;
+  await env.page_content.put(key, JSON.stringify(rec), { expirationTtl: 3600 });
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m[1]}:generateContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+    body
+  });
+  const text2 = await r.text();
+  try {
+    await noteSpend(env, m[1], JSON.parse(text2)?.usageMetadata, { notify });
+  } catch (_) {
+  }
+  return new Response(text2, { status: r.status, headers: { "Content-Type": "application/json", ...IRIS_CORS } });
 }
 
 // handoff.js
@@ -50833,9 +50984,9 @@ function reanalyze(baseData, enrichedData, energy = {}, sex = "X") {
 
 // device-links.js
 var LINK_DAYS = 14;
-var DAY_MS4 = 864e5;
+var DAY_MS5 = 864e5;
 var ymd = (d) => d.toISOString().slice(0, 10);
-var atOf = (day) => `${day}T12:00:00.000Z`;
+var atOf = (day2) => `${day2}T12:00:00.000Z`;
 var round1 = (v) => Math.round(v * 10) / 10;
 function form2(body) {
   return new URLSearchParams(Object.entries(body).filter(([, v]) => v != null && v !== "")).toString();
@@ -50849,7 +51000,7 @@ async function getJson(fetchFn, url, token, init = {}) {
 function sumByDay(list4) {
   const out = /* @__PURE__ */ new Map();
   for (const x of list4) if (x.day && Number.isFinite(x.value)) out.set(x.day, (out.get(x.day) || 0) + x.value);
-  return [...out].map(([day, value]) => ({ day, value }));
+  return [...out].map(([day2, value]) => ({ day: day2, value }));
 }
 function facts(kind, list4, source, map = (v) => v) {
   return list4.filter((x) => x.day && Number.isFinite(x.value) && x.value > 0).map((x) => ({ kind, value: map(x.value), at: atOf(x.day), source, ...x.extra || {} }));
@@ -50878,11 +51029,11 @@ function workoutsByDay(list4, source) {
     if (w.intensity && (d.intensity == null || INTENSITY_RANK[w.intensity] > INTENSITY_RANK[d.intensity])) d.intensity = w.intensity;
     byDay.set(w.day, d);
   }
-  return [...byDay].map(([day, d]) => ({
+  return [...byDay].map(([day2, d]) => ({
     kind: "workout",
     value: Math.round(d.minutes),
     count: d.count,
-    at: atOf(day),
+    at: atOf(day2),
     source,
     ...d.slot ? { slot: d.slot } : {},
     ...d.intensity ? { intensity: d.intensity } : {}
@@ -51054,14 +51205,14 @@ var PROVIDERS = {
           enddate: Math.floor(to.getTime() / 1e3)
         });
         for (const g of b.measuregrps || []) {
-          const day = ymd(new Date(g.date * 1e3));
+          const day2 = ymd(new Date(g.date * 1e3));
           const m = {};
           for (const x of g.measures || []) m[x.type] = x.value * 10 ** x.unit;
-          if (m[1] > 0) out.push({ kind: "weight", value: round1(m[1]), at: atOf(day), source: "withings" });
-          if (m[6] > 0) out.push({ kind: "body_fat", value: round1(m[6]), at: atOf(day), source: "withings" });
-          if (m[76] > 0) out.push({ kind: "muscle_mass", value: round1(m[76]), at: atOf(day), source: "withings" });
-          if (m[77] > 0 && m[1] > 0) out.push({ kind: "body_water", value: round1(m[77] / m[1] * 100), at: atOf(day), source: "withings" });
-          if (m[10] > 0 && m[9] > 0) out.push({ kind: "bp", value: Math.round(m[10]), value2: Math.round(m[9]), at: atOf(day), source: "withings" });
+          if (m[1] > 0) out.push({ kind: "weight", value: round1(m[1]), at: atOf(day2), source: "withings" });
+          if (m[6] > 0) out.push({ kind: "body_fat", value: round1(m[6]), at: atOf(day2), source: "withings" });
+          if (m[76] > 0) out.push({ kind: "muscle_mass", value: round1(m[76]), at: atOf(day2), source: "withings" });
+          if (m[77] > 0 && m[1] > 0) out.push({ kind: "body_water", value: round1(m[77] / m[1] * 100), at: atOf(day2), source: "withings" });
+          if (m[10] > 0 && m[9] > 0) out.push({ kind: "bp", value: Math.round(m[10]), value2: Math.round(m[9]), at: atOf(day2), source: "withings" });
         }
       });
       await safe(async () => {
@@ -51104,7 +51255,7 @@ var PROVIDERS = {
       const span = (types) => post("/sampleSet:polymerize", {
         polymerizeWith: types.map((t) => ({ dataTypeName: t })),
         startTime: from.getTime(),
-        endTime: to.getTime() + DAY_MS4
+        endTime: to.getTime() + DAY_MS5
       });
       await safe(async () => {
         const pts = huaweiPoints(await daily(["com.huawei.continuous.steps.delta"]));
@@ -51121,7 +51272,7 @@ var PROVIDERS = {
           const v = x.num("resting_heart_rate", "avg");
           if (v > 0) byDay.set(x.day, v);
         }
-        out.push(...facts("resting_hr", [...byDay].map(([day, value]) => ({ day, value })), "huawei", Math.round));
+        out.push(...facts("resting_hr", [...byDay].map(([day2, value]) => ({ day: day2, value })), "huawei", Math.round));
       });
       await safe(async () => {
         const pts = huaweiPoints(await span(["com.huawei.instantaneous.body_weight"]));
@@ -51148,7 +51299,7 @@ var PROVIDERS = {
       });
       await safe(async () => {
         const startNs = BigInt(from.getTime()) * 1000000n;
-        const endNs = BigInt(to.getTime() + DAY_MS4) * 1000000n;
+        const endNs = BigInt(to.getTime() + DAY_MS5) * 1000000n;
         const r = await getJson(fetchFn, `${A}/healthRecords?startTime=${startNs}&endTime=${endNs}&dataType=com.huawei.health.record.sleep`, token);
         const nights = (r.healthRecords || r.healthRecord || []).map((rec) => {
           const fields = huaweiFields(rec.value || rec.fields || []);
@@ -51247,8 +51398,8 @@ async function pullFacts(fetchFn, env, provider, link, now = /* @__PURE__ */ new
   if (!current.access || current.expiresAt && current.expiresAt - 6e4 < now.getTime()) {
     current = await refreshToken(fetchFn, env, provider, current);
   }
-  const to = new Date(now.getTime() - DAY_MS4);
-  const from = new Date(now.getTime() - LINK_DAYS * DAY_MS4);
+  const to = new Date(now.getTime() - DAY_MS5);
+  const from = new Date(now.getTime() - LINK_DAYS * DAY_MS5);
   let list4;
   try {
     list4 = await p.fetchFacts(fetchFn, current.access, from, to);
@@ -51450,6 +51601,9 @@ async function deleteOverlayEntry(env, id) {
 }
 
 // worker.entry.js
+var adminSpendNotify = (ctx) => async (text2) => {
+  notifyMake(ctx, text2);
+};
 var MIN_AGE = 13;
 var MAX_AGE = 100;
 var MIN_WEIGHT_KG = 20;
@@ -52368,7 +52522,7 @@ var CORS_HEADERS2 = {
   "Access-Control-Allow-Origin": "*",
   // TODO: Restrict to specific domains in production
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Secret",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Secret, X-Iris-Ticket",
   "Access-Control-Max-Age": "86400",
   // Cache preflight for 24 hours
   "Content-Type": "application/json",
@@ -53353,9 +53507,9 @@ function finalizeStep1Analysis(env, data, analysis) {
 }
 function stripDessertsWhenDisabled(weekPlan, strategy) {
   if (!weekPlan || strategy?.includeDessert !== false) return;
-  for (const day of Object.values(weekPlan)) {
-    if (!day?.meals) continue;
-    for (const meal of day.meals) {
+  for (const day2 of Object.values(weekPlan)) {
+    if (!day2?.meals) continue;
+    for (const meal of day2.meals) {
       if (meal.dessert) delete meal.dessert;
     }
   }
@@ -53749,12 +53903,12 @@ function computeWeeklyReleaseVisibleAt(nowMs = Date.now()) {
   const now = new Date(nowMs);
   const y = part(now, "year");
   const m = part(now, "month");
-  const day = part(now, "day");
+  const day2 = part(now, "day");
   for (const offsetH of [3, 2]) {
-    const candidate = Date.UTC(y, m - 1, day + 1, 0, 0, 0, 0) - offsetH * 36e5;
+    const candidate = Date.UTC(y, m - 1, day2 + 1, 0, 0, 0, 0) - offsetH * 36e5;
     if (part(new Date(candidate), "hour") === 0) return candidate;
   }
-  return Date.UTC(y, m - 1, day + 1, 0, 0, 0, 0) - 2 * 36e5;
+  return Date.UTC(y, m - 1, day2 + 1, 0, 0, 0, 0) - 2 * 36e5;
 }
 var JOB_ID_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function loadCatalogRegistryOverlay(env) {
@@ -54096,7 +54250,7 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       });
       if (replanGate.deny) return replanGate.deny;
     }
-    const useAI = await planUsesAI(env, explicitUserId, idToken, verifyFirebaseIdToken);
+    const useAI = await planUsesAI(env, explicitUserId, idToken, verifyFirebaseIdToken) && (await budgetOk(env, "free") || normalizeAccess(await readAccess(env, explicitUserId)).tier !== "start");
     let resolvedClientId = clientId;
     if (!resolvedClientId && data.email) {
       const existingClient = await findClientByEmail(env, data.email);
@@ -55812,6 +55966,7 @@ ${cardText}` }] });
     throw new Error(`Gemini assistant error: ${response.status} ${errText.slice(0, 200)}`);
   }
   const data = await response.json();
+  await noteSpend(env, normalizedModel, data.usageMetadata);
   const text2 = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text2) throw new Error("Gemini \u0432\u044A\u0440\u043D\u0430 \u043F\u0440\u0430\u0437\u0435\u043D \u043E\u0442\u0433\u043E\u0432\u043E\u0440");
   return JSON.parse(text2);
@@ -55988,6 +56143,13 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
   }
 }
 async function gatedRun(request, env, feature, run, fields) {
+  if (!await budgetOk(env, "free")) {
+    const body = await request.clone().json().catch(() => ({}));
+    const access = normalizeAccess(await readAccess(env, String(body?.[fields?.userId || "userId"] || "")));
+    if (access.tier === "start") {
+      return jsonResponse2({ error: "budget", message: "AI \u0444\u0443\u043D\u043A\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043F\u0440\u0435\u0442\u043E\u0432\u0430\u0440\u0435\u043D\u0438. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0441\u043B\u0435\u0434 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0447\u0430\u0441\u0430." }, 503);
+    }
+  }
   const gate = await gateFeature(request, env, feature, { checkOwner: checkFirebaseOwner, respond: jsonResponse2, fields });
   if (gate.deny) return gate.deny;
   const response = await run();
@@ -57337,18 +57499,18 @@ function validatePlan(plan, userData, substitutions = []) {
     }
     for (let i = 1; i <= 7; i++) {
       const dayKey = `day${i}`;
-      const day = plan.weekPlan[dayKey];
-      if (!day || !day.meals || !Array.isArray(day.meals) || day.meals.length === 0) {
+      const day2 = plan.weekPlan[dayKey];
+      if (!day2 || !day2.meals || !Array.isArray(day2.meals) || day2.meals.length === 0) {
         const error = `\u0414\u0435\u043D ${i} \u043D\u044F\u043C\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F`;
         errors.push(error);
         stepErrors.step3_mealplan.push(error);
       } else {
-        if (day.meals.length < MIN_MEALS_PER_DAY || day.meals.length > MAX_MEALS_PER_DAY) {
-          const error = `\u0414\u0435\u043D ${i} \u0438\u043C\u0430 ${day.meals.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F - \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0435 \u043C\u0435\u0436\u0434\u0443 ${MIN_MEALS_PER_DAY} \u0438 ${MAX_MEALS_PER_DAY}`;
+        if (day2.meals.length < MIN_MEALS_PER_DAY || day2.meals.length > MAX_MEALS_PER_DAY) {
+          const error = `\u0414\u0435\u043D ${i} \u0438\u043C\u0430 ${day2.meals.length} \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F - \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0435 \u043C\u0435\u0436\u0434\u0443 ${MIN_MEALS_PER_DAY} \u0438 ${MAX_MEALS_PER_DAY}`;
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
         }
-        day.meals.forEach((meal, idx) => {
+        day2.meals.forEach((meal, idx) => {
           const normalizedMealName = (meal.name || "").toLowerCase().trim();
           if (normalizedMealName === "\u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435" && meal.type !== "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
             const original = meal.type;
@@ -57361,7 +57523,7 @@ function validatePlan(plan, userData, substitutions = []) {
           }
         });
         let mealsWithoutMacros = 0;
-        day.meals.forEach((meal, mealIndex) => {
+        day2.meals.forEach((meal, mealIndex) => {
           if (!meal.macros || meal.macros.protein == null || meal.macros.carbs == null || meal.macros.fats == null) {
             if (meal.type !== "\u041D\u0430\u043F\u0438\u0442\u043A\u0430" && meal.type !== "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435") {
               mealsWithoutMacros++;
@@ -57390,15 +57552,15 @@ function validatePlan(plan, userData, substitutions = []) {
           const schemeKey = DAY_NUMBER_TO_KEY[i - 1];
           const dayTarget = plan.strategy.weeklyScheme[schemeKey];
           if (dayTarget) {
-            for (const err2 of validateMealTypesAgainstBreakdown(day, dayTarget, i, userData)) {
+            for (const err2 of validateMealTypesAgainstBreakdown(day2, dayTarget, i, userData)) {
               errors.push(err2);
               stepErrors.step3_mealplan.push(err2);
             }
-            for (const err2 of validateMealsAgainstScheme(day, dayTarget, i)) {
+            for (const err2 of validateMealsAgainstScheme(day2, dayTarget, i)) {
               errors.push(err2);
               stepErrors.step3_mealplan.push(err2);
             }
-            const dayKcal = Number(day.dailyTotals?.calories) || day.meals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+            const dayKcal = Number(day2.dailyTotals?.calories) || day2.meals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
             const schemeKcal = Number(dayTarget.calories) || 0;
             if (dayKcal > 0 && schemeKcal > 0) {
               const tol = calorieTolerance(schemeKcal);
@@ -57410,8 +57572,8 @@ function validatePlan(plan, userData, substitutions = []) {
             }
           }
         }
-        const hasFreeEatingMeal = day.meals.some((meal) => meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
-        const dayCalories = day.meals.reduce((sum, meal) => {
+        const hasFreeEatingMeal = day2.meals.some((meal) => meal.type === "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435");
+        const dayCalories = day2.meals.reduce((sum, meal) => {
           const mealCal = parseInt(meal.calories) || 0;
           return sum + mealCal;
         }, 0);
@@ -57421,10 +57583,10 @@ function validatePlan(plan, userData, substitutions = []) {
           errors.push(error);
           stepErrors.step3_mealplan.push(error);
         }
-        const mealTypes = day.meals.map((meal) => meal.type);
+        const mealTypes = day2.meals.map((meal) => meal.type);
         const dinnerIndex = mealTypes.findIndex((type) => type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 4");
         if (dinnerIndex !== -1 && dinnerIndex !== mealTypes.length - 1) {
-          const mealsAfterDinner = day.meals.slice(dinnerIndex + 1);
+          const mealsAfterDinner = day2.meals.slice(dinnerIndex + 1);
           const mealsAfterDinnerTypes = mealsAfterDinner.map((m) => m.type);
           const hasAfterDinnerJustification = plan.strategy && plan.strategy.afterDinnerMealJustification && plan.strategy.afterDinnerMealJustification !== "\u041D\u0435 \u0441\u0430 \u043D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u0438";
           if (!hasAfterDinnerJustification) {
@@ -57453,7 +57615,7 @@ function validatePlan(plan, userData, substitutions = []) {
             }
           }
         }
-        day.meals.forEach((meal, idx) => {
+        day2.meals.forEach((meal, idx) => {
           if (!ALLOWED_MEAL_TYPES.includes(meal.type)) {
             const error = `\u0414\u0435\u043D ${i}, \u0445\u0440\u0430\u043D\u0435\u043D\u0435 ${idx + 1}: \u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0442\u0438\u043F "${meal.type}" - \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438 \u0441\u0430 \u0441\u0430\u043C\u043E: ${ALLOWED_MEAL_TYPES.join(", ")}`;
             errors.push(error);
@@ -57461,7 +57623,7 @@ function validatePlan(plan, userData, substitutions = []) {
           }
         });
         let lastValidIndex = -1;
-        day.meals.forEach((meal, idx) => {
+        day2.meals.forEach((meal, idx) => {
           const currentIndex = MEAL_ORDER_MAP[meal.type];
           if (currentIndex !== void 0) {
             if (currentIndex < lastValidIndex) {
@@ -57509,7 +57671,7 @@ function validatePlan(plan, userData, substitutions = []) {
           "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E",
           "\u043A\u0435\u0444\u0438\u0440"
         ];
-        const meal3 = day.meals.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3");
+        const meal3 = day2.meals.find((m) => m.type === "\u0425\u0440\u0430\u043D\u0435\u043D\u0435 3");
         if (meal3 && legacyContentRules) {
           const meal3Text = ((meal3.name || "") + " " + (meal3.description || "")).toLowerCase();
           const hasMeal3AllowedFood = MEAL3_ALLOWED_FOODS.some((food2) => meal3Text.includes(food2));
@@ -57636,9 +57798,9 @@ function validatePlan(plan, userData, substitutions = []) {
     const mealNames = /* @__PURE__ */ new Set();
     const repeatedMeals = /* @__PURE__ */ new Set();
     Object.keys(plan.weekPlan).forEach((dayKey) => {
-      const day = plan.weekPlan[dayKey];
-      if (day && day.meals && Array.isArray(day.meals)) {
-        day.meals.forEach((meal) => {
+      const day2 = plan.weekPlan[dayKey];
+      if (day2 && day2.meals && Array.isArray(day2.meals)) {
+        day2.meals.forEach((meal) => {
           if (meal.name) {
             const normalizedName = meal.name.toLowerCase().trim().replace(/\s+/g, " ");
             if (mealNames.has(normalizedName)) {
@@ -57678,9 +57840,9 @@ function validatePlan(plan, userData, substitutions = []) {
   }
   if (plan.weekPlan) {
     Object.keys(plan.weekPlan).forEach((dayKey) => {
-      const day = plan.weekPlan[dayKey];
-      if (day && day.meals && Array.isArray(day.meals)) {
-        day.meals.forEach((meal, mealIndex) => {
+      const day2 = plan.weekPlan[dayKey];
+      if (day2 && day2.meals && Array.isArray(day2.meals)) {
+        day2.meals.forEach((meal, mealIndex) => {
           if (Array.isArray(meal.alternatives)) {
             meal.alternatives = meal.alternatives.filter((alt) => {
               const text2 = `${alt.name || ""} ${alt.description || ""}`.toLowerCase();
@@ -58208,8 +58370,8 @@ async function recordCouncilOutcome(env, history, decision, jobId) {
       chg: outcome.weeklyChangeKg,
       wst: outcome.waistChangeCm
     };
-    const day = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-    await env.page_content.put(`${COUNCIL_OUTCOME_PREFIX}${day}:${jobId || crypto.randomUUID()}`, "1", { metadata: meta, expirationTtl: COUNCIL_OUTCOME_TTL });
+    const day2 = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    await env.page_content.put(`${COUNCIL_OUTCOME_PREFIX}${day2}:${jobId || crypto.randomUUID()}`, "1", { metadata: meta, expirationTtl: COUNCIL_OUTCOME_TTL });
   } catch (e) {
     console.warn("[council] \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u044A\u0442 \u043D\u0435 \u0435 \u0437\u0430\u043F\u0438\u0441\u0430\u043D:", e.message);
   }
@@ -58447,10 +58609,10 @@ function calculateAverageMacrosFromPlan(weekPlan) {
   let dayCount = 0;
   try {
     Object.keys(weekPlan).forEach((dayKey) => {
-      const day = weekPlan[dayKey];
-      if (day && day.meals && Array.isArray(day.meals)) {
+      const day2 = weekPlan[dayKey];
+      if (day2 && day2.meals && Array.isArray(day2.meals)) {
         dayCount++;
-        day.meals.forEach((meal) => {
+        day2.meals.forEach((meal) => {
           if (meal.macros) {
             totalProtein += parseInt(meal.macros.protein) || 0;
             totalCarbs += parseInt(meal.macros.carbs) || 0;
@@ -59005,6 +59167,7 @@ async function callGemini2(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, m
         throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
       }
       const data = await response.json();
+      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(null) });
       if (data.candidates && data.candidates[0]) {
         const candidate = data.candidates[0];
         if (candidate.finishReason && candidate.finishReason !== "STOP") {
@@ -59166,6 +59329,7 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
         });
       }
       const data = await response.json();
+      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(null) });
       if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
         throw new Error("Gemini Vision returned invalid response");
       }
@@ -62307,8 +62471,8 @@ async function handleGetCalendarIcs(request, env) {
     return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r\n?|\n/g, "\\n");
   }
   const dtstamp = fmtDt(/* @__PURE__ */ new Date());
-  function makeEvent(type, day, h, m, title, body) {
-    const d = new Date(day);
+  function makeEvent(type, day2, h, m, title, body) {
+    const d = new Date(day2);
     d.setHours(h, m, 0, 0);
     const dEnd = new Date(d.getTime() + 15 * 60 * 1e3);
     const dateStr = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
@@ -62331,15 +62495,15 @@ async function handleGetCalendarIcs(request, env) {
     ].join("\r\n");
   }
   const events = [];
-  const today = /* @__PURE__ */ new Date();
+  const today2 = /* @__PURE__ */ new Date();
   for (let i = 0; i < DAYS2; i++) {
-    const day = new Date(today);
-    day.setDate(day.getDate() + i);
-    events.push(makeEvent("morning", day, mH, mM, cfg.morningTitle, cfg.morningBody));
+    const day2 = new Date(today2);
+    day2.setDate(day2.getDate() + i);
+    events.push(makeEvent("morning", day2, mH, mM, cfg.morningTitle, cfg.morningBody));
     eveningSlots.forEach((slot) => {
       const parts = String(slot.time || "20:00").split(":").map(Number);
       if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return;
-      events.push(makeEvent(slot.type, day, parts[0], parts[1], slot.title, slot.body));
+      events.push(makeEvent(slot.type, day2, parts[0], parts[1], slot.title, slot.body));
     });
     const extras = Array.isArray(cfg.extraNotifications) ? cfg.extraNotifications : [];
     extras.forEach((extra, idx) => {
@@ -62348,7 +62512,7 @@ async function handleGetCalendarIcs(request, env) {
       if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return;
       events.push(makeEvent(
         "extra_" + idx,
-        day,
+        day2,
         parts[0],
         parts[1],
         extra.title || "Eatologix",
@@ -63535,14 +63699,14 @@ function cloudDaily(facts2, now = Date.now()) {
     if (!LINK_SOURCES.includes(f?.source) || !kinds[f.kind]) continue;
     const t = Date.parse(f.at);
     if (!(t >= from) || !(Number(f.value) > 0)) continue;
-    const day = String(f.at).slice(0, 10);
+    const day2 = String(f.at).slice(0, 10);
     const box = out[kinds[f.kind]];
     if (f.kind === "workout") {
-      const prev = box[day];
-      box[day] = { min: Math.max(prev?.min || 0, Number(f.value)), slot: prev?.slot || f.slot || null };
+      const prev = box[day2];
+      box[day2] = { min: Math.max(prev?.min || 0, Number(f.value)), slot: prev?.slot || f.slot || null };
       continue;
     }
-    box[day] = Math.max(box[day] || 0, Number(f.value));
+    box[day2] = Math.max(box[day2] || 0, Number(f.value));
   }
   return out;
 }
@@ -64388,9 +64552,9 @@ async function handleXbodyAvailability(request, env, ctx, booking = XBODY_ACUITY
   }
   const cacheHeaders = { cacheControl: "public, max-age=60" };
   const memoKey = `${booking.calendarID}:${month}`;
-  const memo = xbodyAvailMemo.get(memoKey);
-  if (memo && Date.now() - memo.at < XBODY_AVAIL_TTL_MS) {
-    return jsonResponse2(memo.body, 200, cacheHeaders);
+  const memo2 = xbodyAvailMemo.get(memoKey);
+  if (memo2 && Date.now() - memo2.at < XBODY_AVAIL_TTL_MS) {
+    return jsonResponse2(memo2.body, 200, cacheHeaders);
   }
   const cacheKey = new Request(`${url.origin}/__cache/xbody-availability/${booking.calendarID}/${month}`);
   const cache = typeof caches !== "undefined" ? caches.default : null;
@@ -64436,7 +64600,7 @@ async function handleXbodyAvailability(request, env, ctx, booking = XBODY_ACUITY
     }
   } catch (err2) {
     console.error("[xbody-availability] Acuity error:", err2.message);
-    if (memo) return jsonResponse2(memo.body, 200, cacheHeaders);
+    if (memo2) return jsonResponse2(memo2.body, 200, cacheHeaders);
     return jsonResponse2({ error: "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u0438\u0442\u0435 \u0447\u0430\u0441\u043E\u0432\u0435 \u043D\u0435 \u043C\u043E\u0433\u0430\u0442 \u0434\u0430 \u0441\u0435 \u0437\u0430\u0440\u0435\u0434\u044F\u0442." }, 502);
   }
   const body = { month, days, fetchedAt: Date.now() };
@@ -65289,6 +65453,16 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/generate-protocol" && request.method === "POST") {
         return await handleGenerateProtocol(request, env);
       } else if (url.pathname === "/api/generate-emoeat-analysis" && request.method === "POST") {
+        const emoBody = await request.clone().json().catch(() => ({}));
+        let emoHolder = "";
+        for (const h of [emoBody.userId, emoBody.deviceId]) {
+          if (!emoHolder && /^[A-Za-z0-9_-]{8,128}$/.test(String(h || "")) && await emoeatCredit(env, String(h)) > 0) emoHolder = String(h);
+        }
+        if (emoHolder) {
+          const res = await handleGenerateEmoeatAnalysis(request, env);
+          if (res.ok) await useEmoeatCredit(env, emoHolder);
+          return res;
+        }
         return await gatedRun(request, env, "emoeat_ai", () => handleGenerateEmoeatAnalysis(request, env));
       } else if (url.pathname === "/api/generate-longevity-protocol" && request.method === "POST") {
         return await handleGenerateLongevityProtocol(request, env);
@@ -65407,19 +65581,34 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/user/save-profile" && request.method === "POST") {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === "/api/user/access" && request.method === "GET") {
-        const accessUserId = url.searchParams.get("userId") || "";
-        await refreshStripeAccess(env, accessUserId);
-        return jsonResponse2(await resolveAccess(env, accessUserId));
+        return jsonResponse2(await resolveAccess(env, url.searchParams.get("userId") || ""));
+      } else if (url.pathname === "/api/iris/ticket" && request.method === "POST") {
+        return await handleIrisTicket(request, env, { respond: jsonResponse2 });
+      } else if (url.pathname.startsWith("/api/iris/gemini/") && request.method === "POST") {
+        return await handleIrisGemini(request, env, url, { notify: adminSpendNotify(ctx) });
+      } else if (url.pathname === "/api/admin/budget" && request.method === "GET") {
+        return jsonResponse2({ spentUsd: await dailySpend(env), limitUsd: await budgetLimit(env) });
+      } else if (url.pathname === "/api/admin/budget" && request.method === "POST") {
+        const { limitUsd } = await request.json().catch(() => ({}));
+        if (!(Number(limitUsd) > 0)) return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0442\u0430\u0432\u0430\u043D" }, 400);
+        await env.page_content.put(BUDGET_KEY, String(Number(limitUsd)));
+        return jsonResponse2({ success: true, limitUsd: Number(limitUsd) });
       } else if (url.pathname === "/api/billing/checkout" && request.method === "POST") {
         return await handleBillingCheckout(request, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/billing/confirm" && request.method === "POST") {
         return await handleBillingConfirm(request, env, { respond: jsonResponse2 });
-      } else if (url.pathname === "/api/billing/portal" && request.method === "POST") {
-        return await handleBillingPortal(request, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/billing/iris-unlock" && request.method === "GET") {
         return await handleIrisUnlockStatus(url, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/billing/status" && request.method === "GET") {
-        return jsonResponse2({ ready: billingReady(env), mode: stripeMode(env), prices: { plans: import_pricing_config3.default.PLANS.map((p) => ({ id: p.id, prices: p.prices })), products: import_pricing_config3.default.PRODUCTS } });
+        const statusDevice = /^[A-Za-z0-9_-]{8,64}$/.test(url.searchParams.get("deviceId") || "") ? url.searchParams.get("deviceId") : "";
+        const statusHolder = url.searchParams.get("holder") || statusDevice;
+        return jsonResponse2({
+          ready: billingReady(env),
+          mode: stripeMode(env),
+          prices: { products: import_pricing_config3.default.PRODUCTS, free: import_pricing_config3.default.FREE },
+          ...statusDevice ? { irisProduct: await env.page_content.get(`iris_paid_dev:${statusDevice}`) ? "iris_recheck" : "iris_protocol" } : {},
+          ...statusHolder ? { emoeatCredit: await emoeatCredit(env, statusHolder) } : {}
+        });
       } else if (url.pathname === "/api/admin/paywall" && request.method === "GET") {
         return jsonResponse2({ enabled: await paywallEnabled(env) });
       } else if (url.pathname === "/api/admin/paywall" && request.method === "POST") {
@@ -65431,7 +65620,7 @@ var worker_entry_default = {
         const userId = url.searchParams.get("userId") || "";
         const record = await readAccess(env, userId);
         const access = normalizeAccess(record);
-        return jsonResponse2({ userId, record, ...access, quotas: quotaMap(access.tier, await readUsage(env, userId, Date.now(), usageWindow(access)), access.period) });
+        return jsonResponse2({ userId, record, ...access, quotas: quotaMap(access, await readUsage(env, userId, Date.now(), usageWindow(access))) });
       } else if (url.pathname === "/api/admin/access" && request.method === "POST") {
         const body = await request.json().catch(() => ({}));
         try {

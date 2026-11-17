@@ -44,6 +44,8 @@ on:
       - '!wording/**'
       - '!access-control.js'
       - '!billing.js'
+      - '!spend.js'
+      - '!iris-gate.js'
       - '!pricing.html'
   workflow_dispatch:
 
@@ -138,6 +140,8 @@ jobs:
             --exclude 'wording/' \
             --exclude 'access-control.js' \
             --exclude 'billing.js' \
+            --exclude 'spend.js' \
+            --exclude 'iris-gate.js' \
             --exclude 'pricing.html' \
             --exclude 'brand/wordmark-glyphs.json' \
             --exclude 'brand/concept-eatologix.png' \
