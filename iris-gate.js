@@ -10,6 +10,7 @@
  *   ~13 нужни + повторни опити) и се брои в дневния разход.
  */
 import { budgetOk, noteSpend } from './spend.js';
+import { verifyTurnstile, BOT_MESSAGE } from './turnstile.js';
 
 const TICKET_CALLS = 24;
 const TICKET_MS = 40 * 60 * 1000;
@@ -45,6 +46,9 @@ export async function handleIrisTicket(request, env, { respond, now = Date.now()
   const paid = credit > 0;
 
   if (!paid) {
+    // Turnstile: безплатният анализ е само за хора (включва се с TURNSTILE_SECRET_KEY).
+    const human = await verifyTurnstile(env, body.turnstile, request);
+    if (!human.ok) return respond({ error: 'bot', reason: human.reason, message: BOT_MESSAGE }, 403);
     if (!(await budgetOk(env, 'free', now))) {
       return respond({ error: 'budget', message: 'Безплатните анализи за днес са изчерпани. Опитайте утре.' }, 503);
     }

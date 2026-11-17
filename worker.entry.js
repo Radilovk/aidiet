@@ -139,6 +139,7 @@ import Pricing from './pricing-config.js';
 import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUsage, quotaMap, normalizeAccess, paywallEnabled, PAYWALL_KEY, usageWindow } from './access-control.js';
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleIrisUnlockStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini } from './iris-gate.js';
+import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, BUDGET_KEY } from './spend.js';
 
 /** Известие до админа при 50% / 100% от дневния AI таван (през Make → Telegram). */
@@ -18191,6 +18192,10 @@ export default {
           if (res.ok) await useEmoeatCredit(env, emoHolder);
           return res;
         }
+        // Turnstile (ако е включен): безплатният AI анализ — само за хора. Без жетон EmoEat показва
+        // основния план за модела, затова отказът не чупи страницата. Платилите не минават оттук.
+        const emoHuman = await verifyTurnstile(env, emoBody.turnstile, request);
+        if (!emoHuman.ok) return jsonResponse({ error: 'bot', reason: emoHuman.reason, message: BOT_MESSAGE }, 403);
         return await gatedRun(request, env, 'emoeat_ai', () => handleGenerateEmoeatAnalysis(request, env));
       } else if (url.pathname === '/api/generate-longevity-protocol' && request.method === 'POST') {
         return await handleGenerateLongevityProtocol(request, env);
@@ -18312,6 +18317,8 @@ export default {
         return await handleSaveUserProfile(request, env);
       } else if (url.pathname === '/api/user/access' && request.method === 'GET') {
         return jsonResponse(await resolveAccess(env, url.searchParams.get('userId') || ''));
+      } else if (url.pathname === '/api/turnstile/config' && request.method === 'GET') {
+        return jsonResponse({ siteKey: turnstileSiteKey(env) });
       } else if (url.pathname === '/api/iris/ticket' && request.method === 'POST') {
         return await handleIrisTicket(request, env, { respond: jsonResponse });
       } else if (url.pathname.startsWith('/api/iris/gemini/') && request.method === 'POST') {

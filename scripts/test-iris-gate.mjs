@@ -10,9 +10,16 @@ const env = {
   page_content: { get: async (k) => (kv.has(k) ? kv.get(k) : null), put: async (k, v) => { kv.set(k, v); }, delete: async (k) => kv.delete(k) },
 };
 const respond = (d, s = 200) => new Response(JSON.stringify(d), { status: s });
-const ticketReq = (deviceId, ip = '1.1.1.1') => new Request('https://w/api/iris/ticket', { method: 'POST', headers: { 'CF-Connecting-IP': ip }, body: JSON.stringify({ deviceId }) });
+const ticketReq = (deviceId, ip = '1.1.1.1', turnstile) => new Request('https://w/api/iris/ticket', { method: 'POST', headers: { 'CF-Connecting-IP': ip }, body: JSON.stringify({ deviceId, turnstile }) });
 let geminiCalls = 0;
-globalThis.fetch = async () => { geminiCalls++; return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{}' }] } }], usageMetadata: { promptTokenCount: 4000, candidatesTokenCount: 1000, thoughtsTokenCount: 500 } })); };
+let siteverify = [];
+globalThis.fetch = async (url, init) => {
+  if (String(url).includes('turnstile/v0/siteverify')) {
+    const f = new URLSearchParams(init.body); siteverify.push(f);
+    if (f.get('response') === 'down') throw new Error('network');
+    return new Response(JSON.stringify(f.get('response') === 'good-token' ? { success: true } : { success: false, 'error-codes': ['invalid-input-response'] }));
+  }
+  geminiCalls++; return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{}' }] } }], usageMetadata: { promptTokenCount: 4000, candidatesTokenCount: 1000, thoughtsTokenCount: 500 } })); };
 const gem = (ticket, model = 'gemini-3.8-flash') => handleIrisGemini(new Request(`https://w/api/iris/gemini/v1beta/models/${model}:generateContent`, { method: 'POST', headers: ticket ? { 'X-Iris-Ticket': ticket } : {}, body: '{}' }), env, new URL(`https://w/api/iris/gemini/v1beta/models/${model}:generateContent`));
 
 const ok = [];
@@ -70,5 +77,32 @@ await check('над дневния таван: безплатният анали
   assert.equal(msgs.length, 2);
   const r = await handleIrisTicket(ticketReq('dev_newnewne', '4.4.4.4'), env, { respond, now: Date.now() + 120_000 });
   assert.equal(r.status, 503); assert.equal((await r.json()).error, 'budget');
+});
+await check('Turnstile: без ключ — изключен; с ключ — без жетон или с грешен → 403 bot', async () => {
+  kv.set(BUDGET_KEY, '100');
+  assert.equal(siteverify.length, 0);   // досега без ключ — нито една проверка към Cloudflare
+  env.TURNSTILE_SECRET_KEY = 'ts_secret';
+  for (const t of [undefined, 'bad-token']) {
+    const r = await handleIrisTicket(ticketReq('dev_botbotbo', '7.7.7.1', t), env, { respond, now: Date.now() + 200_000 });
+    assert.equal(r.status, 403); assert.equal((await r.json()).error, 'bot');
+  }
+  assert.equal(kv.get('iris_dev:dev_botbotbo'), undefined);   // отказът не изяжда седмицата
+});
+await check('Turnstile: валиден жетон → билет; IP се праща на Cloudflare', async () => {
+  const r = await handleIrisTicket(ticketReq('dev_humanhum', '7.7.7.2', 'good-token'), env, { respond, now: Date.now() + 200_000 });
+  assert.equal(r.status, 200);
+  assert.equal(siteverify.at(-1).get('remoteip'), '7.7.7.2');
+  assert.equal(siteverify.at(-1).get('secret'), 'ts_secret');
+});
+await check('Turnstile: Cloudflare не отговаря → не спираме хората', async () => {
+  const r = await handleIrisTicket(ticketReq('dev_downdown', '7.7.7.3', 'down'), env, { respond, now: Date.now() + 200_000 });
+  assert.equal(r.status, 200);
+});
+await check('Turnstile: платен кредит не иска проверка', async () => {
+  kv.set('iris_credit:dev_paidpaid', '1');
+  const n = siteverify.length;
+  assert.equal((await handleIrisTicket(ticketReq('dev_paidpaid', '7.7.7.4'), env, { respond })).status, 200);
+  assert.equal(siteverify.length, n);
+  delete env.TURNSTILE_SECRET_KEY;
 });
 console.log(`\nВсички ${ok.length} проверки минаха`);
