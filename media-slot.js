@@ -6,7 +6,7 @@
  *     <img src="…" loading="lazy" alt="…">
  *   </figure>
  *
- * data-only="mobile" | "desktop" — снимката се показва само на телефон / само на компютър (граница 900px).
+ * data-only="mobile" | "desktop" | "light" | "dark" — само на телефон / компютър (граница 900px) / в светла / в тъмна тема.
  * data-x / data-y — коя точка от снимката е в центъра на кадъра (0–100), data-z — приближение (1–4).
  * data-fx: fade | kenburns | slide | wipe | iris | blur. data-every — секунди между смените.
  * data-ratio — рамка (16/9, 4/3, 1/1, 3/4…); data-width — ширина в % от мястото.
@@ -59,6 +59,8 @@
         // снимка само за телефон / само за компютър (data-only="mobile" | "desktop"); границата е като в сайта — 900px
         '@media (min-width: 900px){[data-slot]>img[data-only=mobile]{display:none !important}}',
         '@media (max-width: 899px){[data-slot]>img[data-only=desktop]{display:none !important}}',
+        // само светла / само тъмна тема (html[data-theme])
+        ':root[data-theme=dark] [data-slot]>img[data-only=light],:root:not([data-theme=dark]) [data-slot]>img[data-only=dark]{display:none !important}',
         '@media (prefers-reduced-motion: reduce){[data-slot].ms-multi>img{animation:none !important;transition:opacity .6s ease !important;clip-path:none !important;translate:none !important;filter:none !important}}'
     ].join('\n');
     (document.head || document.documentElement).appendChild(st);
@@ -75,7 +77,11 @@
     function all(slot) { return Array.prototype.filter.call(slot.children, function (n) { return n.tagName === 'IMG'; }); }
     // снимките, които се показват на този екран
     function imgs(slot) {
-        return all(slot).filter(function (n) { var o = n.getAttribute('data-only'); return !(o === 'mobile' && DESK.matches) && !(o === 'desktop' && !DESK.matches); });
+        var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        return all(slot).filter(function (n) {
+            var o = n.getAttribute('data-only');
+            return !(o === 'mobile' && DESK.matches) && !(o === 'desktop' && !DESK.matches) && !(o === 'light' && dark) && !(o === 'dark' && !dark);
+        });
     }
 
     function setup(slot) {
@@ -137,6 +143,8 @@
         es.forEach(function (e) { var s = e.target.__ms; if (!s) return; s.seen = e.isIntersecting; schedule(e.target); });
     }) : null;
     if (DESK.addEventListener) DESK.addEventListener('change', function () { init(); });
+    // смяна на темата → поредицата се подрежда наново
+    if (window.MutationObserver) new MutationObserver(function () { init(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     document.addEventListener('visibilitychange', function () { document.querySelectorAll('[data-slot]').forEach(function (sl) { if (sl.__ms) schedule(sl); }); });
 
     function init(root) {

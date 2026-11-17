@@ -139,7 +139,7 @@ async function savePhoto(file, stem) {
 }
 const frameAttrs = (it) => ((it.x !== 50 || it.y !== 50 || it.z !== 1)
   ? ` data-x="${+(+it.x).toFixed(1)}" data-y="${+(+it.y).toFixed(1)}" data-z="${+(+it.z).toFixed(2)}"` : '')
-  + (['mobile', 'desktop'].includes(it.only) ? ` data-only="${it.only}"` : ''); // само телефон / само компютър
+  + (['mobile', 'desktop', 'light', 'dark'].includes(it.only) ? ` data-only="${it.only}"` : ''); // само телефон / компютър / светла / тъмна тема
 const stripFrame = (tag) => tag.replace(/\s+data-(?:[xyz]|only)="[^"]*"/g, '');
 function setAttr(tag, name, v) {
   const re = new RegExp(`\\s${name}="[^"]*"`);

@@ -60628,7 +60628,7 @@ async function handleWordingSave(request, env) {
         z: num2(it?.z, 1, 4) ?? 1,
         alt: s(it?.alt, 400),
         name: s(it?.name, 120),
-        only: ["mobile", "desktop"].includes(it?.only) ? it.only : ""
+        only: ["mobile", "desktop", "light", "dark"].includes(it?.only) ? it.only : ""
       };
       const data = typeof it?.data === "string" && /^data:image\/(webp|jpeg|png);base64,/.test(it.data) && it.data.length < 12e6 ? it.data : "";
       if (data) {
