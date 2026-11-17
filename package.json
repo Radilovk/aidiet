@@ -59,6 +59,7 @@
     "test": "echo \"Open test.html in browser to test the application\"",
     "test:i18n": "node scripts/test-i18n.mjs",
     "build:brand": "node scripts/build-brand.mjs --png",
+    "build:module-marks": "node scripts/build-module-marks.mjs --png",
     "i18n:prewarm": "node scripts/i18n-prewarm.mjs"
   },
   "keywords": [

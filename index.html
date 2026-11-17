@@ -1187,6 +1187,8 @@
             color: var(--lp-muted);
         }
         [data-theme="dark"] .lp-program-go, [data-theme="dark"] .lp-program-ico { filter: brightness(1.35); }
+        .lp-program-ico img, .nav-mod-mark { display: block; width: 28px; height: 28px; }
+        .nav-mod-mark { display: inline-block; width: 20px; height: 20px; vertical-align: -4px; margin-right: 2px; }
 
         /* --- steps --- */
         .lp-steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; position: relative; padding-top: 34px; }
@@ -2211,8 +2213,8 @@
 
         <div class="nav-menu-divider"></div>
         <div class="nav-menu-section-label">Програми</div>
-        <a href="emoeat-landing.html" onclick="closeNavMenu()"><i class="fas fa-heart-pulse"></i> EmoEat — емоционално хранене</a>
-        <a href="https://irismap.app/?from=nutriplan" target="_blank" rel="noopener" onclick="closeNavMenu()"><i class="fas fa-eye"></i> IrisMap — ирисов анализ</a>
+        <a href="emoeat-landing.html" onclick="closeNavMenu()"><img class="nav-mod-mark" src="brand/emoeat-mark.svg" alt="" width="20" height="20"> EmoEat — емоционално хранене</a>
+        <a href="https://irismap.app/?from=nutriplan" target="_blank" rel="noopener" onclick="closeNavMenu()"><img class="nav-mod-mark" src="brand/irismap-mark.svg" alt="" width="20" height="20"> IrisMap — ирисов анализ</a>
         <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични протоколи</a>
         <div class="nav-menu-divider"></div>
         <div class="nav-menu-section-label">Език · Language</div>
@@ -2396,14 +2398,14 @@
             <div class="lp-programs">
                 <a class="lp-program lp-reveal" href="emoeat-landing.html" style="--tone:#a855f7">
                     <figure class="lp-program-photo" data-slot="emoeat" data-fx="fade"><img src="brand/photos/index-emoeat-a1b0abf4-1280.webp" srcset="brand/photos/index-emoeat-a1b0abf4-640.webp 640w, brand/photos/index-emoeat-a1b0abf4-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Замислена жена яде сладолед на кухненска маса" width="1280" height="720" loading="lazy" decoding="async" data-x="77.7" data-y="86.4" data-z="1.45"></figure>
-                    <span class="lp-program-ico"><i class="fas fa-heart-pulse"></i></span>
+                    <span class="lp-program-ico"><img src="brand/emoeat-mark.svg" alt="" width="28" height="28"></span>
                     <h3>EmoEat</h3>
                     <p>Емоционално хранене: откъде идва гладът за определени храни. Резултатът влиза направо в плана ти.</p>
                     <span class="lp-program-go">Направи теста <i class="fas fa-arrow-right"></i></span>
                 </a>
                 <a class="lp-program lp-reveal" href="https://irismap.app/?from=nutriplan" target="_blank" rel="noopener" style="--tone:#07a9b8">
                     <figure class="lp-program-photo" data-slot="iris" data-fx="fade"><img src="brand/photos/index-iris-9443174e-612.webp" alt="Близък план на човешко око с дигитална сканираща графика" width="612" height="408" loading="lazy" decoding="async"></figure>
-                    <span class="lp-program-ico"><i class="fas fa-eye"></i></span>
+                    <span class="lp-program-ico"><img src="brand/irismap-mark.svg" alt="" width="28" height="28"></span>
                     <h3>IrisMap</h3>
                     <p>Ирисов анализ по снимка на окото. Резултатите от ирисовата карта влизат в плана като допълнителни данни.</p>
                     <span class="lp-program-go">Започни анализа <i class="fas fa-arrow-right"></i></span>
