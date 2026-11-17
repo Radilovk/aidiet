@@ -140,6 +140,7 @@ import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUs
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
+import { handleReviewQueue, handleReviewSubmit, handleReviewGet, handleReviewApply } from './plan-review.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, BUDGET_KEY } from './spend.js';
 
 /** Известие до админа при 50% / 100% от дневния AI таван (през Make → Telegram). */
@@ -18462,6 +18463,18 @@ export default {
         return await handleDeleteClients(request, env);
       } else if (url.pathname === '/api/admin/update-client-plan' && request.method === 'POST') {
         return await handleUpdateClientPlan(request, env, ctx);
+      } else if (url.pathname === '/api/admin/plan-review/queue' && request.method === 'GET') {
+        return await handleReviewQueue(env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/admin/plan-review/submit' && request.method === 'POST') {
+        return await handleReviewSubmit(request, env, {
+          respond: jsonResponse,
+          reconcile: (plan, answers) => reconcilePlanStructure(plan, answers, env),
+          notify: (text) => notifyMake(ctx, text),
+        });
+      } else if (url.pathname === '/api/admin/plan-review' && request.method === 'GET') {
+        return await handleReviewGet(url, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/admin/plan-review/apply' && request.method === 'POST') {
+        return await handleReviewApply(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/admin/activate-client-plan' && request.method === 'POST') {
         return await handleActivateClientPlan(request, env, ctx);
       } else if (url.pathname === '/api/admin/client-card' && request.method === 'GET') {
