@@ -50677,7 +50677,7 @@ async function maybeFireReview(env, { now = Date.now(), fetchImpl = fetch } = {}
   for (const i of items) await markFired(env, i, now);
   return "fired";
 }
-async function handleReviewSubmit(request, env, { respond, reconcile, notify, now = Date.now() }) {
+async function handleReviewSubmit(request, env, { respond, reconcile, now = Date.now() }) {
   const b = await request.json().catch(() => null);
   if (!b || !b.clientId) return respond({ error: "bad_request", message: "\u041B\u0438\u043F\u0441\u0432\u0430 clientId" }, 400);
   const c = JSON.parse(await env.page_content.get(`client:${b.clientId}`) || "null");
@@ -50723,17 +50723,6 @@ async function handleReviewSubmit(request, env, { respond, reconcile, notify, no
     applied: false
   };
   await env.page_content.put(reviewKey(b.clientId), JSON.stringify(review), { expirationTtl: 120 * 86400 });
-  if (notify) {
-    const icon = verdict === "ok" ? "\u2705" : verdict === "fix" ? "\u{1F6E0}" : "\u26D4";
-    const crit = findings.filter((f) => f.severity === "critical").length;
-    notify(`${icon} Claude \u043F\u0440\u0435\u0433\u043B\u0435\u0434\u0430 \u043F\u043B\u0430\u043D
-
-\u{1F464} ${c.answers?.name || b.clientId}
-\u041F\u0440\u0438\u0441\u044A\u0434\u0430: ${verdict === "ok" ? "\u0433\u043E\u0442\u043E\u0432 \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435" : verdict === "fix" ? "\u0441 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u0438" : "\u043D\u0443\u0436\u0435\u043D \u0447\u043E\u0432\u0435\u043A"}
-\u0417\u0430\u0431\u0435\u043B\u0435\u0436\u043A\u0438: ${findings.length}${crit ? ` (\u043A\u0440\u0438\u0442\u0438\u0447\u043D\u0438: ${crit})` : ""}
-
-${review.summary.slice(0, 500)}`);
-  }
   return respond({ success: true, verdict, findings: findings.length, corrected: Boolean(correctedPlan) });
 }
 async function handleReviewGet(url, env, { respond }) {
@@ -51984,8 +51973,8 @@ async function deleteOverlayEntry(env, id) {
 }
 
 // worker.entry.js
-var adminSpendNotify = (ctx) => async (text2) => {
-  notifyMake(ctx, text2);
+var adminSpendNotify = (env) => async (text2) => {
+  await sendPushNotificationToUser("admin", { title: "AI \u0440\u0430\u0437\u0445\u043E\u0434", body: text2, url: "/admin.html", notificationType: "admin_budget" }, env);
 };
 var MIN_AGE = 13;
 var MAX_AGE = 100;
@@ -54873,23 +54862,6 @@ async function handleChat(request, env) {
     return jsonResponse2({ error: `${ERROR_MESSAGES.CHAT_FAILED}: ${error.message}` }, 500);
   }
 }
-function formatDateBG(isoString) {
-  try {
-    const d = new Date(isoString);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${pad(d.getUTCDate())}.${pad(d.getUTCMonth() + 1)}.${d.getUTCFullYear()} \u0432 ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
-  } catch {
-    return isoString;
-  }
-}
-function notifyMake(ctx, telegramMessage) {
-  const p = fetch("https://hook.eu2.make.com/lexmz9kes4d3epra9btsqeqwdla06iqq", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ telegramMessage })
-  }).catch((e) => console.warn("Make webhook notification failed:", e));
-  if (ctx?.waitUntil) ctx.waitUntil(p);
-}
 function escapeHtml(str3) {
   return String(str3).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -55310,15 +55282,6 @@ async function handleReportProblem(request, env, ctx) {
     }
     await env.page_content.put("problem_reports_list", JSON.stringify(reportsList));
     console.log("Problem report saved:", reportId);
-    notifyMake(
-      ctx,
-      `\u{1F41B} \u0414\u043E\u043A\u043B\u0430\u0434 \u0437\u0430 \u043F\u0440\u043E\u0431\u043B\u0435\u043C
-
-\u{1F464} \u041F\u043E\u0442\u0440\u0435\u0431\u0438\u0442\u0435\u043B: ${report.userName}
-\u{1F194} ID: ${report.userId}
-\u{1F4AC} \u0421\u044A\u043E\u0431\u0449\u0435\u043D\u0438\u0435: ${report.message}
-\u{1F4C5} \u0414\u0430\u0442\u0430: ${formatDateBG(report.timestamp)}`
-    );
     return jsonResponse2({
       success: true,
       reportId,
@@ -55383,16 +55346,6 @@ async function handleContactMessage(request, env, ctx) {
     if (msgList.length > 200) msgList = msgList.slice(0, 200);
     await env.page_content.put("contact_messages_list", JSON.stringify(msgList));
     console.log("Contact message saved:", msgId);
-    notifyMake(
-      ctx,
-      `\u{1F4E9} \u041D\u043E\u0432\u043E \u041A\u043E\u043D\u0442\u0430\u043A\u0442 \u0421\u044A\u043E\u0431\u0449\u0435\u043D\u0438\u0435
-
-\u{1F464} \u0418\u043C\u0435: ${contactMsg.name}
-\u{1F4E7} \u0418\u043C\u0435\u0439\u043B: ${contactMsg.email || "\u2014"}
-\u{1F4CB} \u0422\u0435\u043C\u0430: ${contactMsg.subject || "\u2014"}
-\u{1F4AC} \u0421\u044A\u043E\u0431\u0449\u0435\u043D\u0438\u0435: ${contactMsg.message}
-\u{1F4C5} \u0414\u0430\u0442\u0430: ${formatDateBG(contactMsg.timestamp)}`
-    );
     return jsonResponse2({ success: true, messageId: msgId, message: "Message sent successfully" });
   } catch (error) {
     console.error("Error saving contact message:", error);
@@ -55660,17 +55613,6 @@ async function handleSaveClientData(request, env, ctx) {
     }
     await kvPutJSON(env, "clients_list", clientsList, null);
     console.log("Client data saved:", clientId);
-    notifyMake(
-      ctx,
-      `\u{1F4E9} \u041D\u043E\u0432\u043E \u0437\u0430\u043F\u0438\u0442\u0432\u0430\u043D\u0435
-
-\u{1F464} \u041A\u043B\u0438\u0435\u043D\u0442: ${clientData.answers?.name || clientId}
-\u{1F194} ID: ${clientId}
-\u{1F4E7} \u0418\u043C\u0435\u0439\u043B: ${clientData.answers?.email || "\u2014"}
-\u{1F3AF} \u0426\u0435\u043B: ${clientData.answers?.goal || "\u2014"}
-` + (clientData.partnerRef ? `\u{1F91D} \u041F\u0430\u0440\u0442\u043D\u044C\u043E\u0440: ${clientData.partnerRef}
-` : "") + `\u{1F4C5} \u0414\u0430\u0442\u0430: ${formatDateBG(clientData.submittedAt)}`
-    );
     return jsonResponse2({
       success: true,
       clientId,
@@ -57374,16 +57316,6 @@ async function handleUpdateClientPlan(request, env, ctx) {
         icon: "/icon-192x192.png",
         notificationType: "admin_plan_pending"
       }, env).catch((e) => console.warn("Admin push notification failed:", e));
-      notifyMake(
-        ctx,
-        `\u{1F4CB} \u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u0447\u0430\u043A\u0430 \u043F\u0440\u0435\u0433\u043B\u0435\u0434
-
-\u{1F464} \u041A\u043B\u0438\u0435\u043D\u0442: ${clientData.answers?.name || clientId}
-\u{1F194} ID: ${clientId}
-\u{1F4E7} \u0418\u043C\u0435\u0439\u043B: ${clientData.answers?.email || "\u2014"}
-\u{1F3AF} \u0426\u0435\u043B: ${clientData.answers?.goal || "\u2014"}
-\u{1F4C5} \u0414\u0430\u0442\u0430: ${formatDateBG(clientData.planUpdatedAt)}`
-      );
     } else if (clientData.planStatus === "activated") {
       await deliverPlanUpdateToClient(env, clientData, clientId, wasPreviouslyActivated ? "updated" : "ready");
       console.log(`[Client] Plan update delivered for client ${clientId}`);
@@ -59562,7 +59494,7 @@ async function callGemini2(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, m
         throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
       }
       const data = await response.json();
-      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(null) });
+      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(env) });
       if (data.candidates && data.candidates[0]) {
         const candidate = data.candidates[0];
         if (candidate.finishReason && candidate.finishReason !== "STOP") {
@@ -59724,7 +59656,7 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
         });
       }
       const data = await response.json();
-      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(null) });
+      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(env) });
       if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
         throw new Error("Gemini Vision returned invalid response");
       }
@@ -65990,7 +65922,7 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/iris/redeem" && request.method === "POST") {
         return await handleIrisRedeem(request, env, { respond: jsonResponse2 });
       } else if (url.pathname.startsWith("/api/iris/gemini/") && request.method === "POST") {
-        return await handleIrisGemini(request, env, url, { notify: adminSpendNotify(ctx) });
+        return await handleIrisGemini(request, env, url, { notify: adminSpendNotify(env) });
       } else if (url.pathname === "/api/admin/budget" && request.method === "GET") {
         return jsonResponse2({ spentUsd: await dailySpend(env), limitUsd: await budgetLimit(env) });
       } else if (url.pathname === "/api/admin/budget" && request.method === "POST") {
@@ -66130,8 +66062,7 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/admin/plan-review/submit" && request.method === "POST") {
         return await handleReviewSubmit(request, env, {
           respond: jsonResponse2,
-          reconcile: (plan, answers2) => reconcilePlanStructure(plan, answers2, env),
-          notify: (text2) => notifyMake(ctx, text2)
+          reconcile: (plan, answers2) => reconcilePlanStructure(plan, answers2, env)
         });
       } else if (url.pathname === "/api/admin/plan-review" && request.method === "GET") {
         return await handleReviewGet(url, env, { respond: jsonResponse2 });

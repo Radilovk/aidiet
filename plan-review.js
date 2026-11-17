@@ -1,5 +1,5 @@
 /**
- * Преглед на новите планове от Claude (сесия по график, на час — с абонамента, без API ключ).
+ * Преглед на новите планове от Claude преди одобрение (сесия при постъпил план — с абонамента, без API ключ).
  *
  * Поток: планът е „pending“ (чака одобрение в админа) → сесията взима опашката, чете клиента
  * (въпросник + план) през /api/admin/get-client-data, преглежда по GUIDE и праща присъда, забележки
@@ -166,7 +166,7 @@ export async function maybeFireReview(env, { now = Date.now(), fetchImpl = fetch
 }
 
 /** POST /api/admin/plan-review/submit */
-export async function handleReviewSubmit(request, env, { respond, reconcile, notify, now = Date.now() }) {
+export async function handleReviewSubmit(request, env, { respond, reconcile, now = Date.now() }) {
   const b = await request.json().catch(() => null);
   if (!b || !b.clientId) return respond({ error: 'bad_request', message: 'Липсва clientId' }, 400);
   const c = JSON.parse((await env.page_content.get(`client:${b.clientId}`)) || 'null');
@@ -205,13 +205,6 @@ export async function handleReviewSubmit(request, env, { respond, reconcile, not
   };
   await env.page_content.put(reviewKey(b.clientId), JSON.stringify(review), { expirationTtl: 120 * 86400 });
 
-  if (notify) {
-    const icon = verdict === 'ok' ? '✅' : verdict === 'fix' ? '🛠' : '⛔';
-    const crit = findings.filter((f) => f.severity === 'critical').length;
-    notify(`${icon} Claude прегледа план\n\n👤 ${c.answers?.name || b.clientId}\n` +
-      `Присъда: ${verdict === 'ok' ? 'готов за одобрение' : verdict === 'fix' ? 'с корекции' : 'нужен човек'}\n` +
-      `Забележки: ${findings.length}${crit ? ` (критични: ${crit})` : ''}\n\n${review.summary.slice(0, 500)}`);
-  }
   return respond({ success: true, verdict, findings: findings.length, corrected: Boolean(correctedPlan) });
 }
 
