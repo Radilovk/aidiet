@@ -249,6 +249,14 @@
         var l = list(sel); if (l[0] === im) return;
         sel.insertBefore(im, l[0]); changed(sel); refresh(0); render('Тази снимка е първа.');
     }
+    // навсякъде → само телефон → само компютър → навсякъде (на текущия екран скритата снимка изчезва от поредицата)
+    function cycleOnly() {
+        var im = cur(); if (!im) return;
+        var nx = { '': 'mobile', mobile: 'desktop', desktop: '' }[im.getAttribute('data-only') || ''];
+        if (nx) im.setAttribute('data-only', nx); else im.removeAttribute('data-only');
+        changed(sel); refresh(0);
+        render({ mobile: 'Тази снимка ще се показва само на телефон.', desktop: 'Тази снимка ще се показва само на компютър.', '': 'Тази снимка се показва навсякъде.' }[nx]);
+    }
     function revert() {
         if (!sel) return;
         var r = slotRec(sel); framing(false);
@@ -341,7 +349,8 @@
             '<span class="sp"></span><button data-a="mini">' + (bar.classList.contains('mini') ? '▴ Още' : '▾ Скрий') + '</button><button data-a="unsel">✕</button></div>' +
             '<div class="row"><button data-a="add" class="pri">＋ Добави снимки</button>' +
             (n ? '<button data-a="rep">Смени тази</button><button data-a="rm">Махни тази</button>' : '') +
-            (n > 1 && k > 0 ? '<button data-a="first">Направи първа</button>' : '') + '<button data-a="link">Линк</button></div>' +
+            (n > 1 && k > 0 ? '<button data-a="first">Направи първа</button>' : '') + '<button data-a="link">Линк</button>' +
+            (n ? '<button data-a="only">' + ({ mobile: '📱 Само телефон', desktop: '🖥 Само компютър' }[im && im.getAttribute('data-only')] || '📱🖥 Навсякъде') + '</button>' : '') + '</div>' +
             (n ? '<div class="row keep"><button data-a="frame" class="' + (fr ? 'pri' : '') + '">' + (fr ? '✓ Готово с кадъра' : '✋ Нагласи кадъра') + '</button>' +
                 '<label>Приближение <input type="range" data-i="zoom" min="1" max="4" step="0.05" value="' + z + '"></label></div>' : '') +
             '<div class="row"><select data-i="ratio">' + opts(RATIOS, sel.getAttribute('data-ratio')) + '</select>' +
@@ -391,6 +400,7 @@
             if (a === 'link') link();
             if (a === 'rm') removeCur();
             if (a === 'first') makeFirst();
+            if (a === 'only') cycleOnly();
             if (a === 'revert') revert();
             if (a === 'frame') framing(!fr);
             if (a === 'play') play();
@@ -411,9 +421,9 @@
             var s = r.slot;
             return { slot: r.id, where: r.where, fx: s.getAttribute('data-fx') || '', every: s.getAttribute('data-every') || '',
                 ratio: s.getAttribute('data-ratio') || '', width: s.getAttribute('data-width') || '',
-                items: list(s).map(function (im) {
+                items: (MS() ? MS().all(s) : list(s)).map(function (im) {
                     var src = im.getAttribute('src') || '', f = getF(im);
-                    var it = { x: f.x, y: f.y, z: f.z, alt: im.getAttribute('alt') || '', name: im.getAttribute('data-name') || '' };
+                    var it = { x: f.x, y: f.y, z: f.z, alt: im.getAttribute('alt') || '', name: im.getAttribute('data-name') || '', only: im.getAttribute('data-only') || '' };
                     if (src.indexOf('data:') === 0) it.data = src; else it.src = src;
                     return it;
                 }) };

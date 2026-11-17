@@ -12657,7 +12657,7 @@ async function handleWordingSave(request, env) {
     const items = [];
     for (const it of (Array.isArray(sl?.items) ? sl.items : []).slice(0, 12)) {
       const item = { x: num(it?.x, 0, 100) ?? 50, y: num(it?.y, 0, 100) ?? 50, z: num(it?.z, 1, 4) ?? 1,
-        alt: s(it?.alt, 400), name: s(it?.name, 120) };
+        alt: s(it?.alt, 400), name: s(it?.name, 120), only: ['mobile', 'desktop'].includes(it?.only) ? it.only : '' };
       const data = typeof it?.data === 'string' && /^data:image\/(webp|jpeg|png);base64,/.test(it.data) && it.data.length < 12e6 ? it.data : '';
       if (data) {
         item.key = `wording-img:${id}:${n++}`;
