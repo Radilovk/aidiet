@@ -252,10 +252,10 @@
     // навсякъде → само телефон → само компютър → навсякъде (на текущия екран скритата снимка изчезва от поредицата)
     function cycleOnly() {
         var im = cur(); if (!im) return;
-        var nx = { '': 'mobile', mobile: 'desktop', desktop: '' }[im.getAttribute('data-only') || ''];
+        var nx = { '': 'mobile', mobile: 'desktop', desktop: 'light', light: 'dark', dark: '' }[im.getAttribute('data-only') || ''];
         if (nx) im.setAttribute('data-only', nx); else im.removeAttribute('data-only');
         changed(sel); refresh(0);
-        render({ mobile: 'Тази снимка ще се показва само на телефон.', desktop: 'Тази снимка ще се показва само на компютър.', '': 'Тази снимка се показва навсякъде.' }[nx]);
+        render({ mobile: 'Тази снимка ще се показва само на телефон.', desktop: 'Тази снимка ще се показва само на компютър.', light: 'Тази снимка ще се показва само в светлата тема.', dark: 'Тази снимка ще се показва само в тъмната тема.', '': 'Тази снимка се показва навсякъде.' }[nx]);
     }
     function revert() {
         if (!sel) return;
@@ -350,7 +350,7 @@
             '<div class="row"><button data-a="add" class="pri">＋ Добави снимки</button>' +
             (n ? '<button data-a="rep">Смени тази</button><button data-a="rm">Махни тази</button>' : '') +
             (n > 1 && k > 0 ? '<button data-a="first">Направи първа</button>' : '') + '<button data-a="link">Линк</button>' +
-            (n ? '<button data-a="only">' + ({ mobile: '📱 Само телефон', desktop: '🖥 Само компютър' }[im && im.getAttribute('data-only')] || '📱🖥 Навсякъде') + '</button>' : '') + '</div>' +
+            (n ? '<button data-a="only">' + ({ mobile: '📱 Само телефон', desktop: '🖥 Само компютър', light: '☀️ Само светла тема', dark: '🌙 Само тъмна тема' }[im && im.getAttribute('data-only')] || '📱🖥 Навсякъде') + '</button>' : '') + '</div>' +
             (n ? '<div class="row keep"><button data-a="frame" class="' + (fr ? 'pri' : '') + '">' + (fr ? '✓ Готово с кадъра' : '✋ Нагласи кадъра') + '</button>' +
                 '<label>Приближение <input type="range" data-i="zoom" min="1" max="4" step="0.05" value="' + z + '"></label></div>' : '') +
             '<div class="row"><select data-i="ratio">' + opts(RATIOS, sel.getAttribute('data-ratio')) + '</select>' +
