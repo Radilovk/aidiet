@@ -127,7 +127,7 @@ async function grantPlan(env, userId, productId, sessionId, now = Date.now()) {
 }
 
 /** POST /api/billing/confirm { sessionId } — след връщане от Stripe: записва покупката (веднъж). */
-export async function handleBillingConfirm(request, env, { respond, now = Date.now() } = {}) {
+export async function handleBillingConfirm(request, env, { respond, now = Date.now() } = /** @type {any} */ ({})) {
   if (!billingReady(env)) return respond({ error: 'no_stripe' }, 503);
   const { sessionId } = await request.json().catch(() => ({}));
   if (!/^cs_[A-Za-z0-9_]{10,200}$/.test(String(sessionId || ''))) return respond({ error: 'bad_request' }, 400);

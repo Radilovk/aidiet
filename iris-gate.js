@@ -33,7 +33,7 @@ function rand(n = 24) {
   return [...b].map((x) => 'abcdefghijklmnopqrstuvwxyz0123456789'[x % 36]).join('');
 }
 
-export async function handleIrisTicket(request, env, { respond, now = Date.now() } = {}) {
+export async function handleIrisTicket(request, env, { respond, now = Date.now() } = /** @type {any} */ ({})) {
   if (!env.page_content) return respond({ error: 'kv' }, 500);
   const body = await request.json().catch(() => ({}));
   const deviceId = String(body.deviceId || '');
@@ -71,7 +71,7 @@ export async function handleIrisTicket(request, env, { respond, now = Date.now()
   return respond({ ticket, calls: TICKET_CALLS, expiresAt, paid });
 }
 
-export async function handleIrisGemini(request, env, url, { notify } = {}) {
+export async function handleIrisGemini(request, env, url, { notify } = /** @type {any} */ ({})) {
   const json = (status, message) => new Response(JSON.stringify({ error: { code: status, message } }), { status, headers: { 'Content-Type': 'application/json', ...IRIS_CORS } });
   const m = url.pathname.match(PATH);
   if (!m || !MODELS.has(m[1])) return json(404, 'model not allowed');

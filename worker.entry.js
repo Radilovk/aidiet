@@ -8789,7 +8789,7 @@ async function processOverdueWeekly(env, now = Date.now()) {
 
 /**
  * Един автоматичен преглед — по правилата в autoWeeklyAction (monitoring.js).
- * @returns {Promise<'started'|'wait'|'no-plan'|'pending'|'dormant'|'quiet'|'streak'>}
+ * @returns {Promise<'started'|'wait'|'no-plan'|'pending'|'dormant'|'quiet'|'streak'|'unpaid'>}
  */
 async function runAutoWeekly(env, userId, now = Date.now(), dueMs = now - WEEKLY_OVERDUE_GRACE_MS) {
   const dueKey = `${WEEKLY_DUE_PREFIX}${userId}`;

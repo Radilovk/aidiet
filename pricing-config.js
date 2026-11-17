@@ -161,7 +161,7 @@
         }
     };
 
-    global.NutriPlanPricing = api;
-    global.EatologixPricing = api;
+    /** @type {any} */ (global).NutriPlanPricing = api;
+    /** @type {any} */ (global).EatologixPricing = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
 }(typeof globalThis !== 'undefined' ? globalThis : this));

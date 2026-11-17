@@ -14,20 +14,11 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res, err2) => function __init() {
-  if (err2) throw err2[0];
-  try {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  } catch (e) {
-    throw err2 = [e], e;
-  }
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
 var __commonJS = (cb, mod) => function __require() {
-  try {
-    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-  } catch (e) {
-    throw mod = 0, e;
-  }
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -50174,7 +50165,10 @@ async function grantPlan(env, userId, productId, sessionId, now = Date.now()) {
     stripe: { mode: stripeMode(env), session: sessionId }
   }, now);
 }
-async function handleBillingConfirm(request, env, { respond, now = Date.now() } = {}) {
+async function handleBillingConfirm(request, env, { respond, now = Date.now() } = (
+  /** @type {any} */
+  {}
+)) {
   if (!billingReady(env)) return respond({ error: "no_stripe" }, 503);
   const { sessionId } = await request.json().catch(() => ({}));
   if (!/^cs_[A-Za-z0-9_]{10,200}$/.test(String(sessionId || ""))) return respond({ error: "bad_request" }, 400);
@@ -50262,7 +50256,10 @@ async function budgetOk(env, kind = "free", now = Date.now()) {
   if (kind === "paid") return true;
   return await dailySpend(env, now) < await budgetLimit(env);
 }
-async function addSpend(env, usd, { notify, now = Date.now() } = {}) {
+async function addSpend(env, usd, { notify, now = Date.now() } = (
+  /** @type {any} */
+  {}
+)) {
   if (!(usd > 0) || !env.page_content) return;
   const day2 = today(now);
   const key = `spend:${day2}:${Math.floor(Math.random() * SHARDS)}`;
@@ -50311,7 +50308,10 @@ function rand(n = 24) {
   crypto.getRandomValues(b);
   return [...b].map((x) => "abcdefghijklmnopqrstuvwxyz0123456789"[x % 36]).join("");
 }
-async function handleIrisTicket(request, env, { respond, now = Date.now() } = {}) {
+async function handleIrisTicket(request, env, { respond, now = Date.now() } = (
+  /** @type {any} */
+  {}
+)) {
   if (!env.page_content) return respond({ error: "kv" }, 500);
   const body = await request.json().catch(() => ({}));
   const deviceId = String(body.deviceId || "");
@@ -50346,7 +50346,10 @@ async function handleIrisTicket(request, env, { respond, now = Date.now() } = {}
   await env.page_content.put(`iris_ticket:${ticket}`, JSON.stringify({ calls: TICKET_CALLS, exp: expiresAt, deviceId, paid }), { expirationTtl: 3600 });
   return respond({ ticket, calls: TICKET_CALLS, expiresAt, paid });
 }
-async function handleIrisGemini(request, env, url, { notify } = {}) {
+async function handleIrisGemini(request, env, url, { notify } = (
+  /** @type {any} */
+  {}
+)) {
   const json2 = (status, message) => new Response(JSON.stringify({ error: { code: status, message } }), { status, headers: { "Content-Type": "application/json", ...IRIS_CORS } });
   const m = url.pathname.match(PATH);
   if (!m || !MODELS.has(m[1])) return json2(404, "model not allowed");
