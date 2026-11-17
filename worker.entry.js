@@ -137,8 +137,8 @@ import { crossCheckText } from './cross-check.js';
 import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
 import Pricing from './pricing-config.js';
 import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUsage, quotaMap, normalizeAccess, paywallEnabled, PAYWALL_KEY, usageWindow } from './access-control.js';
-import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleIrisUnlockStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
-import { handleIrisTicket, handleIrisGemini } from './iris-gate.js';
+import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
+import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, BUDGET_KEY } from './spend.js';
 
@@ -18321,6 +18321,12 @@ export default {
         return jsonResponse({ siteKey: turnstileSiteKey(env) });
       } else if (url.pathname === '/api/iris/ticket' && request.method === 'POST') {
         return await handleIrisTicket(request, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/iris/status' && request.method === 'GET') {
+        return await handleIrisStatus(url, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/iris/pass' && request.method === 'POST') {
+        return await handleIrisPass(request, env, { respond: jsonResponse, checkOwner: checkFirebaseOwner });
+      } else if (url.pathname === '/api/iris/redeem' && request.method === 'POST') {
+        return await handleIrisRedeem(request, env, { respond: jsonResponse });
       } else if (url.pathname.startsWith('/api/iris/gemini/') && request.method === 'POST') {
         return await handleIrisGemini(request, env, url, { notify: adminSpendNotify(ctx) });
       } else if (url.pathname === '/api/admin/budget' && request.method === 'GET') {
@@ -18336,16 +18342,14 @@ export default {
         return await handleBillingWebhook(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/billing/confirm' && request.method === 'POST') {
         return await handleBillingConfirm(request, env, { respond: jsonResponse });
-      } else if (url.pathname === '/api/billing/iris-unlock' && request.method === 'GET') {
-        return await handleIrisUnlockStatus(url, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/billing/voucher' && request.method === 'GET') {
+        return await handleVoucherStatus(url, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/billing/status' && request.method === 'GET') {
-        // ?deviceId= → коя цена за протокола важи за устройството (контролно разчитане е по-евтино).
         const statusDevice = /^[A-Za-z0-9_-]{8,64}$/.test(url.searchParams.get('deviceId') || '') ? url.searchParams.get('deviceId') : '';
         const statusHolder = url.searchParams.get('holder') || statusDevice;
         return jsonResponse({
           ready: billingReady(env), mode: stripeMode(env),
           prices: { products: Pricing.PRODUCTS, free: Pricing.FREE },
-          ...(statusDevice ? { irisProduct: (await env.page_content.get(`iris_paid_dev:${statusDevice}`)) ? 'iris_recheck' : 'iris_protocol' } : {}),
           ...(statusHolder ? { emoeatCredit: await emoeatCredit(env, statusHolder) } : {}),
         });
       } else if (url.pathname === '/api/admin/paywall' && request.method === 'GET') {

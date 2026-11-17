@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /** Защитата на IrisMap (iris-gate.js) и предпазителят на разхода (spend.js) — без мрежа. */
 import assert from 'node:assert/strict';
-import { handleIrisTicket, handleIrisGemini } from '../iris-gate.js';
+import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from '../iris-gate.js';
+import { writeAccess } from '../access-control.js';
 import { costUsd, addSpend, dailySpend, budgetOk, BUDGET_KEY } from '../spend.js';
 
 const kv = new Map();
@@ -10,7 +11,7 @@ const env = {
   page_content: { get: async (k) => (kv.has(k) ? kv.get(k) : null), put: async (k, v) => { kv.set(k, v); }, delete: async (k) => kv.delete(k) },
 };
 const respond = (d, s = 200) => new Response(JSON.stringify(d), { status: s });
-const ticketReq = (deviceId, ip = '1.1.1.1', turnstile) => new Request('https://w/api/iris/ticket', { method: 'POST', headers: { 'CF-Connecting-IP': ip }, body: JSON.stringify({ deviceId, turnstile }) });
+const ticketReq = (deviceId, ip = '1.1.1.1', turnstile, extra = {}) => new Request('https://w/api/iris/ticket', { method: 'POST', headers: { 'CF-Connecting-IP': ip }, body: JSON.stringify({ deviceId, turnstile, ...extra }) });
 let geminiCalls = 0;
 let siteverify = [];
 globalThis.fetch = async (url, init) => {
@@ -105,4 +106,60 @@ await check('Turnstile: платен кредит не иска проверка
   assert.equal(siteverify.length, n);
   delete env.TURNSTILE_SECRET_KEY;
 });
+// ── Платен модел: 6,99 € или включен в плана ──
+const post = (body) => new Request('https://w/x', { method: 'POST', body: JSON.stringify(body) });
+const T = Date.now() + 300_000;
+await check('реален режим (или тестер): без кредит → 402 payment с цената', async () => {
+  const r1 = await handleIrisTicket(ticketReq('dev_payme001', '8.8.8.1', undefined, { tester: true }), env, { respond, now: T });
+  assert.equal(r1.status, 402);
+  const d = await r1.json(); assert.equal(d.error, 'payment'); assert.equal(d.price, 6.99);
+  env.BILLING_MODE = 'live';
+  assert.equal((await handleIrisTicket(ticketReq('dev_payme002', '8.8.8.2'), env, { respond, now: T })).status, 402);
+  const st = await (await handleIrisStatus(new URL('https://w/x?deviceId=dev_payme002'), env, { respond })).json();
+  assert.deepEqual(st, { credit: 0, payRequired: true, price: 6.99 });
+});
+await check('платен кредит → билет; провален платен анализ → нов билет без нов кредит', async () => {
+  kv.set('iris_credit:dev_payme003', '1');
+  const d1 = await (await handleIrisTicket(ticketReq('dev_payme003', '8.8.8.3'), env, { respond, now: T })).json();
+  assert.equal(d1.paid, true); assert.equal(kv.get('iris_credit:dev_payme003'), '0');
+  await gem(d1.ticket); await gem(d1.ticket);   // 2 заявки и срив
+  const d2 = await (await handleIrisTicket(ticketReq('dev_payme003', '8.8.8.3'), env, { respond, now: T })).json();
+  assert.equal(d2.paid, true);
+  assert.equal((await gem(d1.ticket)).status, 403);   // старият билет е спрян
+  for (let i = 0; i < 13; i++) await gem(d2.ticket);   // завършен анализ
+  assert.equal((await handleIrisTicket(ticketReq('dev_payme003', '8.8.8.3'), env, { respond, now: T })).status, 402);
+});
+const owner = async (uid, token) => (token === 'ok' ? null : new Response('{}', { status: 401 }));
+const pass = async (body, now = T) => { const r = await handleIrisPass(post(body), env, { respond, checkOwner: owner, now }); return { status: r.status, d: await r.json() }; };
+await check('пропуск от Eatologix: само с акаунт, валиден токен и активен план', async () => {
+  assert.equal((await pass({ userId: 'guest_1', idToken: 'ok' })).status, 401);
+  assert.equal((await pass({ userId: 'fb_irisplan1', idToken: 'bad' })).status, 401);
+  assert.equal((await pass({ userId: 'fb_irisplan1', idToken: 'ok' })).d.error, 'no_plan');
+});
+await check('план 4 седмици → 1 анализ: пропуск → кредит на устройството → платен билет', async () => {
+  await writeAccess(env, 'fb_irisplan1', { tier: 'core', until: new Date(T + 28 * 864e5).toISOString(), periodStart: T, quota: { iris: 1 }, source: 'stripe' }, T);
+  const p = await pass({ userId: 'fb_irisplan1', idToken: 'ok' });
+  assert.equal(p.status, 200); assert.match(p.d.url, /^https:\/\/irismap\.app\/app\.html\?pass=[a-z0-9]{24}$/);
+  const r = await handleIrisRedeem(post({ pass: p.d.code, deviceId: 'dev_planned1' }), env, { respond, now: T });
+  assert.equal(r.status, 200);
+  assert.equal((await handleIrisRedeem(post({ pass: p.d.code, deviceId: 'dev_planned2' }), env, { respond, now: T })).status, 410);   // веднъж
+  const t = await (await handleIrisTicket(ticketReq('dev_planned1', '8.8.8.4'), env, { respond, now: T })).json();
+  assert.equal(t.paid, true);
+  assert.equal((await pass({ userId: 'fb_irisplan1', idToken: 'ok' })).d.error, 'quota');
+});
+await check('план 12 седмици → 3 анализа, но по един на 4 седмици; неизползван пропуск не изяжда', async () => {
+  await writeAccess(env, 'fb_irisplan3', { tier: 'core', until: new Date(T + 84 * 864e5).toISOString(), periodStart: T, quota: { iris: 3 }, source: 'stripe' }, T);
+  const p1 = await pass({ userId: 'fb_irisplan3', idToken: 'ok' });
+  assert.equal(p1.status, 200);
+  assert.equal((await pass({ userId: 'fb_irisplan3', idToken: 'ok' })).status, 200);   // p1 не е използван → пак може
+  await handleIrisRedeem(post({ pass: p1.d.code, deviceId: 'dev_planned3' }), env, { respond, now: T });
+  assert.equal((await pass({ userId: 'fb_irisplan3', idToken: 'ok' }, T + 10 * 864e5)).d.error, 'wait');
+  assert.equal((await pass({ userId: 'fb_irisplan3', idToken: 'ok' }, T + 29 * 864e5)).status, 200);
+});
+await check('изтекъл пропуск → 410', async () => {
+  const p = await pass({ userId: 'fb_irisplan3', idToken: 'ok' }, T + 29 * 864e5);
+  assert.equal((await handleIrisRedeem(post({ pass: p.d.code, deviceId: 'dev_planned4' }), env, { respond, now: T + 29 * 864e5 + 2 * 3600e3 })).status, 410);
+  delete env.BILLING_MODE;
+});
+
 console.log(`\nВсички ${ok.length} проверки минаха`);

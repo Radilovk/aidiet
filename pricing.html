@@ -5,7 +5,7 @@
     <script src="./i18n.js?v=20261116a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Цени | Eatologix</title>
-    <meta name="description" content="Цени на Eatologix: въпросникът и дневните цели са безплатни; целият план — еднократно за 4 или 12 седмици, без абонамент. IrisMap: анализът е безплатен, личният протокол — еднократно. EmoEat: личният анализ — 2,99 €.">
+    <meta name="description" content="Цени на Eatologix: въпросникът и дневните цели са безплатни; целият план — еднократно за 4 или 12 седмици, без абонамент. IrisMap: анализ 6,99 € или включен в плана. EmoEat: личният анализ — 2,99 €.">
     <link rel="canonical" href="https://biocode.website/pricing.html">
     <meta name="theme-color" content="#F4FBFA">
     <meta property="og:type" content="website">
@@ -46,6 +46,7 @@
         .plan-price { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
         .plan-price b { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
         .plan-price span { color: var(--text-3); font-size: .92rem; }
+        .plan-price s { color: var(--text-3); font-size: 1rem; }
         .plan-sub { margin: -8px 0 0; color: var(--text-2); font-size: .88rem; min-height: 1.3em; }
         .plan ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: .93rem; color: var(--text-2); }
         .plan li { display: flex; gap: 8px; line-height: 1.4; }
@@ -95,7 +96,7 @@
             <img src="brand/irismap-mark.svg" alt="" width="56" height="56">
             <div>
                 <h2 id="iris-title">IrisMap — ирисов анализ</h2>
-                <p>Снимките, разпознаването и анализът на ириса са <strong>безплатни</strong>. Личният протокол — хранене, добавки и режим — е <strong id="irisPrice"></strong> еднократно за анализ. Контролно разчитане по-късно — <strong id="irisRecheck"></strong>.</p>
+                <p>Разчитане на двата ириса и лични насоки — хранене, добавки, режим — за <strong id="irisPrice"></strong>. С план от Eatologix е включен: един анализ на 4 седмици, от профила ти. Платеното в IrisMap се приспада от първия ти план до 30 дни.</p>
                 <a class="plan-cta" href="https://irismap.app/">Към IrisMap</a>
             </div>
         </section>
@@ -229,8 +230,29 @@
             } catch (e) { return false; }
         })();
         var uid = function () { try { return localStorage.getItem('userId') || ''; } catch (e) { return ''; } };
-        document.getElementById('irisPrice').textContent = fmt(P.PRODUCTS.iris_protocol.price);
-        document.getElementById('irisRecheck').textContent = fmt(P.PRODUCTS.iris_recheck.price);
+        document.getElementById('irisPrice').textContent = fmt(P.PRODUCTS.iris_analysis.price);
+
+        // Ваучер от IrisMap (?voucher=…): платеното за анализа се приспада от първия план.
+        var voucher = null;
+        (function () {
+            var code = params.get('voucher');
+            try {
+                if (code) localStorage.setItem('np_iris_voucher', code);
+                else code = localStorage.getItem('np_iris_voucher');
+            } catch (e) { /* частен режим */ }
+            if (!code) return;
+            fetch(WORKER + '/api/billing/voucher?code=' + encodeURIComponent(code)).then(function (r) { return r.json(); }).then(function (d) {
+                if (!d || !d.valid) { try { localStorage.removeItem('np_iris_voucher'); } catch (e) {} return; }
+                voucher = { code: code, amount: d.amount, until: d.until };
+                var fn = document.getElementById('featureNote');
+                fn.textContent = 'Анализът в IrisMap (' + fmt(d.amount) + ') се приспада от плана до ' + new Date(d.until).toLocaleDateString() + '.';
+                fn.hidden = false;
+                render();
+            }).catch(function () {});
+        })();
+        function priceOf(c) {
+            return voucher && c.kind === 'plan' && !c.requiresPlan ? Math.max(0.5, Math.round((c.price - voucher.amount) * 100) / 100) : c.price;
+        }
         document.getElementById('emoPrice').textContent = fmt(P.PRODUCTS.emoeat_analysis.price);
 
         var feature = params.get('feature');
@@ -259,7 +281,7 @@
                 return '<article class="plan' + (c.highlight ? ' is-top' : '') + '" aria-labelledby="plan-' + c.id + '">' +
                     (c.highlight ? '<span class="plan-badge">Препоръчваме</span>' : '') +
                     '<div><h2 class="plan-name" id="plan-' + c.id + '">' + esc(c.name) + '</h2><p class="plan-tag">' + esc(c.tagline) + '</p></div>' +
-                    '<div class="plan-price"><b>' + esc(fmt(c.price)) + '</b><span>' + (c.price ? 'еднократно' : 'без карта') + '</span></div>' +
+                    '<div class="plan-price"><b>' + esc(fmt(priceOf(c))) + '</b>' + (priceOf(c) !== c.price ? '<s>' + esc(fmt(c.price)) + '</s>' : '') + '<span>' + (c.price ? 'еднократно' : 'без карта') + '</span></div>' +
                     '<ul>' + c.features.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' +
                     cta(c) + '</article>';
             }).join('');
@@ -288,7 +310,7 @@
             }
             btn.setAttribute('aria-busy', 'true');
             var ref = window.NutriPlanPartnerRef && NutriPlanPartnerRef.get();
-            post('/api/billing/checkout', { product: btn.getAttribute('data-buy'), userId: id, ref: ref || '' })
+            post('/api/billing/checkout', { product: btn.getAttribute('data-buy'), userId: id, ref: ref || '', voucher: voucher ? voucher.code : '' })
                 .then(function (x) {
                     if (x.d && x.d.url) { location.href = x.d.url; return; }
                     btn.removeAttribute('aria-busy');
@@ -304,7 +326,7 @@
             say('Потвърждаваме плащането…');
             post('/api/billing/confirm', { sessionId: paid }).then(function (x) {
                 if (x.d && x.d.ok) {
-                    try { sessionStorage.removeItem('np_access'); } catch (e) {}
+                    try { sessionStorage.removeItem('np_access'); if (x.d.product !== 'plan_continue') localStorage.removeItem('np_iris_voucher'); } catch (e) {}
                     var prod = P.product(x.d.product);
                     say('Готово — ' + (prod ? prod.name : 'планът') + ' е активен' + (x.d.until ? ' до ' + new Date(x.d.until).toLocaleDateString() : '') + '. Отвори плана си в приложението или в сайта.');
                 } else say('Плащането още не е потвърдено. Ако си платил, опресни страницата след минута.');

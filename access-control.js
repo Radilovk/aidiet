@@ -86,7 +86,9 @@ export async function addUsage(env, userId, feature, now = Date.now(), window = 
   if (!userId || !env.page_content) return;
   const usage = await readUsage(env, userId, now, window);
   usage[feature] = (Number(usage[feature]) || 0) + 1;
-  await env.page_content.put(usageKey(userId, window), JSON.stringify(usage), { expirationTtl: USAGE_TTL_SEC });
+  // Срокът на плана (p…) може да е 84 дни и повече — пази се до края му, не 40 дни.
+  const ttl = String(window).startsWith('p') ? 400 * 24 * 60 * 60 : USAGE_TTL_SEC;
+  await env.page_content.put(usageKey(userId, window), JSON.stringify(usage), { expirationTtl: ttl });
 }
 
 /** Лимити и изразходвано за срока: { chat: { used, limit } } — само за функции с лимит. */

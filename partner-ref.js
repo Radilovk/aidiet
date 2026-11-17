@@ -38,6 +38,12 @@
         }
     } catch (_) { /* без localStorage — без атрибуция */ }
 
+    // Ваучер от IrisMap (?voucher=…): платеното за анализа се приспада от първия план (pricing.html).
+    try {
+        var voucher = new URLSearchParams(global.location.search).get('voucher');
+        if (/^[a-z0-9]{10,32}$/.test(String(voucher || ''))) localStorage.setItem('np_iris_voucher', voucher);
+    } catch (_) { /* частен режим */ }
+
     global.NutriPlanPartnerRef = {
         get: function () {
             var saved = read();

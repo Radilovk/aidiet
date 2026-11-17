@@ -569,10 +569,14 @@ var require_pricing_config = __commonJS({
         // седмичната корекция на менюто
         plan_book: "core",
         // книгата на плана (PDF)
-        emoeat_ai: "core"
+        emoeat_ai: "core",
         // личният анализ на EmoEat (иначе — еднократно 2,99 €)
+        iris: "core"
+        // анализ в IrisMap (иначе — 6,99 €)
       };
-      var PLAN_QUOTA = { chat: 60, photo: 30, menu_photo: 6, docs: 2, replan: 1 };
+      var PLAN_QUOTA = { chat: 60, photo: 30, menu_photo: 6, docs: 2, replan: 1, iris: 1 };
+      var IRIS_EVERY_DAYS = 28;
+      var IRIS_DISCOUNT_DAYS = 30;
       var DAILY_CAP = { chat: 20, photo: 10, menu_photo: 4, docs: 3 };
       var FEATURE_LABEL = {
         full_week: "\u0426\u044F\u043B\u043E\u0442\u043E \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043C\u0435\u043D\u044E",
@@ -584,14 +588,16 @@ var require_pricing_config = __commonJS({
         docs: "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438",
         weekly: "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u0430\u0442\u0430 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u044F",
         plan_book: "\u041A\u043D\u0438\u0433\u0430\u0442\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430",
-        emoeat_ai: "\u041B\u0438\u0447\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437"
+        emoeat_ai: "\u041B\u0438\u0447\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437",
+        iris: "\u0418\u0440\u0438\u0441\u043E\u0432\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437"
       };
       var QUOTA_UNIT = {
         chat: ["\u0432\u044A\u043F\u0440\u043E\u0441", "\u0432\u044A\u043F\u0440\u043E\u0441\u0430"],
         photo: ["\u0441\u043D\u0438\u043C\u043A\u0430", "\u0441\u043D\u0438\u043C\u043A\u0438"],
         menu_photo: ["\u0441\u043D\u0438\u043C\u043A\u0430", "\u0441\u043D\u0438\u043C\u043A\u0438"],
         docs: ["\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442", "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0430"],
-        replan: ["\u043D\u043E\u0432 \u043F\u043B\u0430\u043D", "\u043D\u043E\u0432\u0438 \u043F\u043B\u0430\u043D\u0430"]
+        replan: ["\u043D\u043E\u0432 \u043F\u043B\u0430\u043D", "\u043D\u043E\u0432\u0438 \u043F\u043B\u0430\u043D\u0430"],
+        iris: ["\u0430\u043D\u0430\u043B\u0438\u0437", "\u0430\u043D\u0430\u043B\u0438\u0437\u0430"]
       };
       var PRODUCTS = {
         plan_4w: {
@@ -610,6 +616,7 @@ var require_pricing_config = __commonJS({
             "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u2014 30 \xB7 \u0441\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E \u2014 6",
             "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438 \u2014 2",
             "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u043F\u0440\u0438 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u0432 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 1",
+            "\u0418\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 \u0432 IrisMap \u2014 1",
             "\u041A\u043D\u0438\u0433\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 (PDF) \u0438 \u043B\u0438\u0447\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437 \u043D\u0430 EmoEat"
           ]
         },
@@ -625,7 +632,8 @@ var require_pricing_config = __commonJS({
             "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u2014 180 \u0432\u044A\u043F\u0440\u043E\u0441\u0430",
             "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u2014 90 \xB7 \u0441\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E \u2014 18",
             "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438 \u2014 6",
-            "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u043F\u0440\u0438 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u2014 3"
+            "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u043F\u0440\u0438 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u2014 3",
+            "\u0418\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437 \u0432 IrisMap \u2014 3 (\u043F\u043E \u0435\u0434\u0438\u043D \u043D\u0430 4 \u0441\u0435\u0434\u043C\u0438\u0446\u0438)"
           ]
         },
         plan_continue: {
@@ -638,17 +646,11 @@ var require_pricing_config = __commonJS({
           tagline: "\u0417\u0430 \u043A\u043E\u0439\u0442\u043E \u0432\u0435\u0447\u0435 \u0438\u043C\u0430 \u043F\u043B\u0430\u043D \u2014 \u0431\u0435\u0437 \u043D\u043E\u0432 \u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A",
           features: ["\u041E\u0449\u0435 4 \u0441\u0435\u0434\u043C\u0438\u0446\u0438 \u0441 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u0438", "\u041B\u0438\u043C\u0438\u0442\u0438\u0442\u0435 \u0441\u0435 \u0434\u043E\u0431\u0430\u0432\u044F\u0442 \u043A\u044A\u043C \u043E\u0441\u0442\u0430\u0442\u044A\u043A\u0430"]
         },
-        iris_protocol: {
+        iris_analysis: {
           kind: "iris",
-          name: "IrisMap \u2014 \u043B\u0438\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B",
-          price: 9.99,
-          description: "\u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u043E\u0442 \u0438\u0440\u0438\u0441\u043E\u0432\u0438\u044F \u0430\u043D\u0430\u043B\u0438\u0437: \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0438 \u0440\u0435\u0436\u0438\u043C. \u0421\u043D\u0438\u043C\u043A\u0438\u0442\u0435 \u0438 \u0430\u043D\u0430\u043B\u0438\u0437\u044A\u0442 \u0441\u0430 \u0431\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u0438."
-        },
-        iris_recheck: {
-          kind: "iris",
-          name: "IrisMap \u2014 \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u043D\u043E \u0440\u0430\u0437\u0447\u0438\u0442\u0430\u043D\u0435",
+          name: "IrisMap \u2014 \u0438\u0440\u0438\u0441\u043E\u0432 \u0430\u043D\u0430\u043B\u0438\u0437",
           price: 6.99,
-          description: "\u041F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u044A\u0442 \u0437\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449 \u0430\u043D\u0430\u043B\u0438\u0437 \u2014 \u0437\u0430 \u043A\u043E\u0439\u0442\u043E \u0432\u0435\u0447\u0435 \u0435 \u0432\u0437\u0435\u043B \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B."
+          description: "\u0420\u0430\u0437\u0447\u0438\u0442\u0430\u043D\u0435 \u043D\u0430 \u0434\u0432\u0430\u0442\u0430 \u0438\u0440\u0438\u0441\u0430 \u0438 \u043B\u0438\u0447\u043D\u0438\u0442\u0435 \u043D\u0430\u0441\u043E\u043A\u0438: \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0434\u043E\u0431\u0430\u0432\u043A\u0438, \u0440\u0435\u0436\u0438\u043C. \u0421\u0443\u043C\u0430\u0442\u0430 \u0441\u0435 \u043F\u0440\u0438\u0441\u043F\u0430\u0434\u0430 \u043E\u0442 \u043F\u044A\u0440\u0432\u0438\u044F \u043F\u043B\u0430\u043D \u0432 Eatologix \u0434\u043E 30 \u0434\u043D\u0438."
         },
         emoeat_analysis: {
           kind: "emoeat",
@@ -664,8 +666,7 @@ var require_pricing_config = __commonJS({
         features: [
           "\u0412\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A \u0438 \u0434\u043D\u0435\u0432\u043D\u0438 \u0446\u0435\u043B\u0438: \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u0431\u0435\u043B\u0442\u044A\u043A, \u0432\u043E\u0434\u0430",
           "\u0415\u0434\u0438\u043D \u043F\u0440\u0438\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u043D \u043E\u0442 \u043C\u0435\u043D\u044E\u0442\u043E",
-          "\u0422\u0435\u0441\u0442 \u0437\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442",
-          "\u0421\u043D\u0438\u043C\u043A\u0438 \u0438 \u0430\u043D\u0430\u043B\u0438\u0437 \u043D\u0430 \u0438\u0440\u0438\u0441\u0438\u0442\u0435 \u0432 IrisMap"
+          "\u0422\u0435\u0441\u0442 \u0437\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442"
         ]
       };
       function plural(n, unit) {
@@ -678,6 +679,8 @@ var require_pricing_config = __commonJS({
         FEATURE_LABEL,
         PLAN_QUOTA,
         DAILY_CAP,
+        IRIS_EVERY_DAYS,
+        IRIS_DISCOUNT_DAYS,
         PRODUCTS,
         FREE,
         tierRank: function(tier) {
@@ -49899,7 +49902,7 @@ function extractClarify(text2, q) {
 }
 
 // worker.entry.js
-var import_pricing_config3 = __toESM(require_pricing_config());
+var import_pricing_config4 = __toESM(require_pricing_config());
 
 // access-control.js
 var import_pricing_config = __toESM(require_pricing_config());
@@ -49962,7 +49965,8 @@ async function addUsage(env, userId, feature, now = Date.now(), window = monthOf
   if (!userId || !env.page_content) return;
   const usage = await readUsage(env, userId, now, window);
   usage[feature] = (Number(usage[feature]) || 0) + 1;
-  await env.page_content.put(usageKey(userId, window), JSON.stringify(usage), { expirationTtl: USAGE_TTL_SEC });
+  const ttl = String(window).startsWith("p") ? 400 * 24 * 60 * 60 : USAGE_TTL_SEC;
+  await env.page_content.put(usageKey(userId, window), JSON.stringify(usage), { expirationTtl: ttl });
 }
 function quotaMap(access, usage) {
   const out = {};
@@ -50093,10 +50097,25 @@ async function stripe2(env, method, path, params) {
   return data;
 }
 var cents = (eur) => Math.round(Number(eur) * 100);
+function randomCode(n = 16) {
+  const b = new Uint8Array(n);
+  crypto.getRandomValues(b);
+  return [...b].map((x) => "abcdefghijklmnopqrstuvwxyz0123456789"[x % 36]).join("");
+}
 var okReturn = (u) => typeof u === "string" && ALLOWED_RETURN.test(u) ? u : null;
 var withParam = (u, k, v) => u + (u.includes("?") ? "&" : "?") + `${k}=${v}`;
 var okUser = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ""));
 var okDevice = (id) => /^[A-Za-z0-9_-]{8,64}$/.test(String(id || ""));
+var okVoucher = (c) => /^[a-z0-9]{10,32}$/.test(String(c || ""));
+async function readVoucher(env, code, now = Date.now()) {
+  if (!okVoucher(code)) return null;
+  const v = JSON.parse(await env.page_content.get(`iris_voucher:${code}`) || "null");
+  return v && !v.usedBy && v.until > now ? v : null;
+}
+async function handleVoucherStatus(url, env, { respond }) {
+  const v = await readVoucher(env, url.searchParams.get("code"));
+  return respond(v ? { valid: true, amount: v.amount, until: v.until } : { valid: false });
+}
 async function handleBillingCheckout(request, env, { respond }) {
   if (!billingReady(env)) return respond({ error: "no_stripe", mode: stripeMode(env) }, 503);
   const b = await request.json().catch(() => ({}));
@@ -50115,15 +50134,17 @@ async function handleBillingCheckout(request, env, { respond }) {
       }
       meta.userId = b.userId;
       if (/^[a-z0-9][a-z0-9-]{1,31}$/.test(String(b.ref || ""))) meta.ref = b.ref;
+      const v = !P.requiresPlan ? await readVoucher(env, b.voucher) : null;
+      if (v) {
+        meta.voucher = b.voucher;
+        P = { ...P, price: Math.max(0.5, Math.round((P.price - v.amount) * 100) / 100), description: `\u0421 \u043F\u0440\u0438\u0441\u043F\u0430\u0434\u043D\u0430\u0442\u0438 ${import_pricing_config2.default.formatPrice(v.amount)} \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0432 IrisMap` };
+      }
       const site = /^https:\/\/(eatologix\.com|biocode\.website)$/.test(origin) ? origin : "https://eatologix.com";
       back = `${site}/pricing.html`;
     } else if (P.kind === "iris") {
-      const analysisId = String(b.analysisId || "").slice(0, 80);
       back = okReturn(b.returnUrl);
-      if (!analysisId || !back || !okDevice(b.deviceId)) return respond({ error: "bad_request" }, 400);
-      id = await env.page_content.get(`iris_paid_dev:${b.deviceId}`) ? "iris_recheck" : "iris_protocol";
-      P = import_pricing_config2.default.product(id);
-      Object.assign(meta, { product: id, analysisId, deviceId: b.deviceId });
+      if (!back || !okDevice(b.deviceId)) return respond({ error: "bad_request" }, 400);
+      meta.deviceId = b.deviceId;
     } else if (P.kind === "emoeat") {
       back = okReturn(b.returnUrl);
       const holder = okUser(b.userId) ? b.userId : okDevice(b.deviceId) ? b.deviceId : "";
@@ -50180,10 +50201,18 @@ async function applySession(env, s, now) {
   if (P.kind === "plan") {
     const rec = await grantPlan(env, m.userId, m.product, s.id, now);
     result = { ...result, userId: m.userId, tier: rec.tier, until: rec.until };
+    if (okVoucher(m.voucher)) {
+      const vk = `iris_voucher:${m.voucher}`;
+      const v = JSON.parse(await env.page_content.get(vk) || "null");
+      if (v) await env.page_content.put(vk, JSON.stringify({ ...v, usedBy: m.userId, usedAt: now }), { expirationTtl: 60 * 86400 });
+    }
   } else if (P.kind === "iris") {
-    await env.page_content.put(`iris_unlock:${m.analysisId}`, JSON.stringify({ sessionId: s.id, at: now, mode: stripeMode(env) }));
-    if (m.deviceId) await env.page_content.put(`iris_paid_dev:${m.deviceId}`, String(now));
-    result = { ...result, analysisId: m.analysisId };
+    const ck = `iris_credit:${m.deviceId}`;
+    await env.page_content.put(ck, String((Number(await env.page_content.get(ck)) || 0) + 1), { expirationTtl: 400 * 86400 });
+    const voucher = randomCode();
+    const until = now + import_pricing_config2.default.IRIS_DISCOUNT_DAYS * DAY_MS4;
+    await env.page_content.put(`iris_voucher:${voucher}`, JSON.stringify({ amount: P.price, until, deviceId: m.deviceId, session: s.id }), { expirationTtl: (import_pricing_config2.default.IRIS_DISCOUNT_DAYS + 30) * 86400 });
+    result = { ...result, deviceId: m.deviceId, voucher, voucherUntil: until, amount: P.price };
   } else if (P.kind === "emoeat") {
     const k = `emoeat_credit:${m.holder}`;
     await env.page_content.put(k, String((Number(await env.page_content.get(k)) || 0) + 1), { expirationTtl: 400 * 86400 });
@@ -50253,11 +50282,6 @@ async function handleBillingWebhook(request, env, { respond, now = Date.now() } 
   } catch (e) {
     return respond({ error: "apply_failed", message: e.message }, 500);
   }
-}
-async function handleIrisUnlockStatus(url, env, { respond }) {
-  const id = String(url.searchParams.get("analysisId") || "").slice(0, 80);
-  if (!id) return respond({ unlocked: false });
-  return respond({ unlocked: Boolean(await env.page_content.get(`iris_unlock:${id}`)) });
 }
 async function emoeatCredit(env, holder) {
   if (!holder || !env.page_content) return 0;
@@ -50363,10 +50387,14 @@ async function verifyTurnstile(env, token, request) {
 var BOT_MESSAGE = "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430\u0442\u0430, \u0447\u0435 \u043D\u0435 \u0441\u0442\u0435 \u0440\u043E\u0431\u043E\u0442, \u043D\u0435 \u043C\u0438\u043D\u0430. \u041F\u0440\u0435\u0437\u0430\u0440\u0435\u0434\u0435\u0442\u0435 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0430\u0442\u0430 \u0438 \u043E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u043F\u0430\u043A.";
 
 // iris-gate.js
+var import_pricing_config3 = __toESM(require_pricing_config());
 var TICKET_CALLS = 24;
+var USED_ENOUGH = 13;
 var TICKET_MS = 40 * 60 * 1e3;
 var FREE_EVERY_MS = 7 * 24 * 3600 * 1e3;
 var IP_PER_DAY = 3;
+var PASS_MS = 60 * 60 * 1e3;
+var APP_URL = "https://irismap.app/app.html";
 var MAX_BODY = 12 * 1024 * 1024;
 var MODELS = /* @__PURE__ */ new Set(["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"]);
 var PATH = /^\/api\/iris\/gemini\/v1beta\/models\/(gemini-[a-z0-9.\-]+):generateContent$/;
@@ -50384,6 +50412,16 @@ function rand(n = 24) {
   crypto.getRandomValues(b);
   return [...b].map((x) => "abcdefghijklmnopqrstuvwxyz0123456789"[x % 36]).join("");
 }
+var PRICE = () => import_pricing_config3.default.PRODUCTS.iris_analysis.price;
+var payRequired = (env, tester) => env.BILLING_MODE === "live" || tester === true || tester === "true" || tester === "1";
+var payMessage = () => `\u0410\u043D\u0430\u043B\u0438\u0437\u044A\u0442 \u0435 ${import_pricing_config3.default.formatPrice(PRICE())} \u2014 \u0438\u043B\u0438 \u0432\u043A\u043B\u044E\u0447\u0435\u043D \u0432 \u043F\u043B\u0430\u043D\u0430 \u043D\u0430 Eatologix.`;
+async function readJSON(env, key) {
+  return JSON.parse(await env.page_content.get(key) || "null");
+}
+async function unfinished(env, ticketId) {
+  const t = ticketId ? await readJSON(env, `iris_ticket:${ticketId}`) : null;
+  return Boolean(t && TICKET_CALLS - t.calls < USED_ENOUGH);
+}
 async function handleIrisTicket(request, env, { respond, now = Date.now() } = (
   /** @type {any} */
   {}
@@ -50394,35 +50432,92 @@ async function handleIrisTicket(request, env, { respond, now = Date.now() } = (
   if (!okDevice2(deviceId)) return respond({ error: "bad_request" }, 400);
   const creditKey = `iris_credit:${deviceId}`;
   const credit = Number(await env.page_content.get(creditKey)) || 0;
-  const paid = credit > 0;
-  if (!paid) {
+  const lastPaid = await readJSON(env, `iris_paid_ticket:${deviceId}`);
+  let paid = false;
+  if (lastPaid?.ticket && await unfinished(env, lastPaid.ticket)) {
+    const old = await readJSON(env, `iris_ticket:${lastPaid.ticket}`);
+    if (old) await env.page_content.put(`iris_ticket:${lastPaid.ticket}`, JSON.stringify({ ...old, calls: 0 }), { expirationTtl: 3600 });
+    paid = true;
+  } else if (credit > 0) {
+    await env.page_content.put(creditKey, String(credit - 1), { expirationTtl: 400 * 86400 });
+    paid = true;
+  } else if (payRequired(env, body.tester)) {
+    return respond({ error: "payment", price: PRICE(), message: payMessage() }, 402);
+  } else {
     const human = await verifyTurnstile(env, body.turnstile, request);
     if (!human.ok) return respond({ error: "bot", reason: human.reason, message: BOT_MESSAGE }, 403);
     if (!await budgetOk(env, "free", now)) {
       return respond({ error: "budget", message: "\u0411\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u0438\u0442\u0435 \u0430\u043D\u0430\u043B\u0438\u0437\u0438 \u0437\u0430 \u0434\u043D\u0435\u0441 \u0441\u0430 \u0438\u0437\u0447\u0435\u0440\u043F\u0430\u043D\u0438. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0443\u0442\u0440\u0435." }, 503);
     }
-    const dev = JSON.parse(await env.page_content.get(`iris_dev:${deviceId}`) || "null");
-    const prev = dev?.ticket ? JSON.parse(await env.page_content.get(`iris_ticket:${dev.ticket}`) || "null") : null;
-    const unfinished = prev && TICKET_CALLS - prev.calls < 13;
-    if (dev?.last && now - dev.last < FREE_EVERY_MS && !unfinished) {
+    const dev = await readJSON(env, `iris_dev:${deviceId}`);
+    if (dev?.last && now - dev.last < FREE_EVERY_MS && !await unfinished(env, dev.ticket)) {
       return respond({
         error: "weekly",
         next: dev.last + FREE_EVERY_MS,
-        message: "\u0411\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437 \u0435 \u0432\u0435\u0434\u043D\u044A\u0436 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043D\u0430 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E. \u041A\u043E\u043D\u0442\u0440\u043E\u043B\u043D\u043E \u0440\u0430\u0437\u0447\u0438\u0442\u0430\u043D\u0435 \u043F\u043E-\u0440\u0430\u043D\u043E \u2014 \u0441 \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u0430."
+        message: "\u0411\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437 \u0435 \u0432\u0435\u0434\u043D\u044A\u0436 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043D\u0430 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E."
       }, 429);
     }
     const ipKey = `iris_ip:${ipOf(request)}:${day(now)}`;
     const ipCount = Number(await env.page_content.get(ipKey)) || 0;
     if (ipCount >= IP_PER_DAY) return respond({ error: "ip", message: "\u0422\u0432\u044A\u0440\u0434\u0435 \u043C\u043D\u043E\u0433\u043E \u0430\u043D\u0430\u043B\u0438\u0437\u0438 \u043E\u0442 \u0442\u0430\u0437\u0438 \u043C\u0440\u0435\u0436\u0430 \u0434\u043D\u0435\u0441. \u041E\u043F\u0438\u0442\u0430\u0439\u0442\u0435 \u0443\u0442\u0440\u0435." }, 429);
     await env.page_content.put(ipKey, String(ipCount + 1), { expirationTtl: 2 * 86400 });
-  } else {
-    await env.page_content.put(creditKey, String(credit - 1), { expirationTtl: 400 * 86400 });
   }
   const ticket = rand();
   const expiresAt = now + TICKET_MS;
-  if (!paid) await env.page_content.put(`iris_dev:${deviceId}`, JSON.stringify({ last: now, ticket }), { expirationTtl: 8 * 86400 });
+  if (paid) await env.page_content.put(`iris_paid_ticket:${deviceId}`, JSON.stringify({ ticket, at: now }), { expirationTtl: 3600 });
+  else await env.page_content.put(`iris_dev:${deviceId}`, JSON.stringify({ last: now, ticket }), { expirationTtl: 8 * 86400 });
   await env.page_content.put(`iris_ticket:${ticket}`, JSON.stringify({ calls: TICKET_CALLS, exp: expiresAt, deviceId, paid }), { expirationTtl: 3600 });
   return respond({ ticket, calls: TICKET_CALLS, expiresAt, paid });
+}
+async function handleIrisStatus(url, env, { respond }) {
+  const deviceId = url.searchParams.get("deviceId") || "";
+  const credit = okDevice2(deviceId) ? Number(await env.page_content.get(`iris_credit:${deviceId}`)) || 0 : 0;
+  return respond({ credit, payRequired: payRequired(env, url.searchParams.get("tester")), price: PRICE() });
+}
+async function handleIrisPass(request, env, { respond, checkOwner, now = Date.now() }) {
+  const body = await request.json().catch(() => ({}));
+  const userId = String(body.userId || "");
+  if (!userId.startsWith("fb_")) return respond({ error: "account", message: "\u0412\u043B\u0435\u0437 \u0432 \u0430\u043A\u0430\u0443\u043D\u0442\u0430 \u0441\u0438 \u0432 Eatologix." }, 401);
+  const ownerErr = await checkOwner(userId, body.idToken, env, request);
+  if (ownerErr) return ownerErr;
+  const access = normalizeAccess(await readAccess(env, userId), now);
+  if (access.tier !== "core") {
+    return respond({ error: "no_plan", price: PRICE(), message: `\u0410\u043D\u0430\u043B\u0438\u0437\u044A\u0442 \u0432 IrisMap \u0435 \u0432\u043A\u043B\u044E\u0447\u0435\u043D \u0432 \u043F\u043B\u0430\u043D\u0430. \u0411\u0435\u0437 \u043F\u043B\u0430\u043D \u2014 ${import_pricing_config3.default.formatPrice(PRICE())}.` }, 402);
+  }
+  const window = usageWindow(access, now);
+  const limit = limitFor(access, "iris") ?? 0;
+  const used = Number((await readUsage(env, userId, now, window)).iris) || 0;
+  if (used >= limit) {
+    return respond({ error: "quota", used, limit, message: "\u0410\u043D\u0430\u043B\u0438\u0437\u044A\u0442 \u0432 IrisMap \u0437\u0430 \u043F\u043B\u0430\u043D\u0430 \u0435 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D. \u041E\u0449\u0435 \u2014 \u0441 \u043F\u0440\u043E\u0434\u044A\u043B\u0436\u0435\u043D\u0438\u0435 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430." }, 402);
+  }
+  const last = Number(await env.page_content.get(`iris_plan_last:${userId}`)) || 0;
+  const every = import_pricing_config3.default.IRIS_EVERY_DAYS * 24 * 3600 * 1e3;
+  if (last && now - last < every) {
+    return respond({
+      error: "wait",
+      next: last + every,
+      message: `\u0421\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437 \u0432 IrisMap \u2014 \u043E\u0442 ${new Date(last + every).toLocaleDateString("bg-BG")} (\u043F\u043E \u0435\u0434\u0438\u043D \u043D\u0430 4 \u0441\u0435\u0434\u043C\u0438\u0446\u0438).`
+    }, 429);
+  }
+  const code = rand();
+  await env.page_content.put(`iris_pass:${code}`, JSON.stringify({ userId, window, exp: now + PASS_MS }), { expirationTtl: 2 * 3600 });
+  return respond({ code, url: `${APP_URL}?pass=${code}`, left: limit - used });
+}
+async function handleIrisRedeem(request, env, { respond, now = Date.now() } = (
+  /** @type {any} */
+  {}
+)) {
+  const { pass, deviceId } = await request.json().catch(() => ({}));
+  if (!/^[a-z0-9]{24}$/.test(String(pass || "")) || !okDevice2(deviceId)) return respond({ error: "bad_request" }, 400);
+  const key = `iris_pass:${pass}`;
+  const p = await readJSON(env, key);
+  if (!p || p.used || p.exp < now) return respond({ error: "expired", message: "\u041F\u0440\u043E\u043F\u0443\u0441\u043A\u044A\u0442 \u0435 \u0438\u0437\u0442\u0435\u043A\u044A\u043B \u0438\u043B\u0438 \u0432\u0435\u0447\u0435 \u0435 \u0438\u0437\u043F\u043E\u043B\u0437\u0432\u0430\u043D. \u041E\u0442\u0432\u043E\u0440\u0438 IrisMap \u043E\u0442\u043D\u043E\u0432\u043E \u043E\u0442 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u0441\u0438 \u0432 Eatologix." }, 410);
+  await env.page_content.put(key, JSON.stringify({ ...p, used: now, deviceId }), { expirationTtl: 2 * 3600 });
+  await addUsage(env, p.userId, "iris", now, p.window);
+  await env.page_content.put(`iris_plan_last:${p.userId}`, String(now), { expirationTtl: 400 * 86400 });
+  const ck = `iris_credit:${deviceId}`;
+  await env.page_content.put(ck, String((Number(await env.page_content.get(ck)) || 0) + 1), { expirationTtl: 400 * 86400 });
+  return respond({ ok: true, credit: true });
 }
 async function handleIrisGemini(request, env, url, { notify } = (
   /** @type {any} */
@@ -58358,7 +58453,7 @@ async function runAutoWeekly(env, userId, now = Date.now(), dueMs = now - WEEKLY
     return action;
   }
   if (action !== "run") return action;
-  if (await paywallEnabled(env) && !import_pricing_config3.default.allows(normalizeAccess(await readAccess(env, userId), now).tier, "weekly")) {
+  if (await paywallEnabled(env) && !import_pricing_config4.default.allows(normalizeAccess(await readAccess(env, userId), now).tier, "weekly")) {
     await scheduleWeeklyDue(env, userId, now + WEEKLY_CYCLE_MS);
     return "unpaid";
   }
@@ -65669,6 +65764,12 @@ var worker_entry_default = {
         return jsonResponse2({ siteKey: turnstileSiteKey(env) });
       } else if (url.pathname === "/api/iris/ticket" && request.method === "POST") {
         return await handleIrisTicket(request, env, { respond: jsonResponse2 });
+      } else if (url.pathname === "/api/iris/status" && request.method === "GET") {
+        return await handleIrisStatus(url, env, { respond: jsonResponse2 });
+      } else if (url.pathname === "/api/iris/pass" && request.method === "POST") {
+        return await handleIrisPass(request, env, { respond: jsonResponse2, checkOwner: checkFirebaseOwner });
+      } else if (url.pathname === "/api/iris/redeem" && request.method === "POST") {
+        return await handleIrisRedeem(request, env, { respond: jsonResponse2 });
       } else if (url.pathname.startsWith("/api/iris/gemini/") && request.method === "POST") {
         return await handleIrisGemini(request, env, url, { notify: adminSpendNotify(ctx) });
       } else if (url.pathname === "/api/admin/budget" && request.method === "GET") {
@@ -65684,16 +65785,15 @@ var worker_entry_default = {
         return await handleBillingWebhook(request, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/billing/confirm" && request.method === "POST") {
         return await handleBillingConfirm(request, env, { respond: jsonResponse2 });
-      } else if (url.pathname === "/api/billing/iris-unlock" && request.method === "GET") {
-        return await handleIrisUnlockStatus(url, env, { respond: jsonResponse2 });
+      } else if (url.pathname === "/api/billing/voucher" && request.method === "GET") {
+        return await handleVoucherStatus(url, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/billing/status" && request.method === "GET") {
         const statusDevice = /^[A-Za-z0-9_-]{8,64}$/.test(url.searchParams.get("deviceId") || "") ? url.searchParams.get("deviceId") : "";
         const statusHolder = url.searchParams.get("holder") || statusDevice;
         return jsonResponse2({
           ready: billingReady(env),
           mode: stripeMode(env),
-          prices: { products: import_pricing_config3.default.PRODUCTS, free: import_pricing_config3.default.FREE },
-          ...statusDevice ? { irisProduct: await env.page_content.get(`iris_paid_dev:${statusDevice}`) ? "iris_recheck" : "iris_protocol" } : {},
+          prices: { products: import_pricing_config4.default.PRODUCTS, free: import_pricing_config4.default.FREE },
           ...statusHolder ? { emoeatCredit: await emoeatCredit(env, statusHolder) } : {}
         });
       } else if (url.pathname === "/api/admin/paywall" && request.method === "GET") {
