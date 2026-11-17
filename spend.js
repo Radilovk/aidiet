@@ -62,7 +62,7 @@ export async function budgetOk(env, kind = 'free', now = Date.now()) {
 /**
  * Добавя разхода на една заявка. notify(text) — известие до админа (по веднъж на ден при 50% и 100%).
  */
-export async function addSpend(env, usd, { notify, now = Date.now() } = {}) {
+export async function addSpend(env, usd, { notify, now = Date.now() } = /** @type {any} */ ({})) {
   if (!(usd > 0) || !env.page_content) return;
   const day = today(now);
   const key = `spend:${day}:${Math.floor(Math.random() * SHARDS)}`;

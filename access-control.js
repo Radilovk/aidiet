@@ -106,7 +106,10 @@ export async function resolveAccess(env, userId, now = Date.now()) {
   return { paywall, tier: access.tier, until: access.until, source: access.source, expired: access.expired, features: featureMap(access.tier, paywall), quotas };
 }
 
-/** Записва нивото на акаунт. Start без срок изтрива записа. */
+/**
+ * Записва нивото на акаунт. Start без срок изтрива записа.
+ * @param {any} env @param {string} userId @param {any} [fields] @param {number} [now]
+ */
 export async function writeAccess(env, userId, { tier, until = null, source = 'admin', note = '', periodStart = null, quota = null, stripe = null } = {}, now = Date.now()) {
   if (!env.page_content) throw new Error('KV not configured');
   if (!/^fb_[A-Za-z0-9_-]{6,128}$/.test(String(userId || ''))) throw new Error('Нивото се дава само на акаунт (fb_…)');
