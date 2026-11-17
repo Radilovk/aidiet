@@ -50151,7 +50151,10 @@ async function handleBillingCheckout(request, env, { respond }) {
 async function grantPlan(env, userId, productId, sessionId, now = Date.now()) {
   const P = import_pricing_config2.default.product(productId);
   const add = import_pricing_config2.default.planQuota(productId);
-  const current = normalizeAccess(await readAccess(env, userId), now);
+  const record = await readAccess(env, userId);
+  const sessions = Array.isArray(record?.stripe?.sessions) ? record.stripe.sessions : [];
+  if (sessions.includes(sessionId)) return record;
+  const current = normalizeAccess(record, now);
   const active = current.tier === "core" && current.until && current.until > now;
   const quota = { ...add };
   if (active && current.quota) for (const k of Object.keys(add)) quota[k] = (Number(current.quota[k]) || 0) + add[k];
@@ -50162,8 +50165,32 @@ async function grantPlan(env, userId, productId, sessionId, now = Date.now()) {
     quota,
     source: "stripe",
     note: `${P.name} \xB7 ${import_pricing_config2.default.formatPrice(P.price)} \xB7 Stripe ${stripeMode(env)}`,
-    stripe: { mode: stripeMode(env), session: sessionId }
+    stripe: { mode: stripeMode(env), session: sessionId, sessions: [...sessions, sessionId].slice(-20) }
   }, now);
+}
+async function applySession(env, s, now) {
+  const doneKey = `billing:done:${s.id}`;
+  const done = await env.page_content.get(doneKey);
+  if (done) return { ok: true, repeat: true, ...JSON.parse(done) };
+  if (s.payment_status !== "paid") return { ok: false, status: s.payment_status || s.status };
+  const m = s.metadata || {};
+  const P = import_pricing_config2.default.product(m.product);
+  if (!P) return { ok: false, status: "unknown" };
+  let result = { product: m.product };
+  if (P.kind === "plan") {
+    const rec = await grantPlan(env, m.userId, m.product, s.id, now);
+    result = { ...result, userId: m.userId, tier: rec.tier, until: rec.until };
+  } else if (P.kind === "iris") {
+    await env.page_content.put(`iris_unlock:${m.analysisId}`, JSON.stringify({ sessionId: s.id, at: now, mode: stripeMode(env) }));
+    if (m.deviceId) await env.page_content.put(`iris_paid_dev:${m.deviceId}`, String(now));
+    result = { ...result, analysisId: m.analysisId };
+  } else if (P.kind === "emoeat") {
+    const k = `emoeat_credit:${m.holder}`;
+    await env.page_content.put(k, String((Number(await env.page_content.get(k)) || 0) + 1), { expirationTtl: 400 * 86400 });
+    result = { ...result, holder: m.holder };
+  }
+  await env.page_content.put(doneKey, JSON.stringify(result), { expirationTtl: 400 * 86400 });
+  return { ok: true, ...result };
 }
 async function handleBillingConfirm(request, env, { respond, now = Date.now() } = (
   /** @type {any} */
@@ -50172,32 +50199,59 @@ async function handleBillingConfirm(request, env, { respond, now = Date.now() } 
   if (!billingReady(env)) return respond({ error: "no_stripe" }, 503);
   const { sessionId } = await request.json().catch(() => ({}));
   if (!/^cs_[A-Za-z0-9_]{10,200}$/.test(String(sessionId || ""))) return respond({ error: "bad_request" }, 400);
-  const doneKey = `billing:done:${sessionId}`;
-  const done = await env.page_content.get(doneKey);
+  const done = await env.page_content.get(`billing:done:${sessionId}`);
   if (done) return respond({ ok: true, repeat: true, ...JSON.parse(done) });
   try {
     const s = await stripe2(env, "GET", `checkout/sessions/${sessionId}`);
-    if (s.payment_status !== "paid") return respond({ ok: false, status: s.payment_status || s.status });
-    const m = s.metadata || {};
-    const P = import_pricing_config2.default.product(m.product);
-    if (!P) return respond({ ok: false, status: "unknown" });
-    let result = { product: m.product };
-    if (P.kind === "plan") {
-      const rec = await grantPlan(env, m.userId, m.product, sessionId, now);
-      result = { ...result, userId: m.userId, tier: rec.tier, until: rec.until };
-    } else if (P.kind === "iris") {
-      await env.page_content.put(`iris_unlock:${m.analysisId}`, JSON.stringify({ sessionId, at: now, mode: stripeMode(env) }));
-      if (m.deviceId) await env.page_content.put(`iris_paid_dev:${m.deviceId}`, String(now));
-      result = { ...result, analysisId: m.analysisId };
-    } else if (P.kind === "emoeat") {
-      const k = `emoeat_credit:${m.holder}`;
-      await env.page_content.put(k, String((Number(await env.page_content.get(k)) || 0) + 1), { expirationTtl: 400 * 86400 });
-      result = { ...result, holder: m.holder };
-    }
-    await env.page_content.put(doneKey, JSON.stringify(result), { expirationTtl: 400 * 86400 });
-    return respond({ ok: true, ...result });
+    return respond(await applySession(env, { ...s, id: sessionId }, now));
   } catch (e) {
     return respond({ error: "stripe", message: e.message }, 502);
+  }
+}
+var webhookSecret = (env) => stripeMode(env) === "live" ? env.STRIPE_WEBHOOK_SECRET : env.STRIPE_TEST_WEBHOOK_SECRET;
+async function verifyStripeSignature(payload, header, secret, now = Date.now()) {
+  if (!secret || !header) return false;
+  const parts = String(header).split(",").map((x) => x.split("="));
+  const t = Number(parts.find(([k]) => k === "t")?.[1]);
+  const sigs = parts.filter(([k]) => k === "v1").map(([, v]) => v);
+  if (!t || !sigs.length || Math.abs(now / 1e3 - t) > 300) return false;
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${t}.${payload}`)));
+  const hex2 = [...mac].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return sigs.some((sig) => {
+    if (sig.length !== hex2.length) return false;
+    let diff = 0;
+    for (let i = 0; i < hex2.length; i++) diff |= hex2.charCodeAt(i) ^ sig.charCodeAt(i);
+    return diff === 0;
+  });
+}
+async function handleBillingWebhook(request, env, { respond, now = Date.now() } = (
+  /** @type {any} */
+  {}
+)) {
+  const secret = webhookSecret(env);
+  if (!secret) return respond({ error: "no_webhook_secret" }, 503);
+  const payload = await request.text();
+  if (!await verifyStripeSignature(payload, request.headers.get("Stripe-Signature"), secret, now)) {
+    return respond({ error: "bad_signature" }, 400);
+  }
+  let event;
+  try {
+    event = JSON.parse(payload);
+  } catch (_) {
+    return respond({ error: "bad_json" }, 400);
+  }
+  if (Boolean(event.livemode) !== (stripeMode(env) === "live")) return respond({ received: true, ignored: "mode" });
+  if (!["checkout.session.completed", "checkout.session.async_payment_succeeded"].includes(event.type)) {
+    return respond({ received: true, ignored: event.type });
+  }
+  const s = event.data?.object;
+  if (!s?.id || s.mode !== "payment") return respond({ received: true, ignored: "not_payment" });
+  try {
+    const r = await applySession(env, s, now);
+    return respond({ received: true, ...r });
+  } catch (e) {
+    return respond({ error: "apply_failed", message: e.message }, 500);
   }
 }
 async function handleIrisUnlockStatus(url, env, { respond }) {
@@ -65598,6 +65652,8 @@ var worker_entry_default = {
         return jsonResponse2({ success: true, limitUsd: Number(limitUsd) });
       } else if (url.pathname === "/api/billing/checkout" && request.method === "POST") {
         return await handleBillingCheckout(request, env, { respond: jsonResponse2 });
+      } else if (url.pathname === "/api/billing/webhook" && request.method === "POST") {
+        return await handleBillingWebhook(request, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/billing/confirm" && request.method === "POST") {
         return await handleBillingConfirm(request, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/billing/iris-unlock" && request.method === "GET") {

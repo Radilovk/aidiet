@@ -46,14 +46,20 @@
   - EmoEat → `emoeat_credit:<устройство|акаунт>` +1, изразходва се при успешен анализ.
 - `GET /api/billing/status?deviceId=` → готово ли е плащането, режимът, продуктите и коя цена на
   протокола важи за устройството.
-- Без webhook: потвърждението е при връщането. Ако човек затвори страницата преди връщане, покупката
-  не се записва сама — записва се с `POST /api/billing/confirm { sessionId }` с id-то на сесията
-  от таблото на Stripe (безопасно е, записът е еднократен). Webhook — при преминаване на реален режим.
+- **Webhook** `POST /api/billing/webhook` (събития `checkout.session.completed` и
+  `checkout.session.async_payment_succeeded`) записва покупката, дори човек да затвори страницата
+  преди връщане. Подписът се проверява с ключа `whsec_…` (до 5 минути разлика във времето).
+  Плащания от същата сметка, които не са наши (XBODY), и събития от другия режим се приемат с 200
+  и не се записват.
+- Webhook и връщане за една поръчка → записва се веднъж (KV маркер + id-тата на сесиите в записа на плана).
 
 ## Режим и ключове
 
-- `BILLING_MODE=test` (по подразбиране) → `STRIPE_TEST_SECRET_KEY`. `live` → `STRIPE_SECRET_KEY`
-  (същата сметка, с която работи гаранцията за XBODY).
+- `BILLING_MODE=test` (по подразбиране) → `STRIPE_TEST_SECRET_KEY` + `STRIPE_TEST_WEBHOOK_SECRET`.
+  `live` → `STRIPE_SECRET_KEY` (същата сметка, с която работи гаранцията за XBODY) + `STRIPE_WEBHOOK_SECRET`.
+- Webhook в Stripe: Workbench → Webhooks → Add destination → адрес
+  `https://aidiet.radilov-k.workers.dev/api/billing/webhook`, събития `checkout.session.completed`
+  и `checkout.session.async_payment_succeeded` → ключът за подписа (`whsec_…`) като secret на worker-а.
 - В тестов режим плащането се вижда само за тестери: адрес с `?billing=test` (`?billing=off` го маха).
 - Стената за достъп (KV `admin_paywall_enabled`) е изключена, докато не я включим от админа —
   дотогава всичко в Eatologix и EmoEat е отворено.

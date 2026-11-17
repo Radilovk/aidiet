@@ -7,12 +7,14 @@
  */
 import assert from 'node:assert/strict';
 import Pricing from '../pricing-config.js';
-import { handleBillingCheckout, handleBillingConfirm, billingReady, emoeatCredit, useEmoeatCredit } from '../billing.js';
+import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, verifyStripeSignature, billingReady, emoeatCredit, useEmoeatCredit } from '../billing.js';
+import { createHmac } from 'node:crypto';
 import { gateFeature, readAccess, normalizeAccess, resolveAccess, PAYWALL_KEY } from '../access-control.js';
 
 const kv = new Map();
 const env = {
   STRIPE_TEST_SECRET_KEY: 'sk_test_x',
+  STRIPE_TEST_WEBHOOK_SECRET: 'whsec_test_abc',
   page_content: {
     get: async (k) => (kv.has(k) ? kv.get(k) : null),
     put: async (k, v) => { kv.set(k, v); },
@@ -173,6 +175,57 @@ await check('неплатена сесия → нищо не се записва
   const d = await confirm('cs_test_unpaid00000');
   assert.equal(d.ok, false);
   assert.equal(await readAccess(env, 'fb_nopay000'), null);
+});
+
+// ── Webhook ──
+const sign = (payload, secret = 'whsec_test_abc', t = Math.floor(Date.now() / 1000)) =>
+  `t=${t},v1=${createHmac('sha256', secret).update(`${t}.${payload}`).digest('hex')}`;
+const hook = async (event, sig) => {
+  const payload = JSON.stringify(event);
+  const r = await handleBillingWebhook(new Request('https://w/api/billing/webhook', { method: 'POST', body: payload, headers: { 'Stripe-Signature': sig ?? sign(payload) } }), env, { respond });
+  return { status: r.status, d: await r.json() };
+};
+const completed = (s) => ({ type: 'checkout.session.completed', livemode: false, data: { object: { mode: 'payment', payment_status: 'paid', ...s } } });
+
+await check('webhook: подписът се проверява (грешен, чужд ключ, стар)', async () => {
+  const ev = completed({ id: 'cs_test_wh_bad000001', metadata: { product: 'plan_4w', userId: 'fb_webhook01' } });
+  assert.equal((await hook(ev, 'nonsense')).status, 400);
+  assert.equal((await hook(ev, sign(JSON.stringify(ev), 'whsec_other'))).status, 400);
+  assert.equal((await hook(ev, sign(JSON.stringify(ev), 'whsec_test_abc', Math.floor(Date.now() / 1000) - 3600))).status, 400);
+  assert.equal(await readAccess(env, 'fb_webhook01'), null);
+  assert.equal(await verifyStripeSignature('x', sign('x'), 'whsec_test_abc'), true);
+});
+
+await check('webhook: платен план се записва без връщане от Stripe', async () => {
+  const r = await hook(completed({ id: 'cs_test_wh_plan00001', metadata: { product: 'plan_4w', userId: 'fb_webhook01' } }));
+  assert.equal(r.status, 200); assert.equal(r.d.ok, true);
+  assert.equal(normalizeAccess(await readAccess(env, 'fb_webhook01')).tier, 'core');
+});
+
+await check('webhook + връщане за същата поръчка → записва се веднъж', async () => {
+  sessions.cs_test_wh_plan00001 = { id: 'cs_test_wh_plan00001', payment_status: 'paid', metadata: { product: 'plan_4w', userId: 'fb_webhook01' } };
+  const before = await readAccess(env, 'fb_webhook01');
+  assert.equal((await confirm('cs_test_wh_plan00001')).repeat, true);
+  assert.equal((await hook(completed({ id: 'cs_test_wh_plan00001', metadata: { product: 'plan_4w', userId: 'fb_webhook01' } }))).d.repeat, true);
+  assert.deepEqual(await readAccess(env, 'fb_webhook01'), before);
+  // и без маркера billing:done (едновременни пътища) планът не се удвоява
+  kv.delete('billing:done:cs_test_wh_plan00001');
+  await hook(completed({ id: 'cs_test_wh_plan00001', metadata: { product: 'plan_4w', userId: 'fb_webhook01' } }));
+  assert.equal(normalizeAccess(await readAccess(env, 'fb_webhook01')).quota.chat, 60);
+});
+
+await check('webhook: чужди плащания, друг режим и неплатени се приемат без запис', async () => {
+  assert.equal((await hook(completed({ id: 'cs_test_xbody00001', metadata: { product: 'xbody_guarantee' } }))).d.ok, false);
+  assert.equal((await hook({ ...completed({ id: 'cs_live_000000001', metadata: { product: 'plan_4w', userId: 'fb_webhook02' } }), livemode: true })).d.ignored, 'mode');
+  assert.equal((await hook({ type: 'invoice.paid', livemode: false, data: { object: {} } })).d.ignored, 'invoice.paid');
+  const unpaid = await hook(completed({ id: 'cs_test_wh_unpaid001', payment_status: 'unpaid', metadata: { product: 'plan_4w', userId: 'fb_webhook02' } }));
+  assert.equal(unpaid.status, 200); assert.equal(unpaid.d.ok, false);
+  assert.equal(await readAccess(env, 'fb_webhook02'), null);
+});
+
+await check('webhook без ключ за подписа → 503', async () => {
+  const r = await handleBillingWebhook(new Request('https://w', { method: 'POST', body: '{}' }), { ...env, STRIPE_TEST_WEBHOOK_SECRET: '' }, { respond });
+  assert.equal(r.status, 503);
 });
 
 console.log(`\nВсички ${checks.length} проверки минаха`);
