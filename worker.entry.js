@@ -135,6 +135,9 @@ import { essenceText, digestDue, normalizeDigest, DIGEST_APPROACH } from './heal
 import { irisText } from './enrichment-iris.js';
 import { crossCheckText } from './cross-check.js';
 import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
+import Pricing from './pricing-config.js';
+import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUsage, quotaMap, normalizeAccess, paywallEnabled, PAYWALL_KEY, usageWindow } from './access-control.js';
+import { handleBillingCheckout, handleBillingConfirm, handleBillingPortal, handleIrisUnlockStatus, refreshStripeAccess, billingReady, stripeMode } from './billing.js';
 import { siteQuizText } from './enrichment-site.js';
 import { normalizeHandoff, handoffToFacts, prefillFor, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
@@ -3471,6 +3474,10 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
   console.log(`generatePlanAndSave: starting job ${jobId}${clientId ? ` (clientId: ${clientId})` : ''}`);
   try {
     const userId = preferredUserId || data.email || generateUserId(data);
+    if (options.aiLite) {
+      // Без AI стъпки (безплатно ниво при включена стена): менюто е само от алгоритъма.
+      Object.defineProperty(data, '_aiLite', { value: true, enumerable: false });
+    }
     if (options.handoffToken) {
       // Неизброимо поле: стига до двигателя, но не и до записите на клиента.
       Object.defineProperty(data, '_handoffFacts', { value: await handoffFactsForGeneration(env, options.handoffToken), enumerable: false });
@@ -3677,6 +3684,18 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       }
     }
 
+    // Цената на плана: при включена стена AI стъпките са само за платен акаунт;
+    // нов план след промяна (замяна) е платен и с месечен таван.
+    let replanGate = null;
+    if (requireApproval) {
+      replanGate = await gateFeature(request, env, 'replan', {
+        checkOwner: checkFirebaseOwner, respond: jsonResponse,
+        body: { userId: explicitUserId, idToken },
+      });
+      if (replanGate.deny) return replanGate.deny;
+    }
+    const useAI = await planUsesAI(env, explicitUserId, idToken, verifyFirebaseIdToken);
+
     let resolvedClientId = clientId;
     if (!resolvedClientId && data.email) {
       const existingClient = await findClientByEmail(env, data.email);
@@ -3685,6 +3704,7 @@ async function handleGeneratePlanAsync(request, env, ctx) {
 
     const generationOptions = {
       requireApproval,
+      ...(useAI ? {} : { aiLite: true }),
       userId: explicitUserId || '',
       ...(handoffToken ? { handoffToken } : {}),
     };
@@ -3719,6 +3739,8 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       ctx.waitUntil(generatePlanAndSave(env, data, jobId, resolvedClientId, generationOptions));
     }
 
+    // Таванът за нов план се брои, щом задачата е приета.
+    if (replanGate) await replanGate.commit().catch(() => {});
     return jsonResponse({ success: true, jobId });
   } catch (error) {
     console.error('handleGeneratePlanAsync error:', error);
@@ -4986,6 +5008,12 @@ async function handleSaveClientData(request, env, ctx) {
       submittedAt: new Date().toISOString()
     };
 
+    // Партньорът (студио, диетолог, треньор), довел клиента — първият код остава.
+    const partnerRef = String(data.partnerRef || '').trim().toLowerCase();
+    if (!clientData.partnerRef && /^[a-z0-9][a-z0-9-]{1,31}$/.test(partnerRef)) {
+      clientData.partnerRef = partnerRef;
+    }
+
     if (data.plan) {
       clientData.planStatus = 'pending';
       clientData.planActivatedAt = null;
@@ -5035,6 +5063,7 @@ async function handleSaveClientData(request, env, ctx) {
       `🆔 ID: ${clientId}\n` +
       `📧 Имейл: ${clientData.answers?.email || '—'}\n` +
       `🎯 Цел: ${clientData.answers?.goal || '—'}\n` +
+      (clientData.partnerRef ? `🤝 Партньор: ${clientData.partnerRef}\n` : '') +
       `📅 Дата: ${formatDateBG(clientData.submittedAt)}`
     );
 
@@ -5088,6 +5117,7 @@ async function handleGetClientsList(request, env) {
             planStatus: clientData.planStatus || 'none',
             planUpdatedAt: clientData.planUpdatedAt || null,
             planActivatedAt: clientData.planActivatedAt || null,
+            partnerRef: clientData.partnerRef || '',
             planGenerationError: clientData.planStatus === 'failed' ? (clientData.planGenerationError || '') : ''
           };
         }
@@ -5176,6 +5206,7 @@ async function purgeClientData(env, { clientIds = [], userIds = [], tolerateAuth
   const firebaseUidsToDelete = new Set();
   for (const userId of userIdsToDelete) {
     keysToDelete.add(`user_profile:${userId}`);
+    keysToDelete.add(`access:${userId}`);
     keysToDelete.add(`push_subscription_${userId}`);
     keysToDelete.add(`notification_preferences_${userId}`);
     keysToDelete.add(`game_state:${userId}`);
@@ -6130,6 +6161,22 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
  * Запис в чужд fb_ профил е невъзможен: без валиден токен на същия потребител → 401/403.
  * Анонимните (не-fb_) идентификатори остават без вход, както досега.
  */
+/**
+ * Платена функция: проверка на нивото и тавана преди обработчика; използването
+ * се брои само при успешен отговор (грешка на AI не изяжда от тавана).
+ */
+async function gatedRun(request, env, feature, run, fields) {
+  const gate = await gateFeature(request, env, feature, { checkOwner: checkFirebaseOwner, respond: jsonResponse, fields });
+  if (gate.deny) return gate.deny;
+  const response = await run();
+  if (response && response.ok) {
+    let success = true;
+    try { success = (await response.clone().json())?.success !== false; } catch (_) { /* не е JSON */ }
+    if (success) await gate.commit().catch((e) => console.warn('usage count failed:', e?.message));
+  }
+  return response;
+}
+
 async function checkFirebaseOwner(userId, idToken, env, request) {
   try {
     await verifyWeeklyRequestAuth(userId, idToken, env, request);
@@ -8751,6 +8798,11 @@ async function runAutoWeekly(env, userId, now = Date.now(), dueMs = now - WEEKLY
     return action;
   }
   if (action !== 'run') return action; // 'pending' — срокът се записва наново при нея
+  // Включена стена: автоматичният седмичен преглед (AI) е само за платено ниво.
+  if (await paywallEnabled(env) && !Pricing.allows(normalizeAccess(await readAccess(env, userId), now).tier, 'weekly')) {
+    await scheduleWeeklyDue(env, userId, now + WEEKLY_CYCLE_MS);
+    return 'unpaid';
+  }
   const cycleNumber = nextWeeklyCycle(history, state.gameWeeklyAI);
   const jobId = crypto.randomUUID();
   // Последните 3 седмици стигат за прегледа и пазят съобщението в опашката малко.
@@ -8928,10 +8980,12 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   enrichUserDataEngineContext(data);
   const sessionId = generateUniqueId('session');
   const tokens = { input: 0, output: 0, total: 0 };
+  // Безплатно ниво при включена стена: само алгоритъмът, без разход за AI.
+  const aiLite = data._aiLite === true;
   try {
-    await applyIntakeHints(env, data);
+    if (!aiLite) await applyIntakeHints(env, data);
     // Посоката и силата на целта: алгоритъмът предлага, AI преглежда, алгоритъмът проверява.
-    await conveneGoalCouncil(env, data);
+    if (!aiLite) await conveneGoalCouncil(env, data);
     const analysis = await runStep1Analysis(env, data, sessionId, 'step1_analysis', null, tokens);
     if (typeof onAnalysisReady === 'function') {
       try {
@@ -8941,9 +8995,12 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       }
     }
     let plan = await assembleEngineValidated(env, data, analysis);
-    plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { slotAvoid: swaps }));
-    plan = await writePlanVoice(env, data, plan);
+    if (!aiLite) {
+      plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { slotAvoid: swaps }));
+      plan = await writePlanVoice(env, data, plan);
+    }
     plan._meta.tokenUsage = tokens;
+    if (aiLite) plan._meta.aiLite = true;
     await finalizeAISessionLogs(env, sessionId);
     return plan;
   } catch (error) {
@@ -18059,15 +18116,15 @@ export default {
       } else if (url.pathname === '/api/chat' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'CHAT');
         if (rlErr) return rlErr;
-        return await handleChat(request, env);
+        return await gatedRun(request, env, 'chat', () => handleChat(request, env));
       } else if (url.pathname === '/api/analyze-food-image' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
         if (rlErr) return rlErr;
-        return await handleAnalyzeFoodImage(request, env);
+        return await gatedRun(request, env, 'photo', () => handleAnalyzeFoodImage(request, env));
       } else if (url.pathname === '/api/analyze-menu-image' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
         if (rlErr) return rlErr;
-        return await handleAnalyzeMenuImage(request, env);
+        return await gatedRun(request, env, 'menu_photo', () => handleAnalyzeMenuImage(request, env));
       } else if (url.pathname === '/api/analyze-kids-food' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
         if (rlErr) return rlErr;
@@ -18105,7 +18162,7 @@ export default {
       } else if (url.pathname === '/api/generate-protocol' && request.method === 'POST') {
         return await handleGenerateProtocol(request, env);
       } else if (url.pathname === '/api/generate-emoeat-analysis' && request.method === 'POST') {
-        return await handleGenerateEmoeatAnalysis(request, env);
+        return await gatedRun(request, env, 'emoeat_ai', () => handleGenerateEmoeatAnalysis(request, env));
       } else if (url.pathname === '/api/generate-longevity-protocol' && request.method === 'POST') {
         return await handleGenerateLongevityProtocol(request, env);
       } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
@@ -18224,6 +18281,40 @@ export default {
         return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === '/api/user/save-profile' && request.method === 'POST') {
         return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === '/api/user/access' && request.method === 'GET') {
+        const accessUserId = url.searchParams.get('userId') || '';
+        await refreshStripeAccess(env, accessUserId);   // подновен абонамент → нов период
+        return jsonResponse(await resolveAccess(env, accessUserId));
+      } else if (url.pathname === '/api/billing/checkout' && request.method === 'POST') {
+        return await handleBillingCheckout(request, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/billing/confirm' && request.method === 'POST') {
+        return await handleBillingConfirm(request, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/billing/portal' && request.method === 'POST') {
+        return await handleBillingPortal(request, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/billing/iris-unlock' && request.method === 'GET') {
+        return await handleIrisUnlockStatus(url, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/billing/status' && request.method === 'GET') {
+        return jsonResponse({ ready: billingReady(env), mode: stripeMode(env), prices: { plans: Pricing.PLANS.map((p) => ({ id: p.id, prices: p.prices })), products: Pricing.PRODUCTS } });
+      } else if (url.pathname === '/api/admin/paywall' && request.method === 'GET') {
+        return jsonResponse({ enabled: await paywallEnabled(env) });
+      } else if (url.pathname === '/api/admin/paywall' && request.method === 'POST') {
+        if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+        const { enabled } = await request.json().catch(() => ({}));
+        await env.page_content.put(PAYWALL_KEY, enabled === true ? 'true' : 'false');
+        return jsonResponse({ success: true, enabled: enabled === true });
+      } else if (url.pathname === '/api/admin/access' && request.method === 'GET') {
+        const userId = url.searchParams.get('userId') || '';
+        const record = await readAccess(env, userId);
+        const access = normalizeAccess(record);
+        return jsonResponse({ userId, record, ...access, quotas: quotaMap(access.tier, await readUsage(env, userId, Date.now(), usageWindow(access)), access.period) });
+      } else if (url.pathname === '/api/admin/access' && request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        try {
+          const record = await writeAccess(env, body.userId, { tier: body.tier, until: body.until || null, source: 'admin', note: body.note || '' });
+          return jsonResponse({ success: true, record });
+        } catch (e) {
+          return jsonResponse({ error: e.message }, 400);
+        }
       } else if (url.pathname === '/api/user/delete-account' && request.method === 'POST') {
         return await handleDeleteOwnAccount(request, env);
       } else if (url.pathname === '/api/admin/wording' && request.method === 'POST') {
@@ -18243,7 +18334,7 @@ export default {
       } else if (url.pathname === '/api/enrichment/get' && request.method === 'POST') {
         return await handleEnrichmentGet(request, env);
       } else if (url.pathname === '/api/enrichment/extract-labs' && request.method === 'POST') {
-        return await handleLabExtract(request, env);
+        return await gatedRun(request, env, 'docs', () => handleLabExtract(request, env));
       } else if (url.pathname === '/api/admin/handoff-stats' && request.method === 'GET') {
         return await handleAdminHandoffStats(request, env);
       } else if (url.pathname === '/api/handoff' && request.method === 'POST') {
@@ -18261,9 +18352,9 @@ export default {
       } else if (url.pathname === '/api/enrichment/resolve' && request.method === 'POST') {
         return await handleEnrichmentResolve(request, env);
       } else if (url.pathname === '/api/enrichment/extract-device' && request.method === 'POST') {
-        return await handleDeviceExtract(request, env);
+        return await gatedRun(request, env, 'docs', () => handleDeviceExtract(request, env));
       } else if (url.pathname === '/api/enrichment/assess-document' && request.method === 'POST') {
-        return await handleDocumentAssess(request, env);
+        return await gatedRun(request, env, 'docs', () => handleDocumentAssess(request, env));
       } else if (url.pathname === '/api/enrichment/delete' && request.method === 'POST') {
         return await handleEnrichmentDelete(request, env);
       } else if (url.pathname === '/api/admin/links-status' && request.method === 'GET') {
@@ -18289,7 +18380,7 @@ export default {
       } else if (url.pathname === '/api/weekly/adapt-plan' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'WEEKLY_ADAPT');
         if (rlErr) return rlErr;
-        return await handleWeeklyAdaptPlan(request, env, ctx);
+        return await gatedRun(request, env, 'weekly', () => handleWeeklyAdaptPlan(request, env, ctx));
       } else if (url.pathname === '/api/weekly/ack-notice' && request.method === 'POST') {
         return await handleWeeklyAckNotice(request, env);
       } else if (url.pathname === '/api/user/check-account' && request.method === 'GET') {

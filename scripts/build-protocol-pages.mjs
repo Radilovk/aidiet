@@ -22,7 +22,7 @@ const SITE = 'https://biocode.website';
 const CSS_V = '20261114c';
 
 /** Статични страници с общия футър (вмъква се между маркерите). */
-const SITE_FOOTER_PAGES = ['index.html', 'features.html', 'help.html', 'delete-account.html', 'privacy-policy.html', 'terms.html']; // emoeat-landing.html има собствен футър (самостоятелен сайт emoeat.app)
+const SITE_FOOTER_PAGES = ['index.html', 'features.html', 'pricing.html', 'help.html', 'delete-account.html', 'privacy-policy.html', 'terms.html']; // emoeat-landing.html има собствен футър (самостоятелен сайт emoeat.app)
 
 const esc = (v) => String(v ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -76,7 +76,8 @@ function siteFooter() {
                         <h2 class="sf-h">Продукт</h2>
                         <ul>
                             <li><a href="index.html?stay=1#how-it-works">Как работи</a></li>
-                            <li><a href="features.html">Възможности</a></li>
+                            <li><a href="features.html">Какво включва</a></li>
+                            <li class="sf-web"><a href="pricing.html">Цени</a></li>
                             <li><a href="questionnaire2.html">Създай план</a></li>
                             <li class="sf-web"><a href="index.html?stay=1#android-install">Приложението</a></li>
                         </ul>
@@ -127,7 +128,8 @@ const topbar = () => `<header class="topbar">
         </div>
     </header>`;
 
-const themeInit = `<script src="i18n.js?v=${CSS_V}"></script>
+const themeInit = `<script src="partner-ref.js"></script>
+<script src="i18n.js?v=${CSS_V}"></script>
     <script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}t=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.querySelector('meta[name="theme-color"]').setAttribute('content','#071312');})();</script>`;
 
 const fonts = `<link rel="preconnect" href="https://fonts.googleapis.com">
@@ -365,6 +367,7 @@ function sitemap() {
         ['', '1.0'],
         ['questionnaire2.html', '0.9'],
         ['features.html', '0.8'],
+        ['pricing.html', '0.8'],
         ['protocol-landing.html', '0.8'],
         ...PROTOCOL_STATES.map((s) => [statePageUrl(s), '0.7']),
         ['emoeat-landing.html', '0.7'],

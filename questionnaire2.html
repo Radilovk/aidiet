@@ -1029,6 +1029,7 @@
     </style>
     <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
+    <script src="./partner-ref.js"></script>
     <script src="./handoff-client.js"></script>
     <script>
         // Apply color scheme from admin settings
@@ -4069,6 +4070,8 @@
                     cleanAnswers[key] = val;
                 }
                 const clientData = { id: clientId, timestamp: new Date().toISOString(), answers: cleanAnswers };
+                const partnerRef = window.NutriPlanPartnerRef ? window.NutriPlanPartnerRef.get() : '';
+                if (partnerRef) clientData.partnerRef = partnerRef;
                 const postClient = () => fetch('https://aidiet.radilov-k.workers.dev/api/save-client-data', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
