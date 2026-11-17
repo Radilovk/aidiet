@@ -59,12 +59,13 @@
         body{background-color:var(--bg-color);color:var(--text-dark);overflow-x:hidden;transition:background-color .3s,color .3s;}
 
         /* NAV */
-        nav{display:flex;justify-content:space-between;align-items:center;
+        /* Само горната лента: голото „nav“ хващаше и картата на сайта във футъра и я закачаше най-горе. */
+        .top-nav{display:flex;justify-content:space-between;align-items:center;
             padding:calc(20px + var(--safe-area-inset-top)) calc(5% + var(--safe-area-inset-right)) 20px calc(5% + var(--safe-area-inset-left));
             min-height:calc(60px + var(--safe-area-inset-top));background:var(--white);
             backdrop-filter:blur(var(--glass-blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
             position:fixed;width:100%;top:0;z-index:1000;box-shadow:var(--shadow);border-bottom:1px solid var(--glass-border);}
-        [data-theme="dark"] nav{background:rgba(10,28,28,0.92);box-shadow:0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(25,214,210,0.08);border-bottom-color:rgba(25,214,210,0.12);}
+        [data-theme="dark"] .top-nav{background:rgba(10,28,28,0.92);box-shadow:0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(25,214,210,0.08);border-bottom-color:rgba(25,214,210,0.12);}
         .logo{font-size:1.5rem;font-weight:800;color:var(--text-dark);min-height:44px;display:flex;align-items:center;gap:10px;text-decoration:none;}
         .logo i{color:var(--primary-red);}.logo .ex-logo{height:30px;}
         .nav-btn{background:var(--ds-fill-grad);color: var(--ds-on-fill);padding:12px 28px;border-radius:50px;text-decoration:none;font-weight:700;transition:all .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 6px 20px rgba(3,147,156,.35);display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;}
@@ -175,14 +176,10 @@
         .module-icon{font-size:2rem;margin-bottom:10px;}
         .card-emoeat .module-card-bg{background:linear-gradient(135deg,#6b21a8 0%,#9333ea 100%);}
         .card-emoeat .module-card-overlay{background:linear-gradient(to top,rgba(107,33,168,.85) 0%,rgba(147,51,234,.4) 100%);}
-        .card-longevity .module-card-bg{background:linear-gradient(135deg,#0e7490 0%,#06b6d4 100%);}
-        .card-longevity .module-card-overlay{background:linear-gradient(to top,rgba(14,116,144,.85) 0%,rgba(6,182,212,.4) 100%);}
+        .card-iris .module-card-bg{background:linear-gradient(135deg,#1e3a8a 0%,#0e7490 100%);}
+        .card-iris .module-card-overlay{background:linear-gradient(to top,rgba(30,58,138,.85) 0%,rgba(14,116,144,.4) 100%);}
         .card-protocols .module-card-bg{background:linear-gradient(135deg,#047857 0%,#10b981 100%);}
         .card-protocols .module-card-overlay{background:linear-gradient(to top,rgba(4,120,87,.85) 0%,rgba(16,185,129,.4) 100%);}
-        .card-kids .module-card-bg{background:linear-gradient(135deg,#be185d 0%,#f43f5e 100%);}
-        .card-kids .module-card-overlay{background:linear-gradient(to top,rgba(190,24,93,.85) 0%,rgba(244,63,94,.4) 100%);}
-        .card-xbody .module-card-bg{background:linear-gradient(135deg,#1e40af 0%,#3b82f6 100%);}
-        .card-xbody .module-card-overlay{background:linear-gradient(to top,rgba(30,64,175,.85) 0%,rgba(59,130,246,.4) 100%);}
 
         /* PROTOCOLS LIST */
         .protocols-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
@@ -209,6 +206,24 @@
         .btn-white{background:#fff;color:#03939C;padding:15px 40px;border-radius:50px;text-decoration:none;font-weight:800;font-size:1.05rem;display:inline-flex;align-items:center;gap:10px;transition:all .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 6px 20px rgba(0,0,0,.15);}
         .btn-white:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(0,0,0,.2);background:#eefdfc;}
 
+        /* PRICING — числата идват от pricing-config.js (един източник) */
+        .price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;max-width:980px;margin:0 auto;}
+        .price-card{position:relative;background:var(--white-solid);border:1px solid var(--glass-border);border-radius:var(--radius);padding:26px 22px;display:flex;flex-direction:column;gap:12px;box-shadow:0 2px 10px rgba(3,147,156,.08);}
+        [data-theme="dark"] .price-card{background:rgba(20,55,55,.55);}
+        .price-card.is-top{border:2px solid var(--primary-red);box-shadow:0 14px 34px rgba(3,147,156,.18);}
+        .price-badge{position:absolute;top:-12px;left:22px;background:var(--ds-fill-grad);color:var(--ds-on-fill);font-size:.72rem;font-weight:700;padding:3px 12px;border-radius:50px;text-transform:uppercase;letter-spacing:.05em;}
+        .price-card h3{font-size:1.1rem;font-weight:800;color:var(--text-dark);}
+        .price-tag{font-size:.88rem;color:var(--text-gray);line-height:1.5;}
+        .price-amount{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+        .price-amount b{font-size:2rem;font-weight:800;color:var(--text-dark);letter-spacing:-.02em;}
+        .price-amount span{font-size:.85rem;color:var(--text-gray);}
+        .price-card ul{list-style:none;display:flex;flex-direction:column;gap:7px;margin:4px 0 6px;}
+        .price-card li{font-size:.88rem;color:var(--text-gray);line-height:1.45;padding-left:22px;position:relative;}
+        .price-card li::before{content:'\2713';position:absolute;left:0;top:0;color:var(--primary-red);font-weight:800;}
+        .price-card .nav-btn,.price-card .btn-outline{margin-top:auto;}
+        .price-foot{text-align:center;color:var(--text-gray);font-size:.92rem;line-height:1.6;max-width:640px;margin:28px auto 0;}
+        .price-foot a{color:var(--primary-red);font-weight:700;}
+
         /* REVEAL */
         .reveal{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease;}
         .reveal.visible{opacity:1;transform:translateY(0);}
@@ -231,7 +246,7 @@
     <div class="mesh-overlay" aria-hidden="true"></div>
 
     <!-- Navigation -->
-    <nav role="navigation" aria-label="Главна навигация">
+    <nav class="top-nav" role="navigation" aria-label="Главна навигация">
         <a href="index.html" class="logo" aria-label="Eatologix начална страница"><span class="ex-logo" role="img" aria-label="Eatologix"></span>
         </a>
         <div style="display:flex;gap:10px;align-items:center;">
@@ -250,12 +265,13 @@
         <div class="nav-menu-section-label">Начална страница</div>
         <a href="index.html" onclick="closeNavMenu()"><i class="fas fa-home"></i> Начало</a>
         <a href="features.html" onclick="closeNavMenu()" style="color:var(--primary-red);"><i class="fas fa-star"></i> Функции и Предимства</a>
-        <a href="index.html#how-it-works" onclick="closeNavMenu()"><i class="fas fa-info-circle"></i> Как работи</a>
-        <a href="index.html#contact" onclick="closeNavMenu()"><i class="fas fa-envelope"></i> Контакти</a>
+        <a href="index.html?stay=1#how-it-works" onclick="closeNavMenu()"><i class="fas fa-info-circle"></i> Как работи</a>
+        <a href="#pricing" class="sf-web" onclick="closeNavMenu()"><i class="fas fa-tag"></i> Цени</a>
+        <a href="index.html?stay=1#contact" onclick="closeNavMenu()"><i class="fas fa-envelope"></i> Контакти</a>
         <div class="nav-menu-divider"></div>
-        <div class="nav-menu-section-label">Модули</div>
+        <div class="nav-menu-section-label">Програми</div>
         <a href="emoeat-landing.html" onclick="closeNavMenu()"><img src="brand/emoeat-mark.svg" alt="" width="20" height="20" style="display:inline-block;vertical-align:-4px;margin-right:2px"> Емоционално Хранене</a>
-        <a href="longevity.html" onclick="closeNavMenu()"><i class="fas fa-dna"></i> Антиейджинг</a>
+        <a href="https://irismap.app/?from=nutriplan" target="_blank" rel="noopener" onclick="closeNavMenu()"><img src="brand/irismap-mark.svg" alt="" width="20" height="20" style="display:inline-block;vertical-align:-4px;margin-right:2px"> IrisMap — ирисов анализ</a>
         <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични Протоколи</a>
     </nav>
 
@@ -368,8 +384,8 @@
                 <div class="feature-card">
                     <div class="feature-tag"><i class="fas fa-user"></i> ПРОФИЛ</div>
                     <div class="icon-wrap icon-green"><i class="fas fa-user-edit"></i></div>
-                    <h3>Профил и Регенерация</h3>
-                    <p>Редактирай здравните си данни по всяко време. Едно натискане генерира изцяло нов персонализиран план на база актуализирания ти профил.</p>
+                    <h3>Профил и нов план</h3>
+                    <p>Редактирай здравните си данни по всяко време. При съществена промяна планът се изчислява наново по актуалния профил (включено в плана).</p>
                     <a href="index.html?app=1&tab=profile" class="card-link"><i class="fas fa-arrow-right"></i> Профил</a>
                 </div>
 
@@ -391,7 +407,7 @@
                     <div class="feature-tag"><i class="fas fa-bell"></i> PWA</div>
                     <div class="icon-wrap icon-indigo"><i class="fas fa-mobile-screen"></i></div>
                     <h3>Работи като Приложение</h3>
-                    <p>Инсталирай на телефона — работи offline, с push известия за хранения и директен достъп от началния екран без App Store.</p>
+                    <p>Android приложение или инсталиране от браузъра — менюто е достъпно и без интернет, с известия за храненията.</p>
                 </div>
 
             </div>
@@ -401,7 +417,7 @@
         <section class="section section-alt reveal">
             <div class="section-title">
                 <h2>Специализирани <span>Модули</span></h2>
-                <p>Самостоятелни програми с дълбок AI анализ за специфични цели и нужди.</p>
+                <p>Програми за конкретни цели — част от Eatologix.</p>
             </div>
             <div class="modules-grid">
                 <a href="emoeat-landing.html" class="module-card card-emoeat">
@@ -413,13 +429,13 @@
                         <p>Разкрий подсъзнателните тригери. CBT, DBT, HALT, RAIN терапии за трайна промяна на хранителното поведение.</p>
                     </div>
                 </a>
-                <a href="longevity.html" class="module-card card-longevity">
+                <a href="https://irismap.app/?from=nutriplan" target="_blank" rel="noopener" class="module-card card-iris">
                     <div class="module-card-bg"></div>
                     <div class="module-card-overlay"></div>
                     <div class="module-card-content">
-                        <div class="module-icon">&#129516;</div>
-                        <h3>Антиейджинг и жизненост</h3>
-                        <p>Забави стареенето, активирай автофагия и оптимизирай митохондриите с научно-базирани протоколи.</p>
+                        <div class="module-icon"><img src="brand/irismap-mark.svg" alt="" width="48" height="48" style="display:block"></div>
+                        <h3>IrisMap — ирисов анализ</h3>
+                        <p>Разчитане на двата ириса и насоки за хранене, добавки и режим. С плана — един анализ на 4 седмици.</p>
                     </div>
                 </a>
                 <a href="protocol-landing.html" class="module-card card-protocols">
@@ -429,15 +445,6 @@
                         <div class="module-icon">&#127973;</div>
                         <h3>Клинични Протоколи</h3>
                         <p>11 специализирани протокола за хронични заболявания и специфични здравни цели.</p>
-                    </div>
-                </a>
-                <a href="xbody.html" class="module-card card-xbody">
-                    <div class="module-card-bg"></div>
-                    <div class="module-card-overlay"></div>
-                    <div class="module-card-content">
-                        <div class="module-icon">&#9889;</div>
-                        <h3>XBody — EMS Тренировки</h3>
-                        <p>Резервирай EMS и физиотерапевтични сесии онлайн.</p>
                     </div>
                 </a>
             </div>
@@ -465,6 +472,16 @@
             <div style="text-align:center;margin-top:32px;">
                 <a href="protocol-landing.html" class="nav-btn"><i class="fas fa-stethoscope"></i> Виж всички протоколи</a>
             </div>
+        </section>
+
+        <!-- Pricing (само в сайта: в приложението няма цени — правилата на магазините) -->
+        <section class="section reveal sf-web" id="pricing">
+            <div class="section-title">
+                <h2>Колко <span>струва</span></h2>
+                <p>Без абонамент: плащаш веднъж за план със срок. Нищо не се подновява само.</p>
+            </div>
+            <div class="price-grid" id="priceGrid"></div>
+            <p class="price-foot" id="priceFoot"></p>
         </section>
 
         <!-- Benefits -->
@@ -505,22 +522,22 @@
                 <div class="benefit-item">
                     <div class="benefit-icon"><i class="fas fa-bolt"></i></div>
                     <div class="benefit-text">
-                        <strong>5 минути до плана</strong>
-                        <span>Попълни въпросника и получи пълен персонализиран план веднага.</span>
+                        <strong>5 минути въпросник</strong>
+                        <span>Дневните цели и примерен ден виждаш веднага, безплатно. Пълният план минава през специалист.</span>
                     </div>
                 </div>
                 <div class="benefit-item">
-                    <div class="benefit-icon"><i class="fas fa-lock"></i></div>
+                    <div class="benefit-icon"><i class="fas fa-receipt"></i></div>
                     <div class="benefit-text">
-                        <strong>Данните само при теб</strong>
-                        <span>Всичко се пази на твоето устройство — никакви профили, никакво проследяване.</span>
+                        <strong>Без абонамент</strong>
+                        <span>Плащаш веднъж за 4 или 12 седмици. Профилът ти се изтрива с едно натискане, когато пожелаеш.</span>
                     </div>
                 </div>
                 <div class="benefit-item">
                     <div class="benefit-icon"><i class="fas fa-mobile-screen"></i></div>
                     <div class="benefit-text">
                         <strong>Работи като приложение</strong>
-                        <span>Инсталирай на телефона — работи offline, без App Store, с push известия.</span>
+                        <span>Android приложение или директно от браузъра — с известия за храненията.</span>
                     </div>
                 </div>
             </div>
@@ -529,7 +546,7 @@
         <!-- CTA -->
         <section class="cta-section reveal">
             <h2>Готов за промяната?</h2>
-            <p>Попълни въпросника и получи своя персонализиран план само за минути.</p>
+            <p>Въпросникът е безплатен — виждаш дневните си цели и примерен ден от менюто веднага.</p>
             <a href="questionnaire2.html" class="btn-white">
                 <i class="fas fa-rocket"></i> Започни сега
             </a>
@@ -596,6 +613,35 @@
     </footer>
     <!-- site-footer:end -->
 
+    <script src="./pricing-config.js"></script>
+    <script>
+        // Цените — от pricing-config.js (същият източник като pricing.html, заключването и Stripe).
+        (function () {
+            var P = window.NutriPlanPricing, grid = document.getElementById('priceGrid');
+            if (!P || !grid) return;
+            var esc = function (t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+            var cards = [
+                { id: 'start', name: P.FREE.name, tagline: P.FREE.tagline, features: P.FREE.features, price: 0 },
+                Object.assign({ id: 'plan_4w' }, P.PRODUCTS.plan_4w),
+                Object.assign({ id: 'plan_12w' }, P.PRODUCTS.plan_12w)
+            ];
+            grid.innerHTML = cards.map(function (c) {
+                var cta = c.price
+                    ? '<a class="nav-btn" href="pricing.html#plans">Избери плана</a>'
+                    : '<a class="btn-outline" href="questionnaire2.html">Започни безплатно</a>';
+                return '<article class="price-card' + (c.highlight ? ' is-top' : '') + '">' +
+                    (c.highlight ? '<span class="price-badge">Препоръчваме</span>' : '') +
+                    '<h3>' + esc(c.name) + '</h3><p class="price-tag">' + esc(c.tagline) + '</p>' +
+                    '<div class="price-amount"><b>' + esc(P.formatPrice(c.price)) + '</b><span>' + (c.price ? 'еднократно' : 'без карта') + '</span></div>' +
+                    '<ul>' + c.features.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' + cta + '</article>';
+            }).join('');
+            var cont = P.PRODUCTS.plan_continue, iris = P.PRODUCTS.iris_analysis, emo = P.PRODUCTS.emoeat_analysis;
+            document.getElementById('priceFoot').innerHTML =
+                'Продължение с още 4 седмици — ' + esc(P.formatPrice(cont.price)) + '. ' +
+                'Личният анализ в EmoEat (' + esc(P.formatPrice(emo.price)) + ') и ирисовият анализ в IrisMap (' + esc(P.formatPrice(iris.price)) + ') са включени в плана. ' +
+                'Цените са с ДДС. <a href="pricing.html">Всички подробности</a>';
+        })();
+    </script>
     <script>
         function toggleNavMenu() {
             var btn = document.getElementById('hamburgerBtn');
