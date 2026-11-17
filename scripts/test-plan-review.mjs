@@ -15,8 +15,7 @@ put('c1', { id: 'c1', answers: { name: 'Ана', allergies: 'ракообраз�
 put('c2', { id: 'c2', answers: { name: 'Боби' }, plan: plan(), planStatus: 'activated', planUpdatedAt: '2026-11-16T10:00:00Z' });
 put('c3', { id: 'c3', answers: { name: 'Вера' }, plan: plan(), planStatus: 'pending', planUpdatedAt: '2026-11-17T11:00:00Z' });
 
-const msgs = [];
-const opts = { respond, reconcile: async (p) => { p.summary = { recomputed: true }; }, notify: (t) => msgs.push(t) };
+const opts = { respond, reconcile: async (p) => { p.summary = { recomputed: true }; } };
 const ok = [];
 const check = async (n, f) => { await f(); ok.push(n); console.log('✅', n); };
 
@@ -36,7 +35,7 @@ await check('присъда „fix“ с корекция: прилага се �
   assert.equal(rev.correctedPlan.weekPlan.day1.meals[1].name, 'Пилешко с ориз');
   assert.equal(rev.correctedPlan.summary.recomputed, true);
   assert.equal(JSON.parse(kv.get('client:c1')).plan.weekPlan.day1.meals[1].name, 'Скариди с ориз');
-  assert.match(msgs[0], /критични: 1/);
+  assert.equal(rev.findings[0].severity, 'critical');   // прегледът е в админа (хъбът за одобрение)
 });
 await check('прегледаният вариант излиза от опашката', async () => {
   const { d } = await json(await handleReviewQueue(env, { respond }));

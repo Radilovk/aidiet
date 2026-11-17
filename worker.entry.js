@@ -143,8 +143,10 @@ import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
 import { handleReviewQueue, handleReviewSubmit, handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, REVIEW_CRON } from './plan-review.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, BUDGET_KEY } from './spend.js';
 
-/** Известие до админа при 50% / 100% от дневния AI таван (през Make → Telegram). */
-const adminSpendNotify = (ctx) => async (text) => { notifyMake(ctx, text); };
+/** Известие до админа при 50% / 100% от дневния AI таван (push в админ панела). */
+const adminSpendNotify = (env) => async (text) => {
+  await sendPushNotificationToUser('admin', { title: 'AI разход', body: text, url: '/admin.html', notificationType: 'admin_budget' }, env);
+};
 import { siteQuizText } from './enrichment-site.js';
 import { normalizeHandoff, handoffToFacts, prefillFor, handoffPreview, HANDOFF_TTL_SEC, HANDOFF_MAX_BYTES } from './handoff.js';
 import { interactionsFor, applySupplementInteractions } from './drug-interactions.js';
@@ -4056,20 +4058,6 @@ function formatDateBG(isoString) {
   }
 }
 
-/**
- * Fire-and-forget notification to Make webhook → Telegram bot.
- * @param {object} ctx     - Cloudflare execution context
- * @param {string} telegramMessage - Pre-formatted text to send via Telegram
- */
-function notifyMake(ctx, telegramMessage) {
-  const p = fetch('https://hook.eu2.make.com/lexmz9kes4d3epra9btsqeqwdla06iqq', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramMessage })
-  }).catch(e => console.warn('Make webhook notification failed:', e));
-  if (ctx?.waitUntil) ctx.waitUntil(p);
-}
-
 // ─── Email notification via Resend API ───
 
 /**
@@ -4617,13 +4605,6 @@ async function handleReportProblem(request, env, ctx) {
     await env.page_content.put('problem_reports_list', JSON.stringify(reportsList));
     
     console.log('Problem report saved:', reportId);
-    notifyMake(ctx,
-      `🐛 Доклад за проблем\n\n` +
-      `👤 Потребител: ${report.userName}\n` +
-      `🆔 ID: ${report.userId}\n` +
-      `💬 Съобщение: ${report.message}\n` +
-      `📅 Дата: ${formatDateBG(report.timestamp)}`
-    );
 
     return jsonResponse({ 
       success: true, 
@@ -4712,14 +4693,6 @@ async function handleContactMessage(request, env, ctx) {
     await env.page_content.put('contact_messages_list', JSON.stringify(msgList));
 
     console.log('Contact message saved:', msgId);
-    notifyMake(ctx,
-      `📩 Ново Контакт Съобщение\n\n` +
-      `👤 Име: ${contactMsg.name}\n` +
-      `📧 Имейл: ${contactMsg.email || '—'}\n` +
-      `📋 Тема: ${contactMsg.subject || '—'}\n` +
-      `💬 Съобщение: ${contactMsg.message}\n` +
-      `📅 Дата: ${formatDateBG(contactMsg.timestamp)}`
-    );
 
     return jsonResponse({ success: true, messageId: msgId, message: 'Message sent successfully' });
   } catch (error) {
@@ -5081,15 +5054,6 @@ async function handleSaveClientData(request, env, ctx) {
     await kvPutJSON(env, 'clients_list', clientsList, null);
     
     console.log('Client data saved:', clientId);
-    notifyMake(ctx,
-      `📩 Ново запитване\n\n` +
-      `👤 Клиент: ${clientData.answers?.name || clientId}\n` +
-      `🆔 ID: ${clientId}\n` +
-      `📧 Имейл: ${clientData.answers?.email || '—'}\n` +
-      `🎯 Цел: ${clientData.answers?.goal || '—'}\n` +
-      (clientData.partnerRef ? `🤝 Партньор: ${clientData.partnerRef}\n` : '') +
-      `📅 Дата: ${formatDateBG(clientData.submittedAt)}`
-    );
 
     return jsonResponse({ 
       success: true, 
@@ -7217,14 +7181,6 @@ async function handleUpdateClientPlan(request, env, ctx) {
         notificationType: 'admin_plan_pending'
       }, env).catch(e => console.warn('Admin push notification failed:', e));
 
-      notifyMake(ctx,
-        `📋 Нов план чака преглед\n\n` +
-        `👤 Клиент: ${clientData.answers?.name || clientId}\n` +
-        `🆔 ID: ${clientId}\n` +
-        `📧 Имейл: ${clientData.answers?.email || '—'}\n` +
-        `🎯 Цел: ${clientData.answers?.goal || '—'}\n` +
-        `📅 Дата: ${formatDateBG(clientData.planUpdatedAt)}`
-      );
     } else if (clientData.planStatus === 'activated') {
       await deliverPlanUpdateToClient(env, clientData, clientId, wasPreviouslyActivated ? 'updated' : 'ready');
       console.log(`[Client] Plan update delivered for client ${clientId}`);
@@ -9983,7 +9939,7 @@ async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, ma
       }
 
       const data = await response.json();
-      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(null) });
+      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(env) });
 
       // Check for safety/content filtering or other finish reasons
       if (data.candidates && data.candidates[0]) {
@@ -10204,7 +10160,7 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
       }
 
       const data = await response.json();
-      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(null) });
+      await noteSpend(env, modelName, data.usageMetadata, { notify: adminSpendNotify(env) });
       if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
         throw new Error('Gemini Vision returned invalid response');
       }
@@ -18346,7 +18302,7 @@ export default {
       } else if (url.pathname === '/api/iris/redeem' && request.method === 'POST') {
         return await handleIrisRedeem(request, env, { respond: jsonResponse });
       } else if (url.pathname.startsWith('/api/iris/gemini/') && request.method === 'POST') {
-        return await handleIrisGemini(request, env, url, { notify: adminSpendNotify(ctx) });
+        return await handleIrisGemini(request, env, url, { notify: adminSpendNotify(env) });
       } else if (url.pathname === '/api/admin/budget' && request.method === 'GET') {
         return jsonResponse({ spentUsd: await dailySpend(env), limitUsd: await budgetLimit(env) });
       } else if (url.pathname === '/api/admin/budget' && request.method === 'POST') {
@@ -18486,7 +18442,6 @@ export default {
         return await handleReviewSubmit(request, env, {
           respond: jsonResponse,
           reconcile: (plan, answers) => reconcilePlanStructure(plan, answers, env),
-          notify: (text) => notifyMake(ctx, text),
         });
       } else if (url.pathname === '/api/admin/plan-review' && request.method === 'GET') {
         return await handleReviewGet(url, env, { respond: jsonResponse });

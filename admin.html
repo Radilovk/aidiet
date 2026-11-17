@@ -10043,7 +10043,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     viewClientDetails(card.getAttribute('data-client-id'));
                 });
             });
-            // Прегледът на Claude (сесия на час, plan-review.js): присъда до името, подробности в прозорец.
+            // Прегледът на Claude (тръгва при постъпване на плана, plan-review.js): присъда до името, подробности в прозорец.
             container.querySelectorAll('.pending-review-badge').forEach(async badge => {
                 const r = await fetchPlanReview(badge.getAttribute('data-client-id'));
                 const v = r && r.verdict;
@@ -10113,7 +10113,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             const sev = { critical: ['Критично', '#dc2626'], major: ['Важно', '#b45309'], minor: ['Дребно', '#475569'] };
             const verdict = !r ? '' : r.verdict === 'ok' ? '✅ Готов за одобрение' : r.verdict === 'fix' ? '🛠 Готов с корекциите' : '⛔ Нужен човек';
             const body = !r
-                ? '<p>Още няма преглед. Claude проверява чакащите планове веднъж на час.</p>'
+                ? '<p>Още няма преглед. Claude преглежда всеки план, когато постъпи за одобрение — обикновено до няколко минути.</p>'
                 : `<p style="margin:0 0 6px;font-weight:700">${verdict}${r.applied ? ' · корекциите са приложени' : ''}</p>
                    <p style="margin:0 0 4px;color:#64748b;font-size:.85rem">Прегледан: ${new Date(r.reviewedAt).toLocaleString('bg-BG')}</p>
                    <p style="margin:10px 0">${escapeHtml(r.summary || '')}</p>
