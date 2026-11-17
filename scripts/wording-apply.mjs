@@ -173,13 +173,18 @@ for (const r of recs) {
 
 const recOk = Object.fromEntries(recs.filter((r) => CFG.route(r)).map((r) => [r.id, true]));
 
+// правописът на всички нови текстове — с една заявка
+const allNew = [...new Set(recs.filter((r) => CFG.route(r)).flatMap((r) => (r.edits || []).map((e) => norm(e.new)).filter(Boolean)))];
+const proofed = new Map(allNew.map((t, i, a) => [t, t]));
+{ const out = await proofread(allNew); allNew.forEach((t, i) => proofed.set(t, out[i])); }
+
 for (const r of recs) {
   const file = CFG.route(r);
   if (!file || !fs.existsSync(file)) continue;
   const F = open(file);
   // текст
   const edits = (r.edits || []).filter((e) => norm(e.old) && norm(e.old) !== norm(e.new));
-  const fixed = await proofread(edits.map((e) => norm(e.new)));
+  const fixed = edits.map((e) => proofed.get(norm(e.new)) || norm(e.new));
   edits.forEach((e, i) => {
     const old = norm(e.old), neu = fixed[i];
     const hits = [];
@@ -208,13 +213,19 @@ for (const { file, s, rec } of Object.values(slotState)) {
   const stem = `${path.basename(file, '.html')}-${s.slot}`.replace(/[^\w-]/g, '');
   const tags = [];
   let ok = true;
+  // всички снимки на мястото — обработка и описание едновременно (по-бързо от една по една)
+  const prep = await Promise.all((s.items || []).map(async (it) => {
+    const f = it.key && imgFile(it.key);
+    if (!f) return null;
+    const r = await savePhoto(f, stem);
+    r.alt = hidden ? '' : await describe(r.buf, r.mime);
+    return r;
+  }));
   for (const [i, it] of (s.items || []).entries()) {
     const lazy = i === 0 && s.slot === 'hero' ? ' fetchpriority="high"' : ' loading="lazy"';
     if (it.key) {
-      const f = imgFile(it.key);
-      if (!f) { ok = false; say(`✋ ${file}/${s.slot}: липсва качената снимка ${it.key}`); continue; }
-      const { out, buf, mime } = await savePhoto(f, stem);
-      const alt = hidden ? '' : await describe(buf, mime);
+      if (!prep[i]) { ok = false; say(`✋ ${file}/${s.slot}: липсва качената снимка ${it.key}`); continue; }
+      const { out, alt } = prep[i];
       if (alt) (newStrings[F.dict] ||= []).push({ bg: alt });
       const big = out[out.length - 1];
       const srcset = out.length > 1 ? ` srcset="${out.map((o) => `${o.src} ${o.w}w`).join(', ')}" sizes="${sizes}"` : '';
@@ -254,9 +265,10 @@ for (const dict of dicts) {
   const html = Object.values(files).filter((f) => f.dict === dict).map((f) => f.html).join('\n');
   const present = (t) => html.includes(esc(t)) || html.includes(escAttr(t)) || html.includes(t);
   const add = (newStrings[dict] || []).filter((x, i, a) => a.findIndex((y) => y.bg === x.bg) === i);
-  for (const lang of LANGS) {
+  // всички езици едновременно
+  await Promise.all(LANGS.map(async (lang) => {
     const f = path.join(CFG.i18n, lang, `${dict}.json`);
-    if (!fs.existsSync(f)) continue;
+    if (!fs.existsSync(f)) return;
     const d = JSON.parse(fs.readFileSync(f, 'utf8'));
     d.strings ||= {};
     const items = add.filter((x) => !d.strings[x.bg]).map((x) => ({ bg: x.bg, prev: x.prev && d.strings[x.prev] ? `${x.prev} → ${d.strings[x.prev]}` : '' }));
@@ -265,7 +277,7 @@ for (const dict of dicts) {
     for (const k of dropStrings[dict] || []) if (d.strings[k] && !present(k)) delete d.strings[k];
     fs.writeFileSync(f, JSON.stringify(d, null, 1) + '\n');
     if (items.length) say(`  ${lang}/${dict}.json: +${Object.keys(tr).length}/${items.length}`);
-  }
+  }));
 }
 
 const done = Object.entries(recOk).filter(([, v]) => v).map(([k]) => k);
