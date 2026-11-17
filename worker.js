@@ -50552,6 +50552,10 @@ async function handleIrisGemini(request, env, url, { notify } = (
 
 // plan-review.js
 var QUEUE_MAX = 5;
+var CRON_SCAN = 60;
+var REFIRE_MS = 3 * 3600 * 1e3;
+var REVIEW_CRON = "*/15 * * * *";
+var FIRE_URL = "https://api.anthropic.com/v1/claude_code/routines/trig_01HVZa5YrEowsSR6z5mRbqEy/fire";
 var VERDICTS = /* @__PURE__ */ new Set(["ok", "fix", "stop"]);
 var SEVERITIES = /* @__PURE__ */ new Set(["critical", "major", "minor"]);
 var reviewKey = (id) => `plan_review:${id}`;
@@ -50594,18 +50598,50 @@ supplements/recommendations, \u0430\u043A\u043E \u0438\u043C\u0430).
 function isPending(c) {
   return c && c.plan && c.planStatus === "pending";
 }
-async function handleReviewQueue(env, { respond }) {
-  const ids = JSON.parse(await env.page_content.get("clients_list") || "[]").slice(0, 500);
+async function unreviewed(env, scan, max) {
+  const ids = JSON.parse(await env.page_content.get("clients_list") || "[]").slice(0, scan);
   const items = [];
   for (const id of ids) {
-    if (items.length >= QUEUE_MAX) break;
+    if (items.length >= max) break;
     const c = JSON.parse(await env.page_content.get(`client:${id}`) || "null");
     if (!isPending(c)) continue;
     const r = JSON.parse(await env.page_content.get(reviewKey(id)) || "null");
     if (r && r.planUpdatedAt === (c.planUpdatedAt || null)) continue;
     items.push({ clientId: id, name: c.answers?.name || "", planUpdatedAt: c.planUpdatedAt || null });
   }
-  return respond({ items, guide: GUIDE });
+  return items;
+}
+async function handleReviewQueue(env, { respond }) {
+  return respond({ items: await unreviewed(env, 500, QUEUE_MAX), guide: GUIDE });
+}
+async function maybeFireReview(env, { now = Date.now(), fetchImpl = fetch } = {}) {
+  if (!env.CLAUDE_REVIEW_TOKEN || !env.page_content) return "off";
+  const items = await unreviewed(env, CRON_SCAN, 20);
+  if (!items.length) return "none";
+  const sig = items.map((i) => `${i.clientId}@${i.planUpdatedAt}`).sort().join("|");
+  const last = JSON.parse(await env.page_content.get("plan_review_fired") || "null");
+  if (last && last.sig === sig && now - last.at < REFIRE_MS) return "same";
+  try {
+    const r = await fetchImpl(FIRE_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.CLAUDE_REVIEW_TOKEN}`,
+        "anthropic-beta": "experimental-cc-routine-2026-04-01",
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ text: `\u0427\u0430\u043A\u0430\u0449\u0438 \u043F\u0440\u0435\u0433\u043B\u0435\u0434: ${items.length}` })
+    });
+    if (!r.ok) {
+      console.warn("[plan-review] fire failed:", r.status);
+      return "error";
+    }
+    await env.page_content.put("plan_review_fired", JSON.stringify({ sig, at: now }), { expirationTtl: 30 * 86400 });
+    return "fired";
+  } catch (e) {
+    console.warn("[plan-review] fire error:", e?.message);
+    return "error";
+  }
 }
 async function handleReviewSubmit(request, env, { respond, reconcile, notify, now = Date.now() }) {
   const b = await request.json().catch(() => null);
@@ -66156,6 +66192,10 @@ var worker_entry_default = {
    */
   async scheduled(event, env, ctx) {
     console.log("[Worker] Scheduled event triggered at:", (/* @__PURE__ */ new Date()).toISOString());
+    if (event?.cron === REVIEW_CRON) {
+      ctx.waitUntil(maybeFireReview(env).then((r) => console.log("[plan-review] cron:", r)));
+      return;
+    }
     ctx.waitUntil(handleScheduledNotifications(env));
     ctx.waitUntil(syncAllLinks(env).catch((e) => console.warn("[Links] scheduled sync failed:", e.message)));
     ctx.waitUntil(processOverdueWeekly(env).catch((e) => console.warn("[AutoWeekly] scheduled run failed:", e.message)));

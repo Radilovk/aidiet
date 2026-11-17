@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Прегледът на плановете от Claude (plan-review.js) — опашка, присъда, корекции, прилагане. Без мрежа. */
 import assert from 'node:assert/strict';
-import { handleReviewQueue, handleReviewSubmit, handleReviewGet, handleReviewApply } from '../plan-review.js';
+import { handleReviewQueue, handleReviewSubmit, handleReviewGet, handleReviewApply, maybeFireReview } from '../plan-review.js';
 
 const kv = new Map();
 const env = { page_content: { get: async (k) => (kv.has(k) ? kv.get(k) : null), put: async (k, v) => { kv.set(k, v); }, delete: async (k) => kv.delete(k) } };
@@ -67,4 +67,38 @@ await check('прилагане без корекции → 400', async () => {
   await handleReviewSubmit(post({ clientId: 'c3', planUpdatedAt: '2026-11-17T11:00:00Z', verdict: 'ok', summary: 'Чист план.' }), env, opts);
   assert.equal((await handleReviewApply(post({ clientId: 'c3' }), env, { respond })).status, 400);
 });
+// ── Таймерът: пуска прегледа само при неразгледан план ──
+const fires = [];
+const fakeFetch = async (url, init) => { fires.push({ url, init }); return new Response('{}', { status: 200 }); };
+await check('таймер: без токен — нищо; без неразгледан план — без пускане', async () => {
+  assert.equal(await maybeFireReview(env, { fetchImpl: fakeFetch }), 'off');
+  env.CLAUDE_REVIEW_TOKEN = 'sk-ant-oat01-test';
+  assert.equal(await maybeFireReview(env, { fetchImpl: fakeFetch }), 'none');   // c1 и c3 са прегледани
+  assert.equal(fires.length, 0);
+});
+await check('нов план → едно пускане с токена и beta заглавието; същият набор — не пак', async () => {
+  put('c4', { id: 'c4', answers: { name: 'Гери' }, plan: plan(), planStatus: 'pending', planUpdatedAt: '2026-11-17T13:00:00Z' });
+  kv.set('clients_list', JSON.stringify(['c4', 'c1', 'c2', 'c3']));
+  const t = Date.parse('2026-11-17T13:05:00Z');
+  assert.equal(await maybeFireReview(env, { fetchImpl: fakeFetch, now: t }), 'fired');
+  assert.match(fires[0].url, /\/v1\/claude_code\/routines\/trig_[A-Za-z0-9]+\/fire$/);
+  assert.equal(fires[0].init.headers.Authorization, 'Bearer sk-ant-oat01-test');
+  assert.equal(fires[0].init.headers['anthropic-beta'], 'experimental-cc-routine-2026-04-01');
+  assert.equal(await maybeFireReview(env, { fetchImpl: fakeFetch, now: t + 15 * 60e3 }), 'same');
+  assert.equal(fires.length, 1);
+});
+await check('неразгледан и след 3 часа → нов опит; прегледан → без пускане', async () => {
+  const t = Date.parse('2026-11-17T16:10:00Z');
+  assert.equal(await maybeFireReview(env, { fetchImpl: fakeFetch, now: t }), 'fired');
+  await handleReviewSubmit(post({ clientId: 'c4', planUpdatedAt: '2026-11-17T13:00:00Z', verdict: 'ok', summary: 'ok' }), env, opts);
+  assert.equal(await maybeFireReview(env, { fetchImpl: fakeFetch, now: t + 4 * 3600e3 }), 'none');
+});
+await check('грешка от API-то → не се отбелязва като пуснато (опит при следващия таймер)', async () => {
+  put('c5', { id: 'c5', answers: { name: 'Деси' }, plan: plan(), planStatus: 'pending', planUpdatedAt: '2026-11-17T17:00:00Z' });
+  kv.set('clients_list', JSON.stringify(['c5', 'c4']));
+  const bad = async () => new Response('{}', { status: 401 });
+  assert.equal(await maybeFireReview(env, { fetchImpl: bad }), 'error');
+  assert.equal(await maybeFireReview(env, { fetchImpl: fakeFetch }), 'fired');
+});
+
 console.log(`\nВсички ${ok.length} проверки минаха`);

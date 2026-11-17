@@ -51,8 +51,9 @@ APP_HOSTS = "eatologix.com,emoeat.app"
 # Do NOT use `route` here — that syntax is for custom domains in a Cloudflare zone.
 
 # Фонова синхронизация на свързаните профили (Fitbit, Oura, Withings, Strava).
+# */15 — само проверка за неразгледан план → пуска прегледа на Claude (plan-review.js, REVIEW_CRON).
 [env.production.triggers]
-crons = ["17 */6 * * *"]
+crons = ["17 */6 * * *", "*/15 * * * *"]
 
 [[env.production.kv_namespaces]]
 binding = "page_content"

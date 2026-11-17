@@ -7,6 +7,9 @@
  * сумите (reconcilePlanStructure) и пази прегледа в KV plan_review:<clientId>. Админът вижда
  * прегледа в хъба за одобрение и решава: „Приложи корекциите“ (планът остава pending) → „Активирай“.
  *
+ * Пускане: таймерът на worker-а (на 15 мин, без AI) гледа за неразгледан план и само тогава вика
+ * API-то на задачата в Claude (FIRE_URL, токен в secret CLAUDE_REVIEW_TOKEN). Без токен — не прави нищо.
+ *
  * Всички маршрути са под /api/admin/* — пазени от централния guard (X-Admin-Secret).
  *   GET  /api/admin/plan-review/queue          → { items: [{ clientId, name, planUpdatedAt }], guide }
  *   POST /api/admin/plan-review/submit         { clientId, planUpdatedAt, verdict, summary, findings, patches? }
@@ -16,6 +19,10 @@
 import { applyJsonPatches, buildPatchDocument, mergePatchDocument } from './json-patch.js';
 
 const QUEUE_MAX = 5;
+const CRON_SCAN = 60;                  // таймерът гледа само последните клиенти (новите планове са там)
+const REFIRE_MS = 3 * 3600 * 1000;     // ако прегледът не е минал (напр. ключ), нов опит след 3 часа
+export const REVIEW_CRON = '*/15 * * * *';
+const FIRE_URL = 'https://api.anthropic.com/v1/claude_code/routines/trig_01HVZa5YrEowsSR6z5mRbqEy/fire';
 const VERDICTS = new Set(['ok', 'fix', 'stop']);
 const SEVERITIES = new Set(['critical', 'major', 'minor']);
 const reviewKey = (id) => `plan_review:${id}`;
@@ -61,19 +68,55 @@ function isPending(c) {
   return c && c.plan && c.planStatus === 'pending';
 }
 
-/** GET /api/admin/plan-review/queue */
-export async function handleReviewQueue(env, { respond }) {
-  const ids = JSON.parse((await env.page_content.get('clients_list')) || '[]').slice(0, 500);
+/** Чакащите одобрение планове без преглед за текущия им вариант. */
+async function unreviewed(env, scan, max) {
+  const ids = JSON.parse((await env.page_content.get('clients_list')) || '[]').slice(0, scan);
   const items = [];
   for (const id of ids) {
-    if (items.length >= QUEUE_MAX) break;
+    if (items.length >= max) break;
     const c = JSON.parse((await env.page_content.get(`client:${id}`)) || 'null');
     if (!isPending(c)) continue;
     const r = JSON.parse((await env.page_content.get(reviewKey(id))) || 'null');
     if (r && r.planUpdatedAt === (c.planUpdatedAt || null)) continue;   // този вариант вече е прегледан
     items.push({ clientId: id, name: c.answers?.name || '', planUpdatedAt: c.planUpdatedAt || null });
   }
-  return respond({ items, guide: GUIDE });
+  return items;
+}
+
+/** GET /api/admin/plan-review/queue */
+export async function handleReviewQueue(env, { respond }) {
+  return respond({ items: await unreviewed(env, 500, QUEUE_MAX), guide: GUIDE });
+}
+
+/**
+ * Таймерът: има ли неразгледан план → пуска задачата в Claude (веднъж за същия набор планове;
+ * повторно след 3 часа, ако още не е прегледан). → 'off' | 'none' | 'same' | 'fired' | 'error'
+ */
+export async function maybeFireReview(env, { now = Date.now(), fetchImpl = fetch } = {}) {
+  if (!env.CLAUDE_REVIEW_TOKEN || !env.page_content) return 'off';
+  const items = await unreviewed(env, CRON_SCAN, 20);
+  if (!items.length) return 'none';
+  const sig = items.map((i) => `${i.clientId}@${i.planUpdatedAt}`).sort().join('|');
+  const last = JSON.parse((await env.page_content.get('plan_review_fired')) || 'null');
+  if (last && last.sig === sig && now - last.at < REFIRE_MS) return 'same';
+  try {
+    const r = await fetchImpl(FIRE_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.CLAUDE_REVIEW_TOKEN}`,
+        'anthropic-beta': 'experimental-cc-routine-2026-04-01',
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: `Чакащи преглед: ${items.length}` }),
+    });
+    if (!r.ok) { console.warn('[plan-review] fire failed:', r.status); return 'error'; }
+    await env.page_content.put('plan_review_fired', JSON.stringify({ sig, at: now }), { expirationTtl: 30 * 86400 });
+    return 'fired';
+  } catch (e) {
+    console.warn('[plan-review] fire error:', e?.message);
+    return 'error';
+  }
 }
 
 /** POST /api/admin/plan-review/submit */
