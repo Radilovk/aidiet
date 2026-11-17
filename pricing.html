@@ -204,6 +204,15 @@
         var fmt = P.formatPrice;
         var note = document.getElementById('payNote');
         var say = function (t) { note.textContent = t; note.hidden = !t; };
+        // Плащането е включено за всички в реалния режим; в тестовия — само за тестери (?billing=test).
+        var tester = (function () {
+            try {
+                var q = params.get('billing');
+                if (q === 'test') localStorage.setItem('np_billing_test', '1');
+                if (q === 'off') localStorage.removeItem('np_billing_test');
+                return localStorage.getItem('np_billing_test') === '1';
+            } catch (e) { return false; }
+        })();
         var uid = function () { try { return localStorage.getItem('userId') || ''; } catch (e) { return ''; } };
         document.getElementById('irisPrice').textContent = fmt(P.PRODUCTS.iris_protocol.price);
 
@@ -295,8 +304,9 @@
 
         fetch(WORKER + '/api/billing/status').then(function (r) { return r.json(); }).then(function (d) {
             billing = d || { ready: false };
+            billing.ready = !!(billing.ready && (billing.mode === 'live' || tester));
             render();
-            if (d && d.ready && d.mode === 'test') say(paid ? note.textContent : 'Тестов режим: плащанията са с тестови карти (4242 4242 4242 4242), без истинско таксуване.');
+            if (billing.ready && d.mode === 'test') say(paid ? note.textContent : 'Тестов режим: плащанията са с тестови карти (4242 4242 4242 4242), без истинско таксуване.');
         }).catch(function () {});
 
         document.querySelectorAll('.period button').forEach(function (btn) {
