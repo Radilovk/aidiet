@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * Плащанията (billing.js) — еднократни покупки, без мрежа: Stripe и KV са подменени.
- * Проверява: план 4/12 седмици, продължение, лимити на покупката + дневен таван, IrisMap протокол
- * и контролно разчитане (цената по устройство), EmoEat кредит, идемпотентно потвърждение.
+ * Проверява: план 4/12 седмици, продължение, лимити на покупката + дневен таван, анализ в IrisMap
+ * и ваучерът му за плана, EmoEat кредит, идемпотентно потвърждение.
  *   node scripts/test-billing.mjs
  */
 import assert from 'node:assert/strict';
 import Pricing from '../pricing-config.js';
-import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, verifyStripeSignature, billingReady, emoeatCredit, useEmoeatCredit } from '../billing.js';
+import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, readVoucher, verifyStripeSignature, billingReady, emoeatCredit, useEmoeatCredit } from '../billing.js';
 import { createHmac } from 'node:crypto';
 import { gateFeature, readAccess, normalizeAccess, resolveAccess, PAYWALL_KEY } from '../access-control.js';
 
@@ -141,24 +141,43 @@ await check('изтекъл план → обратно на безплатно�
   assert.equal(a.tier, 'start'); assert.equal(a.expired, true);
 });
 
-await check('IrisMap: първи протокол 9,99 €, после контролно разчитане 6,99 € (решава сървърът)', async () => {
-  const base = { product: 'iris_protocol', deviceId: 'dev_iris_0001', returnUrl: 'https://irismap.app/app.html' };
-  const d1 = await checkout({ ...base, analysisId: 'an_1' });
-  assert.equal(lastBody.get('line_items[0][price_data][unit_amount]'), '999');
-  const c1 = await confirm(sid(d1.url));
-  assert.equal(c1.analysisId, 'an_1');
-  assert.ok(kv.get('iris_unlock:an_1'));
-  const d2 = await checkout({ ...base, analysisId: 'an_2' });
-  assert.equal(d2.product, 'iris_recheck');
+let voucher;
+await check('IrisMap: анализ 6,99 € → кредит за един анализ на устройството + ваучер за плана', async () => {
+  const d = await checkout({ product: 'iris_analysis', deviceId: 'dev_iris_0001', returnUrl: 'https://irismap.app/app.html' });
   assert.equal(lastBody.get('line_items[0][price_data][unit_amount]'), '699');
-  // друго устройство → пак пълната цена
-  await checkout({ ...base, deviceId: 'dev_iris_0002', analysisId: 'an_3' });
-  assert.equal(lastBody.get('line_items[0][price_data][unit_amount]'), '999');
+  assert.equal(lastBody.get('metadata[deviceId]'), 'dev_iris_0001');
+  const c = await confirm(sid(d.url), t0);
+  assert.equal(kv.get('iris_credit:dev_iris_0001'), '1');
+  assert.match(c.voucher, /^[a-z0-9]{16}$/); assert.equal(c.amount, 6.99);
+  assert.ok(Math.abs(c.voucherUntil - (t0 + 30 * DAY)) < 1000);
+  voucher = c.voucher;
 });
 
 await check('IrisMap: връщане само към нашите адреси, нужно е устройство', async () => {
-  assert.equal((await checkout({ product: 'iris_protocol', analysisId: 'a', deviceId: 'dev_iris_0001', returnUrl: 'https://evil.example/' })).error, 'bad_request');
-  assert.equal((await checkout({ product: 'iris_protocol', analysisId: 'a', returnUrl: 'https://irismap.app/' })).error, 'bad_request');
+  assert.equal((await checkout({ product: 'iris_analysis', deviceId: 'dev_iris_0001', returnUrl: 'https://evil.example/' })).error, 'bad_request');
+  assert.equal((await checkout({ product: 'iris_analysis', returnUrl: 'https://irismap.app/' })).error, 'bad_request');
+});
+
+await check('ваучер от IrisMap: първият план е с приспаднати 6,99 €, само веднъж', async () => {
+  const st = await (await handleVoucherStatus(new URL(`https://w/x?code=${voucher}`), env, { respond })).json();
+  assert.equal(st.valid, true); assert.equal(st.amount, 6.99);
+  // продължението не взима ваучера
+  await checkout({ product: 'plan_continue', userId: 'fb_user123', voucher });
+  assert.equal(lastBody.get('line_items[0][price_data][unit_amount]'), '1199');
+  const d = await checkout({ product: 'plan_4w', userId: 'fb_voucher1', voucher });
+  assert.equal(lastBody.get('line_items[0][price_data][unit_amount]'), '800');   // 14,99 − 6,99
+  await confirm(sid(d.url), t0);
+  assert.equal(JSON.parse(kv.get(`iris_voucher:${voucher}`)).usedBy, 'fb_voucher1');
+  await checkout({ product: 'plan_12w', userId: 'fb_voucher2', voucher });
+  assert.equal(lastBody.get('line_items[0][price_data][unit_amount]'), '3499');   // използван → пълна цена
+  assert.equal((await (await handleVoucherStatus(new URL(`https://w/x?code=${voucher}`), env, { respond })).json()).valid, false);
+});
+
+await check('ваучерът изтича след 30 дни', async () => {
+  const d = await checkout({ product: 'iris_analysis', deviceId: 'dev_iris_0002', returnUrl: 'https://irismap.app/' });
+  const c = await confirm(sid(d.url), t0);
+  assert.equal(await readVoucher(env, c.voucher, t0 + 29 * DAY) !== null, true);
+  assert.equal(await readVoucher(env, c.voucher, t0 + 31 * DAY), null);
 });
 
 await check('EmoEat: 2,99 € → един кредит за личния анализ', async () => {

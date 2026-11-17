@@ -4,8 +4,8 @@
  * Продукти (цените са само в pricing-config.js, Stripe ги получава в поръчката):
  *   - Eatologix: план за 4 седмици, за 12 седмици, продължение 4 седмици → нивото core със срок и
  *     лимити в KV `access:<userId>` (продължение при активен план добавя срок и лимити към остатъка);
- *   - IrisMap: личен протокол за анализ (9,99 €); контролно разчитане (6,99 €) — за устройство, което
- *     вече е взело протокол (цената се решава тук, на сървъра);
+ *   - IrisMap: анализ (6,99 €) → кредит за един анализ на устройството + ваучер: платеното се
+ *     приспада от първия план в Eatologix до 30 дни (KV iris_voucher:<код>);
  *   - EmoEat: личен анализ (2,99 €) → кредит за един анализ на устройството/акаунта.
  *
  * Режим: BILLING_MODE = 'test' (по подразбиране) → STRIPE_TEST_SECRET_KEY; 'live' → STRIPE_SECRET_KEY
@@ -50,6 +50,10 @@ async function stripe(env, method, path, params) {
 }
 
 const cents = (eur) => Math.round(Number(eur) * 100);
+function randomCode(n = 16) {
+  const b = new Uint8Array(n); crypto.getRandomValues(b);
+  return [...b].map((x) => 'abcdefghijklmnopqrstuvwxyz0123456789'[x % 36]).join('');
+}
 const okReturn = (u) => (typeof u === 'string' && ALLOWED_RETURN.test(u) ? u : null);
 const withParam = (u, k, v) => u + (u.includes('?') ? '&' : '?') + `${k}=${v}`;
 const okUser = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ''));
@@ -60,7 +64,20 @@ export function billingStatus(env) {
   return { ready: billingReady(env), mode: stripeMode(env), products: Pricing.PRODUCTS };
 }
 
-/** POST /api/billing/checkout { product, userId?, deviceId?, analysisId?, returnUrl?, ref? } → { url } */
+const okVoucher = (c) => /^[a-z0-9]{10,32}$/.test(String(c || ''));
+/** Ваучерът от IrisMap: годен ли е за план → { amount, until } или null. */
+export async function readVoucher(env, code, now = Date.now()) {
+  if (!okVoucher(code)) return null;
+  const v = JSON.parse((await env.page_content.get(`iris_voucher:${code}`)) || 'null');
+  return v && !v.usedBy && v.until > now ? v : null;
+}
+/** GET /api/billing/voucher?code= → { valid, amount, until } */
+export async function handleVoucherStatus(url, env, { respond }) {
+  const v = await readVoucher(env, url.searchParams.get('code'));
+  return respond(v ? { valid: true, amount: v.amount, until: v.until } : { valid: false });
+}
+
+/** POST /api/billing/checkout { product, userId?, deviceId?, returnUrl?, voucher?, ref? } → { url } */
 export async function handleBillingCheckout(request, env, { respond }) {
   if (!billingReady(env)) return respond({ error: 'no_stripe', mode: stripeMode(env) }, 503);
   const b = await request.json().catch(() => ({}));
@@ -79,16 +96,15 @@ export async function handleBillingCheckout(request, env, { respond }) {
       }
       meta.userId = b.userId;
       if (/^[a-z0-9][a-z0-9-]{1,31}$/.test(String(b.ref || ''))) meta.ref = b.ref;
+      // Ваучер от IrisMap: платеното за анализа се приспада от плана (не от продължението).
+      const v = !P.requiresPlan ? await readVoucher(env, b.voucher) : null;
+      if (v) { meta.voucher = b.voucher; P = { ...P, price: Math.max(0.5, Math.round((P.price - v.amount) * 100) / 100), description: `С приспаднати ${Pricing.formatPrice(v.amount)} от анализа в IrisMap` }; }
       const site = /^https:\/\/(eatologix\.com|biocode\.website)$/.test(origin) ? origin : 'https://eatologix.com';
       back = `${site}/pricing.html`;
     } else if (P.kind === 'iris') {
-      const analysisId = String(b.analysisId || '').slice(0, 80);
       back = okReturn(b.returnUrl);
-      if (!analysisId || !back || !okDevice(b.deviceId)) return respond({ error: 'bad_request' }, 400);
-      // Контролно разчитане — по-ниската цена, ако устройството вече е взело протокол.
-      id = (await env.page_content.get(`iris_paid_dev:${b.deviceId}`)) ? 'iris_recheck' : 'iris_protocol';
-      P = Pricing.product(id);
-      Object.assign(meta, { product: id, analysisId, deviceId: b.deviceId });
+      if (!back || !okDevice(b.deviceId)) return respond({ error: 'bad_request' }, 400);
+      meta.deviceId = b.deviceId;
     } else if (P.kind === 'emoeat') {
       back = okReturn(b.returnUrl);
       const holder = okUser(b.userId) ? b.userId : okDevice(b.deviceId) ? b.deviceId : '';
@@ -145,10 +161,19 @@ async function applySession(env, s, now) {
   if (P.kind === 'plan') {
     const rec = await grantPlan(env, m.userId, m.product, s.id, now);
     result = { ...result, userId: m.userId, tier: rec.tier, until: rec.until };
+    if (okVoucher(m.voucher)) {
+      const vk = `iris_voucher:${m.voucher}`;
+      const v = JSON.parse((await env.page_content.get(vk)) || 'null');
+      if (v) await env.page_content.put(vk, JSON.stringify({ ...v, usedBy: m.userId, usedAt: now }), { expirationTtl: 60 * 86400 });
+    }
   } else if (P.kind === 'iris') {
-    await env.page_content.put(`iris_unlock:${m.analysisId}`, JSON.stringify({ sessionId: s.id, at: now, mode: stripeMode(env) }));
-    if (m.deviceId) await env.page_content.put(`iris_paid_dev:${m.deviceId}`, String(now));
-    result = { ...result, analysisId: m.analysisId };
+    // Кредит за един анализ на устройството (iris-gate.js го изразходва при билета) + ваучер за плана.
+    const ck = `iris_credit:${m.deviceId}`;
+    await env.page_content.put(ck, String((Number(await env.page_content.get(ck)) || 0) + 1), { expirationTtl: 400 * 86400 });
+    const voucher = randomCode();
+    const until = now + Pricing.IRIS_DISCOUNT_DAYS * DAY_MS;
+    await env.page_content.put(`iris_voucher:${voucher}`, JSON.stringify({ amount: P.price, until, deviceId: m.deviceId, session: s.id }), { expirationTtl: (Pricing.IRIS_DISCOUNT_DAYS + 30) * 86400 });
+    result = { ...result, deviceId: m.deviceId, voucher, voucherUntil: until, amount: P.price };
   } else if (P.kind === 'emoeat') {
     const k = `emoeat_credit:${m.holder}`;
     await env.page_content.put(k, String((Number(await env.page_content.get(k)) || 0) + 1), { expirationTtl: 400 * 86400 });
@@ -221,12 +246,6 @@ export async function handleBillingWebhook(request, env, { respond, now = Date.n
   }
 }
 
-/** GET /api/billing/iris-unlock?analysisId= → { unlocked } (друго устройство или изчистен браузър). */
-export async function handleIrisUnlockStatus(url, env, { respond }) {
-  const id = String(url.searchParams.get('analysisId') || '').slice(0, 80);
-  if (!id) return respond({ unlocked: false });
-  return respond({ unlocked: Boolean(await env.page_content.get(`iris_unlock:${id}`)) });
-}
 
 /** Кредит за личния анализ на EmoEat: има ли (и изразходване след успешен анализ). */
 export async function emoeatCredit(env, holder) {

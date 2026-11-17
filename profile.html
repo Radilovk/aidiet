@@ -2993,7 +2993,7 @@
                   href: './emoeat.html?from=nutriplan' },
                 { id: 'iris', weight: 10, icon: 'fa-eye', name: 'Ирисов анализ (IrisMap)', fill: iris ? 1 : 0,
                   status: iris ? `${day(src.airis || iris.at)}${iris.focus && iris.focus.length ? ` · фокус: ${iris.focus.join(', ')}` : ''}` : 'Не е направена',
-                  href: 'https://irismap.app/?from=nutriplan', external: true },
+                  action: 'irisPass' },
                 { id: 'docs', weight: 10, icon: 'fa-file-medical', name: 'Други документи', fill: docs.length ? 1 : 0,
                   status: docs.length ? `${docs.length} ${docs.length === 1 ? 'документ' : 'документа'}` : 'Няма добавени',
                   action: 'docsSection' },
@@ -3063,7 +3063,30 @@
             else initCardMeter();
         }
 
+        // Ирисов анализ: с план — пропуск от сървъра (1 на 4 седмици) и IrisMap го отключва без плащане;
+        // без план — към IrisMap (анализът там е 6,99 €, приспада се от плана).
+        async function openIrisPass() {
+            const landing = 'https://irismap.app/?from=nutriplan';
+            const open = (url) => { const w = window.open(url, '_blank', 'noopener'); if (!w) location.href = url; };
+            const userId = (() => { try { return localStorage.getItem('userId') || ''; } catch (e) { return ''; } })();
+            const sync = window.NutriPlanPlanSync;
+            if (userId.indexOf('fb_') !== 0 || !sync || typeof sync.getFirebaseIdToken !== 'function') return open(landing);
+            try {
+                const idToken = await sync.getFirebaseIdToken(userId);
+                const r = await fetch('https://aidiet.radilov-k.workers.dev/api/iris/pass', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, idToken })
+                });
+                const d = await r.json().catch(() => ({}));
+                if (d.url) return open(d.url);
+                if (d.error === 'no_plan') return open(landing);
+                alert(d.message || 'IrisMap не се отвори. Опитай пак след малко.');
+            } catch (e) {
+                open(landing);
+            }
+        }
+
         function openCardModule(id) {
+            if (id === 'irisPass') return void openIrisPass();
             if (id === 'questionnaire') {
                 // Непълен въпросник: само липсващите въпроси с кратки отговори, не целият формуляр.
                 const box = document.getElementById('cardQuick');
