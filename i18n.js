@@ -234,6 +234,7 @@
                 if (m.type === 'attributes') { if (m.target.nodeType === 1 && !skipped(m.target)) doElement(m.target); continue; }
                 for (var j = 0; j < m.addedNodes.length; j++) walk(m.addedNodes[j]);
             }
+            wirePickers(); // избор на език, появил се по-късно (напр. в React приложение)
         }).observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRS });
     }
 
@@ -285,7 +286,11 @@
     }
     onReady(function () { wirePickers(); setTimeout(maybeInvite, 1200); });
 
-    if (lang === 'bg') { api.ready = Promise.resolve(); return; }
+    if (lang === 'bg') {
+        // на български речник не трябва, но изборът на език може да се появи по-късно (React)
+        if (window.MutationObserver) onReady(function () { new MutationObserver(wirePickers).observe(document.body, { childList: true, subtree: true }); });
+        api.ready = Promise.resolve(); return;
+    }
 
     // ── Зареждане на речниците; текстът е скрит до 1.2 s, за да не мига на български ──────
     loadMem();

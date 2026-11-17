@@ -22,7 +22,7 @@ const SITE = 'https://biocode.website';
 const CSS_V = '20261114c';
 
 /** Статични страници с общия футър (вмъква се между маркерите). */
-const SITE_FOOTER_PAGES = ['index.html', 'features.html', 'help.html', 'delete-account.html', 'privacy-policy.html', 'terms.html', 'emoeat-landing.html'];
+const SITE_FOOTER_PAGES = ['index.html', 'features.html', 'help.html', 'delete-account.html', 'privacy-policy.html', 'terms.html']; // emoeat-landing.html има собствен футър (самостоятелен сайт emoeat.app)
 
 const esc = (v) => String(v ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -86,7 +86,7 @@ function siteFooter() {
                         <ul>
                             <li><a href="protocol-landing.html">Клинични протоколи</a></li>
                             <li><a href="emoeat-landing.html" title="Емоционално хранене">EmoEat</a></li>
-                            <li><a href="https://radilovk.github.io/airis1.0/?from=nutriplan" target="_blank" rel="noopener" title="Ирисов анализ">IrisMap</a></li>
+                            <li><a href="https://irismap.app/?from=nutriplan" target="_blank" rel="noopener" title="Ирисов анализ">IrisMap</a></li>
                         </ul>
                     </div>
                     <div>
