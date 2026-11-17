@@ -5,7 +5,7 @@
     <script src="./i18n.js?v=20261116a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Цени | Eatologix</title>
-    <meta name="description" content="Цени на Eatologix: Start безплатно, Core — целият седмичен план в грамове, Plus — повече снимки и въпроси към асистента. Плащане за седмица или за месец. IrisMap: анализът е безплатен, личният протокол — еднократно.">
+    <meta name="description" content="Цени на Eatologix: въпросникът и дневните цели са безплатни; целият план — еднократно за 4 или 12 седмици, без абонамент. IrisMap: анализът е безплатен, личният протокол — еднократно. EmoEat: личният анализ — 2,99 €.">
     <link rel="canonical" href="https://biocode.website/pricing.html">
     <meta name="theme-color" content="#F4FBFA">
     <meta property="og:type" content="website">
@@ -34,14 +34,10 @@
         .price-iris p { margin: 0 0 14px; color: var(--text-2); }
         .price-iris img { flex: none; }
         .price-note { margin: 14px auto 0; max-width: 30em; padding: 10px 14px; border-radius: 14px; background: var(--tint); color: var(--text); font-size: .92rem; }
-        .period { display: inline-flex; margin: 22px auto 0; padding: 4px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); }
-        .period button { min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: none; color: var(--text-2); font: inherit; font-weight: 600; cursor: pointer; }
-        .period button[aria-pressed="true"] { background: var(--acc); color: #fff; }
-        .period small { font-weight: 700; opacity: .85; }
         .plans { display: grid; gap: 14px; margin: 24px 0 8px; }
         .plans { max-width: 1080px; margin-left: auto; margin-right: auto; }
         @media (min-width: 700px) { .plans { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 980px) { .plans { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 1040px) { .plans { grid-template-columns: repeat(4, 1fr); } }
         .plan { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 22px 20px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
         .plan.is-top { border-color: color-mix(in srgb, var(--acc) 55%, transparent); box-shadow: var(--shadow); }
         .plan-badge { position: absolute; top: -11px; left: 20px; padding: 3px 10px; border-radius: 999px; background: var(--acc); color: #fff; font-size: .74rem; font-weight: 700; letter-spacing: .04em; }
@@ -57,6 +53,11 @@
         .plan-cta { margin-top: auto; display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--acc); color: var(--acc-text); font-weight: 700; text-decoration: none; background: none; font: inherit; cursor: pointer; }
         .plan.is-top .plan-cta, .plan-cta.is-primary { background: var(--acc); color: #fff; }
         .plan-cta[aria-disabled="true"] { opacity: .55; cursor: default; }
+        .price-consent { display: flex; gap: 10px; align-items: flex-start; max-width: 680px; margin: 10px auto 0; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); font-size: .9rem; color: var(--text-2); cursor: pointer; }
+        .price-consent input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--acc); }
+        .price-consent.is-needed { border-color: var(--acc); box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 25%, transparent); }
+        .price-consent[hidden] { display: none; }
+        .price-iris + .price-iris { margin-top: 14px; }
         .price-foot { margin: 6px 0 0; text-align: center; color: var(--text-3); font-size: .85rem; }
         .price-faq { max-width: 680px; margin: 36px auto 0; }
         .price-faq h2 { font-size: 1.35rem; margin: 0 0 14px; }
@@ -77,25 +78,34 @@
     <main class="wrap wrap--wide">
         <section class="price-hero" aria-labelledby="price-title">
             <span class="chip">Цени</span>
-            <h1 id="price-title">Започни безплатно. <em>Отключи</em> целия план.</h1>
-            <p class="lead">С въпросника виждаш дневните си цели и един ден от менюто. Core е целият план. Plus е за всеки ден — повече снимки и въпроси към асистента. Плащаш за седмица или за месец — без дълги ангажименти.</p>
+            <h1 id="price-title">Започни безплатно. <em>Плати</em> само за плана.</h1>
+            <p class="lead">С въпросника виждаш дневните си цели и един ден от менюто. Целият план е еднократно плащане за 4 или 12 седмици — без абонамент и без автоматично подновяване.</p>
             <p class="price-note" id="payNote" hidden></p>
             <p class="price-note" id="featureNote" hidden></p>
-            <div class="period" role="group" aria-label="Плащане">
-                <button type="button" data-period="month" aria-pressed="true">Месечно</button>
-                <button type="button" data-period="week" aria-pressed="false">Седмично</button>
-            </div>
         </section>
 
         <div class="plans" id="plans"></div>
-        <p class="price-foot">Цените са в евро, с ДДС. Плащането е в сайта, а планът е и в приложението — влизаш със същия акаунт. <a href="#" id="manageSub" hidden>Управлявай абонамента</a></p>
+        <label class="price-consent" id="consentRow">
+            <input type="checkbox" id="consent">
+            <span>Съгласен съм планът да започне веднага след плащането и разбирам, че за цифрово съдържание губя правото на отказ от 14 дни.</span>
+        </label>
+        <p class="price-foot">Цените са в евро, с ДДС. Плащането е в сайта, а планът е и в приложението — влизаш със същия акаунт.</p>
 
         <section class="price-iris" aria-labelledby="iris-title">
             <img src="brand/irismap-mark.svg" alt="" width="56" height="56">
             <div>
                 <h2 id="iris-title">IrisMap — ирисов анализ</h2>
-                <p>Снимките, разпознаването и анализът на ириса са <strong>безплатни</strong>. Личният протокол — хранене, добавки и режим — е <strong id="irisPrice"></strong> еднократно за анализ. В месечния Plus един протокол на месец е включен.</p>
+                <p>Снимките, разпознаването и анализът на ириса са <strong>безплатни</strong>. Личният протокол — хранене, добавки и режим — е <strong id="irisPrice"></strong> еднократно за анализ. Контролно разчитане по-късно — <strong id="irisRecheck"></strong>.</p>
                 <a class="plan-cta" href="https://irismap.app/">Към IrisMap</a>
+            </div>
+        </section>
+
+        <section class="price-iris" aria-labelledby="emo-title">
+            <img src="brand/emoeat-mark.svg" alt="" width="56" height="56">
+            <div>
+                <h2 id="emo-title">EmoEat — емоционално хранене</h2>
+                <p>Тестът и профилът са <strong>безплатни</strong>. Личният анализ и планът за седмицата — <strong id="emoPrice"></strong> еднократно. В плана на Eatologix е включен.</p>
+                <a class="plan-cta" href="emoeat.html">Към EmoEat</a>
             </div>
         </section>
 
@@ -103,20 +113,24 @@
             <h2 id="faq-title">Въпроси</h2>
             <div class="faq">
                 <details>
-                    <summary>Седмица или месец?</summary>
-                    <div class="faq-a"><p>Седмицата е за да пробваш без ангажимент. Месецът излиза по-изгодно. Лимитите са за периода, който си платил, и се подновяват с всяко плащане.</p></div>
+                    <summary>Абонамент ли е?</summary>
+                    <div class="faq-a"><p>Не. Плащаш веднъж за 4 или 12 седмици. Нищо не се подновява само. Когато срокът свърши, решаваш дали да продължиш.</p></div>
                 </details>
                 <details>
-                    <summary>Какво става, когато свърши лимитът?</summary>
-                    <div class="faq-a"><p>Функцията спира до следващото плащане (новата седмица или новия месец). Планът, менюто и седмичното обновяване продължават. Ако ти трябва повече, можеш да минеш на Plus.</p></div>
+                    <summary>Какво е продължението?</summary>
+                    <div class="faq-a"><p>За който вече има план: още 4 седмици с корекции, без нов въпросник. Ако планът още тече, новите седмици и лимити се добавят към остатъка.</p></div>
                 </details>
                 <details>
-                    <summary>Мога ли да се откажа по всяко време?</summary>
-                    <div class="faq-a"><p>Да — от „Управлявай абонамента“ на тази страница. Абонаментът не се подновява след периода, за който си платил, а достъпът остава до края му.</p></div>
+                    <summary>Защо има лимити?</summary>
+                    <div class="faq-a"><p>Всеки въпрос и всяка снимка минават през изкуствен интелект и струват пари. Лимитите за плана стигат за нормална употреба — няколко въпроса и снимки на ден. Има и дневен таван, за да е равномерно.</p></div>
                 </details>
                 <details>
                     <summary>Кой стои зад плана?</summary>
                     <div class="faq-a"><p>Екип от специалисти в медицината и ендокринологията, диететиката и храненето, спортната медицина и физиологията. Екипът разработва програмите и правилата, по които се смята менюто, и проверява всеки нов план, преди да го получиш.</p><p>Екипът не води лични консултации. За въпроси по плана е асистентът в приложението.</p></div>
+                </details>
+                <details>
+                    <summary>Мога ли да си върна парите?</summary>
+                    <div class="faq-a"><p>Планът е цифрово съдържание и започва веднага, затова 14-дневният отказ не важи. Ако нещо не работи или планът не е доставен — пиши ни и ще го оправим или ще върнем сумата.</p></div>
                 </details>
                 <details>
                     <summary>Защо плащането е в сайта, а не в приложението?</summary>
@@ -196,7 +210,6 @@
         'use strict';
         var P = window.NutriPlanPricing;
         var params = new URLSearchParams(location.search);
-        var period = 'month';
         var WORKER = 'https://aidiet.radilov-k.workers.dev';
         var billing = { ready: false };
         var grid = document.getElementById('plans');
@@ -204,6 +217,8 @@
         var fmt = P.formatPrice;
         var note = document.getElementById('payNote');
         var say = function (t) { note.textContent = t; note.hidden = !t; };
+        var consent = document.getElementById('consent');
+        var consentRow = document.getElementById('consentRow');
         // Плащането е включено за всички в реалния режим; в тестовия — само за тестери (?billing=test).
         var tester = (function () {
             try {
@@ -215,39 +230,38 @@
         })();
         var uid = function () { try { return localStorage.getItem('userId') || ''; } catch (e) { return ''; } };
         document.getElementById('irisPrice').textContent = fmt(P.PRODUCTS.iris_protocol.price);
+        document.getElementById('irisRecheck').textContent = fmt(P.PRODUCTS.iris_recheck.price);
+        document.getElementById('emoPrice').textContent = fmt(P.PRODUCTS.emoeat_analysis.price);
 
         var feature = params.get('feature');
         if (feature && P.FEATURE_LABEL[feature]) {
-            var need = P.plan(P.FEATURE_MIN_TIER[feature]);
             var fn = document.getElementById('featureNote');
-            fn.textContent = P.FEATURE_LABEL[feature] + ' е част от ' + (need ? need.name : 'платените нива') + '.';
+            fn.textContent = P.FEATURE_LABEL[feature] + ' е част от плана за 4 или 12 седмици.';
             fn.hidden = false;
         }
 
-        function priceBlock(plan) {
-            var p = plan.prices;
-            if (plan.id === 'start') return { main: '0 €', unit: '', sub: 'Без карта' };
-            var per = p[period] ? period : 'month';
-            var other = per === 'month' ? 'week' : 'month';
-            return { main: fmt(p[per]), unit: 'на ' + P.PERIOD_LABEL[per], sub: p[other] ? 'Или ' + fmt(p[other]) + ' на ' + P.PERIOD_LABEL[other] : '' };
-        }
+        var CARDS = [
+            { id: 'start', name: P.FREE.name, tagline: P.FREE.tagline, features: P.FREE.features, price: 0 },
+            Object.assign({ id: 'plan_4w' }, P.PRODUCTS.plan_4w),
+            Object.assign({ id: 'plan_12w' }, P.PRODUCTS.plan_12w),
+            Object.assign({ id: 'plan_continue' }, P.PRODUCTS.plan_continue)
+        ];
 
-        function cta(plan) {
-            if (plan.id === 'start') return '<a class="plan-cta" href="questionnaire2.html">Започни безплатно</a>';
+        function cta(c) {
+            if (c.id === 'start') return '<a class="plan-cta" href="questionnaire2.html">Започни безплатно</a>';
             if (!billing.ready) return '<span class="plan-cta" aria-disabled="true">Скоро</span>';
-            return '<button type="button" class="plan-cta" data-buy="' + esc(plan.id) + '">Избери ' + esc(plan.name) + '</button>';
+            return '<button type="button" class="plan-cta" data-buy="' + esc(c.id) + '">' + (c.requiresPlan ? 'Продължи плана' : 'Купи плана') + '</button>';
         }
 
         function render() {
-            grid.innerHTML = P.PLANS.map(function (plan) {
-                var pr = priceBlock(plan);
-                return '<article class="plan' + (plan.highlight ? ' is-top' : '') + '" aria-labelledby="plan-' + plan.id + '">' +
-                    (plan.highlight ? '<span class="plan-badge">Препоръчваме</span>' : '') +
-                    '<div><h2 class="plan-name" id="plan-' + plan.id + '">' + esc(plan.name) + '</h2><p class="plan-tag">' + esc(plan.tagline) + '</p></div>' +
-                    '<div class="plan-price"><b>' + esc(pr.main) + '</b><span>' + esc(pr.unit) + '</span></div>' +
-                    '<p class="plan-sub">' + esc(pr.sub) + '</p>' +
-                    '<ul>' + plan.features.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' +
-                    cta(plan) + '</article>';
+            consentRow.hidden = !billing.ready;
+            grid.innerHTML = CARDS.map(function (c) {
+                return '<article class="plan' + (c.highlight ? ' is-top' : '') + '" aria-labelledby="plan-' + c.id + '">' +
+                    (c.highlight ? '<span class="plan-badge">Препоръчваме</span>' : '') +
+                    '<div><h2 class="plan-name" id="plan-' + c.id + '">' + esc(c.name) + '</h2><p class="plan-tag">' + esc(c.tagline) + '</p></div>' +
+                    '<div class="plan-price"><b>' + esc(fmt(c.price)) + '</b><span>' + (c.price ? 'еднократно' : 'без карта') + '</span></div>' +
+                    '<ul>' + c.features.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' +
+                    cta(c) + '</article>';
             }).join('');
         }
 
@@ -256,19 +270,25 @@
                 .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); });
         }
 
-        // Плащане: Stripe Checkout. Нивото се закача за акаунта (fb_…) — затова е нужен вход.
+        // Плащане: Stripe Checkout. Планът се закача за акаунта (fb_…) — затова е нужен вход.
         grid.addEventListener('click', function (e) {
             var btn = e.target.closest && e.target.closest('[data-buy]');
             if (!btn) return;
+            if (!consent.checked) {
+                say('Отбележи съгласието под плановете — после натисни пак.');
+                consentRow.classList.add('is-needed');
+                consentRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
             var id = uid();
             if (id.indexOf('fb_') !== 0) {
-                say('Влез в акаунта си, за да избереш ниво — после се върни тук.');
+                say('Влез в акаунта си, за да купиш план — после се върни тук.');
                 location.href = 'index.html?login=1';
                 return;
             }
             btn.setAttribute('aria-busy', 'true');
             var ref = window.NutriPlanPartnerRef && NutriPlanPartnerRef.get();
-            post('/api/billing/checkout', { tier: btn.getAttribute('data-buy'), period: period, userId: id, ref: ref || '' })
+            post('/api/billing/checkout', { product: btn.getAttribute('data-buy'), userId: id, ref: ref || '' })
                 .then(function (x) {
                     if (x.d && x.d.url) { location.href = x.d.url; return; }
                     btn.removeAttribute('aria-busy');
@@ -276,6 +296,7 @@
                 })
                 .catch(function () { btn.removeAttribute('aria-busy'); say('Няма връзка. Опитай пак.'); });
         });
+        consent.addEventListener('change', function () { consentRow.classList.remove('is-needed'); });
 
         // Връщане от Stripe: ?paid=cs_… → потвърждение и достъп.
         var paid = params.get('paid');
@@ -284,23 +305,12 @@
             post('/api/billing/confirm', { sessionId: paid }).then(function (x) {
                 if (x.d && x.d.ok) {
                     try { sessionStorage.removeItem('np_access'); } catch (e) {}
-                    var plan = P.plan(x.d.tier);
-                    say('Готово — ' + (plan ? plan.name : 'нивото') + ' е активно' + (x.d.until ? ' до ' + new Date(x.d.until).toLocaleDateString() : '') + '. Отвори плана си в приложението или в сайта.');
+                    var prod = P.product(x.d.product);
+                    say('Готово — ' + (prod ? prod.name : 'планът') + ' е активен' + (x.d.until ? ' до ' + new Date(x.d.until).toLocaleDateString() : '') + '. Отвори плана си в приложението или в сайта.');
                 } else say('Плащането още не е потвърдено. Ако си платил, опресни страницата след минута.');
                 history.replaceState(null, '', location.pathname);
             }).catch(function () { say('Няма връзка за потвърждение. Опресни страницата.'); });
         }
-
-        // Управление: карта, фактури, отказ — порталът на Stripe.
-        var manage = document.getElementById('manageSub');
-        if (uid().indexOf('fb_') === 0) manage.hidden = false;
-        manage.addEventListener('click', function (e) {
-            e.preventDefault();
-            post('/api/billing/portal', { userId: uid(), returnUrl: location.origin + location.pathname }).then(function (x) {
-                if (x.d && x.d.url) location.href = x.d.url;
-                else say(x.d && x.d.error === 'no_customer' ? 'Още нямаш платен абонамент.' : 'Управлението не се отвори. Опитай пак.');
-            });
-        });
 
         fetch(WORKER + '/api/billing/status').then(function (r) { return r.json(); }).then(function (d) {
             billing = d || { ready: false };
@@ -308,14 +318,6 @@
             render();
             if (billing.ready && d.mode === 'test') say(paid ? note.textContent : 'Тестов режим: плащанията са с тестови карти (4242 4242 4242 4242), без истинско таксуване.');
         }).catch(function () {});
-
-        document.querySelectorAll('.period button').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                period = btn.getAttribute('data-period');
-                document.querySelectorAll('.period button').forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
-                render();
-            });
-        });
         render();
     })();
     </script>

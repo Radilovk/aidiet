@@ -1336,6 +1336,15 @@
         .rx-plan-link-done { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ds-accent-text); }
         .rx-plan-link-status { font-size: 0.875rem; color: var(--ds-text-soft); min-height: 1em; }
 
+        .rx-unlock { display: grid; gap: 10px; padding: 18px; border-radius: 18px; border: 1px solid var(--rx-line); background: var(--rx-card, transparent); }
+        .rx-unlock-title { font-weight: 800; font-size: 1.02rem; display: flex; gap: 8px; align-items: center; }
+        .rx-unlock p { margin: 0; font-size: .92rem; line-height: 1.5; color: var(--text-gray); }
+        .rx-unlock-consent { display: flex; gap: 8px; align-items: flex-start; font-size: .85rem; color: var(--text-gray); cursor: pointer; }
+        .rx-unlock-consent input { flex: none; width: 18px; height: 18px; margin-top: 1px; }
+        .rx-unlock .rx-btn { justify-self: start; text-decoration: none; }
+        .rx-unlock-note:empty { display: none; }
+        .rx-unlock .rx-unlock-note { font-size: .82rem; }
+
         .rx-offline {
             display: flex;
             flex-wrap: wrap;
@@ -2986,7 +2995,7 @@
                     ${swapsHtml}
                     ${detailsHtml}
 
-                    ${ai ? '' : `
+                    ${ai ? '' : emoLocked ? unlockHtml() : `
                     <div class="rx-offline rx-in">
                         <span>Личният текст не се зареди — показваме основния план за твоя модел.</span>
                         <button type="button" class="rx-link" onclick="retryAIAnalysis()"><i class="fas fa-rotate-right"></i> Опитай пак</button>
@@ -3102,6 +3111,87 @@
             }
         }
 
+        // Личният анализ е платен, когато стената за достъп е включена: 2,99 € еднократно (кредит
+        // за устройството/акаунта) или включен в плана на Eatologix. Сървърът решава (402 = заключено).
+        let emoLocked = false;
+        let emoBilling = null;   // { ready, mode, price }
+        function emoDevice() {
+            try {
+                let id = localStorage.getItem('emoeat_device');
+                if (!id) { id = 'em' + Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem('emoeat_device', id); }
+                return id;
+            } catch (e) { return ''; }
+        }
+        function emoUser() { try { const u = localStorage.getItem('userId') || ''; return u.indexOf('fb_') === 0 ? u : ''; } catch (e) { return ''; } }
+        function emoTester() {
+            try {
+                const q = new URLSearchParams(location.search).get('billing');
+                if (q === 'test') localStorage.setItem('np_billing_test', '1');
+                if (q === 'off') localStorage.removeItem('np_billing_test');
+                return localStorage.getItem('np_billing_test') === '1';
+            } catch (e) { return false; }
+        }
+        async function loadEmoBilling() {
+            if (emoBilling) return emoBilling;
+            try {
+                const d = await (await fetch(`${WORKER_URL}/api/billing/status`)).json();
+                const prod = d && d.prices && d.prices.products && d.prices.products.emoeat_analysis;
+                emoBilling = { ready: !!(d && d.ready && (d.mode === 'live' || emoTester())), mode: d && d.mode, price: prod ? prod.price : 2.99 };
+            } catch (e) { emoBilling = { ready: false, price: 2.99 }; }
+            return emoBilling;
+        }
+        function priceText(v) { return (Math.round(v) === v ? String(v) : v.toFixed(2).replace('.', ',')) + ' €'; }
+        function unlockHtml() {
+            const b = emoBilling || { ready: false, price: 2.99 };
+            if (!b.ready) {
+                return `<div class="rx-unlock rx-in">
+                    <div class="rx-unlock-title"><i class="fas fa-lock"></i> Личният анализ</div>
+                    <p>Показваме основния план за твоя модел. Личният анализ и планът за седмицата са включени в плана на Eatologix.</p>
+                    <a class="rx-btn" href="pricing.html" target="_top">Виж плановете</a>
+                </div>`;
+            }
+            return `<div class="rx-unlock rx-in">
+                <div class="rx-unlock-title"><i class="fas fa-lock"></i> Личният анализ — ${priceText(b.price)}</div>
+                <p>Кръгът ти, трите действия за седмицата и SOS стъпките — написани по твоите отговори. Еднократно, без абонамент. В плана на Eatologix е включен.</p>
+                <label class="rx-unlock-consent"><input type="checkbox" id="emoConsent"> <span>Съгласен съм анализът да се направи веднага след плащането и разбирам, че за цифрово съдържание губя правото на отказ от 14 дни.</span></label>
+                <button type="button" class="rx-btn" id="emoBuyBtn" onclick="buyEmoAnalysis()">Отключи за ${priceText(b.price)}</button>
+                ${b.mode === 'test' ? '<p class="rx-unlock-note">Тестов режим: карта 4242 4242 4242 4242, без истинско таксуване.</p>' : ''}
+                <p class="rx-unlock-note" id="emoBuyNote"></p>
+            </div>`;
+        }
+        async function buyEmoAnalysis() {
+            const note = document.getElementById('emoBuyNote');
+            const box = document.getElementById('emoConsent');
+            if (box && !box.checked) { if (note) note.textContent = 'Отбележи съгласието — после натисни пак.'; return; }
+            const btn = document.getElementById('emoBuyBtn');
+            if (btn) btn.disabled = true;
+            try {
+                const r = await fetch(`${WORKER_URL}/api/billing/checkout`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ product: 'emoeat_analysis', deviceId: emoDevice(), userId: emoUser(), returnUrl: location.origin + location.pathname })
+                });
+                const d = await r.json();
+                if (d.url) { location.href = d.url; return; }
+                if (note) note.textContent = d.message || 'Плащането не тръгна. Опитай пак след малко.';
+            } catch (e) {
+                if (note) note.textContent = 'Няма връзка. Опитай пак.';
+            }
+            if (btn) btn.disabled = false;
+        }
+        // Връщане от Stripe: ?paid=cs_… → потвърждение и личният анализ.
+        async function confirmEmoPayment() {
+            const paid = new URLSearchParams(location.search).get('paid');
+            if (!paid) return false;
+            history.replaceState(null, '', location.pathname);
+            try {
+                const r = await fetch(`${WORKER_URL}/api/billing/confirm`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: paid })
+                });
+                const d = await r.json();
+                return !!(d && d.ok);
+            } catch (e) { return false; }
+        }
+
         async function requestAnalysis() {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 30000);
@@ -3109,10 +3199,12 @@
                 const response = await fetch(`${WORKER_URL}/api/generate-emoeat-analysis`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ answers: buildAiAnswers(), profile: buildProfilePayload() }),
+                    body: JSON.stringify({ answers: buildAiAnswers(), profile: buildProfilePayload(), deviceId: emoDevice(), userId: emoUser() }),
                     signal: controller.signal
                 });
                 const result = await response.json();
+                emoLocked = response.status === 402;
+                if (emoLocked) await loadEmoBilling();
                 if (result.success && isValidAi(result.analysis)) return result.analysis;
                 throw new Error(result.error || 'Неуспешен анализ');
             } finally {
@@ -3250,9 +3342,13 @@
         // ============================================
         // INITIALIZATION
         // ============================================
-        function init() {
+        async function init() {
             const hasSavedAnswers = loadSavedAnswers();
             const completed = hasSavedAnswers ? localStorage.getItem('emoeat_completed') : null;
+            if (completed && scoredAnswerCount(answers) >= MIN_REQUIRED_ANSWERS && await confirmEmoPayment()) {
+                await showAnalysis();   // платено → личният анализ веднага
+                return;
+            }
             if (completed && scoredAnswerCount(answers) >= MIN_REQUIRED_ANSWERS) {
                 currentScreen = 'results';
                 renderResults(readSavedAnalysis());
