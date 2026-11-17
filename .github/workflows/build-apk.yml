@@ -37,6 +37,11 @@ on:
       - '**.ico'
       - '**.webm'
       - 'android-res/**'
+      # само за уеб (не променят приложението) — без ново APK
+      - '!wording-editor.js'
+      - '!emoeat-landing.html'
+      - '!i18n/*/emoeat-landing.json'
+      - '!wording/**'
   workflow_dispatch:
 
 jobs:

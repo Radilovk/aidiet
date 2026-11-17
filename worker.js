@@ -60666,9 +60666,10 @@ async function handleWordingSave(request, env) {
   };
   await env.page_content.put(`wording:${id}`, JSON.stringify(rec));
   let auto = false;
-  const token = env.GITHUB_TOKEN || env.GITHUB_TOKEN1;
-  if (token) {
-    const repo = /irismap|airis/i.test(rec.site + rec.page) ? "Radilovk/airis1.0" : "Radilovk/aidiet";
+  const repo = /irismap|airis/i.test(rec.site + rec.page) ? "Radilovk/airis1.0" : "Radilovk/aidiet";
+  const tried = [];
+  for (const [name, token] of [["GITHUB_TOKEN", env.GITHUB_TOKEN], ["GITHUB_TOKEN1", env.GITHUB_TOKEN1]]) {
+    if (!token || auto) continue;
     try {
       const r = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
         method: "POST",
@@ -60677,10 +60678,14 @@ async function handleWordingSave(request, env) {
         signal: AbortSignal.timeout(6e3)
       });
       auto = r.status === 204;
-      if (!auto) console.warn("[wording] dispatch", repo, r.status);
+      tried.push({ name, status: r.status, body: auto ? "" : (await r.text()).slice(0, 200) });
     } catch (e) {
-      console.warn("[wording] dispatch:", e.message);
+      tried.push({ name, error: String(e.message).slice(0, 200) });
     }
+  }
+  try {
+    await env.page_content.put("wording-dispatch:last", JSON.stringify({ at: (/* @__PURE__ */ new Date()).toISOString(), repo, auto, tried }));
+  } catch {
   }
   return jsonResponse2({ ok: true, id, count: edits.length, slots: slots.length, images: n, auto });
 }
