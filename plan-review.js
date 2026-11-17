@@ -237,10 +237,10 @@ async function askClaude(client, messages) {
  * → 'skip' | 'stale' | 'reviewed' | verdict
  * @param {any} env
  * @param {{ clientId: string, planUpdatedAt: string|null }} job
- * @param {{ reconcile?: (plan: any, answers: any) => Promise<any>, addSpend?: (usd: number) => Promise<any>, client?: any, now?: number }} [deps]
+ * @param {{ reconcile?: (plan: any, answers: any) => Promise<any>, addSpend?: (usd: number) => Promise<any>, notify?: (client: any, review: any) => Promise<any>, client?: any, now?: number }} [deps]
  *   client — само за тестовете (иначе Anthropic с ANTHROPIC_API_KEY)
  */
-export async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addSpend, client, now = Date.now() } = {}) {
+export async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addSpend, notify, client, now = Date.now() } = {}) {
   const c = JSON.parse((await env.page_content.get(`client:${clientId}`)) || 'null');
   if (!isPending(c)) return 'skip';
   if ((c.planUpdatedAt || null) !== (planUpdatedAt || null)) return 'stale';   // новият вариант има своя задача
@@ -291,6 +291,7 @@ export async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcil
     costUsd: Math.round(usd * 10000) / 10000, applied: false,
   };
   await env.page_content.put(reviewKey(clientId), JSON.stringify(review), { expirationTtl: 120 * 86400 });
+  if (notify) await notify(c, review);   // писмото до админа: новият план с прегледа
   return verdict;
 }
 

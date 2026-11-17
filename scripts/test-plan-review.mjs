@@ -34,7 +34,8 @@ function fakeClaude(...answers) {
   };
 }
 const fixMeal = { op: 'replace', path: '/plan/weekPlan/day1/meals/1', value_json: JSON.stringify({ name: 'Пилешко с ориз', calories: 600 }), reason: 'Скариди при алергия към ракообразни.' };
-const deps = (c, spent) => ({ client: c, reconcile: async (p) => { p.summary = { recomputed: true }; }, addSpend: async (usd) => spent.push(usd) });
+const mails = [];
+const deps = (c, spent) => ({ client: c, reconcile: async (p) => { p.summary = { recomputed: true }; }, addSpend: async (usd) => spent.push(usd), notify: async (cl, r) => mails.push({ id: cl.id, verdict: r.verdict, changes: (r.changes || []).length }) });
 
 const ok = [];
 const check = async (n, f) => { await f(); ok.push(n); console.log('✅', n); };
@@ -79,6 +80,7 @@ await check('промените пазят „преди“, „след“ и �
   assert.equal(r.correctedPlan.summary.recomputed, true);
   assert.equal(JSON.parse(kv.get('client:c1')).plan.weekPlan.day1.meals[1].name, 'Скариди с ориз');
   assert.equal(r.findings[0].severity, 'critical');
+  assert.deepEqual(mails.at(-1), { id: 'c1', verdict: 'fix', changes: 1 });   // писмо до админа с прегледа
 });
 await check('същият вариант не се преглежда втори път; сменен план → stale', async () => {
   assert.equal(await runPlanReview(env, { clientId: 'c1', planUpdatedAt: 'v1' }, deps(fakeClaude(), [])), 'reviewed');

@@ -77361,7 +77361,7 @@ async function askClaude(client, messages) {
   const text2 = message.content.filter((b) => b.type === "text").map((b) => b.text).join("");
   return { message, result: JSON.parse(text2) };
 }
-async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addSpend: addSpend2, client, now = Date.now() } = {}) {
+async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addSpend: addSpend2, notify, client, now = Date.now() } = {}) {
   const c = JSON.parse(await env.page_content.get(`client:${clientId}`) || "null");
   if (!isPending(c)) return "skip";
   if ((c.planUpdatedAt || null) !== (planUpdatedAt || null)) return "stale";
@@ -77418,6 +77418,7 @@ async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addS
     applied: false
   };
   await env.page_content.put(reviewKey(clientId), JSON.stringify(review), { expirationTtl: 120 * 86400 });
+  if (notify) await notify(c, review);
   return verdict;
 }
 async function handleReviewGet(url, env, { respond }) {
@@ -79682,6 +79683,10 @@ async function planReviewOnSave(env, clientId, clientData) {
   try {
     const r = await reviewOnPending(env, clientId, clientData);
     if (r !== "off" && r !== "same" && r !== "reviewed") console.log(`[plan-review] ${clientId}: ${r}`);
+    if (r === "off" && !await env.page_content.get(`plan_review_mailed:${clientId}:${clientData.planUpdatedAt || ""}`)) {
+      await env.page_content.put(`plan_review_mailed:${clientId}:${clientData.planUpdatedAt || ""}`, "1", { expirationTtl: 30 * 86400 });
+      await notifyAdmin(env, null, `\u041F\u043B\u0430\u043D \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435: ${clientData.answers?.name || clientId}`, [["\u041A\u043B\u0438\u0435\u043D\u0442", clientData.answers?.name], ["\u0418\u043C\u0435\u0439\u043B", clientData.answers?.email], ["\u0426\u0435\u043B", clientData.answers?.goal], ["ID", clientId]]);
+    }
   } catch (e) {
     console.warn("[plan-review] on save:", e?.message);
   }
@@ -81558,6 +81563,15 @@ async function handleChat(request, env) {
     return jsonResponse2({ error: `${ERROR_MESSAGES.CHAT_FAILED}: ${error.message}` }, 500);
   }
 }
+function formatDateBG(isoString) {
+  try {
+    const d = new Date(isoString);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(d.getUTCDate())}.${pad(d.getUTCMonth() + 1)}.${d.getUTCFullYear()} \u0432 ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  } catch {
+    return isoString;
+  }
+}
 function escapeHtml(str3) {
   return String(str3).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -81949,6 +81963,35 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
   }
   console.log(`[Email] Sent successfully to ${to}`);
 }
+var ADMIN_PANEL_URL = "https://biocode.website/admin.html";
+function notifyAdmin(env, ctx, subject, rows, extraHtml = "") {
+  const to = env?.ADMIN_NOTIFY_EMAIL;
+  if (!to || !env?.RESEND_API_KEY) return Promise.resolve();
+  const table2 = rows.filter(([, v]) => v != null && v !== "").map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#64748b;vertical-align:top">${escapeHtml(k)}</td><td style="padding:4px 0">${escapeHtml(String(v)).replace(/\n/g, "<br>")}</td></tr>`).join("");
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#0f172a;max-width:640px">
+    <h2 style="margin:0 0 12px;font-size:18px">${escapeHtml(subject)}</h2>
+    <table style="border-collapse:collapse">${table2}</table>${extraHtml}
+    <p style="margin:20px 0 0"><a href="${ADMIN_PANEL_URL}" style="background:#03939C;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">\u041E\u0442\u0432\u043E\u0440\u0438 \u0430\u0434\u043C\u0438\u043D \u043F\u0430\u043D\u0435\u043B\u0430</a></p></div>`;
+  const p = sendEmailViaSMTP(env, to, `[Eatologix] ${subject}`, html).catch((e) => console.warn("[notifyAdmin]", e.message));
+  if (ctx?.waitUntil) ctx.waitUntil(p);
+  return p;
+}
+function notifyPlanReviewed(env, client, review) {
+  const verdict = { ok: "\u2705 \u0433\u043E\u0442\u043E\u0432 \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435", fix: "\u{1F6E0} \u0441 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438", stop: "\u26D4 \u043D\u0443\u0436\u0435\u043D \u0435 \u0447\u043E\u0432\u0435\u043A" }[review.verdict] || review.verdict;
+  const sev = { critical: "\u041A\u0440\u0438\u0442\u0438\u0447\u043D\u043E", major: "\u0412\u0430\u0436\u043D\u043E", minor: "\u0414\u0440\u0435\u0431\u043D\u043E" };
+  const mealOf = (v) => v && typeof v === "object" && v.name ? `${v.name}${v.calories != null ? ` (${Math.round(v.calories)} kcal)` : ""}` : v == null ? "\u2014" : JSON.stringify(v).slice(0, 160);
+  const findings = (review.findings || []).map((f) => `<li><b>${sev[f.severity] || f.severity}</b>${f.where ? " \xB7 " + escapeHtml(f.where) : ""}: ${escapeHtml(f.issue)}${f.fix ? ` <span style="color:#15803d">\u2192 ${escapeHtml(f.fix)}</span>` : ""}</li>`).join("");
+  const changes = (review.changes || []).map((ch) => `<li>${escapeHtml(ch.path.replace(/^\/plan\//, ""))}: <span style="color:#dc2626">${escapeHtml(mealOf(ch.before))}</span> \u2192 <span style="color:#15803d">${escapeHtml(ch.op === "remove" ? "\u043F\u0440\u0435\u043C\u0430\u0445\u043D\u0430\u0442\u043E" : mealOf(ch.after))}</span><br><i>${escapeHtml(ch.reason || "")}</i></li>`).join("");
+  const extra = `<h3 style="font-size:15px;margin:16px 0 6px">\u041F\u0440\u0435\u0433\u043B\u0435\u0434\u044A\u0442 \u043D\u0430 Claude: ${verdict}</h3><p>${escapeHtml(review.summary || "")}</p>` + (findings ? `<h4 style="margin:12px 0 4px">\u0417\u0430\u0431\u0435\u043B\u0435\u0436\u043A\u0438</h4><ol>${findings}</ol>` : "") + (changes ? `<h4 style="margin:12px 0 4px">\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438</h4><ol>${changes}</ol>` : "") + '<p style="color:#64748b">\u041F\u043B\u0430\u043D\u044A\u0442 \u0447\u0430\u043A\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435. \u041F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u043D\u0435 \u0433\u0438 \u043E\u0434\u043E\u0431\u0440\u0438\u0442\u0435 \u0432 \u0430\u0434\u043C\u0438\u043D \u043F\u0430\u043D\u0435\u043B\u0430.</p>';
+  const a = client?.answers || {};
+  return notifyAdmin(
+    env,
+    null,
+    `\u041F\u043B\u0430\u043D \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435: ${a.name || client?.id || ""} \u2014 ${verdict}`,
+    [["\u041A\u043B\u0438\u0435\u043D\u0442", a.name], ["\u0418\u043C\u0435\u0439\u043B", a.email], ["\u0426\u0435\u043B", a.goal], ["ID", client?.id]],
+    extra
+  );
+}
 async function handleReportProblem(request, env, ctx) {
   try {
     const { userId, userName, message, timestamp, userAgent } = await request.json();
@@ -81978,6 +82021,7 @@ async function handleReportProblem(request, env, ctx) {
     }
     await env.page_content.put("problem_reports_list", JSON.stringify(reportsList));
     console.log("Problem report saved:", reportId);
+    notifyAdmin(env, ctx, "\u0414\u043E\u043A\u043B\u0430\u0434 \u0437\u0430 \u043F\u0440\u043E\u0431\u043B\u0435\u043C", [["\u041F\u043E\u0442\u0440\u0435\u0431\u0438\u0442\u0435\u043B", report.userName], ["ID", report.userId], ["\u0421\u044A\u043E\u0431\u0449\u0435\u043D\u0438\u0435", report.message], ["\u0414\u0430\u0442\u0430", formatDateBG(report.timestamp)]]);
     return jsonResponse2({
       success: true,
       reportId,
@@ -82042,6 +82086,7 @@ async function handleContactMessage(request, env, ctx) {
     if (msgList.length > 200) msgList = msgList.slice(0, 200);
     await env.page_content.put("contact_messages_list", JSON.stringify(msgList));
     console.log("Contact message saved:", msgId);
+    notifyAdmin(env, ctx, `\u041D\u043E\u0432\u043E \u0441\u044A\u043E\u0431\u0449\u0435\u043D\u0438\u0435${contactMsg.subject ? ": " + contactMsg.subject : ""}`, [["\u0418\u043C\u0435", contactMsg.name], ["\u0418\u043C\u0435\u0439\u043B", contactMsg.email], ["\u0422\u0435\u043C\u0430", contactMsg.subject], ["\u0421\u044A\u043E\u0431\u0449\u0435\u043D\u0438\u0435", contactMsg.message], ["\u0414\u0430\u0442\u0430", formatDateBG(contactMsg.timestamp)]]);
     return jsonResponse2({ success: true, messageId: msgId, message: "Message sent successfully" });
   } catch (error) {
     console.error("Error saving contact message:", error);
@@ -82309,6 +82354,9 @@ async function handleSaveClientData(request, env, ctx) {
     }
     await kvPutJSON(env, "clients_list", clientsList, null);
     console.log("Client data saved:", clientId);
+    if (!existingClientData) {
+      notifyAdmin(env, ctx, `\u041D\u043E\u0432\u043E \u0437\u0430\u043F\u0438\u0442\u0432\u0430\u043D\u0435: ${clientData.answers?.name || clientId}`, [["\u041A\u043B\u0438\u0435\u043D\u0442", clientData.answers?.name], ["\u0418\u043C\u0435\u0439\u043B", clientData.answers?.email], ["\u0426\u0435\u043B", clientData.answers?.goal], ["\u041F\u0430\u0440\u0442\u043D\u044C\u043E\u0440", clientData.partnerRef], ["ID", clientId], ["\u0414\u0430\u0442\u0430", formatDateBG(clientData.submittedAt)]]);
+    }
     return jsonResponse2({
       success: true,
       clientId,
@@ -92899,11 +92947,21 @@ var worker_entry_default = {
         } else if (type === "safety_rebuild") {
           await runSafetyRebuild(env, payload, jobId);
         } else if (type === "plan_review") {
-          const r = await runPlanReview(env, body, {
-            reconcile: (plan, answers2) => reconcilePlanStructure(plan, answers2, env),
-            addSpend: (usd) => addSpend(env, usd, { notify: adminSpendNotify(env) })
-          });
-          console.log(`[plan-review] ${clientId}: ${r}`);
+          try {
+            const r = await runPlanReview(env, body, {
+              reconcile: (plan, answers2) => reconcilePlanStructure(plan, answers2, env),
+              addSpend: (usd) => addSpend(env, usd, { notify: adminSpendNotify(env) }),
+              notify: (client, review) => notifyPlanReviewed(env, client, review)
+            });
+            console.log(`[plan-review] ${clientId}: ${r}`);
+          } catch (err2) {
+            if ((message.attempts || 1) >= 3) {
+              const c = await kvGetJSON(env, `client:${clientId}`);
+              await notifyAdmin(env, null, `\u041F\u043B\u0430\u043D \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435: ${c?.answers?.name || clientId} \u2014 \u0431\u0435\u0437 \u043F\u0440\u0435\u0433\u043B\u0435\u0434`, [["\u041A\u043B\u0438\u0435\u043D\u0442", c?.answers?.name], ["\u0418\u043C\u0435\u0439\u043B", c?.answers?.email], ["ID", clientId], ["\u041F\u0440\u0435\u0433\u043B\u0435\u0434\u044A\u0442 \u043D\u0435 \u043C\u0438\u043D\u0430", String(err2?.message || err2).slice(0, 300)]]);
+            } else {
+              throw err2;
+            }
+          }
         } else {
           await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
         }

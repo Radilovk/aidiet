@@ -10019,6 +10019,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 <i class="fas fa-clock"></i> ${dateStr}
                             </div>
                             ${errorRow}
+                            ${!isFailed ? `<div class="pending-review-summary" data-client-id="${escapeHtml(client.id)}" style="font-size:0.85rem;color:#475569;margin-top:6px;line-height:1.4;"></div>` : ''}
                         </div>
                         <div class="pending-client-actions">
                             <button class="btn pending-view-btn" style="background:var(--accent-blue);font-size:0.85rem;padding:8px 14px;">
@@ -10053,50 +10054,104 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     : v === 'fix' ? ['🛠 с корекции', '#fef3c7', '#b45309']
                     : ['⛔ нужен човек', '#fee2e2', '#dc2626'];
                 badge.textContent = 'Claude: ' + look[0];
+                const sum = container.querySelector('.pending-review-summary[data-client-id="' + CSS.escape(badge.getAttribute('data-client-id')) + '"]');
+                if (sum) sum.innerHTML = reviewCardLine(r);
                 badge.style.background = look[1]; badge.style.color = look[2];
             });
             container.querySelectorAll('.pending-review-btn').forEach(btn => {
                 btn.addEventListener('click', () => openPlanReview(btn.getAttribute('data-client-id')));
             });
             container.querySelectorAll('.pending-activate-btn').forEach(btn => {
-                btn.addEventListener('click', async function() {
-                    const cId = this.getAttribute('data-client-id');
-                    if (!confirm('Сигурни ли сте, че искате да активирате достъпа до плана за този клиент?')) return;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    this.disabled = true;
-                    try {
-                        const resp = await fetch(WORKER_URL + '/api/admin/activate-client-plan', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ clientId: cId })
-                        });
-                        const res = await resp.json();
-                        if (!res.success) {
-                            throw new Error(res.error || 'Unknown error');
-                        }
-
-                        const client = allClientsData.find(entry => entry.id === cId);
-                        if (client) {
-                            client.planStatus = 'activated';
-                            client.planActivatedAt = res.activatedAt || new Date().toISOString();
-                        }
-                        cacheClientsDirectorySnapshot();
-                        renderPendingPlans();
-                        if (clientsDirectoryHasLoaded) {
-                            renderClientsDirectory();
-                        }
-
-                        const emailInfo = res.emailSent
-                            ? ' ✉️ Имейлът е изпратен успешно.'
-                            : ` ⚠️ Имейлът НЕ е изпратен: ${res.emailError || 'неизвестна грешка'}.`;
-                        showSuccess('Планът е активиран! Клиентът вече има достъп.' + emailInfo);
-                    } catch (e) {
-                        showError('Грешка при активиране: ' + e.message);
-                        this.innerHTML = '<i class="fas fa-rocket"></i> Активирай';
-                        this.disabled = false;
-                    }
-                });
+                btn.addEventListener('click', function() { activatePendingPlan(this.getAttribute('data-client-id'), this); });
             });
+        }
+
+        // Ред под името: какво каза Claude и колко промени предлага.
+        function reviewCardLine(r) {
+            if (!r) return '<i class="fas fa-hourglass-half"></i> Claude преглежда плана — обикновено до минута.';
+            const crit = (r.findings || []).filter(f => f.severity === 'critical').length;
+            const n = (r.changes || []).length;
+            const text = String(r.summary || '');
+            const parts = [escapeHtml(text.length > 220 ? text.slice(0, 220) + '…' : text)];
+            if (crit) parts.push('<b style="color:#dc2626">критични: ' + crit + '</b>');
+            if (n) parts.push('<b>' + (r.applied ? 'приложени промени: ' : 'предложени промени: ') + n + '</b>');
+            return parts.join(' · ');
+        }
+
+        // Малък прозорец с избор; връща ключа на натиснатия бутон (или null).
+        function askChoice(title, text, buttons) {
+            return new Promise(resolve => {
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px';
+                wrap.innerHTML = `<div style="background:var(--card-bg,#fff);color:inherit;max-width:460px;width:100%;border-radius:14px;padding:20px">
+                    <h3 style="margin:0 0 10px">${title}</h3><p style="margin:0 0 16px;line-height:1.5">${text}</p>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+                      ${buttons.map(b => `<button class="btn" data-k="${b.key}" style="background:${b.color || '#64748b'}">${b.label}</button>`).join('')}
+                    </div></div>`;
+                wrap.addEventListener('click', e => {
+                    const k = e.target.closest('[data-k]');
+                    if (e.target === wrap || k) { wrap.remove(); resolve(k ? k.getAttribute('data-k') : null); }
+                });
+                document.body.appendChild(wrap);
+            });
+        }
+
+        // Активиране: първо се вижда какво казва Claude; предложените промени се прилагат с едно натискане.
+        // withChanges: от прозореца на прегледа („Приложи и активирай“) — без втори въпрос.
+        async function activatePendingPlan(cId, btn, withChanges = false) {
+            const r = await fetchPlanReview(cId);
+            const cancel = { key: 'cancel', label: 'Отказ' };
+            let applyFirst = Boolean(withChanges && r && r.correctedPlan && !r.applied);
+            if (applyFirst) {
+                // изборът е направен в прозореца на прегледа
+            } else if (!r) {
+                const k = await askChoice('Claude още не е прегледал плана', 'Прегледът обикновено отнема до минута. Да активирам ли плана без него?',
+                    [cancel, { key: 'go', label: 'Активирай без преглед', color: '#03939C' }]);
+                if (k !== 'go') return;
+            } else if (r.correctedPlan && !r.applied) {
+                const n = (r.changes || []).length;
+                const k = await askChoice('Claude предлага ' + (n === 1 ? '1 промяна' : n + ' промени'), escapeHtml(r.summary || ''),
+                    [cancel, { key: 'view', label: 'Виж промените', color: '#7c3aed' }, { key: 'plain', label: 'Активирай без тях' }, { key: 'apply', label: 'Приложи и активирай', color: '#03939C' }]);
+                if (k === 'view') return openPlanReview(cId);
+                if (k !== 'apply' && k !== 'plain') return;
+                applyFirst = k === 'apply';
+            } else if (r.verdict === 'stop') {
+                const k = await askChoice('Claude: нужен е човек', escapeHtml(r.summary || ''),
+                    [cancel, { key: 'view', label: 'Виж забележките', color: '#7c3aed' }, { key: 'go', label: 'Активирай въпреки това', color: '#dc2626' }]);
+                if (k === 'view') return openPlanReview(cId);
+                if (k !== 'go') return;
+            } else if (!confirm('Claude: планът е готов. Активирам ли достъпа на клиента?')) {
+                return;
+            }
+            if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true; }
+            try {
+                if (applyFirst) {
+                    const a = await (await fetch(WORKER_URL + '/api/admin/plan-review/apply', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: cId })
+                    })).json();
+                    if (!a.success) throw new Error(a.message || a.error || 'промените не се приложиха');
+                }
+                const resp = await fetch(WORKER_URL + '/api/admin/activate-client-plan', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: cId })
+                });
+                const res = await resp.json();
+                if (!res.success) throw new Error(res.error || 'Unknown error');
+                const client = allClientsData.find(entry => entry.id === cId);
+                if (client) {
+                    client.planStatus = 'activated';
+                    client.planActivatedAt = res.activatedAt || new Date().toISOString();
+                }
+                cacheClientsDirectorySnapshot();
+                renderPendingPlans();
+                if (clientsDirectoryHasLoaded) renderClientsDirectory();
+                const emailInfo = res.emailSent
+                    ? ' ✉️ Имейлът е изпратен успешно.'
+                    : ` ⚠️ Имейлът НЕ е изпратен: ${res.emailError || 'неизвестна грешка'}.`;
+                showSuccess((applyFirst ? 'Промените на Claude са приложени и планът е активиран.' : 'Планът е активиран! Клиентът вече има достъп.') + emailInfo);
+            } catch (e) {
+                showError('Грешка при активиране: ' + e.message);
+                if (btn) { btn.innerHTML = '<i class="fas fa-rocket"></i> Активирай'; btn.disabled = false; }
+            }
         }
 
         async function fetchPlanReview(clientId) {
@@ -10149,12 +10204,18 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             wrap.innerHTML = `<div style="background:var(--card-bg,#fff);color:inherit;max-width:640px;width:100%;max-height:85vh;overflow:auto;border-radius:14px;padding:20px">
                 <h3 style="margin:0 0 12px"><i class="fas fa-user-doctor"></i> Прегледът на Claude</h3>${body}
                 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap">
-                  ${r && r.correctedPlan && !r.applied ? '<button class="btn" data-act="apply" style="background:#7c3aed">Приложи корекциите</button>' : ''}
                   <button class="btn" data-act="close" style="background:#64748b">Затвори</button>
+                  ${r && r.correctedPlan && !r.applied ? '<button class="btn" data-act="apply" style="background:#7c3aed">Приложи промените</button>' : ''}
+                  <button class="btn" data-act="activate" style="background:#03939C">${r && r.correctedPlan && !r.applied ? 'Приложи и активирай' : 'Активирай'}</button>
                 </div></div>`;
             wrap.addEventListener('click', async e => {
                 const act = e.target.closest('[data-act]') && e.target.closest('[data-act]').getAttribute('data-act');
                 if (e.target === wrap || act === 'close') return wrap.remove();
+                if (act === 'activate') {
+                    wrap.remove();
+                    const card = document.querySelector('.pending-activate-btn[data-client-id="' + CSS.escape(clientId) + '"]');
+                    return activatePendingPlan(clientId, card, Boolean(r && r.correctedPlan && !r.applied));
+                }
                 if (act === 'apply') {
                     if (!confirm('Коригираният план замества текущия. Остава за одобрение — после натиснете „Активирай“. Продължаваме ли?')) return;
                     try {
