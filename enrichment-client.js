@@ -66,6 +66,13 @@
             body: JSON.stringify(Object.assign({ userId: uid, idToken: token || undefined }, body || {}))
         });
         var data = await res.json().catch(function () { return {}; });
+        // Платена функция или изчерпан таван — прозорецът от access.js вместо обща грешка.
+        if (res.status === 402 && global.NutriPlanAccess) {
+            global.NutriPlanAccess.handleLocked(res, data);
+            var locked = new Error(data.message || 'Част от абонамента');
+            locked.locked = true;
+            throw locked;
+        }
         if (!res.ok || !data.success) throw new Error(data.error || ('HTTP ' + res.status));
         return data;
     }

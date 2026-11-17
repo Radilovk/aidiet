@@ -42,6 +42,9 @@ on:
       - '!emoeat-landing.html'
       - '!i18n/*/emoeat-landing.json'
       - '!wording/**'
+      - '!access-control.js'
+      - '!billing.js'
+      - '!pricing.html'
   workflow_dispatch:
 
 jobs:
@@ -133,6 +136,9 @@ jobs:
             --exclude 'i18n-server.js' \
             --exclude 'email-i18n.js' \
             --exclude 'wording/' \
+            --exclude 'access-control.js' \
+            --exclude 'billing.js' \
+            --exclude 'pricing.html' \
             --exclude 'brand/wordmark-glyphs.json' \
             --exclude 'brand/concept-eatologix.png' \
             --exclude 'plan-response-schemas.js' \

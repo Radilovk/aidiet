@@ -4008,6 +4008,15 @@
     <script src="./platform-compat.js"></script>
     <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
+    <script src="./pricing-config.js"></script>
+    <script src="./access.js"></script>
+    <script>
+        // Нивото на акаунта: при включена стена текущият ден се рисува наново със заключването.
+        NutriPlanAccess.load().then(function (st) {
+            if (!st.paywall) return;
+            try { if (dietPlan && dietPlan.weekPlan) renderDay(currentDay, currentViewDateKey); } catch (_) {}
+        });
+    </script>
     <script src="./handoff-client.js"></script>
     <script src="./enrichment-client.js"></script>
     <script src="./goal-model.js"></script>

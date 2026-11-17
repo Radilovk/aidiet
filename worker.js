@@ -553,6 +553,191 @@ var require_goal_model = __commonJS({
   }
 });
 
+// pricing-config.js
+var require_pricing_config = __commonJS({
+  "pricing-config.js"(exports, module) {
+    (function(global) {
+      "use strict";
+      var TIERS = ["start", "core", "plus"];
+      var FEATURE_MIN_TIER = {
+        full_week: "core",
+        // цялото седмично меню (в Start — първият ден, без AI)
+        ai_plan: "core",
+        // AI текстовете и прегледът на менюто в нов план
+        replan: "core",
+        // нов план след промяна в профила
+        chat: "core",
+        // асистентът
+        photo: "core",
+        // снимка на чинията
+        menu_photo: "core",
+        // снимка на меню в ресторант
+        docs: "core",
+        // изследвания, документи, екранни снимки от устройства
+        weekly: "core",
+        // седмичното обновяване на менюто
+        plan_book: "core",
+        // книгата на плана (PDF)
+        emoeat_ai: "core",
+        // личният текст в теста за емоционално хранене
+        iris_protocol: "plus"
+        // включен протокол от IrisMap (иначе — еднократно плащане)
+      };
+      var QUOTAS = {
+        core: {
+          month: { chat: 50, photo: 20, menu_photo: 5, docs: 2, replan: 1 },
+          week: { chat: 14, photo: 6, menu_photo: 2, docs: 1, replan: 1 }
+        },
+        plus: {
+          month: { chat: 200, photo: 90, menu_photo: 30, docs: 10, replan: 3, iris_protocol: 1 },
+          week: { chat: 50, photo: 22, menu_photo: 8, docs: 3, replan: 1 }
+        }
+      };
+      var PERIOD_LABEL = { week: "\u0441\u0435\u0434\u043C\u0438\u0446\u0430", month: "\u043C\u0435\u0441\u0435\u0446" };
+      var PRODUCTS = {
+        iris_protocol: {
+          name: "IrisMap \u2014 \u043B\u0438\u0447\u0435\u043D \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B",
+          description: "\u041F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u043E\u0442 \u0438\u0440\u0438\u0441\u043E\u0432\u0438\u044F \u0430\u043D\u0430\u043B\u0438\u0437: \u0445\u0440\u0430\u043D\u0435\u043D\u0435, \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0438 \u0440\u0435\u0436\u0438\u043C. \u0421\u043A\u0430\u043D\u0438\u0440\u0430\u043D\u0435\u0442\u043E \u0438 \u0430\u043D\u0430\u043B\u0438\u0437\u044A\u0442 \u0441\u0430 \u0431\u0435\u0437\u043F\u043B\u0430\u0442\u043D\u0438.",
+          price: 9.99,
+          includedIn: "plus"
+          // Plus (месечен) — 1 протокол на месец без доплащане
+        }
+      };
+      var FEATURE_LABEL = {
+        full_week: "\u0426\u044F\u043B\u043E\u0442\u043E \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043C\u0435\u043D\u044E",
+        ai_plan: "\u041F\u044A\u043B\u043D\u0438\u044F\u0442 \u043F\u043B\u0430\u043D",
+        replan: "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u0441\u043B\u0435\u0434 \u043F\u0440\u043E\u043C\u044F\u043D\u0430",
+        chat: "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442\u044A\u0442",
+        photo: "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430",
+        menu_photo: "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E\u0442\u043E",
+        docs: "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438",
+        weekly: "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u043E\u0442\u043E \u043E\u0431\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435",
+        plan_book: "\u041A\u043D\u0438\u0433\u0430\u0442\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430",
+        emoeat_ai: "\u041B\u0438\u0447\u043D\u0438\u044F\u0442 \u0430\u043D\u0430\u043B\u0438\u0437",
+        iris_protocol: "\u041F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u044A\u0442 \u043E\u0442 IrisMap"
+      };
+      var QUOTA_UNIT = {
+        chat: ["\u0432\u044A\u043F\u0440\u043E\u0441", "\u0432\u044A\u043F\u0440\u043E\u0441\u0430"],
+        photo: ["\u0441\u043D\u0438\u043C\u043A\u0430", "\u0441\u043D\u0438\u043C\u043A\u0438"],
+        menu_photo: ["\u0441\u043D\u0438\u043C\u043A\u0430", "\u0441\u043D\u0438\u043C\u043A\u0438"],
+        docs: ["\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442", "\u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0430"],
+        replan: ["\u043D\u043E\u0432 \u043F\u043B\u0430\u043D", "\u043D\u043E\u0432\u0438 \u043F\u043B\u0430\u043D\u0430"],
+        iris_protocol: ["\u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B", "\u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u0430"]
+      };
+      var PLANS = [
+        {
+          id: "start",
+          name: "Start",
+          tagline: "\u0412\u0438\u0436 \u043A\u0430\u043A\u0432\u043E \u0449\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u0448",
+          prices: { month: 0 },
+          features: [
+            "\u0412\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A \u0438 \u0434\u043D\u0435\u0432\u043D\u0438 \u0446\u0435\u043B\u0438: \u043A\u0430\u043B\u043E\u0440\u0438\u0438, \u0431\u0435\u043B\u0442\u044A\u043A, \u0432\u043E\u0434\u0430",
+            "\u0415\u0434\u0438\u043D \u043F\u0440\u0438\u043C\u0435\u0440\u0435\u043D \u0434\u0435\u043D \u043E\u0442 \u043C\u0435\u043D\u044E\u0442\u043E",
+            "\u0422\u0435\u0441\u0442 \u0437\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442",
+            "\u041A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E"
+          ]
+        },
+        {
+          id: "core",
+          name: "Core",
+          tagline: "\u0426\u0435\u043B\u0438\u044F\u0442 \u043F\u043B\u0430\u043D, \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430",
+          prices: { week: 2.99, month: 8.99 },
+          highlight: true,
+          features: [
+            "\u0421\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043C\u0435\u043D\u044E \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043E \u043E\u0442 \u0435\u043A\u0438\u043F\u0430",
+            "\u041E\u0431\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435 \u043D\u0430 \u043C\u0435\u043D\u044E\u0442\u043E \u0432\u0441\u044F\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430",
+            "\u0421\u043C\u044F\u043D\u0430 \u043D\u0430 \u044F\u0441\u0442\u0438\u0435 \u0441 \u0435\u0434\u043D\u043E \u0434\u043E\u043A\u043E\u0441\u0432\u0430\u043D\u0435",
+            "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u2014 50 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (14 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
+            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u2014 20 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (6 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
+            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E \u0432 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0442 \u2014 5 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (2 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
+            "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438 \u2014 2 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (1 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
+            "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u0441\u043B\u0435\u0434 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u0432 \u043F\u0440\u043E\u0444\u0438\u043B\u0430 \u2014 1 \u0437\u0430 \u043F\u0435\u0440\u0438\u043E\u0434\u0430",
+            "Health Connect \u0438 \u043A\u043D\u0438\u0433\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430 (PDF)",
+            "\u041B\u0438\u0447\u0435\u043D \u0430\u043D\u0430\u043B\u0438\u0437 \u0432 \u0442\u0435\u0441\u0442\u0430 \u0437\u0430 \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435"
+          ]
+        },
+        {
+          id: "plus",
+          name: "Plus",
+          tagline: "\u0417\u0430 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u0438 \u0432\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435",
+          prices: { week: 4.99, month: 14.99 },
+          features: [
+            "\u0412\u0441\u0438\u0447\u043A\u043E \u043E\u0442 Core",
+            "\u0410\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u2014 200 \u0432\u044A\u043F\u0440\u043E\u0441\u0430 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (50 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
+            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0447\u0438\u043D\u0438\u044F\u0442\u0430 \u2014 90 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (22 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
+            "\u0421\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u043C\u0435\u043D\u044E \u0432 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0442 \u2014 30 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (8 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
+            "\u0418\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F \u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438 \u2014 10 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (3 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
+            "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u0441\u043B\u0435\u0434 \u043F\u0440\u043E\u043C\u044F\u043D\u0430 \u2014 3 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 (1 \u043D\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430)",
+            "\u041F\u0440\u043E\u0442\u043E\u043A\u043E\u043B \u043E\u0442 IrisMap \u2014 1 \u043D\u0430 \u043C\u0435\u0441\u0435\u0446 \u0431\u0435\u0437 \u0434\u043E\u043F\u043B\u0430\u0449\u0430\u043D\u0435 (\u043C\u0435\u0441\u0435\u0447\u0435\u043D Plus)"
+          ]
+        }
+      ];
+      function plural(n, unit) {
+        return n === 1 ? unit[0] : unit[1];
+      }
+      var api = {
+        currency: "EUR",
+        PERIODS: ["week", "month"],
+        PERIOD_LABEL,
+        PRODUCTS,
+        TIERS,
+        FEATURE_MIN_TIER,
+        FEATURE_LABEL,
+        QUOTAS,
+        PLANS,
+        tierRank: function(tier) {
+          return TIERS.indexOf(tier);
+        },
+        isTier: function(tier) {
+          return TIERS.indexOf(tier) !== -1;
+        },
+        /** Дали нивото отключва функцията. Непозната функция е отворена. */
+        allows: function(tier, feature) {
+          var need = FEATURE_MIN_TIER[feature];
+          if (!need) return true;
+          return TIERS.indexOf(tier) >= TIERS.indexOf(need);
+        },
+        /** Таванът на функцията в нивото за периода (week | month) или null (без таван). */
+        quota: function(tier, feature, period) {
+          var q = QUOTAS[tier] && QUOTAS[tier][period === "week" ? "week" : "month"];
+          return q && typeof q[feature] === "number" ? q[feature] : null;
+        },
+        /** Цената на ниво за периода (или null — няма такъв период). */
+        price: function(tier, period) {
+          var p = api.plan(tier);
+          return p && p.prices && typeof p.prices[period] === "number" ? p.prices[period] : null;
+        },
+        /** „50 въпроса“ */
+        quotaText: function(n, feature) {
+          var unit = QUOTA_UNIT[feature];
+          return unit ? n + " " + plural(n, unit) : String(n);
+        },
+        /** Следващото ниво с по-висок таван за функцията (или null). */
+        upgradeFor: function(tier, feature, period) {
+          var cur = api.quota(tier, feature, period);
+          for (var i = TIERS.indexOf(tier) + 1; i < TIERS.length; i++) {
+            var q = api.quota(TIERS[i], feature, period);
+            if (q === null || cur === null || q > cur) return TIERS[i];
+          }
+          return null;
+        },
+        plan: function(id) {
+          for (var i = 0; i < PLANS.length; i++) if (PLANS[i].id === id) return PLANS[i];
+          return null;
+        },
+        formatPrice: function(value) {
+          if (!value) return "0 \u20AC";
+          var fixed = Math.round(value) === value ? String(value) : value.toFixed(2).replace(".", ",");
+          return fixed + " \u20AC";
+        }
+      };
+      global.NutriPlanPricing = api;
+      global.EatologixPricing = api;
+      if (typeof module !== "undefined" && module.exports) module.exports = api;
+    })(typeof globalThis !== "undefined" ? globalThis : exports);
+  }
+});
+
 // step3-chunk.js
 var DAYS_PER_CHUNK = 7;
 
@@ -8955,9 +9140,9 @@ async function ensureConsultToken(env) {
   await env.FITNESS_KV.put(CONSULT_CONFIG_KV_KEY, JSON.stringify(next));
   return next;
 }
-async function validateConsultAccess(env, accessKey) {
+async function validateConsultAccess(env, accessKey2) {
   const config = await ensureConsultToken(env);
-  if (!accessKey || String(accessKey) !== config.token) {
+  if (!accessKey2 || String(accessKey2) !== config.token) {
     return { ok: false, message: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D \u0438\u043B\u0438 \u0438\u0437\u0442\u0435\u043A\u044A\u043B \u043B\u0438\u043D\u043A \u0437\u0430 \u043A\u043E\u043D\u0441\u0443\u043B\u0442\u0430\u0446\u0438\u044F" };
   }
   return { ok: true };
@@ -10288,14 +10473,14 @@ async function bumpRev(env, id) {
 async function stripe(env, studio, method, path, params) {
   const sk = studio.secrets.envSk ? String(env.STRIPE_SECRET_KEY || "") : await unseal(env, studio.secrets.sk);
   if (!sk) throw new Error("stripe: no key");
-  const form2 = new URLSearchParams();
-  for (const [k, v] of Object.entries(params || {})) if (v !== void 0 && v !== null && v !== "") form2.append(k, String(v));
+  const form3 = new URLSearchParams();
+  for (const [k, v] of Object.entries(params || {})) if (v !== void 0 && v !== null && v !== "") form3.append(k, String(v));
   let url = `https://api.stripe.com/v1/${path}`;
   const init = { method, headers: { Authorization: `Bearer ${sk}` } };
   if (method === "GET") {
-    if (params) url += "?" + form2;
+    if (params) url += "?" + form3;
   } else {
-    init.body = form2.toString();
+    init.body = form3.toString();
     init.headers["Content-Type"] = "application/x-www-form-urlencoded";
   }
   const resp = await fetch(url, init);
@@ -49725,6 +49910,319 @@ function extractClarify(text2, q) {
   return { text: out, resolved, asked };
 }
 
+// worker.entry.js
+var import_pricing_config3 = __toESM(require_pricing_config());
+
+// access-control.js
+var import_pricing_config = __toESM(require_pricing_config());
+var PAYWALL_KEY = "admin_paywall_enabled";
+var accessKey = (userId) => `access:${userId}`;
+async function paywallEnabled(env) {
+  try {
+    return await env.page_content?.get(PAYWALL_KEY) === "true";
+  } catch (_) {
+    return false;
+  }
+}
+function normalizeAccess(record, now = Date.now()) {
+  const tier = import_pricing_config.default.isTier(record?.tier) ? record.tier : "start";
+  const until = Number(record?.until) || null;
+  const period = record?.period === "week" ? "week" : record?.period === "month" ? "month" : null;
+  const periodStart = Number(record?.periodStart) || null;
+  if (tier !== "start" && until && until < now) {
+    return { tier: "start", until, expired: true, source: record?.source || "", period: null, periodStart: null };
+  }
+  return { tier, until, expired: false, source: record?.source || "", period, periodStart };
+}
+function usageWindow(access, now = Date.now()) {
+  return access?.period && access?.periodStart ? `p${access.periodStart}` : monthOf(now);
+}
+async function readAccess(env, userId) {
+  if (!userId || !env.page_content) return null;
+  try {
+    const raw = await env.page_content.get(accessKey(userId));
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+function featureMap(tier, paywall) {
+  const out = {};
+  for (const feature of Object.keys(import_pricing_config.default.FEATURE_MIN_TIER)) {
+    out[feature] = !paywall || import_pricing_config.default.allows(tier, feature);
+  }
+  return out;
+}
+var monthOf = (now = Date.now()) => new Date(now).toISOString().slice(0, 7);
+var usageKey = (userId, month) => `usage:${userId}:${month}`;
+var USAGE_TTL_SEC = 40 * 24 * 60 * 60;
+async function readUsage(env, userId, now = Date.now(), window = monthOf(now)) {
+  if (!userId || !env.page_content) return {};
+  try {
+    const raw = await env.page_content.get(usageKey(userId, window));
+    return raw ? JSON.parse(raw) : {};
+  } catch (_) {
+    return {};
+  }
+}
+async function addUsage(env, userId, feature, now = Date.now(), window = monthOf(now)) {
+  if (!userId || !env.page_content) return;
+  const usage = await readUsage(env, userId, now, window);
+  usage[feature] = (Number(usage[feature]) || 0) + 1;
+  await env.page_content.put(usageKey(userId, window), JSON.stringify(usage), { expirationTtl: USAGE_TTL_SEC });
+}
+function quotaMap(tier, usage, period) {
+  const out = {};
+  for (const feature of Object.keys(import_pricing_config.default.FEATURE_MIN_TIER)) {
+    const limit = import_pricing_config.default.quota(tier, feature, period);
+    if (limit !== null) out[feature] = { used: Number(usage?.[feature]) || 0, limit };
+  }
+  return out;
+}
+async function resolveAccess(env, userId, now = Date.now()) {
+  const paywall = await paywallEnabled(env);
+  const access = normalizeAccess(await readAccess(env, userId), now);
+  const quotas = paywall && userId ? quotaMap(access.tier, await readUsage(env, userId, now, usageWindow(access, now)), access.period) : {};
+  return { paywall, tier: access.tier, until: access.until, period: access.period, source: access.source, expired: access.expired, features: featureMap(access.tier, paywall), quotas };
+}
+async function writeAccess(env, userId, { tier, until = null, source = "admin", note = "", period = null, periodStart = null, stripe: stripe3 = null } = {}, now = Date.now()) {
+  if (!env.page_content) throw new Error("KV not configured");
+  if (!/^fb_[A-Za-z0-9_-]{6,128}$/.test(String(userId || ""))) throw new Error("\u041D\u0438\u0432\u043E\u0442\u043E \u0441\u0435 \u0434\u0430\u0432\u0430 \u0441\u0430\u043C\u043E \u043D\u0430 \u0430\u043A\u0430\u0443\u043D\u0442 (fb_\u2026)");
+  if (!import_pricing_config.default.isTier(tier)) throw new Error("\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442\u043E \u043D\u0438\u0432\u043E");
+  const untilMs = until ? Number(new Date(until)) : null;
+  if (until && !Number.isFinite(untilMs)) throw new Error("\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0430 \u0434\u0430\u0442\u0430");
+  if (tier === "start" && !untilMs) {
+    await env.page_content.delete(accessKey(userId));
+    return null;
+  }
+  const record = {
+    tier,
+    until: untilMs,
+    source: String(source).slice(0, 40),
+    note: String(note || "").slice(0, 200),
+    updatedAt: now,
+    ...period === "week" || period === "month" ? { period, periodStart: Number(periodStart) || now } : {},
+    ...stripe3 ? { stripe: stripe3 } : {}
+  };
+  await env.page_content.put(accessKey(userId), JSON.stringify(record));
+  return record;
+}
+async function gateFeature(request, env, feature, opts) {
+  const { checkOwner, respond, fields = {}, now = Date.now() } = opts;
+  const pass = { deny: null, commit: async () => {
+  } };
+  if (!await paywallEnabled(env)) return pass;
+  const body = opts.body || await request.clone().json().catch(() => ({}));
+  const userId = String(body?.[fields.userId || "userId"] || "");
+  const label = import_pricing_config.default.FEATURE_LABEL[feature] || "\u0422\u0430\u0437\u0438 \u0444\u0443\u043D\u043A\u0446\u0438\u044F";
+  const deny = (data) => ({ deny: respond({ error: "locked", feature, need: import_pricing_config.default.FEATURE_MIN_TIER[feature] || "core", ...data }, 402), commit: pass.commit });
+  if (!userId.startsWith("fb_")) return deny({ reason: "account", tier: "start", message: `${label} \u0435 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0430\u0431\u043E\u043D\u0430\u043C\u0435\u043D\u0442\u0430.` });
+  const ownerErr = await checkOwner(userId, body?.[fields.idToken || "idToken"], env, request);
+  if (ownerErr) return { deny: ownerErr, commit: pass.commit };
+  const access = normalizeAccess(await readAccess(env, userId), now);
+  const { tier } = access;
+  if (!import_pricing_config.default.allows(tier, feature)) return deny({ reason: "tier", tier, message: `${label} \u0435 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0430\u0431\u043E\u043D\u0430\u043C\u0435\u043D\u0442\u0430.` });
+  const limit = import_pricing_config.default.quota(tier, feature, access.period);
+  if (limit === null) return pass;
+  const window = usageWindow(access, now);
+  const used = Number((await readUsage(env, userId, now, window))[feature]) || 0;
+  if (used >= limit) {
+    const per = access.period === "week" ? "\u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430" : "\u043C\u0435\u0441\u0435\u0446\u0430";
+    return deny({
+      reason: "quota",
+      tier,
+      used,
+      limit,
+      upgrade: import_pricing_config.default.upgradeFor(tier, feature, access.period),
+      message: access.period ? `\u041B\u0438\u043C\u0438\u0442\u044A\u0442 \u043E\u0442 ${import_pricing_config.default.quotaText(limit, feature)} \u0437\u0430 ${per} \u0435 \u0438\u0437\u0447\u0435\u0440\u043F\u0430\u043D. \u041D\u043E\u0432\u0438 \u2014 \u0441\u044A\u0441 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u043E\u0442\u043E \u043F\u043B\u0430\u0449\u0430\u043D\u0435.` : `\u041B\u0438\u043C\u0438\u0442\u044A\u0442 \u043E\u0442 ${import_pricing_config.default.quotaText(limit, feature)} \u0437\u0430 \u043C\u0435\u0441\u0435\u0446\u0430 \u0435 \u0438\u0437\u0447\u0435\u0440\u043F\u0430\u043D. \u041D\u043E\u0432\u0438 \u2014 \u043E\u0442 1-\u0432\u043E \u0447\u0438\u0441\u043B\u043E.`
+    });
+  }
+  return { deny: null, commit: () => addUsage(env, userId, feature, now, window) };
+}
+async function planUsesAI(env, userId, idToken, verifyToken, now = Date.now()) {
+  if (!await paywallEnabled(env)) return true;
+  if (!String(userId || "").startsWith("fb_") || !idToken) return false;
+  try {
+    const user = await verifyToken(idToken, env);
+    if (`fb_${user.uid}` !== userId) return false;
+  } catch (_) {
+    return false;
+  }
+  const { tier } = normalizeAccess(await readAccess(env, userId), now);
+  return import_pricing_config.default.allows(tier, "ai_plan");
+}
+
+// billing.js
+var import_pricing_config2 = __toESM(require_pricing_config());
+var API = "https://api.stripe.com/v1/";
+var GRACE_MS = 2 * 60 * 60 * 1e3;
+var REFRESH_BEFORE_MS = 6 * 60 * 60 * 1e3;
+var ALLOWED_RETURN = /^https:\/\/(eatologix\.com|www\.eatologix\.com|biocode\.website|emoeat\.app|irismap\.app|www\.irismap\.app|radilovk\.github\.io)(\/|$)/;
+var stripeMode = (env) => env.BILLING_MODE === "live" ? "live" : "test";
+var stripeKey = (env) => stripeMode(env) === "live" ? env.STRIPE_SECRET_KEY : env.STRIPE_TEST_SECRET_KEY;
+var billingReady = (env) => Boolean(stripeKey(env));
+function form(obj, prefix = "", out = new URLSearchParams()) {
+  for (const [k, v] of Object.entries(obj || {})) {
+    if (v === void 0 || v === null) continue;
+    const name = prefix ? `${prefix}[${k}]` : k;
+    if (typeof v === "object") form(v, name, out);
+    else out.append(name, String(v));
+  }
+  return out;
+}
+async function stripe2(env, method, path, params) {
+  const init = { method, headers: { Authorization: `Bearer ${stripeKey(env)}`, "Stripe-Version": "2024-06-20" } };
+  let url = API + path;
+  if (params && method === "GET") url += (url.includes("?") ? "&" : "?") + form(params).toString();
+  else if (params) {
+    init.body = form(params).toString();
+    init.headers["Content-Type"] = "application/x-www-form-urlencoded";
+  }
+  const r = await fetch(url, init);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data?.error?.message || `Stripe ${r.status}`);
+  return data;
+}
+var cents = (eur) => Math.round(Number(eur) * 100);
+var okReturn = (u) => typeof u === "string" && ALLOWED_RETURN.test(u) ? u : null;
+function withParam(u, k, v) {
+  return u + (u.includes("?") ? "&" : "?") + `${k}=${v}`;
+}
+async function ensureCustomer(env, userId) {
+  const k = `billing:customer:${stripeMode(env)}:${userId}`;
+  const known = await env.page_content.get(k);
+  if (known) return known;
+  const c = await stripe2(env, "POST", "customers", { metadata: { userId } });
+  await env.page_content.put(k, c.id);
+  return c.id;
+}
+function subPeriod(sub) {
+  const it = sub?.items?.data?.[0] || {};
+  const start = sub?.current_period_start || it.current_period_start;
+  const end = sub?.current_period_end || it.current_period_end;
+  return { start: start ? start * 1e3 : Date.now(), end: end ? end * 1e3 : null };
+}
+async function grantFromSubscription(env, userId, sub, meta = {}) {
+  const tier = import_pricing_config2.default.isTier(meta.tier) && meta.tier !== "start" ? meta.tier : sub?.metadata?.tier;
+  const period = (meta.period || sub?.metadata?.period) === "week" ? "week" : "month";
+  if (!import_pricing_config2.default.isTier(tier) || tier === "start") throw new Error("\u041D\u0435\u043F\u043E\u0437\u043D\u0430\u0442\u043E \u043D\u0438\u0432\u043E \u0432 \u0430\u0431\u043E\u043D\u0430\u043C\u0435\u043D\u0442\u0430");
+  const { start, end } = subPeriod(sub);
+  return writeAccess(env, userId, {
+    tier,
+    period,
+    periodStart: start,
+    until: end ? new Date(end + GRACE_MS).toISOString() : null,
+    source: "stripe",
+    note: `Stripe ${stripeMode(env)} \xB7 ${import_pricing_config2.default.formatPrice(import_pricing_config2.default.price(tier, period))} / ${import_pricing_config2.default.PERIOD_LABEL[period]}`,
+    stripe: { mode: stripeMode(env), customer: sub.customer, sub: sub.id }
+  });
+}
+async function handleBillingCheckout(request, env, { respond }) {
+  if (!billingReady(env)) return respond({ error: "no_stripe", mode: stripeMode(env) }, 503);
+  const b = await request.json().catch(() => ({}));
+  const origin = (request.headers.get("Origin") || "").replace(/\/$/, "");
+  try {
+    if (b.product === "iris_protocol") {
+      const P = import_pricing_config2.default.PRODUCTS.iris_protocol;
+      const analysisId = String(b.analysisId || "").slice(0, 80);
+      const back = okReturn(b.returnUrl);
+      if (!analysisId || !back) return respond({ error: "bad_request" }, 400);
+      const s2 = await stripe2(env, "POST", "checkout/sessions", {
+        mode: "payment",
+        locale: "auto",
+        allow_promotion_codes: "true",
+        line_items: [{ quantity: 1, price_data: { currency: "eur", unit_amount: cents(P.price), product_data: { name: P.name, description: P.description } } }],
+        metadata: { product: "iris_protocol", analysisId },
+        payment_intent_data: { metadata: { product: "iris_protocol", analysisId } },
+        success_url: withParam(back, "paid", "{CHECKOUT_SESSION_ID}"),
+        cancel_url: back
+      });
+      return respond({ url: s2.url, mode: stripeMode(env) });
+    }
+    const tier = b.tier, period = b.period === "week" ? "week" : "month";
+    const userId = String(b.userId || "");
+    const price = import_pricing_config2.default.price(tier, period);
+    if (!/^fb_[A-Za-z0-9_-]{6,128}$/.test(userId)) return respond({ error: "account", message: "\u0412\u043B\u0435\u0437 \u0432 \u0430\u043A\u0430\u0443\u043D\u0442\u0430 \u0441\u0438, \u0437\u0430 \u0434\u0430 \u0438\u0437\u0431\u0435\u0440\u0435\u0448 \u043D\u0438\u0432\u043E." }, 400);
+    if (!price || tier === "start") return respond({ error: "bad_request" }, 400);
+    const plan = import_pricing_config2.default.plan(tier);
+    const ref = /^[a-z0-9][a-z0-9-]{1,31}$/.test(String(b.ref || "")) ? b.ref : "";
+    const site = /^https:\/\/(eatologix\.com|biocode\.website)$/.test(origin) ? origin : "https://eatologix.com";
+    const meta = { userId, tier, period, ...ref ? { ref } : {} };
+    const s = await stripe2(env, "POST", "checkout/sessions", {
+      mode: "subscription",
+      locale: "auto",
+      allow_promotion_codes: "true",
+      customer: await ensureCustomer(env, userId),
+      client_reference_id: userId,
+      line_items: [{ quantity: 1, price_data: {
+        currency: "eur",
+        unit_amount: cents(price),
+        recurring: { interval: period },
+        product_data: { name: `Eatologix ${plan.name}` }
+      } }],
+      metadata: meta,
+      subscription_data: { metadata: meta },
+      success_url: `${site}/pricing.html?paid={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${site}/pricing.html`
+    });
+    return respond({ url: s.url, mode: stripeMode(env) });
+  } catch (e) {
+    return respond({ error: "stripe", message: e.message }, 502);
+  }
+}
+async function handleBillingConfirm(request, env, { respond }) {
+  if (!billingReady(env)) return respond({ error: "no_stripe" }, 503);
+  const { sessionId } = await request.json().catch(() => ({}));
+  if (!/^cs_[A-Za-z0-9_]{10,200}$/.test(String(sessionId || ""))) return respond({ error: "bad_request" }, 400);
+  try {
+    const s = await stripe2(env, "GET", `checkout/sessions/${sessionId}`, { expand: ["subscription"] });
+    if (s.mode === "subscription") {
+      if (s.status !== "complete" || !s.subscription) return respond({ ok: false, status: s.status });
+      const userId = s.metadata?.userId || s.client_reference_id;
+      const record = await grantFromSubscription(env, userId, s.subscription, s.metadata);
+      return respond({ ok: true, product: "subscription", userId, tier: record.tier, period: record.period, until: record.until });
+    }
+    if (s.metadata?.product === "iris_protocol") {
+      if (s.payment_status !== "paid") return respond({ ok: false, status: s.payment_status });
+      const analysisId = s.metadata.analysisId;
+      await env.page_content.put(`iris_unlock:${analysisId}`, JSON.stringify({ sessionId, at: Date.now(), mode: stripeMode(env) }));
+      return respond({ ok: true, product: "iris_protocol", analysisId });
+    }
+    return respond({ ok: false, status: "unknown" });
+  } catch (e) {
+    return respond({ error: "stripe", message: e.message }, 502);
+  }
+}
+async function handleIrisUnlockStatus(url, env, { respond }) {
+  const id = String(url.searchParams.get("analysisId") || "").slice(0, 80);
+  if (!id) return respond({ unlocked: false });
+  return respond({ unlocked: Boolean(await env.page_content.get(`iris_unlock:${id}`)) });
+}
+async function handleBillingPortal(request, env, { respond }) {
+  if (!billingReady(env)) return respond({ error: "no_stripe" }, 503);
+  const { userId, returnUrl } = await request.json().catch(() => ({}));
+  const customer = userId && await env.page_content.get(`billing:customer:${stripeMode(env)}:${userId}`);
+  if (!customer) return respond({ error: "no_customer" }, 404);
+  try {
+    const s = await stripe2(env, "POST", "billing_portal/sessions", { customer, return_url: okReturn(returnUrl) || "https://eatologix.com/pricing.html" });
+    return respond({ url: s.url });
+  } catch (e) {
+    return respond({ error: "stripe", message: e.message }, 502);
+  }
+}
+async function refreshStripeAccess(env, userId, now = Date.now()) {
+  if (!billingReady(env) || !userId) return;
+  const rec = await readAccess(env, userId);
+  if (rec?.source !== "stripe" || !rec.stripe?.sub || rec.stripe.mode !== stripeMode(env)) return;
+  if (rec.until && rec.until - now > REFRESH_BEFORE_MS) return;
+  try {
+    const sub = await stripe2(env, "GET", `subscriptions/${rec.stripe.sub}`);
+    if (sub.status === "active" || sub.status === "trialing") await grantFromSubscription(env, userId, sub, { tier: rec.tier, period: rec.period });
+  } catch (e) {
+    console.warn("[billing] refresh", e.message);
+  }
+}
+
 // handoff.js
 var HANDOFF_TTL_SEC = 30 * 24 * 60 * 60;
 var HANDOFF_MAX_BYTES = 48 * 1024;
@@ -50339,7 +50837,7 @@ var DAY_MS4 = 864e5;
 var ymd = (d) => d.toISOString().slice(0, 10);
 var atOf = (day) => `${day}T12:00:00.000Z`;
 var round1 = (v) => Math.round(v * 10) / 10;
-function form(body) {
+function form2(body) {
   return new URLSearchParams(Object.entries(body).filter(([, v]) => v != null && v !== "")).toString();
 }
 async function getJson(fetchFn, url, token, init = {}) {
@@ -50535,7 +51033,7 @@ var PROVIDERS = {
     async fetchFacts(fetchFn, token, from, to) {
       const out = [];
       const post = async (url, body) => {
-        const j = await getJson(fetchFn, url, token, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: form(body) });
+        const j = await getJson(fetchFn, url, token, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: form2(body) });
         if (j.status === 401) throw Object.assign(new Error("unauthorized"), { status: 401 });
         if (j.status !== 0) throw new Error(`withings status ${j.status}`);
         return j.body || {};
@@ -50713,7 +51211,7 @@ async function authorizeUrl(env, provider, { redirectUri, state }) {
     params.code_challenge = await pkceChallenge(verifier);
     params.code_challenge_method = "S256";
   }
-  return { url: `${p.authorizeUrl}?${form(params)}`, verifier };
+  return { url: `${p.authorizeUrl}?${form2(params)}`, verifier };
 }
 function readToken(p, json2) {
   const t = p.unwrapToken ? p.unwrapToken(json2) : json2;
@@ -50728,7 +51226,7 @@ async function tokenRequest(fetchFn, env, provider, body) {
   const payload = { ...p.tokenExtra || {}, ...body, client_id: c.id };
   if (p.basicAuth) headers.Authorization = `Basic ${btoa(`${c.id}:${c.secret}`)}`;
   else payload.client_secret = c.secret;
-  const res = await fetchFn(p.tokenUrl, { method: "POST", headers, body: form(payload) });
+  const res = await fetchFn(p.tokenUrl, { method: "POST", headers, body: form2(payload) });
   const json2 = await res.json().catch(() => null);
   const token = res.ok ? readToken(p, json2) : null;
   if (!token) throw new Error(`${p.name}: \u0442\u043E\u043A\u0435\u043D\u044A\u0442 \u043D\u0435 \u0431\u0435\u0448\u0435 \u043F\u043E\u043B\u0443\u0447\u0435\u043D (${res.status})`);
@@ -53419,6 +53917,9 @@ async function generatePlanAndSave(env, data, jobId, clientId, options = {}) {
   console.log(`generatePlanAndSave: starting job ${jobId}${clientId ? ` (clientId: ${clientId})` : ""}`);
   try {
     const userId = preferredUserId || data.email || generateUserId(data);
+    if (options.aiLite) {
+      Object.defineProperty(data, "_aiLite", { value: true, enumerable: false });
+    }
     if (options.handoffToken) {
       Object.defineProperty(data, "_handoffFacts", { value: await handoffFactsForGeneration(env, options.handoffToken), enumerable: false });
     }
@@ -53586,6 +54087,16 @@ async function handleGeneratePlanAsync(request, env, ctx) {
         }
       }
     }
+    let replanGate = null;
+    if (requireApproval) {
+      replanGate = await gateFeature(request, env, "replan", {
+        checkOwner: checkFirebaseOwner,
+        respond: jsonResponse2,
+        body: { userId: explicitUserId, idToken }
+      });
+      if (replanGate.deny) return replanGate.deny;
+    }
+    const useAI = await planUsesAI(env, explicitUserId, idToken, verifyFirebaseIdToken);
     let resolvedClientId = clientId;
     if (!resolvedClientId && data.email) {
       const existingClient = await findClientByEmail(env, data.email);
@@ -53593,6 +54104,7 @@ async function handleGeneratePlanAsync(request, env, ctx) {
     }
     const generationOptions = {
       requireApproval,
+      ...useAI ? {} : { aiLite: true },
       userId: explicitUserId || "",
       ...handoffToken ? { handoffToken } : {}
     };
@@ -53612,6 +54124,8 @@ async function handleGeneratePlanAsync(request, env, ctx) {
       console.warn('handleGeneratePlanAsync: PLAN_QUEUE not bound \u2013 falling back to ctx.waitUntil(). Run "wrangler queues create plan-generation" to fix this.');
       ctx.waitUntil(generatePlanAndSave(env, data, jobId, resolvedClientId, generationOptions));
     }
+    if (replanGate) await replanGate.commit().catch(() => {
+    });
     return jsonResponse2({ success: true, jobId });
   } catch (error) {
     console.error("handleGeneratePlanAsync error:", error);
@@ -54563,6 +55077,10 @@ async function handleSaveClientData(request, env, ctx) {
       planUpdatedAt: data.plan ? (/* @__PURE__ */ new Date()).toISOString() : existingClientData?.planUpdatedAt || null,
       submittedAt: (/* @__PURE__ */ new Date()).toISOString()
     };
+    const partnerRef = String(data.partnerRef || "").trim().toLowerCase();
+    if (!clientData.partnerRef && /^[a-z0-9][a-z0-9-]{1,31}$/.test(partnerRef)) {
+      clientData.partnerRef = partnerRef;
+    }
     if (data.plan) {
       clientData.planStatus = "pending";
       clientData.planActivatedAt = null;
@@ -54603,7 +55121,8 @@ async function handleSaveClientData(request, env, ctx) {
 \u{1F194} ID: ${clientId}
 \u{1F4E7} \u0418\u043C\u0435\u0439\u043B: ${clientData.answers?.email || "\u2014"}
 \u{1F3AF} \u0426\u0435\u043B: ${clientData.answers?.goal || "\u2014"}
-\u{1F4C5} \u0414\u0430\u0442\u0430: ${formatDateBG(clientData.submittedAt)}`
+` + (clientData.partnerRef ? `\u{1F91D} \u041F\u0430\u0440\u0442\u043D\u044C\u043E\u0440: ${clientData.partnerRef}
+` : "") + `\u{1F4C5} \u0414\u0430\u0442\u0430: ${formatDateBG(clientData.submittedAt)}`
     );
     return jsonResponse2({
       success: true,
@@ -54643,6 +55162,7 @@ async function handleGetClientsList(request, env) {
             planStatus: clientData.planStatus || "none",
             planUpdatedAt: clientData.planUpdatedAt || null,
             planActivatedAt: clientData.planActivatedAt || null,
+            partnerRef: clientData.partnerRef || "",
             planGenerationError: clientData.planStatus === "failed" ? clientData.planGenerationError || "" : ""
           };
         }
@@ -54708,6 +55228,7 @@ async function purgeClientData(env, { clientIds = [], userIds = [], tolerateAuth
   const firebaseUidsToDelete = /* @__PURE__ */ new Set();
   for (const userId of userIdsToDelete) {
     keysToDelete.add(`user_profile:${userId}`);
+    keysToDelete.add(`access:${userId}`);
     keysToDelete.add(`push_subscription_${userId}`);
     keysToDelete.add(`notification_preferences_${userId}`);
     keysToDelete.add(`game_state:${userId}`);
@@ -55465,6 +55986,20 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
   if (`fb_${firebaseUser.uid}` !== userId) {
     throw new Error("Token does not match userId");
   }
+}
+async function gatedRun(request, env, feature, run, fields) {
+  const gate = await gateFeature(request, env, feature, { checkOwner: checkFirebaseOwner, respond: jsonResponse2, fields });
+  if (gate.deny) return gate.deny;
+  const response = await run();
+  if (response && response.ok) {
+    let success = true;
+    try {
+      success = (await response.clone().json())?.success !== false;
+    } catch (_) {
+    }
+    if (success) await gate.commit().catch((e) => console.warn("usage count failed:", e?.message));
+  }
+  return response;
 }
 async function checkFirebaseOwner(userId, idToken, env, request) {
   try {
@@ -57580,6 +58115,10 @@ async function runAutoWeekly(env, userId, now = Date.now(), dueMs = now - WEEKLY
     return action;
   }
   if (action !== "run") return action;
+  if (await paywallEnabled(env) && !import_pricing_config3.default.allows(normalizeAccess(await readAccess(env, userId), now).tier, "weekly")) {
+    await scheduleWeeklyDue(env, userId, now + WEEKLY_CYCLE_MS);
+    return "unpaid";
+  }
   const cycleNumber = nextWeeklyCycle(history, state.gameWeeklyAI);
   const jobId = crypto.randomUUID();
   const fromKey = new Date(now - 21 * 864e5).toISOString().slice(0, 10);
@@ -57724,9 +58263,10 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
   enrichUserDataEngineContext(data);
   const sessionId = generateUniqueId("session");
   const tokens = { input: 0, output: 0, total: 0 };
+  const aiLite = data._aiLite === true;
   try {
-    await applyIntakeHints(env, data);
-    await conveneGoalCouncil(env, data);
+    if (!aiLite) await applyIntakeHints(env, data);
+    if (!aiLite) await conveneGoalCouncil(env, data);
     const analysis = await runStep1Analysis(env, data, sessionId, "step1_analysis", null, tokens);
     if (typeof onAnalysisReady === "function") {
       try {
@@ -57736,9 +58276,12 @@ async function generatePlanMultiStep(env, data, onAnalysisReady = null) {
       }
     }
     let plan = await assembleEngineValidated(env, data, analysis);
-    plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { slotAvoid: swaps }));
-    plan = await writePlanVoice(env, data, plan);
+    if (!aiLite) {
+      plan = await reviewMenuWithAI(env, data, plan, (swaps) => assembleEngineValidated(env, data, analysis, { slotAvoid: swaps }));
+      plan = await writePlanVoice(env, data, plan);
+    }
     plan._meta.tokenUsage = tokens;
+    if (aiLite) plan._meta.aiLite = true;
     await finalizeAISessionLogs(env, sessionId);
     return plan;
   } catch (error) {
@@ -63629,13 +64172,13 @@ async function handleXbodyAcuityWebhook(request, env) {
   if (raw.length > 4096) return new Response("too large", { status: 413 });
   const ok = await verifyAcuitySignature(raw, request.headers.get("X-Acuity-Signature") || "", apiKey);
   if (!ok) return new Response("bad signature", { status: 401 });
-  const form2 = new URLSearchParams(raw);
-  const action = String(form2.get("action") || "");
-  const id = String(form2.get("id") || "");
+  const form3 = new URLSearchParams(raw);
+  const action = String(form3.get("action") || "");
+  const id = String(form3.get("id") || "");
   if (!/^\d+$/.test(id) || !/(^|\.)(scheduled|rescheduled|canceled|changed)$/.test(action)) {
     return new Response("ignored", { status: 200 });
   }
-  const sentCalendar = String(form2.get("calendarID") || "");
+  const sentCalendar = String(form3.get("calendarID") || "");
   if (sentCalendar && sentCalendar !== XBODY_ACUITY_BOOKING.calendarID) return new Response("ignored", { status: 200 });
   const auth = btoa(`${userId}:${apiKey}`);
   const got = await fetch(`https://acuityscheduling.com/api/v1/appointments/${id}`, {
@@ -64106,11 +64649,11 @@ async function xbodyStripe(env, method, path, params) {
   const init = { method, headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } };
   let url = `https://api.stripe.com/v1/${path}`;
   if (params) {
-    const form2 = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) if (v !== void 0 && v !== null && v !== "") form2.append(k, String(v));
-    if (method === "GET") url += (url.includes("?") ? "&" : "?") + form2.toString();
+    const form3 = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v !== void 0 && v !== null && v !== "") form3.append(k, String(v));
+    if (method === "GET") url += (url.includes("?") ? "&" : "?") + form3.toString();
     else {
-      init.body = form2.toString();
+      init.body = form3.toString();
       init.headers["Content-Type"] = "application/x-www-form-urlencoded";
     }
   }
@@ -64296,8 +64839,8 @@ async function handleXbodyBook(request, env) {
     return jsonResponse2({ error: "terms" }, 403);
   }
   const fields = [];
-  for (const form2 of Array.isArray(previous && previous.forms) ? previous.forms : []) {
-    for (const v of Array.isArray(form2 && form2.values) ? form2.values : []) {
+  for (const form3 of Array.isArray(previous && previous.forms) ? previous.forms : []) {
+    for (const v of Array.isArray(form3 && form3.values) ? form3.values : []) {
       if (v && v.fieldID && v.value !== void 0 && v.value !== null && v.value !== "") {
         fields.push({ id: v.fieldID, value: v.value });
       }
@@ -64700,15 +65243,15 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/chat" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "CHAT");
         if (rlErr) return rlErr;
-        return await handleChat(request, env);
+        return await gatedRun(request, env, "chat", () => handleChat(request, env));
       } else if (url.pathname === "/api/analyze-food-image" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "FOOD_ANALYSIS");
         if (rlErr) return rlErr;
-        return await handleAnalyzeFoodImage(request, env);
+        return await gatedRun(request, env, "photo", () => handleAnalyzeFoodImage(request, env));
       } else if (url.pathname === "/api/analyze-menu-image" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "FOOD_ANALYSIS");
         if (rlErr) return rlErr;
-        return await handleAnalyzeMenuImage(request, env);
+        return await gatedRun(request, env, "menu_photo", () => handleAnalyzeMenuImage(request, env));
       } else if (url.pathname === "/api/analyze-kids-food" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "FOOD_ANALYSIS");
         if (rlErr) return rlErr;
@@ -64746,7 +65289,7 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/generate-protocol" && request.method === "POST") {
         return await handleGenerateProtocol(request, env);
       } else if (url.pathname === "/api/generate-emoeat-analysis" && request.method === "POST") {
-        return await handleGenerateEmoeatAnalysis(request, env);
+        return await gatedRun(request, env, "emoeat_ai", () => handleGenerateEmoeatAnalysis(request, env));
       } else if (url.pathname === "/api/generate-longevity-protocol" && request.method === "POST") {
         return await handleGenerateLongevityProtocol(request, env);
       } else if (url.pathname === "/api/admin/get-config" && request.method === "GET") {
@@ -64863,6 +65406,40 @@ var worker_entry_default = {
         return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === "/api/user/save-profile" && request.method === "POST") {
         return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === "/api/user/access" && request.method === "GET") {
+        const accessUserId = url.searchParams.get("userId") || "";
+        await refreshStripeAccess(env, accessUserId);
+        return jsonResponse2(await resolveAccess(env, accessUserId));
+      } else if (url.pathname === "/api/billing/checkout" && request.method === "POST") {
+        return await handleBillingCheckout(request, env, { respond: jsonResponse2 });
+      } else if (url.pathname === "/api/billing/confirm" && request.method === "POST") {
+        return await handleBillingConfirm(request, env, { respond: jsonResponse2 });
+      } else if (url.pathname === "/api/billing/portal" && request.method === "POST") {
+        return await handleBillingPortal(request, env, { respond: jsonResponse2 });
+      } else if (url.pathname === "/api/billing/iris-unlock" && request.method === "GET") {
+        return await handleIrisUnlockStatus(url, env, { respond: jsonResponse2 });
+      } else if (url.pathname === "/api/billing/status" && request.method === "GET") {
+        return jsonResponse2({ ready: billingReady(env), mode: stripeMode(env), prices: { plans: import_pricing_config3.default.PLANS.map((p) => ({ id: p.id, prices: p.prices })), products: import_pricing_config3.default.PRODUCTS } });
+      } else if (url.pathname === "/api/admin/paywall" && request.method === "GET") {
+        return jsonResponse2({ enabled: await paywallEnabled(env) });
+      } else if (url.pathname === "/api/admin/paywall" && request.method === "POST") {
+        if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+        const { enabled } = await request.json().catch(() => ({}));
+        await env.page_content.put(PAYWALL_KEY, enabled === true ? "true" : "false");
+        return jsonResponse2({ success: true, enabled: enabled === true });
+      } else if (url.pathname === "/api/admin/access" && request.method === "GET") {
+        const userId = url.searchParams.get("userId") || "";
+        const record = await readAccess(env, userId);
+        const access = normalizeAccess(record);
+        return jsonResponse2({ userId, record, ...access, quotas: quotaMap(access.tier, await readUsage(env, userId, Date.now(), usageWindow(access)), access.period) });
+      } else if (url.pathname === "/api/admin/access" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        try {
+          const record = await writeAccess(env, body.userId, { tier: body.tier, until: body.until || null, source: "admin", note: body.note || "" });
+          return jsonResponse2({ success: true, record });
+        } catch (e) {
+          return jsonResponse2({ error: e.message }, 400);
+        }
       } else if (url.pathname === "/api/user/delete-account" && request.method === "POST") {
         return await handleDeleteOwnAccount(request, env);
       } else if (url.pathname === "/api/admin/wording" && request.method === "POST") {
@@ -64882,7 +65459,7 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/enrichment/get" && request.method === "POST") {
         return await handleEnrichmentGet(request, env);
       } else if (url.pathname === "/api/enrichment/extract-labs" && request.method === "POST") {
-        return await handleLabExtract(request, env);
+        return await gatedRun(request, env, "docs", () => handleLabExtract(request, env));
       } else if (url.pathname === "/api/admin/handoff-stats" && request.method === "GET") {
         return await handleAdminHandoffStats(request, env);
       } else if (url.pathname === "/api/handoff" && request.method === "POST") {
@@ -64900,9 +65477,9 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/enrichment/resolve" && request.method === "POST") {
         return await handleEnrichmentResolve(request, env);
       } else if (url.pathname === "/api/enrichment/extract-device" && request.method === "POST") {
-        return await handleDeviceExtract(request, env);
+        return await gatedRun(request, env, "docs", () => handleDeviceExtract(request, env));
       } else if (url.pathname === "/api/enrichment/assess-document" && request.method === "POST") {
-        return await handleDocumentAssess(request, env);
+        return await gatedRun(request, env, "docs", () => handleDocumentAssess(request, env));
       } else if (url.pathname === "/api/enrichment/delete" && request.method === "POST") {
         return await handleEnrichmentDelete(request, env);
       } else if (url.pathname === "/api/admin/links-status" && request.method === "GET") {
@@ -64928,7 +65505,7 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/weekly/adapt-plan" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "WEEKLY_ADAPT");
         if (rlErr) return rlErr;
-        return await handleWeeklyAdaptPlan(request, env, ctx);
+        return await gatedRun(request, env, "weekly", () => handleWeeklyAdaptPlan(request, env, ctx));
       } else if (url.pathname === "/api/weekly/ack-notice" && request.method === "POST") {
         return await handleWeeklyAckNotice(request, env);
       } else if (url.pathname === "/api/user/check-account" && request.method === "GET") {
