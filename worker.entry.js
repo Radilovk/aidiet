@@ -140,7 +140,7 @@ import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUs
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
-import { handleReviewQueue, handleReviewSubmit, handleReviewGet, handleReviewApply } from './plan-review.js';
+import { handleReviewQueue, handleReviewSubmit, handleReviewGet, handleReviewApply, maybeFireReview, REVIEW_CRON } from './plan-review.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, BUDGET_KEY } from './spend.js';
 
 /** Известие до админа при 50% / 100% от дневния AI таван (през Make → Telegram). */
@@ -18578,6 +18578,11 @@ export default {
    */
   async scheduled(event, env, ctx) {
     console.log('[Worker] Scheduled event triggered at:', new Date().toISOString());
+    // На 15 мин: само проверка за неразгледан план → пуска прегледа в Claude (без AI тук).
+    if (event?.cron === REVIEW_CRON) {
+      ctx.waitUntil(maybeFireReview(env).then(r => console.log('[plan-review] cron:', r)));
+      return;
+    }
     ctx.waitUntil(handleScheduledNotifications(env));
     ctx.waitUntil(syncAllLinks(env).catch(e => console.warn('[Links] scheduled sync failed:', e.message)));
     ctx.waitUntil(processOverdueWeekly(env).catch(e => console.warn('[AutoWeekly] scheduled run failed:', e.message)));
