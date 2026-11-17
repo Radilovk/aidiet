@@ -137,7 +137,7 @@ import { crossCheckText } from './cross-check.js';
 import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
 import Pricing from './pricing-config.js';
 import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUsage, quotaMap, normalizeAccess, paywallEnabled, PAYWALL_KEY, usageWindow } from './access-control.js';
-import { handleBillingCheckout, handleBillingConfirm, handleIrisUnlockStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
+import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleIrisUnlockStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini } from './iris-gate.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, BUDGET_KEY } from './spend.js';
 
@@ -18325,6 +18325,8 @@ export default {
         return jsonResponse({ success: true, limitUsd: Number(limitUsd) });
       } else if (url.pathname === '/api/billing/checkout' && request.method === 'POST') {
         return await handleBillingCheckout(request, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/billing/webhook' && request.method === 'POST') {
+        return await handleBillingWebhook(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/billing/confirm' && request.method === 'POST') {
         return await handleBillingConfirm(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/billing/iris-unlock' && request.method === 'GET') {

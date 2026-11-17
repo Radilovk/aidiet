@@ -10,7 +10,10 @@
  *
  * Режим: BILLING_MODE = 'test' (по подразбиране) → STRIPE_TEST_SECRET_KEY; 'live' → STRIPE_SECRET_KEY
  * (същата сметка, с която работи гаранцията за XBODY). Без ключ → 503 { error: 'no_stripe' }.
- * Потвърждението е идемпотентно: една поръчка се записва само веднъж (KV billing:done:<id>).
+ * Покупката се записва от два пътя — webhook (POST /api/billing/webhook, checkout.session.completed)
+ * и връщането от Stripe (?paid=cs_… → /api/billing/confirm); който дойде пръв. Записът е еднократен
+ * (KV billing:done:<id>; планът пази и id-тата на сесиите си — двата пътя едновременно не дават двойно).
+ * Webhook подпис: STRIPE_TEST_WEBHOOK_SECRET (тест) / STRIPE_WEBHOOK_SECRET (реален режим), whsec_….
  * Правото на отказ (ЕС, цифрово съдържание): поръчката изисква съгласие за незабавна доставка.
  */
 import Pricing from './pricing-config.js';
@@ -112,7 +115,10 @@ export async function handleBillingCheckout(request, env, { respond }) {
 async function grantPlan(env, userId, productId, sessionId, now = Date.now()) {
   const P = Pricing.product(productId);
   const add = Pricing.planQuota(productId);
-  const current = normalizeAccess(await readAccess(env, userId), now);
+  const record = await readAccess(env, userId);
+  const sessions = Array.isArray(record?.stripe?.sessions) ? record.stripe.sessions : [];
+  if (sessions.includes(sessionId)) return record;   // вече записана (webhook и връщане едновременно)
+  const current = normalizeAccess(record, now);
   const active = current.tier === 'core' && current.until && current.until > now;
   const quota = { ...add };
   if (active && current.quota) for (const k of Object.keys(add)) quota[k] = (Number(current.quota[k]) || 0) + add[k];
@@ -122,41 +128,96 @@ async function grantPlan(env, userId, productId, sessionId, now = Date.now()) {
     until: new Date((active ? current.until : now) + P.days * DAY_MS).toISOString(),
     quota, source: 'stripe',
     note: `${P.name} · ${Pricing.formatPrice(P.price)} · Stripe ${stripeMode(env)}`,
-    stripe: { mode: stripeMode(env), session: sessionId },
+    stripe: { mode: stripeMode(env), session: sessionId, sessions: [...sessions, sessionId].slice(-20) },
   }, now);
 }
 
-/** POST /api/billing/confirm { sessionId } — след връщане от Stripe: записва покупката (веднъж). */
+/** Записва платена сесия (веднъж). → { ok, ... } или { ok: false, status }. */
+async function applySession(env, s, now) {
+  const doneKey = `billing:done:${s.id}`;
+  const done = await env.page_content.get(doneKey);
+  if (done) return { ok: true, repeat: true, ...JSON.parse(done) };
+  if (s.payment_status !== 'paid') return { ok: false, status: s.payment_status || s.status };
+  const m = s.metadata || {};
+  const P = Pricing.product(m.product);
+  if (!P) return { ok: false, status: 'unknown' };   // чуждо плащане от същата сметка (напр. XBODY)
+  let result = { product: m.product };
+  if (P.kind === 'plan') {
+    const rec = await grantPlan(env, m.userId, m.product, s.id, now);
+    result = { ...result, userId: m.userId, tier: rec.tier, until: rec.until };
+  } else if (P.kind === 'iris') {
+    await env.page_content.put(`iris_unlock:${m.analysisId}`, JSON.stringify({ sessionId: s.id, at: now, mode: stripeMode(env) }));
+    if (m.deviceId) await env.page_content.put(`iris_paid_dev:${m.deviceId}`, String(now));
+    result = { ...result, analysisId: m.analysisId };
+  } else if (P.kind === 'emoeat') {
+    const k = `emoeat_credit:${m.holder}`;
+    await env.page_content.put(k, String((Number(await env.page_content.get(k)) || 0) + 1), { expirationTtl: 400 * 86400 });
+    result = { ...result, holder: m.holder };
+  }
+  await env.page_content.put(doneKey, JSON.stringify(result), { expirationTtl: 400 * 86400 });
+  return { ok: true, ...result };
+}
+
+/** POST /api/billing/confirm { sessionId } — след връщане от Stripe: записва покупката (ако webhook още не е). */
 export async function handleBillingConfirm(request, env, { respond, now = Date.now() } = /** @type {any} */ ({})) {
   if (!billingReady(env)) return respond({ error: 'no_stripe' }, 503);
   const { sessionId } = await request.json().catch(() => ({}));
   if (!/^cs_[A-Za-z0-9_]{10,200}$/.test(String(sessionId || ''))) return respond({ error: 'bad_request' }, 400);
-  const doneKey = `billing:done:${sessionId}`;
-  const done = await env.page_content.get(doneKey);
+  const done = await env.page_content.get(`billing:done:${sessionId}`);
   if (done) return respond({ ok: true, repeat: true, ...JSON.parse(done) });
   try {
     const s = await stripe(env, 'GET', `checkout/sessions/${sessionId}`);
-    if (s.payment_status !== 'paid') return respond({ ok: false, status: s.payment_status || s.status });
-    const m = s.metadata || {};
-    const P = Pricing.product(m.product);
-    if (!P) return respond({ ok: false, status: 'unknown' });
-    let result = { product: m.product };
-    if (P.kind === 'plan') {
-      const rec = await grantPlan(env, m.userId, m.product, sessionId, now);
-      result = { ...result, userId: m.userId, tier: rec.tier, until: rec.until };
-    } else if (P.kind === 'iris') {
-      await env.page_content.put(`iris_unlock:${m.analysisId}`, JSON.stringify({ sessionId, at: now, mode: stripeMode(env) }));
-      if (m.deviceId) await env.page_content.put(`iris_paid_dev:${m.deviceId}`, String(now));
-      result = { ...result, analysisId: m.analysisId };
-    } else if (P.kind === 'emoeat') {
-      const k = `emoeat_credit:${m.holder}`;
-      await env.page_content.put(k, String((Number(await env.page_content.get(k)) || 0) + 1), { expirationTtl: 400 * 86400 });
-      result = { ...result, holder: m.holder };
-    }
-    await env.page_content.put(doneKey, JSON.stringify(result), { expirationTtl: 400 * 86400 });
-    return respond({ ok: true, ...result });
+    return respond(await applySession(env, { ...s, id: sessionId }, now));
   } catch (e) {
     return respond({ error: 'stripe', message: e.message }, 502);
+  }
+}
+
+const webhookSecret = (env) => (stripeMode(env) === 'live' ? env.STRIPE_WEBHOOK_SECRET : env.STRIPE_TEST_WEBHOOK_SECRET);
+
+/** Подписът на Stripe: заглавие „t=…,v1=…“, HMAC-SHA256(„t.тяло“) с whsec_…; до 5 минути разлика. */
+export async function verifyStripeSignature(payload, header, secret, now = Date.now()) {
+  if (!secret || !header) return false;
+  const parts = String(header).split(',').map((x) => x.split('='));
+  const t = Number(parts.find(([k]) => k === 't')?.[1]);
+  const sigs = parts.filter(([k]) => k === 'v1').map(([, v]) => v);
+  if (!t || !sigs.length || Math.abs(now / 1000 - t) > 300) return false;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${t}.${payload}`)));
+  const hex = [...mac].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return sigs.some((sig) => {
+    if (sig.length !== hex.length) return false;
+    let diff = 0;
+    for (let i = 0; i < hex.length; i++) diff |= hex.charCodeAt(i) ^ sig.charCodeAt(i);
+    return diff === 0;
+  });
+}
+
+/**
+ * POST /api/billing/webhook — събития от Stripe (Workbench → Webhooks → адрес …/api/billing/webhook,
+ * събития checkout.session.completed и checkout.session.async_payment_succeeded).
+ * Отговор 200 = прието (и за чужди/непознати събития); 400 = невалиден подпис; 500 → Stripe опитва пак.
+ */
+export async function handleBillingWebhook(request, env, { respond, now = Date.now() } = /** @type {any} */ ({})) {
+  const secret = webhookSecret(env);
+  if (!secret) return respond({ error: 'no_webhook_secret' }, 503);
+  const payload = await request.text();
+  if (!(await verifyStripeSignature(payload, request.headers.get('Stripe-Signature'), secret, now))) {
+    return respond({ error: 'bad_signature' }, 400);
+  }
+  let event;
+  try { event = JSON.parse(payload); } catch (_) { return respond({ error: 'bad_json' }, 400); }
+  if (Boolean(event.livemode) !== (stripeMode(env) === 'live')) return respond({ received: true, ignored: 'mode' });
+  if (!['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
+    return respond({ received: true, ignored: event.type });
+  }
+  const s = event.data?.object;
+  if (!s?.id || s.mode !== 'payment') return respond({ received: true, ignored: 'not_payment' });
+  try {
+    const r = await applySession(env, s, now);
+    return respond({ received: true, ...r });
+  } catch (e) {
+    return respond({ error: 'apply_failed', message: e.message }, 500);   // Stripe ще опита пак
   }
 }
 
