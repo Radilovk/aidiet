@@ -120,6 +120,8 @@
 
     function isPlanEditingAllowedLocally() {
         if (!PLAN_EDITING_LOCK_ENABLED) return true;
+        // Локалният бета-тест (scripts/beta/); сървърът пази заключването отделно.
+        if (global.__EATOLOGIX_BETA_UNLOCK === true) return true;
         try {
             var clientId = localStorage.getItem('pendingClientId') || '';
             var userId = localStorage.getItem('userId') || '';
@@ -711,7 +713,8 @@
     }
 
     async function fetchPlanVersion(userId, options) {
-        options = buildPlanSyncOptions(options || {});
+        // Токенът се добавя по userId — без него сървърът не намира плана, записан по имейла.
+        options = buildPlanSyncOptions(Object.assign({ userId: userId }, options || {}));
         if (!userId) return null;
         var localAt = '';
         try { localAt = localStorage.getItem(LOCAL_PLAN_AT_KEY) || ''; } catch (_) {}

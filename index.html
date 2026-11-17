@@ -4373,6 +4373,8 @@
 
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(getApps().length ? getApp() : initializeApp(firebaseConfig));
+        // plan-sync.js (седмичната проверка, версия на плана) взима токена оттук — както в plan.html.
+        window.__npPlanAuth = window.__npPlanAuth || auth;
         let logoutRequestHandled = false;
 
         /* Expose auth-state promise.  Resolves with the user *after* plan sync/restore

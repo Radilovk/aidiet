@@ -4783,6 +4783,8 @@ function normalizeEmail(value) {
 function isPlanEditingAllowed(opts) {
   const { clientId, userId, email } = opts || {};
   if (!PLAN_EDITING_LOCK_ENABLED) return true;
+  // Локалният бета-тест (scripts/beta/) изключва заключването в своя процес; в Cloudflare никой не го задава.
+  if (globalThis.__EATOLOGIX_BETA_UNLOCK === true) return true;
   const cid = String(clientId || '').trim();
   const uid = String(userId || '').trim();
   const em = normalizeEmail(email);
@@ -16040,17 +16042,19 @@ async function handleGetPlanVersion(request, env) {
     }
 
     const url = new URL(request.url);
-    const resolvedUserId = (url.searchParams.get('userId') || '').trim();
+    let resolvedUserId = (url.searchParams.get('userId') || '').trim();
     if (!resolvedUserId) {
       return jsonResponse({ error: 'Missing userId' }, 400);
     }
 
+    let verifiedEmail = '';
     if (resolvedUserId.startsWith('fb_') && env.FIREBASE_PROJECT_ID) {
       const authHeader = request.headers.get('Authorization') || '';
       const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
       if (idToken) {
         try {
           const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+          verifiedEmail = normalizeEmail(firebaseUser.email);
           if ('fb_' + firebaseUser.uid !== resolvedUserId) {
             return jsonResponse({ error: 'Token does not match userId' }, 403);
           }
@@ -16060,7 +16064,16 @@ async function handleGetPlanVersion(request, env) {
       }
     }
 
-    const profile = await kvGetJSON(env, `user_profile:${resolvedUserId}`);
+    let profile = await kvGetJSON(env, `user_profile:${resolvedUserId}`);
+    // Планът от въпросника е записан по имейла (user_profile:<email>), а входът е с fb_… — както в
+    // /api/user/profile, профилът се намира по имейла. Само по имейла от проверения токен.
+    if (!profile?.plan && verifiedEmail) {
+      const emailIndex = await getEmailIndex(env, verifiedEmail);
+      if (emailIndex?.userId && emailIndex.userId !== resolvedUserId) {
+        const canonical = await kvGetJSON(env, `user_profile:${emailIndex.userId}`);
+        if (canonical?.plan) { profile = canonical; resolvedUserId = emailIndex.userId; }
+      }
+    }
     if (!profile?.plan) {
       return jsonResponse({ found: false }, 404);
     }
