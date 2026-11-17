@@ -140,8 +140,8 @@ import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUs
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
-import { handleReviewQueue, handleReviewSubmit, handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, REVIEW_CRON } from './plan-review.js';
-import { budgetOk, dailySpend, budgetLimit, noteSpend, BUDGET_KEY } from './spend.js';
+import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview, REVIEW_CRON } from './plan-review.js';
+import { budgetOk, dailySpend, budgetLimit, noteSpend, addSpend, BUDGET_KEY } from './spend.js';
 
 /** Известие до админа при 50% / 100% от дневния AI таван (push в админ панела). */
 const adminSpendNotify = (env) => async (text) => {
@@ -1592,6 +1592,11 @@ async function planReviewOnSave(env, clientId, clientData) {
   try {
     const r = await reviewOnPending(env, clientId, clientData);
     if (r !== 'off' && r !== 'same' && r !== 'reviewed') console.log(`[plan-review] ${clientId}: ${r}`);
+    // Без преглед от Claude (няма ключ) — писмото за новия план тръгва веднага; иначе — с прегледа.
+    if (r === 'off' && !(await env.page_content.get(`plan_review_mailed:${clientId}:${clientData.planUpdatedAt || ''}`))) {
+      await env.page_content.put(`plan_review_mailed:${clientId}:${clientData.planUpdatedAt || ''}`, '1', { expirationTtl: 30 * 86400 });
+      await notifyAdmin(env, null, `План за одобрение: ${clientData.answers?.name || clientId}`, [['Клиент', clientData.answers?.name], ['Имейл', clientData.answers?.email], ['Цел', clientData.answers?.goal], ['ID', clientId]]);
+    }
   } catch (e) {
     console.warn('[plan-review] on save:', e?.message);
   }
@@ -4559,6 +4564,43 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
   console.log(`[Email] Sent successfully to ${to}`);
 }
 
+const ADMIN_PANEL_URL = 'https://biocode.website/admin.html';
+
+/**
+ * Писмо до админа (secret ADMIN_NOTIFY_EMAIL): нов план за одобрение, ново запитване, контакт,
+ * доклад за проблем. rows — [етикет, стойност]; extraHtml — готов HTML (напр. прегледът на Claude).
+ * Без адрес или Resend — нищо; грешка тук не спира заявката.
+ */
+function notifyAdmin(env, ctx, subject, rows, extraHtml = '') {
+  const to = env?.ADMIN_NOTIFY_EMAIL;
+  if (!to || !env?.RESEND_API_KEY) return Promise.resolve();
+  const table = rows.filter(([, v]) => v != null && v !== '')
+    .map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#64748b;vertical-align:top">${escapeHtml(k)}</td><td style="padding:4px 0">${escapeHtml(String(v)).replace(/\n/g, '<br>')}</td></tr>`).join('');
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#0f172a;max-width:640px">
+    <h2 style="margin:0 0 12px;font-size:18px">${escapeHtml(subject)}</h2>
+    <table style="border-collapse:collapse">${table}</table>${extraHtml}
+    <p style="margin:20px 0 0"><a href="${ADMIN_PANEL_URL}" style="background:#03939C;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Отвори админ панела</a></p></div>`;
+  const p = sendEmailViaSMTP(env, to, `[Eatologix] ${subject}`, html).catch(e => console.warn('[notifyAdmin]', e.message));
+  if (ctx?.waitUntil) ctx.waitUntil(p);
+  return p;
+}
+
+/** Писмото за нов план: прегледът на Claude (присъда, забележки, промени „беше → стана · защо“). */
+function notifyPlanReviewed(env, client, review) {
+  const verdict = { ok: '✅ готов за одобрение', fix: '🛠 с предложени промени', stop: '⛔ нужен е човек' }[review.verdict] || review.verdict;
+  const sev = { critical: 'Критично', major: 'Важно', minor: 'Дребно' };
+  const mealOf = v => (v && typeof v === 'object' && v.name ? `${v.name}${v.calories != null ? ` (${Math.round(v.calories)} kcal)` : ''}` : (v == null ? '—' : JSON.stringify(v).slice(0, 160)));
+  const findings = (review.findings || []).map(f => `<li><b>${sev[f.severity] || f.severity}</b>${f.where ? ' · ' + escapeHtml(f.where) : ''}: ${escapeHtml(f.issue)}${f.fix ? ` <span style="color:#15803d">→ ${escapeHtml(f.fix)}</span>` : ''}</li>`).join('');
+  const changes = (review.changes || []).map(ch => `<li>${escapeHtml(ch.path.replace(/^\/plan\//, ''))}: <span style="color:#dc2626">${escapeHtml(mealOf(ch.before))}</span> → <span style="color:#15803d">${escapeHtml(ch.op === 'remove' ? 'премахнато' : mealOf(ch.after))}</span><br><i>${escapeHtml(ch.reason || '')}</i></li>`).join('');
+  const extra = `<h3 style="font-size:15px;margin:16px 0 6px">Прегледът на Claude: ${verdict}</h3><p>${escapeHtml(review.summary || '')}</p>`
+    + (findings ? `<h4 style="margin:12px 0 4px">Забележки</h4><ol>${findings}</ol>` : '')
+    + (changes ? `<h4 style="margin:12px 0 4px">Предложени промени</h4><ol>${changes}</ol>` : '')
+    + '<p style="color:#64748b">Планът чака одобрение. Промените не са приложени, докато не ги одобрите в админ панела.</p>';
+  const a = client?.answers || {};
+  return notifyAdmin(env, null, `План за одобрение: ${a.name || client?.id || ''} — ${verdict}`,
+    [['Клиент', a.name], ['Имейл', a.email], ['Цел', a.goal], ['ID', client?.id]], extra);
+}
+
 /**
  * Handle problem report submission
  */
@@ -4605,6 +4647,7 @@ async function handleReportProblem(request, env, ctx) {
     await env.page_content.put('problem_reports_list', JSON.stringify(reportsList));
     
     console.log('Problem report saved:', reportId);
+    notifyAdmin(env, ctx, 'Доклад за проблем', [['Потребител', report.userName], ['ID', report.userId], ['Съобщение', report.message], ['Дата', formatDateBG(report.timestamp)]]);
 
     return jsonResponse({ 
       success: true, 
@@ -4693,6 +4736,7 @@ async function handleContactMessage(request, env, ctx) {
     await env.page_content.put('contact_messages_list', JSON.stringify(msgList));
 
     console.log('Contact message saved:', msgId);
+    notifyAdmin(env, ctx, `Ново съобщение${contactMsg.subject ? ': ' + contactMsg.subject : ''}`, [['Име', contactMsg.name], ['Имейл', contactMsg.email], ['Тема', contactMsg.subject], ['Съобщение', contactMsg.message], ['Дата', formatDateBG(contactMsg.timestamp)]]);
 
     return jsonResponse({ success: true, messageId: msgId, message: 'Message sent successfully' });
   } catch (error) {
@@ -5054,6 +5098,9 @@ async function handleSaveClientData(request, env, ctx) {
     await kvPutJSON(env, 'clients_list', clientsList, null);
     
     console.log('Client data saved:', clientId);
+    if (!existingClientData) {
+      notifyAdmin(env, ctx, `Ново запитване: ${clientData.answers?.name || clientId}`, [['Клиент', clientData.answers?.name], ['Имейл', clientData.answers?.email], ['Цел', clientData.answers?.goal], ['Партньор', clientData.partnerRef], ['ID', clientId], ['Дата', formatDateBG(clientData.submittedAt)]]);
+    }
 
     return jsonResponse({ 
       success: true, 
@@ -18436,13 +18483,6 @@ export default {
         return await handleDeleteClients(request, env);
       } else if (url.pathname === '/api/admin/update-client-plan' && request.method === 'POST') {
         return await handleUpdateClientPlan(request, env, ctx);
-      } else if (url.pathname === '/api/admin/plan-review/queue' && request.method === 'GET') {
-        return await handleReviewQueue(env, { respond: jsonResponse });
-      } else if (url.pathname === '/api/admin/plan-review/submit' && request.method === 'POST') {
-        return await handleReviewSubmit(request, env, {
-          respond: jsonResponse,
-          reconcile: (plan, answers) => reconcilePlanStructure(plan, answers, env),
-        });
       } else if (url.pathname === '/api/admin/plan-review' && request.method === 'GET') {
         return await handleReviewGet(url, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/admin/plan-review/apply' && request.method === 'POST') {
@@ -18591,6 +18631,24 @@ export default {
           if (payloadKey) await env.page_content.delete(payloadKey).catch(() => {});
         } else if (type === 'safety_rebuild') {
           await runSafetyRebuild(env, payload, jobId);
+        } else if (type === 'plan_review') {
+          // Прегледът на нов план от Claude преди одобрение (plan-review.js).
+          try {
+            const r = await runPlanReview(env, body, {
+              reconcile: (plan, answers) => reconcilePlanStructure(plan, answers, env),
+              addSpend: (usd) => addSpend(env, usd, { notify: adminSpendNotify(env) }),
+              notify: (client, review) => notifyPlanReviewed(env, client, review),
+            });
+            console.log(`[plan-review] ${clientId}: ${r}`);
+          } catch (err) {
+            // Последният опит не мина — писмото за новия план тръгва без прегледа.
+            if ((message.attempts || 1) >= 3) {
+              const c = await kvGetJSON(env, `client:${clientId}`);
+              await notifyAdmin(env, null, `План за одобрение: ${c?.answers?.name || clientId} — без преглед`, [['Клиент', c?.answers?.name], ['Имейл', c?.answers?.email], ['ID', clientId], ['Прегледът не мина', String(err?.message || err).slice(0, 300)]]);
+            } else {
+              throw err;
+            }
+          }
         } else {
           await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
         }
