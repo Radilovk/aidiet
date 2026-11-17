@@ -5923,10 +5923,7 @@
                 card.className = 'meal-card breakfast-note-card meal-card--clickable day-energy-card';
                 card.innerHTML =
                     '<div class="meal-info">' +
-                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + ' · ~' + Math.round(shown.kcal) + ' kcal</div>' +
-                    '<div class="day-energy-macros">' +
-                    [['Белтък', shown.protein], ['Въглехидрати', shown.carbs], ['Мазнини', shown.fats]].map(function(x) { return '<span><b>' + Math.round(x[1]) + ' г</b> ' + x[0] + '</span>'; }).join('') +
-                    '</div>' +
+                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + '</div>' +
                     '<div class="meal-name" style="font-size:0.92em;font-weight:600">' + escapeHtml(detail) + '</div>' +
                     '</div>';
                 card.setAttribute('role', 'button');
@@ -5939,7 +5936,11 @@
                     // на двигателя (за специалиста), а измерванията, които са наред, не са действие.
                     const microTodo = micro.filter(function(q) { return q.status !== 'ok' && q.advice; });
                     const activityNote = dietPlan.analysis && dietPlan.analysis._activityNote;
+                    const numbers = shown && shown.kcal > 0
+                        ? 'Денят в числа: ~' + Math.round(shown.kcal) + ' kcal · белтък ' + Math.round(shown.protein) + ' г · въглехидрати ' + Math.round(shown.carbs) + ' г · мазнини ' + Math.round(shown.fats) + ' г'
+                        : '';
                     openModal(head, lines
+                        .concat(numbers ? [numbers] : [])
                         .concat(activityNote ? [activityNote] : [])
                         .concat(microTodo.length ? ['Какво да добавиш:'].concat(microTodo.map(function(q) { return '• ' + q.label + ' — ' + q.advice; })) : [])
                         .join('\n\n'), '', null, null, null, null);
@@ -6034,7 +6035,7 @@
                     mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(getMealDisplayLabel(meal.type))}</div>
                     <div class="meal-name">${escapeHtmlWithBreaks(meal.name)}</div>
-                    ${mealMetaHtml(meal)}
+                    ${mealWhyHtml(meal)}
                     ${meal.dessert && typeof meal.dessert === 'object' && meal.dessert.name ? `<div class="meal-dessert"><i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(meal.dessert.name)}${meal.dessert.weight ? ` • ${escapeHtmlWithBreaks(meal.dessert.weight)}` : ''}</div>` : ''}
                 `;
                     // Смяна с равностойна алтернатива — за днес и бъдещите дни.
@@ -6076,8 +6077,7 @@
                     addedInfo.className = 'meal-info';
                     addedInfo.innerHTML =
                         '<div class="meal-type"><i class="fas fa-camera" style="font-size:0.75em;margin-right:4px;opacity:0.7"></i>' + escapeHtmlWithBreaks(getMealDisplayLabel(addedMeal.type)) + '</div>' +
-                        '<div class="meal-name">' + escapeHtmlWithBreaks(addedMeal.name) + '</div>' +
-                        (addedMeal.calories > 0 ? '<div class="added-meal-kcal">' + Math.round(addedMeal.calories) + ' kcal</div>' : '');
+                        '<div class="meal-name">' + escapeHtmlWithBreaks(addedMeal.name) + '</div>' ;
 
                     addedCard.appendChild(addedInfo);
                     bindMealCardDetailOpen(addedCard, {
@@ -6754,6 +6754,16 @@
         }
 
         // Втори ред на картата: калории и грамаж — числата, без да отварят детайлите.
+        // Картата показва само защо е полезно — без числа; грамажи и калории са в детайла.
+        function mealWhyHtml(meal) {
+            var t = meal && typeof meal.benefits === 'string' ? meal.benefits : '';
+            t = t.split(/(?<=[.!?])\s+/)[0] || '';
+            t = t.replace(/\b\d+\s*(г|g|kcal|ккал)\b\.?\s*/gi, '').replace(/\s+/g, ' ').trim();
+            if (!t) return '';
+            t = t.charAt(0).toUpperCase() + t.slice(1);
+            return '<div class="meal-why">' + escapeHtml(t) + '</div>';
+        }
+
         function mealMetaHtml(meal) {
             var parts = [];
             var kcal = Math.round(Number(meal && meal.calories) || 0);
