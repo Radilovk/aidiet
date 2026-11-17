@@ -10043,7 +10043,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     viewClientDetails(card.getAttribute('data-client-id'));
                 });
             });
-            // Прегледът на Claude (тръгва при постъпване на плана, plan-review.js): присъда до името, подробности в прозорец.
+            // Прегледът на Claude (Opus 5.5 при постъпване на плана, plan-review.js): присъда до името, подробности в прозорец.
             container.querySelectorAll('.pending-review-badge').forEach(async badge => {
                 const r = await fetchPlanReview(badge.getAttribute('data-client-id'));
                 const v = r && r.verdict;
@@ -10106,6 +10106,24 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             } catch (e) { return null; }
         }
 
+        // Мястото на промяната с думи: /plan/weekPlan/day3/meals/1 → „Ден 3, хранене 2“.
+        function reviewPlace(path) {
+            const m = String(path || '').match(/\/weekPlan\/day(\d+)(?:\/meals\/(\d+))?/);
+            if (!m) return String(path || '').replace(/^\/plan\//, '');
+            return 'Ден ' + m[1] + (m[2] != null ? ', хранене ' + (Number(m[2]) + 1) : '');
+        }
+        // Стойността преди/след: хранене — име, калории и съставки; друго — кратък текст.
+        function reviewValue(v) {
+            if (v == null) return '—';
+            if (typeof v === 'object' && v.name) {
+                const kcal = v.calories != null ? ' · ' + Math.round(v.calories) + ' kcal' : '';
+                const desc = v.description ? '<br><span style="font-size:.85rem">' + escapeHtml(v.description).replace(/\n/g, '<br>') + '</span>' : '';
+                return '<b>' + escapeHtml(v.name) + '</b>' + kcal + desc;
+            }
+            const t = typeof v === 'string' ? v : JSON.stringify(v);
+            return escapeHtml(t.length > 400 ? t.slice(0, 400) + '…' : t);
+        }
+
         async function openPlanReview(clientId) {
             const r = await fetchPlanReview(clientId);
             const wrap = document.createElement('div');
@@ -10120,7 +10138,14 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                    ${(r.findings || []).length ? '<ol style="padding-left:18px;margin:0;display:grid;gap:8px">' + r.findings.map(f => `
                      <li><b style="color:${(sev[f.severity] || sev.minor)[1]}">${(sev[f.severity] || sev.minor)[0]}</b>${f.where ? ' · ' + escapeHtml(f.where) : ''}<br>
                      ${escapeHtml(f.issue)}${f.fix ? `<br><span style="color:#15803d">→ ${escapeHtml(f.fix)}</span>` : ''}</li>`).join('') + '</ol>' : '<p>Без забележки.</p>'}
-                   ${r.correctedPlan ? `<p style="margin:12px 0 0;color:#64748b;font-size:.85rem">Корекции: ${(r.patches || []).length} промени в менюто. Сумите на деня са пресметнати наново.</p>` : ''}`;
+                   ${(r.changes || []).length ? '<h4 style="margin:16px 0 8px">Промени в плана</h4><ol style="padding-left:18px;margin:0;display:grid;gap:10px">' + r.changes.map(ch => `
+                     <li><b>${escapeHtml(reviewPlace(ch.path))}</b> · ${ch.op === 'remove' ? 'премахнато' : ch.op === 'add' ? 'добавено' : 'сменено'}
+                       <div style="display:grid;gap:4px;margin-top:4px">
+                         ${ch.op !== 'add' ? `<div style="background:#fee2e2;border-radius:8px;padding:6px 8px"><b>Беше:</b> ${reviewValue(ch.before)}</div>` : ''}
+                         ${ch.op !== 'remove' ? `<div style="background:#dcfce7;border-radius:8px;padding:6px 8px"><b>Стана:</b> ${reviewValue(ch.after)}</div>` : ''}
+                         <div style="color:#475569"><b>Защо:</b> ${escapeHtml(ch.reason || '')}</div>
+                       </div></li>`).join('') + '</ol><p style="margin:8px 0 0;color:#64748b;font-size:.85rem">Сумите на деня са пресметнати наново.' + (r.applied ? ' Старият план е запазен в прегледа.' : '') + '</p>' : ''}
+                   <p style="margin:12px 0 0;color:#94a3b8;font-size:.8rem">${escapeHtml(r.model || 'Claude')}${r.costUsd != null ? ' · $' + r.costUsd : ''}</p>`;
             wrap.innerHTML = `<div style="background:var(--card-bg,#fff);color:inherit;max-width:640px;width:100%;max-height:85vh;overflow:auto;border-radius:14px;padding:20px">
                 <h3 style="margin:0 0 12px"><i class="fas fa-user-doctor"></i> Прегледът на Claude</h3>${body}
                 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap">

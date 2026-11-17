@@ -1,77 +1,121 @@
 /**
- * Преглед на новите планове от Claude преди одобрение (сесия при постъпил план — с абонамента, без API ключ).
+ * Преглед на всеки нов план от Claude преди одобрение (Anthropic API, secret ANTHROPIC_API_KEY).
  *
- * Поток: планът е „pending“ (чака одобрение в админа) → сесията взима опашката, чете клиента
- * (въпросник + план) през /api/admin/get-client-data, преглежда по GUIDE и праща присъда, забележки
- * и корекции (JSON Patch само в /plan). Сървърът прилага корекциите върху копие, пресмята наново
- * сумите (reconcilePlanStructure) и пази прегледа в KV plan_review:<clientId>. Админът вижда
- * прегледа в хъба за одобрение и решава: „Приложи корекциите“ (планът остава pending) → „Активирай“.
+ * Поток: планът постъпва за одобрение (записът на клиента с planStatus "pending") → в опашката
+ * (PLAN_QUEUE, до 15 мин за работа) влиза задача "plan_review" → runPlanReview праща въпросника
+ * и плана на Claude Opus 5.5 с указанията по-долу → присъда, забележки и промени с причина.
+ * Промените (JSON Patch само в /plan) се прилагат върху копие, сумите се пресмятат наново
+ * (reconcilePlanStructure) и прегледът се пази в KV plan_review:<clientId> заедно с „преди“ и
+ * „след“ на всяка промяна. Админът вижда прегледа в хъба за одобрение и решава: „Приложи
+ * корекциите“ (планът остава pending; старият се пази в прегледа) → „Активирай“.
  *
- * Пускане: при всеки план, който постъпи за одобрение (записът на клиента с planStatus "pending"),
- * worker-ът веднага вика API-то на задачата в Claude (reviewOnPending; FIRE_URL, токен в secret
- * CLAUDE_REVIEW_TOKEN). Без токен — не прави нищо. Една сесия преглежда цялата опашка, затова между
- * две пускания има поне 15 мин: план, дошъл междувременно, взима таймерът (на 15 мин, без AI) веднага
- * след прозореца. Таймерът е и резервата — пуска наново план, неразгледан 3 часа след пускането.
+ * Токени отиват само при нов вариант на план (отбелязване plan_review_fired:<id>). Таймерът на
+ * worker-а (на 15 мин, без AI) е резервата: неразгледан план, за който задачата не е пусната
+ * или не е минала за 3 часа, влиза наново в опашката. Без ANTHROPIC_API_KEY не тръгва нищо.
  *
- * Всички маршрути са под /api/admin/* — пазени от централния guard (X-Admin-Secret).
- *   GET  /api/admin/plan-review/queue          → { items: [{ clientId, name, planUpdatedAt }], guide }
- *   POST /api/admin/plan-review/submit         { clientId, planUpdatedAt, verdict, summary, findings, patches? }
+ * Маршрути (под /api/admin/* — централният guard, X-Admin-Secret):
  *   GET  /api/admin/plan-review?clientId=      → прегледът
  *   POST /api/admin/plan-review/apply          { clientId } → коригираният план става текущ (pending)
  */
+import Anthropic from '@anthropic-ai/sdk';
 import { applyJsonPatches, buildPatchDocument, mergePatchDocument } from './json-patch.js';
 
-const QUEUE_MAX = 5;
+/** Модел: прегледът е клинична проверка (алергени, лекарства, заболявания) — най-точният Opus. */
+export const REVIEW_MODEL = 'claude-opus-5-5';
+const REVIEW_EFFORT = 'high';
+const MAX_TOKENS = 32000;
+/** $ за 1M токена (вход, изход, четене от кеша, запис в кеша) — за дневния таван на AI разхода. */
+const PRICE = { in: 4, out: 20, cacheRead: 0.2, cacheWrite: 5 };
+
 const CRON_SCAN = 60;                  // таймерът гледа само последните клиенти (новите планове са там)
-const REFIRE_MS = 3 * 3600 * 1000;     // ако прегледът не е минал (напр. ключ), нов опит след 3 часа
-const FIRE_GAP_MS = 15 * 60 * 1000;    // между две пускания: сесията вече взима всички чакащи
-const LAST_FIRE_KEY = 'plan_review_last_fire';
-const firedKey = (id) => `plan_review_fired:${id}`;
+const REFIRE_MS = 3 * 3600 * 1000;     // неразгледан 3 часа след пускането → нов опит
 export const REVIEW_CRON = '*/15 * * * *';
-const FIRE_URL = 'https://api.anthropic.com/v1/claude_code/routines/trig_01HVZa5YrEowsSR6z5mRbqEy/fire';
-const VERDICTS = new Set(['ok', 'fix', 'stop']);
 const SEVERITIES = new Set(['critical', 'major', 'minor']);
 const reviewKey = (id) => `plan_review:${id}`;
+const firedKey = (id) => `plan_review_fired:${id}`;
 const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
 
-export const GUIDE = `Ти преглеждаш хранителен план на Eatologix ПРЕДИ да стигне до клиента. Екипът го одобрява след теб.
-Работиш на български. Не пишеш на клиента — пишеш на екипа: кратко, конкретно, с място (ден, хранене).
+export const GUIDE = `Преглеждаш хранителен план на Eatologix, преди да стигне до клиента. Екипът го одобрява след теб.
+Пишеш на екипа, на български: кратко, конкретно, с място (ден, хранене). Не пишеш на клиента.
 
-ВХОД: client.answers (въпросникът: цел, възраст, пол, тегло, ръст, активност, заболявания, лекарства,
-алергии, непоносимости, какво не яде, хранителен режим, брой хранения, бюджет, изследвания) и client.plan
-(analysis — дневни цели; strategy; weekPlan — дни → meals с ястия, грамове, калории и макроси; summary;
-supplements/recommendations, ако има).
+Получаваш answers (въпросникът: цел, възраст, пол, тегло, ръст, активност, заболявания, лекарства, алергии,
+непоносимости, какво не яде, хранителен режим, брой хранения, бюджет, изследвания) и plan (analysis — дневни цели;
+strategy; weekPlan — дни → meals с ястия, грамове, калории и макроси; summary; добавки и препоръки, ако има).
 
-ПРОВЕРИ ОБСТОЙНО (всичко, не само първото, което хване окото):
-1. Безопасност (critical): алергени и непоносимости във всяко ястие; храни/добавки, противопоказни при
-   заболяванията и лекарствата (напр. грейпфрут + статини, витамин K + варфарин, йод + хашимото без указание,
-   високо калий при бъбречно заболяване, захари при диабет, сол при хипертония, сурови/рискови храни при бременност);
-   дози на добавките над безопасния горен праг; прекалено нисък прием на енергия (< 1200 жени / < 1500 мъже без причина).
-2. Спазване на клиента (major): храни, които е казал, че не яде; хранителният му режим (вегетарианец, без глутен…);
-   броят хранения и часовете; гладуване/закуска, ако е отбелязано.
-3. Числа (major): дневните калории и белтък/въглехидрати/мазнини спрямо целите в analysis (отклонение > 10% е грешка);
-   сумата на деня спрямо сбора на храненията; реалистични грамове (не 7 г ориз, не 600 г пилешко на хранене).
-4. Смисъл (major/minor): ястие, което не е за това хранене; повторения (едно и също ястие > 3 пъти седмично);
-   разнообразие на белтъчини и зеленчуци; храни, трудни за намиране в България; бюджет.
-5. Текстове (minor): противоречия между анализа/препоръките и менюто; грешки в имената; обещания за лечение.
+Проверявай целия план, всеки ден и всяко хранене:
+1. Безопасност (critical): алергени и непоносимости във всяко ястие; храни и добавки, противопоказни при заболяванията
+   и лекарствата (грейпфрут и статини, витамин K и варфарин, йод при Хашимото без указание, много калий при бъбречно
+   заболяване, захари при диабет, сол при хипертония, сурови и рискови храни при бременност); дози на добавките над
+   горния безопасен праг; твърде нисък прием на енергия (под 1200 kcal за жени, под 1500 за мъже) без причина.
+2. Спазване на клиента (major): храни, които е казал, че не яде; режимът му (вегетарианец, без глутен…); броят
+   хранения и часовете; пропуснатата закуска, ако е отбелязана.
+3. Числа (major): дневните калории и макроси спрямо целите в analysis (отклонение над 10% е грешка); сумата на деня
+   спрямо сбора на храненията; реалистични грамове (не 7 г ориз, не 600 г пилешко на хранене).
+4. Смисъл (major или minor): ястие, което не е за това хранене; едно ястие повече от 3 пъти седмично; разнообразие
+   на белтъчини и зеленчуци; храни, трудни за намиране там, където е клиентът; бюджетът.
+5. Текстове (minor): противоречия между анализа, препоръките и менюто; грешни имена; обещания за лечение.
 
-КОРЕКЦИИ: само ако са нужни и си сигурен. Формат JSON Patch (op: replace | add | remove; path само под /plan;
-до 25 операции). Сменяй цяло хранене (replace /plan/weekPlan/<ден>/meals/<индекс>) с ястие в СЪЩАТА структура като
-останалите хранения — копирай формата на полетата. Сумите на деня и summary сървърът пресмята сам — не ги пипай.
-Не сменяй answers. Не пренаписвай целия план. Ако проблемът е в целите (analysis) или в цялата стратегия —
-не го поправяй ти: verdict "stop" и обясни.
+Промени (changes) предлагаш само когато са нужни и си сигурен в тях — всяка с причина за екипа (reason).
+Формат JSON Patch: op е replace, add или remove; path е само под /plan (напр. /plan/weekPlan/day3/meals/1);
+value_json е новата стойност като JSON текст ("" при remove). Сменяй цяло хранене с ястие в същата структура като
+другите хранения — копирай полетата им. Сумите на деня и summary сървърът пресмята сам — не ги пипай. Не пипай
+answers и не пренаписвай целия план (най-много 25 промени). Ако проблемът е в целите (analysis) или в цялата
+стратегия, не го поправяй: присъда "stop" и обяснение.
 
-ИЗХОД (POST /api/admin/plan-review/submit, JSON):
-{ "clientId": "...", "planUpdatedAt": "<както в опашката>",
-  "verdict": "ok" | "fix" | "stop",       // ok — може да се одобри; fix — с корекциите е ок; stop — нужен човек
-  "summary": "2–4 изречения за екипа",
-  "findings": [ { "severity": "critical|major|minor", "where": "ден 3, обяд", "issue": "...", "fix": "..." } ],
-  "patches": [ ... ] }                     // само при verdict "fix"
-Ако сървърът върне грешка за корекциите — поправи пътищата и прати пак (до 2 опита); иначе прати без patches
-и с verdict "stop", като опишеш корекцията с думи.`;
+Присъда (verdict): "ok" — може да се одобри; "fix" — с промените е наред; "stop" — нужен е човек.
+summary: 2–4 изречения за екипа. findings: всяка забележка с severity, where, issue и fix.`;
+
+const OUTPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['verdict', 'summary', 'findings', 'changes'],
+  properties: {
+    verdict: { type: 'string', enum: ['ok', 'fix', 'stop'] },
+    summary: { type: 'string' },
+    findings: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['severity', 'where', 'issue', 'fix'],
+        properties: {
+          severity: { type: 'string', enum: ['critical', 'major', 'minor'] },
+          where: { type: 'string' },
+          issue: { type: 'string' },
+          fix: { type: 'string' },
+        },
+      },
+    },
+    changes: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['op', 'path', 'value_json', 'reason'],
+        properties: {
+          op: { type: 'string', enum: ['replace', 'add', 'remove'] },
+          path: { type: 'string' },
+          value_json: { type: 'string' },
+          reason: { type: 'string' },
+        },
+      },
+    },
+  },
+};
 
 function isPending(c) {
   return c && c.plan && c.planStatus === 'pending';
+}
+
+/** Стойността на JSON Pointer в документа (undefined, ако я няма). */
+function valueAt(doc, path) {
+  let cur = doc;
+  for (const raw of String(path).slice(1).split('/')) {
+    const key = raw.replace(/~1/g, '/').replace(/~0/g, '~');
+    if (cur == null || typeof cur !== 'object') return undefined;
+    cur = cur[key];
+  }
+  return cur;
 }
 
 /** Чакащите одобрение планове без преглед за текущия им вариант. */
@@ -84,128 +128,170 @@ async function unreviewed(env, scan, max) {
     if (!isPending(c)) continue;
     const r = JSON.parse((await env.page_content.get(reviewKey(id))) || 'null');
     if (r && r.planUpdatedAt === (c.planUpdatedAt || null)) continue;   // този вариант вече е прегледан
-    items.push({ clientId: id, name: c.answers?.name || '', planUpdatedAt: c.planUpdatedAt || null });
+    items.push({ clientId: id, planUpdatedAt: c.planUpdatedAt || null });
   }
   return items;
 }
 
-/** GET /api/admin/plan-review/queue */
-export async function handleReviewQueue(env, { respond }) {
-  return respond({ items: await unreviewed(env, 500, QUEUE_MAX), guide: GUIDE });
-}
-
-/** Пуска задачата в Claude. → true при успех */
-async function fire(env, count, fetchImpl, now) {
-  try {
-    const r = await fetchImpl(FIRE_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.CLAUDE_REVIEW_TOKEN}`,
-        'anthropic-beta': 'experimental-cc-routine-2026-04-01',
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text: `Чакащи преглед: ${count}` }),
-    });
-    if (!r.ok) { console.warn('[plan-review] fire failed:', r.status); return false; }
-    await env.page_content.put(LAST_FIRE_KEY, JSON.stringify({ at: now }), { expirationTtl: 86400 });
-    return true;
-  } catch (e) {
-    console.warn('[plan-review] fire error:', e?.message);
-    return false;
-  }
-}
-
-const markFired = (env, item, now) => env.page_content.put(firedKey(item.clientId),
-  JSON.stringify({ planUpdatedAt: item.planUpdatedAt, at: now }), { expirationTtl: 30 * 86400 });
-
-/** Пуснат ли е вече прегледът за този вариант на плана (и не е изтекъл срокът за нов опит). */
+/** Пусната ли е вече задачата за този вариант на плана (и не е изтекъл срокът за нов опит). */
 async function alreadyFired(env, item, now) {
   const m = JSON.parse((await env.page_content.get(firedKey(item.clientId))) || 'null');
   return Boolean(m && m.planUpdatedAt === item.planUpdatedAt && now - m.at < REFIRE_MS);
 }
 
-async function recentlyFired(env, now) {
-  const last = JSON.parse((await env.page_content.get(LAST_FIRE_KEY)) || 'null');
-  return Boolean(last && now - last.at < FIRE_GAP_MS);
+async function enqueue(env, item, now) {
+  await env.PLAN_QUEUE.send({ type: 'plan_review', jobId: `review_${item.clientId}`, clientId: item.clientId, planUpdatedAt: item.planUpdatedAt }, { contentType: 'json' });
+  await env.page_content.put(firedKey(item.clientId), JSON.stringify({ planUpdatedAt: item.planUpdatedAt, at: now }), { expirationTtl: 30 * 86400 });
 }
 
 /**
- * Планът постъпи за одобрение (записът на клиента) → прегледът тръгва веднага.
- * → 'off' | 'skip' | 'reviewed' | 'same' | 'later' | 'fired' | 'error'
+ * Планът постъпи за одобрение (записът на клиента) → задачата за преглед влиза в опашката веднага.
+ * → 'off' | 'skip' | 'reviewed' | 'same' | 'queued'
  */
-export async function reviewOnPending(env, clientId, c, { now = Date.now(), fetchImpl = fetch } = {}) {
-  if (!env?.CLAUDE_REVIEW_TOKEN || !env.page_content) return 'off';
+export async function reviewOnPending(env, clientId, c, { now = Date.now() } = {}) {
+  if (!env?.ANTHROPIC_API_KEY || !env.page_content || !env.PLAN_QUEUE) return 'off';
   if (!clientId || !isPending(c)) return 'skip';
   const item = { clientId, planUpdatedAt: c.planUpdatedAt || null };
   if (await alreadyFired(env, item, now)) return 'same';
   const r = JSON.parse((await env.page_content.get(reviewKey(clientId))) || 'null');
   if (r && r.planUpdatedAt === item.planUpdatedAt) return 'reviewed';
-  if (await recentlyFired(env, now)) return 'later';   // сесията тече — таймерът го взима след прозореца
-  if (!(await fire(env, 1, fetchImpl, now))) return 'error';
-  await markFired(env, item, now);
-  return 'fired';
+  await enqueue(env, item, now);
+  return 'queued';
 }
 
 /**
- * Таймерът (резервата): неразгледан план, за който прегледът не е пускан (дошъл по време на сесия,
- * грешка от API-то) или е пуснат преди 3 часа без резултат → пуска задачата.
- * → 'off' | 'none' | 'same' | 'later' | 'fired' | 'error'
+ * Таймерът (резервата): неразгледан план без пусната задача (грешка, сменен ключ) или с пусната
+ * преди 3 часа без резултат → в опашката. → 'off' | 'none' | 'same' | 'queued:<n>'
  */
-export async function maybeFireReview(env, { now = Date.now(), fetchImpl = fetch } = {}) {
-  if (!env.CLAUDE_REVIEW_TOKEN || !env.page_content) return 'off';
+export async function maybeFireReview(env, { now = Date.now() } = {}) {
+  if (!env.ANTHROPIC_API_KEY || !env.page_content || !env.PLAN_QUEUE) return 'off';
   const items = await unreviewed(env, CRON_SCAN, 20);
   if (!items.length) return 'none';
-  const due = [];
-  for (const i of items) if (!(await alreadyFired(env, i, now))) due.push(i);
-  if (!due.length) return 'same';
-  if (await recentlyFired(env, now)) return 'later';
-  if (!(await fire(env, items.length, fetchImpl, now))) return 'error';
-  for (const i of items) await markFired(env, i, now);
-  return 'fired';
+  let n = 0;
+  for (const i of items) {
+    if (await alreadyFired(env, i, now)) continue;
+    await enqueue(env, i, now);
+    n++;
+  }
+  return n ? `queued:${n}` : 'same';
 }
 
-/** POST /api/admin/plan-review/submit */
-export async function handleReviewSubmit(request, env, { respond, reconcile, now = Date.now() }) {
-  const b = await request.json().catch(() => null);
-  if (!b || !b.clientId) return respond({ error: 'bad_request', message: 'Липсва clientId' }, 400);
-  const c = JSON.parse((await env.page_content.get(`client:${b.clientId}`)) || 'null');
-  if (!isPending(c)) return respond({ error: 'not_pending', message: 'Планът вече не чака одобрение' }, 409);
-  if ((b.planUpdatedAt || null) !== (c.planUpdatedAt || null)) {
-    return respond({ error: 'stale', message: 'Планът е сменен след взимането от опашката — вземи го наново', planUpdatedAt: c.planUpdatedAt || null }, 409);
+/** Входът за Claude: въпросникът и планът (без служебните полета). */
+function reviewInput(c) {
+  const { _meta, aiVoice, ...plan } = c.plan || {};
+  return JSON.stringify({ answers: c.answers || {}, plan });
+}
+
+/** Промените от модела → JSON Patch (value_json → value). */
+function toPatches(changes) {
+  return (Array.isArray(changes) ? changes : []).map((ch) => {
+    const p = { op: ch.op, path: String(ch.path || '') };
+    if (ch.op !== 'remove') p.value = JSON.parse(ch.value_json);
+    return p;
+  });
+}
+
+/** Прилага промените върху копие; връща коригирания план и „преди/след“ за всяка промяна. */
+async function applyChanges(c, changes, reconcile) {
+  const patches = toPatches(changes);
+  if (patches.some((p) => !p.path.startsWith('/plan/'))) throw new Error('промените са само под /plan/…');
+  const before = buildPatchDocument(c);
+  const copy = JSON.parse(JSON.stringify(c));
+  const { document } = applyJsonPatches(before, patches);
+  mergePatchDocument(copy, document);
+  if (reconcile && copy.plan?.weekPlan) await reconcile(copy.plan, copy.answers);
+  const diff = changes.map((ch, i) => ({
+    op: ch.op, path: patches[i].path, reason: clip(ch.reason, 800),
+    before: valueAt(before, patches[i].path) ?? null,
+    after: ch.op === 'remove' ? null : patches[i].value,
+  }));
+  return { correctedPlan: copy.plan, patches, changes: diff };
+}
+
+function costOf(usage) {
+  const u = usage || {};
+  return ((u.input_tokens || 0) * PRICE.in + (u.output_tokens || 0) * PRICE.out
+    + (u.cache_read_input_tokens || 0) * PRICE.cacheRead + (u.cache_creation_input_tokens || 0) * PRICE.cacheWrite) / 1e6;
+}
+
+/** Едно извикване на Claude; → { message, result|null } */
+async function askClaude(client, messages) {
+  const message = await client.beta.messages.stream({
+    model: REVIEW_MODEL,
+    max_tokens: MAX_TOKENS,
+    thinking: { type: 'adaptive' },
+    output_config: { effort: REVIEW_EFFORT, format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
+    // При отказ по правилата за безопасност същата заявка минава на резервен модел.
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default',
+    system: [{ type: 'text', text: GUIDE, cache_control: { type: 'ephemeral' } }],
+    messages,
+  }).finalMessage();
+  if (message.stop_reason === 'refusal' || message.stop_reason === 'max_tokens') return { message, result: null };
+  const text = message.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+  return { message, result: JSON.parse(text) };
+}
+
+/**
+ * Задачата от опашката: прегледът на един план. Записва plan_review:<clientId>.
+ * → 'skip' | 'stale' | 'reviewed' | verdict
+ * @param {any} env
+ * @param {{ clientId: string, planUpdatedAt: string|null }} job
+ * @param {{ reconcile?: (plan: any, answers: any) => Promise<any>, addSpend?: (usd: number) => Promise<any>, client?: any, now?: number }} [deps]
+ *   client — само за тестовете (иначе Anthropic с ANTHROPIC_API_KEY)
+ */
+export async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addSpend, client, now = Date.now() } = {}) {
+  const c = JSON.parse((await env.page_content.get(`client:${clientId}`)) || 'null');
+  if (!isPending(c)) return 'skip';
+  if ((c.planUpdatedAt || null) !== (planUpdatedAt || null)) return 'stale';   // новият вариант има своя задача
+  const old = JSON.parse((await env.page_content.get(reviewKey(clientId))) || 'null');
+  if (old && old.planUpdatedAt === (c.planUpdatedAt || null)) return 'reviewed';
+
+  const api = client || new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  const messages = [{ role: 'user', content: reviewInput(c) }];
+  let usd = 0;
+  let { message, result } = await askClaude(api, messages);
+  usd += costOf(message.usage);
+
+  let applied = null;
+  let applyError = '';
+  if (result && result.changes?.length) {
+    try {
+      applied = await applyChanges(c, result.changes, reconcile);
+    } catch (e) {
+      // Един опит за поправка: моделът вижда грешката и праща промените наново.
+      messages.push({ role: 'assistant', content: message.content },
+        { role: 'user', content: `Промените не се приложиха: ${e.message}. Поправи пътищата и стойностите и върни целия отговор наново.` });
+      ({ message, result } = await askClaude(api, messages));
+      usd += costOf(message.usage);
+      try {
+        if (result && result.changes?.length) applied = await applyChanges(c, result.changes, reconcile);
+      } catch (e2) {
+        applyError = e2.message;
+      }
+    }
   }
-  const verdict = VERDICTS.has(b.verdict) ? b.verdict : null;
-  if (!verdict) return respond({ error: 'bad_request', message: 'verdict: ok | fix | stop' }, 400);
-  const findings = (Array.isArray(b.findings) ? b.findings : []).slice(0, 60).map((f) => ({
+  if (addSpend) await addSpend(usd);
+
+  const declined = !result;
+  const findings = (declined ? [] : result.findings || []).slice(0, 60).map((f) => ({
     severity: SEVERITIES.has(f?.severity) ? f.severity : 'minor',
     where: clip(f?.where, 120), issue: clip(f?.issue, 800), fix: clip(f?.fix, 800),
   })).filter((f) => f.issue);
-
-  let correctedPlan = null;
-  let patches = null;
-  if (Array.isArray(b.patches) && b.patches.length) {
-    if (b.patches.some((p) => !String(p?.path || '').startsWith('/plan/'))) {
-      return respond({ error: 'bad_patch', message: 'Корекциите са само под /plan/…' }, 400);
-    }
-    try {
-      const copy = JSON.parse(JSON.stringify(c));
-      const { document } = applyJsonPatches(buildPatchDocument(copy), b.patches);
-      mergePatchDocument(copy, document);
-      if (reconcile && copy.plan?.weekPlan) await reconcile(copy.plan, copy.answers);
-      correctedPlan = copy.plan;
-      patches = b.patches;
-    } catch (e) {
-      return respond({ error: 'bad_patch', message: `Корекциите не се приложиха: ${e.message}` }, 400);
-    }
-  }
+  let verdict = declined ? 'stop' : (['ok', 'fix', 'stop'].includes(result.verdict) ? result.verdict : 'stop');
+  if (verdict === 'fix' && !applied) verdict = 'stop';
+  const summary = declined
+    ? (message.stop_reason === 'refusal' ? 'Прегледът не можа да се направи (моделът отказа). Нужна е ръчна проверка.' : 'Прегледът прекъсна (твърде дълъг отговор). Нужна е ръчна проверка.')
+    : clip(result.summary, 2000) + (applyError ? ` Предложените промени не се приложиха (${clip(applyError, 200)}) — описани са в забележките.` : '');
 
   const review = {
-    clientId: b.clientId, planUpdatedAt: c.planUpdatedAt || null, reviewedAt: now, reviewer: 'claude',
-    verdict, summary: clip(b.summary, 2000), findings, patches, correctedPlan, applied: false,
+    clientId, planUpdatedAt: c.planUpdatedAt || null, reviewedAt: now, reviewer: 'claude', model: message.model || REVIEW_MODEL,
+    verdict, summary, findings,
+    changes: applied?.changes || null, patches: applied?.patches || null, correctedPlan: applied?.correctedPlan || null,
+    costUsd: Math.round(usd * 10000) / 10000, applied: false,
   };
-  await env.page_content.put(reviewKey(b.clientId), JSON.stringify(review), { expirationTtl: 120 * 86400 });
-
-  return respond({ success: true, verdict, findings: findings.length, corrected: Boolean(correctedPlan) });
+  await env.page_content.put(reviewKey(clientId), JSON.stringify(review), { expirationTtl: 120 * 86400 });
+  return verdict;
 }
 
 /** GET /api/admin/plan-review?clientId= */
@@ -225,10 +311,11 @@ export async function handleReviewApply(request, env, { respond, now = Date.now(
   if ((c.planUpdatedAt || null) !== r.planUpdatedAt) {
     return respond({ error: 'stale', message: 'Планът е сменен след прегледа — корекциите не важат за него' }, 409);
   }
+  const originalPlan = c.plan;
   c.plan = r.correctedPlan;
   c.planUpdatedAt = new Date(now).toISOString();
   await env.page_content.put(`client:${clientId}`, JSON.stringify(c));
-  // Прегледът важи за новия вариант (иначе опашката би го взела пак).
-  await env.page_content.put(reviewKey(clientId), JSON.stringify({ ...r, applied: true, appliedAt: now, planUpdatedAt: c.planUpdatedAt }), { expirationTtl: 120 * 86400 });
+  // Прегледът важи за новия вариант (иначе би тръгнал пак); старият план остава в прегледа.
+  await env.page_content.put(reviewKey(clientId), JSON.stringify({ ...r, applied: true, appliedAt: now, planUpdatedAt: c.planUpdatedAt, originalPlan }), { expirationTtl: 120 * 86400 });
   return respond({ success: true, planUpdatedAt: c.planUpdatedAt });
 }

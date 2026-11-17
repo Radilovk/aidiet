@@ -140,8 +140,8 @@ import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUs
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
-import { handleReviewQueue, handleReviewSubmit, handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, REVIEW_CRON } from './plan-review.js';
-import { budgetOk, dailySpend, budgetLimit, noteSpend, BUDGET_KEY } from './spend.js';
+import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview, REVIEW_CRON } from './plan-review.js';
+import { budgetOk, dailySpend, budgetLimit, noteSpend, addSpend, BUDGET_KEY } from './spend.js';
 
 /** Известие до админа при 50% / 100% от дневния AI таван (push в админ панела). */
 const adminSpendNotify = (env) => async (text) => {
@@ -18436,13 +18436,6 @@ export default {
         return await handleDeleteClients(request, env);
       } else if (url.pathname === '/api/admin/update-client-plan' && request.method === 'POST') {
         return await handleUpdateClientPlan(request, env, ctx);
-      } else if (url.pathname === '/api/admin/plan-review/queue' && request.method === 'GET') {
-        return await handleReviewQueue(env, { respond: jsonResponse });
-      } else if (url.pathname === '/api/admin/plan-review/submit' && request.method === 'POST') {
-        return await handleReviewSubmit(request, env, {
-          respond: jsonResponse,
-          reconcile: (plan, answers) => reconcilePlanStructure(plan, answers, env),
-        });
       } else if (url.pathname === '/api/admin/plan-review' && request.method === 'GET') {
         return await handleReviewGet(url, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/admin/plan-review/apply' && request.method === 'POST') {
@@ -18591,6 +18584,13 @@ export default {
           if (payloadKey) await env.page_content.delete(payloadKey).catch(() => {});
         } else if (type === 'safety_rebuild') {
           await runSafetyRebuild(env, payload, jobId);
+        } else if (type === 'plan_review') {
+          // Прегледът на нов план от Claude преди одобрение (plan-review.js).
+          const r = await runPlanReview(env, body, {
+            reconcile: (plan, answers) => reconcilePlanStructure(plan, answers, env),
+            addSpend: (usd) => addSpend(env, usd, { notify: adminSpendNotify(env) }),
+          });
+          console.log(`[plan-review] ${clientId}: ${r}`);
         } else {
           await generatePlanAndSave(env, data, jobId, clientId || null, generationOptions || {});
         }
