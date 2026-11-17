@@ -1,0 +1,15 @@
+/* EmoEat като самостоятелен сайт (emoeat.app): своя марка в лентата и футъра, избор на език. */
+.emo-word { font-family: 'Montserrat', 'Manrope', system-ui, sans-serif; font-weight: 700; font-size: 19px; letter-spacing: .01em; color: var(--ink); }
+.emo-word b { font-weight: 700; background: linear-gradient(120deg, var(--acc), var(--acc-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.emo-word--foot { color: #E4FBF8; font-size: 20px; }
+.ml-top .emo-start { margin-left: auto; }
+.emo-lang {
+    height: 36px; border-radius: 999px; padding: 0 8px; font: 700 13px/1 inherit; cursor: pointer;
+    background: var(--soft, rgba(155, 92, 246, .1)); color: var(--ink); border: 1px solid var(--line);
+}
+.emo-lang-foot { display: inline-flex; align-items: center; gap: 10px; margin-top: 20px; font-size: .88rem; color: #85A39E; }
+.emo-lang-foot select {
+    height: 38px; border-radius: 999px; padding: 0 12px; font: 600 14px/1 inherit; cursor: pointer;
+    background: rgba(255, 255, 255, .06); color: #E4FBF8; border: 1px solid rgba(255, 255, 255, .16);
+}
+.emo-lang-foot select option, .emo-lang option { color: #14212B; }
