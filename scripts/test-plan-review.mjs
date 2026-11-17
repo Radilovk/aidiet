@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Прегледът на новите планове от Claude (plan-review.js): опашка, присъда, промени с „преди/след“, прилагане. Без мрежа. */
 import assert from 'node:assert/strict';
-import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview, REVIEW_MODEL, GUIDE } from '../plan-review.js';
+import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview, reviewEffort, reviewInput, REVIEW_MODEL, GUIDE } from '../plan-review.js';
 
 const kv = new Map();
 const queue = [];
@@ -13,7 +13,11 @@ const env = {
 const respond = (d, s = 200) => new Response(JSON.stringify(d), { status: s });
 const post = (b) => new Request('https://w/x', { method: 'POST', body: JSON.stringify(b) });
 const json = async (r) => ({ status: r.status, d: await r.json() });
-const plan = () => ({ analysis: { targetCalories: 1800 }, weekPlan: { day1: { meals: [{ name: 'Овесена каша', calories: 400 }, { name: 'Скариди с ориз', calories: 600 }] } }, _meta: { x: 1 } });
+const chicken = { name: 'Пилешко с ориз', dishId: 'd_chicken', calories: 600, macros: { protein: 45, carbs: 60, fats: 15 }, recipeSteps: ['Свари ориза.'], benefits: 'Белтък.' };
+const plan = () => ({ analysis: { targetCalories: 1800 }, weekPlan: { day1: { meals: [
+  { type: 'Хранене 1', name: 'Овесена каша', calories: 400 },
+  { type: 'Хранене 2', name: 'Скариди с ориз', dishId: 'd_shrimp', calories: 600, macros: { protein: 40, carbs: 60, fats: 12 }, recipe: 'Запържи скаридите.', recipeSteps: ['Запържи скаридите.'], benefits: 'Омега-3.', alternatives: [structuredClone(chicken)] },
+] } }, _meta: { x: 1 } });
 const client = (id, at, status = 'pending', extra = {}) => ({ id, answers: { name: id, allergies: 'ракообразни' }, plan: plan(), planStatus: status, planUpdatedAt: at, ...extra });
 const put = (c) => kv.set(`client:${c.id}`, JSON.stringify(c));
 const review = (id) => JSON.parse(kv.get(`plan_review:${id}`) || 'null');
@@ -33,7 +37,7 @@ function fakeClaude(...answers) {
     } } },
   };
 }
-const fixMeal = { op: 'replace', path: '/plan/weekPlan/day1/meals/1', value_json: JSON.stringify({ name: 'Пилешко с ориз', calories: 600 }), reason: 'Скариди при алергия към ракообразни.' };
+const fixMeal = { op: 'swap', path: '/plan/weekPlan/day1/meals/1', value_json: JSON.stringify('d_chicken'), reason: 'Скариди при алергия към ракообразни.' };
 const mails = [];
 const deps = (c, spent) => ({ client: c, reconcile: async (p) => { p.summary = { recomputed: true }; }, addSpend: async (usd) => spent.push(usd), notify: async (cl, r) => mails.push({ id: cl.id, verdict: r.verdict, changes: (r.changes || []).length }) });
 
@@ -52,14 +56,14 @@ await check('постъпил план → веднага в опашката; �
   assert.equal(await reviewOnPending(env, 'c1', client('c1', 'v1'), { now: t + 60e3 }), 'same');
   assert.equal(queue.length, 1);
 });
-await check('прегледът: Opus 5.5, високо ниво, структуриран отговор, кеширани указания, резервен модел при отказ', async () => {
+await check('прегледът: Opus 5.5, ниво по риска, структуриран отговор, кеширани указания, резервен модел при отказ', async () => {
   put(client('c1', 'v1'));
   const fake = fakeClaude({ verdict: 'fix', summary: 'Скариди при алергия.', findings: [{ severity: 'critical', where: 'ден 1, обяд', issue: 'Скариди — алерген', fix: 'Пилешко с ориз' }], changes: [fixMeal] });
   const spent = [];
   assert.equal(await runPlanReview(env, { clientId: 'c1', planUpdatedAt: 'v1' }, deps(fake, spent)), 'fix');
   const req = fake.calls[0];
   assert.equal(req.model, 'claude-opus-5-5');
-  assert.equal(req.output_config.effort, 'high');
+  assert.equal(req.output_config.effort, 'medium');   // профил без заболявания и лекарства
   assert.equal(req.output_config.format.type, 'json_schema');
   assert.deepEqual(req.thinking, { type: 'adaptive' });
   assert.equal(req.fallbacks, 'default');
@@ -68,6 +72,12 @@ await check('прегледът: Opus 5.5, високо ниво, структу
   const input = JSON.parse(req.messages[0].content);
   assert.equal(input.answers.allergies, 'ракообразни');
   assert.equal(input.plan._meta, undefined);
+  assert.equal(input.answers.name, undefined);   // лични данни не излизат
+  const m = input.plan.weekPlan.day1.meals[1];
+  assert.deepEqual(m.alternatives, [{ dishId: 'd_chicken', name: 'Пилешко с ориз' }]);   // само имената на алтернативите
+  assert.equal(m.recipe, 'Запържи скаридите.');
+  assert.equal(m.recipeSteps, undefined); assert.equal(m.benefits, undefined);
+  assert.match(GUIDE, /СПАЗЕН/); assert.match(GUIDE, /foodCravings/); assert.match(GUIDE, /dietLove/);
   assert.ok(spent[0] > 0.17 && spent[0] < 0.19, `разход ${spent[0]}`);
 });
 await check('промените пазят „преди“, „след“ и причината; оригиналът стои; сумите са пресметнати', async () => {
@@ -75,6 +85,9 @@ await check('промените пазят „преди“, „след“ и �
   assert.equal(r.verdict, 'fix');
   assert.equal(r.changes[0].before.name, 'Скариди с ориз');
   assert.equal(r.changes[0].after.name, 'Пилешко с ориз');
+  assert.equal(r.changes[0].op, 'swap');
+  assert.equal(r.changes[0].after._originalDishId, 'd_shrimp');
+  assert.equal(r.changes[0].after.alternatives[0].dishId, 'd_shrimp');   // старото ястие остава като алтернатива
   assert.match(r.changes[0].reason, /алергия/);
   assert.equal(r.correctedPlan.weekPlan.day1.meals[1].name, 'Пилешко с ориз');
   assert.equal(r.correctedPlan.summary.recomputed, true);
@@ -98,7 +111,7 @@ await check('„Приложи корекциите“: коригираният
 });
 await check('грешен път в промените → един опит за поправка с грешката', async () => {
   put(client('c2', 'v1'));
-  const bad = { ...fixMeal, path: '/plan/weekPlan/day9/meals/0' };
+  const bad = { ...fixMeal, value_json: JSON.stringify('d_unknown') };
   const fake = fakeClaude({ verdict: 'fix', summary: 's', findings: [], changes: [bad] }, { verdict: 'fix', summary: 'поправено', findings: [], changes: [fixMeal] });
   assert.equal(await runPlanReview(env, { clientId: 'c2', planUpdatedAt: 'v1' }, deps(fake, [])), 'fix');
   assert.equal(fake.calls.length, 2);
@@ -112,6 +125,27 @@ await check('промени извън /plan или неуспешна попр�
   assert.equal(await runPlanReview(env, { clientId: 'c3', planUpdatedAt: 'v1' }, deps(fake, [])), 'stop');
   assert.equal(review('c3').correctedPlan, null);
   assert.match(review('c3').summary, /не се приложиха/);
+});
+await check('ново ястие, написано от модела, не се приема — само алтернатива', async () => {
+  put(client('c7', 'v1'));
+  const own = { op: 'replace', path: '/plan/weekPlan/day1/meals/1', value_json: JSON.stringify({ name: 'Измислено' }), reason: 'r' };
+  const fake = fakeClaude({ verdict: 'fix', summary: 's', findings: [], changes: [own] }, { verdict: 'fix', summary: 's', findings: [], changes: [own] });
+  assert.equal(await runPlanReview(env, { clientId: 'c7', planUpdatedAt: 'v1' }, deps(fake, [])), 'stop');
+  assert.match(fake.calls[1].messages.at(-1).content, /swap/);
+});
+await check('рисков профил → по-високо ниво; лек профил → medium', async () => {
+  assert.equal(reviewEffort({ healthConditions: ['Нямам'], medications: 'Не', age: '35' }), 'medium');
+  assert.equal(reviewEffort({ healthConditions: ['Емоционално хранене'] }), 'medium');
+  assert.equal(reviewEffort({ healthConditions: ['Щитовидна жлеза (Хашимото и др.)'] }), 'high');
+  assert.equal(reviewEffort({ medications: 'Да' }), 'high');
+  assert.equal(reviewEffort({ postpartumStatus: 'Бременна' }), 'high');
+  assert.equal(reviewEffort({ age: '72' }), 'high');
+});
+await check('забележките са най-много 8', async () => {
+  put(client('c8', 'v1'));
+  const many = Array.from({ length: 20 }, (_, i) => ({ severity: 'minor', where: 'д' + i, issue: 'x' + i, fix: 'y' }));
+  await runPlanReview(env, { clientId: 'c8', planUpdatedAt: 'v1' }, deps(fakeClaude({ verdict: 'ok', summary: 's', findings: many, changes: [] }), []));
+  assert.equal(review('c8').findings.length, 8);
 });
 await check('отказ или прекъснат отговор → „нужен човек“ с обяснение', async () => {
   put(client('c4', 'v1'));

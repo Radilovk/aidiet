@@ -117,5 +117,5 @@
     return true;
   }
 
-  global.NutriMealSwaps = { apply: apply, choose: choose, originalOf: originalOf };
-})(typeof window !== 'undefined' ? window : globalThis);
+  global.NutriMealSwaps = { apply: apply, choose: choose, originalOf: originalOf, swapIn: swapIn };
+})(globalThis);
