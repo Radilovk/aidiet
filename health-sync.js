@@ -89,12 +89,23 @@
         try { return await H.isAvailable(); } catch (e) { return { available: false, reason: e.message }; }
     }
 
+    /**
+     * Сбор по локален ден. Иска се по часове и се групира тук: 24-часовите кофи на плъгина
+     * вървят от началния миг и при смяна на часа (лято/зима) се изместват с час — денят
+     * се записва с грешна дата. Часовите кофи не зависят нито от часовата зона, нито от DST.
+     */
     async function daySums(H, dataType, from, to) {
-        var res = await H.queryAggregated({ dataType: dataType, startDate: from.toISOString(), endDate: to.toISOString(), bucket: 'day', aggregation: 'sum' });
-        return (res && res.samples || []).map(function (s) { return { day: localDay(s.startDate), value: Number(s.value) }; });
+        var res = await H.queryAggregated({ dataType: dataType, startDate: from.toISOString(), endDate: to.toISOString(), bucket: 'hour', aggregation: 'sum' });
+        var byDay = {};
+        (res && res.samples || []).forEach(function (s) {
+            var v = Number(s.value);
+            if (!(v > 0)) return;
+            var d = localDay(s.startDate);
+            byDay[d] = (byDay[d] || 0) + v;
+        });
+        return Object.keys(byDay).map(function (d) { return { day: d, value: byDay[d] }; });
     }
 
-    /** Сън по деня на събуждане; при фази — без будуване и „в леглото“. */
     function sleepByDay(samples) {
         var byDay = {};
         (samples || []).forEach(function (s) {
@@ -134,10 +145,33 @@
         return list;
     }
 
-    /** Сбор по ден от пробите (крачки, калории) — само от един източник. */
+    /**
+     * Сбор по ден от пробите (крачки, калории) — само от един източник. Проба, обхващаща
+     * няколко дни (гривната синхронизира след часове офлайн), се разпределя по дните
+     * пропорционално на времето във всеки, а не се стоварва върху деня на началото.
+     */
     function sumSamplesByDay(list) {
         var byDay = {};
-        list.forEach(function (s) { var d = localDay(s.startDate); byDay[d] = (byDay[d] || 0) + (Number(s.value) || 0); });
+        list.forEach(function (s) {
+            var v = Number(s.value) || 0;
+            var t0 = Date.parse(s.startDate);
+            var t1 = Date.parse(s.endDate);
+            if (!(v > 0) || !(t0 > 0)) return;
+            if (!(t1 > t0) || localDay(t0) === localDay(t1 - 1)) {
+                var d = localDay(s.startDate);
+                byDay[d] = (byDay[d] || 0) + v;
+                return;
+            }
+            var total = t1 - t0;
+            var t = t0;
+            while (t < t1) {
+                var dt = new Date(t);
+                var next = Math.min(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 1).getTime(), t1);
+                var k = localDay(t);
+                byDay[k] = (byDay[k] || 0) + v * (next - t) / total;
+                t = next;
+            }
+        });
         return Object.keys(byDay).map(function (d) { return { day: d, value: byDay[d] }; });
     }
 
@@ -145,7 +179,7 @@
         var H = plugin();
         var pkg = readState().source || null;
         var today = startOfToday();
-        var from = new Date(today.getTime() - DAYS * 86400000);
+        var from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - DAYS);
         var now = new Date();
         var facts = [];
         var has = function (t) { return !granted || granted.indexOf(t) !== -1; };
@@ -544,7 +578,8 @@
         sleepTracked: sleepTracked,
         rememberCloudSleep: rememberCloudSleep,
         // За тестове: превръщането на пробите в дни.
-        _sleepByDay: sleepByDay
+        _sleepByDay: sleepByDay,
+        _sumSamplesByDay: sumSamplesByDay
     };
 
     // Обвивката (горният прозорец) синхронизира тихо при отваряне и при връщане
