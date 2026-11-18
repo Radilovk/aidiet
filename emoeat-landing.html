@@ -26,7 +26,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="module-landing.css?v=20261114c">
     <link rel="stylesheet" href="site-footer.css?v=20261114b">
-    <link rel="stylesheet" href="emoeat-site.css?v=2">
+    <link rel="stylesheet" href="emoeat-site.css?v=5">
     <style>:root{--acc:#9B5CF6;--acc-2:#E879F9;}</style>
 </head>
 <body>
@@ -56,7 +56,8 @@
                         <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Около 3 минути</li>
                         <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L4 15.5a1.5 1.5 0 0 1 2.3-1.9L9 16"/></svg>Без писане</li>
                         <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 8 8 9 4.6-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Отговорите стоят на устройството ти</li>
-                    <li data-emo-price-short><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Тестът е безплатен</li>
+                    <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6L5 18a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3L14 9V3"/></svg><a href="#science" class="emo-sci-link">По валидирани скали (DEBQ, EEQ)</a></li>
+<li data-emo-price-short><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Тестът е безплатен</li>
 </ul>
                 </div>
                 <div class="ml-stage" aria-hidden="true">
@@ -90,6 +91,57 @@
                 </div>
             </div>
         </section>
+
+        <!-- Научна основа: кратко — 4 опори; подробностите и източниците — в прозореца „Източници и методология“. -->
+        <section class="ml-sec emo-sci-sec" id="science">
+            <div class="wrap">
+                <div class="glass emo-sci-card rise">
+                    <div class="emo-sci-head">
+                        <div class="kicker">Научна основа</div>
+                        <h2 class="emo-sci-title">Стъпва на утвърдени скали и изследвания.</h2>
+                    </div>
+                    <ul class="emo-pillars">
+                        <li><b>DEBQ</b><span>Холандски въпросник за хранително поведение</span></li>
+                        <li><b>EEQ</b><span>Въпросник за емоционално хранене</span></li>
+                        <li><b>MAIA</b><span>Интероцепция: глад или чувство</span></li>
+                        <li><b>Непреки въпроси</b><span>Честни отговори без „правилен“ избор</span></li>
+                    </ul>
+                    <button type="button" class="emo-sci-more" data-sci-open aria-haspopup="dialog">Източници и методология</button>
+                </div>
+            </div>
+        </section>
+        <dialog class="emo-sci-dialog" id="sciDialog" aria-labelledby="sciDialogTitle">
+            <div class="emo-sci-dialog-in">
+                <button type="button" class="emo-sci-close" data-sci-close aria-label="Затвори">×</button>
+                <h2 id="sciDialogTitle">Източници и методология</h2>
+                <dl class="emo-sci-dl">
+                    <dt>Валидирани скали</dt>
+                    <dd>Темите следват DEBQ и EEQ: хранене при неприятни чувства, трудно спиране, вина, загуба на контрол.</dd>
+                    <dt>Интероцепция</dt>
+                    <dd>Въпрос за телесните усещания по принципа на MAIA — различаваш ли физическия глад от емоцията. Фигурите са без имена, за да не подсказва думата.</dd>
+                    <dt>Непреки въпроси</dt>
+                    <dd>Чувствителните теми са сценки за друг човек, а повечето въпроси са избор между еднакво нормални нужди — отговорите не се разкрасяват.</dd>
+                    <dt>Профил</dt>
+                    <dd>Всеки отговор натоварва няколко фактора; профилът е най-близкият модел по сходство, с проверка на надеждността на отговорите.</dd>
+                </dl>
+                <h3>Публикации</h3>
+                <ol class="emo-sci-refs">
+                    <li>van Strien T, Frijters JER, Bergers GPA, Defares PB. The Dutch Eating Behavior Questionnaire (DEBQ) for assessment of restrained, emotional, and external eating behavior. <i>Int J Eat Disord</i>. 1986;5(2):295–315.</li>
+                    <li>Garaulet M, Canteras M, Morales E, López-Guimera G, Sánchez-Carracedo D, Corbalán-Tutau MD. Validation of a questionnaire on emotional eating for use in cases of obesity: the Emotional Eater Questionnaire (EEQ). <i>Nutr Hosp</i>. 2012;27(2):645–651.</li>
+                    <li>Mehling WE, Price C, Daubenmier JJ, Acree M, Bartmess E, Stewart A. The Multidimensional Assessment of Interoceptive Awareness (MAIA). <i>PLoS One</i>. 2012;7(11):e48230.</li>
+                    <li>Fisher RJ. Social desirability bias and the validity of indirect questioning. <i>J Consum Res</i>. 1993;20(2):303–315.</li>
+                </ol>
+            </div>
+        </dialog>
+        <script>
+        (function () {
+            var d = document.getElementById('sciDialog');
+            if (!d) return;
+            document.querySelectorAll('[data-sci-open]').forEach(function (b) { b.addEventListener('click', function () { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }); });
+            d.querySelector('[data-sci-close]').addEventListener('click', function () { d.close ? d.close() : d.removeAttribute('open'); });
+            d.addEventListener('click', function (e) { if (e.target === d) d.close(); });
+        })();
+        </script>
 
         <section class="ml-sec" id="privacy">
             <div class="wrap split">
@@ -138,6 +190,7 @@
                         <ul>
                             <li><a href="emoeat.html">Направи теста</a></li>
                             <li><a href="#how">Как е устроен</a></li>
+                            <li><a href="#science">Научна основа</a></li>
                             <li><a href="#privacy">Поверителност на отговорите</a></li>
                         </ul>
                     </div>
