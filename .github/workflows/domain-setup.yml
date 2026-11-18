@@ -156,13 +156,24 @@ jobs:
           if curl -sf -H "Authorization: Bearer $CF_TOKEN" "$KV/values/email_domain_verified" >/dev/null; then
             say "- ✓ Домейнът вече е потвърден — писмата излизат от info@$DOMAIN"; exit 0
           fi
+          # Ключът за Resend в worker-а е само за изпращане → автоматичните пускания спират тук (ръчното опитва пак).
+          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ] && curl -sf -H "Authorization: Bearer $CF_TOKEN" "$KV/values/email_domain_skip" >/dev/null; then
+            say "- Пропуснато: ключът за Resend е само за изпращане — писмата излизат от info@biocode.online"; exit 0
+          fi
           nonce=$(openssl rand -hex 24)
           curl -sf -X PUT -H "Authorization: Bearer $CF_TOKEN" --data "$nonce" "$KV/values/bridge_nonce:email_domain?expiration_ttl=900" >/dev/null || { say "- ✗ Кодът за достъп не е записан в KV"; exit 1; }
           trap 'curl -s -X DELETE -H "Authorization: Bearer $CF_TOKEN" "$KV/values/bridge_nonce:email_domain" >/dev/null' EXIT
           call() { curl -sS -X POST "$WORKER/api/system/email-domain" -H "X-Bridge-Nonce: $nonce" -H 'Content-Type: application/json' --data "{\"action\":\"$1\"}"; }
           setup=$(call setup)
           if [ -z "$(echo "$setup" | jq -r '.records // empty')" ]; then
-            say "- ✗ Worker-ът: $(echo "$setup" | jq -r '.error // .')"; say "  (ако пише forbidden/404 — новата версия на worker-а още не е публикувана)"; exit 1
+            err=$(echo "$setup" | jq -r '.error // .')
+            if echo "$err" | grep -qi 'restricted to only send'; then
+              curl -sf -X PUT -H "Authorization: Bearer $CF_TOKEN" --data "$(date -u +%FT%TZ)" "$KV/values/email_domain_skip" >/dev/null || true
+              say "- Ключът за Resend е само за изпращане — домейнът не може да се регистрира автоматично."
+              say "- Писмата продължават от Eatologix <info@biocode.online> (доказано, не падат в спам). Следващите автоматични пускания спират веднага."
+              exit 0
+            fi
+            say "- ✗ Worker-ът: $err"; say "  (ако пише forbidden/404 — новата версия на worker-а още не е публикувана)"; exit 1
           fi
           say "- Resend: домейнът е регистриран (състояние: $(echo "$setup" | jq -r .status))"
           zid=$(api GET "/zones?name=$DOMAIN&account.id=$CF_ACCOUNT" | jq -r '.result[0].id // empty')

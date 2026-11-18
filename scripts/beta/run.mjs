@@ -74,31 +74,31 @@ async function runPersona(browser, stack, p) {
     shots.push(await shot(page, dir, '04-plan'));
     checks.plan = await screenChecks(planFrame);
 
-    // Детайлът на храненето.
-    const firstMeal = planFrame.locator('.meal-card:not(.day-energy-card):not(.breakfast-note-card)').first();
+    // Картата: само името (без ползи, десерт и бутони).
+    const cardLines = await planFrame.$$eval('.meal-card:not(.added-meal-card)', (els) => els.map((e) => e.querySelector('.meal-info')?.innerText.trim().split('\n').length || 0));
+    step('Картите: само хранене и име', cardLines.every((n) => n <= 2), `редове: ${cardLines.join(',')}`);
+    // Детайлът на храненето и „Друго ястие“ в него.
+    const firstMeal = planFrame.locator('.meal-card').first();
     if (await firstMeal.count()) {
       await firstMeal.click(); await page.waitForTimeout(700);
       const open = await planFrame.$eval('#infoModal', (m) => m.classList.contains('active')).catch(() => false);
       step('Детайл на храненето', open);
       shots.push(await shot(page, dir, '05-meal-detail'));
       checks.mealDetail = await screenChecks(planFrame);
-      await planFrame.evaluate(() => { try { closeModal(); } catch (_) {} }); await page.waitForTimeout(300);
+      const swapBtn = await planFrame.$('#mSwapAction');
+      if (swapBtn) {
+        await swapBtn.scrollIntoViewIfNeeded(); await swapBtn.click(); await page.waitForTimeout(900);
+        const sheet = await planFrame.$('#mealSwapSheet');
+        step('„Друго ястие“ (в прозореца) показва варианти', !!sheet);
+        shots.push(await shot(page, dir, '06-swap'));
+        if (sheet) checks.swap = await screenChecks(planFrame);
+        await planFrame.evaluate(() => { try { closeMealSwapSheet(); } catch (_) {} });
+      } else {
+        step('„Друго ястие“ (в прозореца) показва варианти', false, 'няма бутон в прозореца');
+        await planFrame.evaluate(() => { try { closeModal(); } catch (_) {} });
+      }
+      await page.waitForTimeout(300);
     }
-    // „Друго ястие“.
-    const swap = planFrame.locator('.meal-card .meal-swap-btn').first();
-    if (await swap.count()) {
-      await swap.scrollIntoViewIfNeeded(); await swap.click(); await page.waitForTimeout(900);
-      let sheet = await planFrame.$('#mealSwapSheet');
-      if (!sheet && process.env.BETA_DEBUG) console.log('[swap debug]', p.key, JSON.stringify(await planFrame.evaluate(() => {
-        const b = document.querySelector('.meal-card .meal-swap-btn'); const r = b.getBoundingClientRect();
-        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        return { r: [r.left, r.top, r.width, r.height], hit: hit && (hit.className || hit.tagName).toString().slice(0, 60), vh: innerHeight };
-      })));
-      step('„Друго ястие“ показва варианти', !!sheet);
-      shots.push(await shot(page, dir, '06-swap'));
-      if (sheet) checks.swap = await screenChecks(planFrame);
-      await planFrame.evaluate(() => { try { closeMealSwapSheet(); } catch (_) {} });
-    } else step('„Друго ястие“ показва варианти', false, 'няма бутон');
     // Следващ ден.
     const next = planFrame.locator('#dayBannerNext');
     if (await next.count()) {
@@ -122,6 +122,14 @@ async function runPersona(browser, stack, p) {
       step(`Таб „${name}“`, text > 50 && errs === 0, `${text} знака текст${errs ? `, ${errs} JS грешки` : ''}`);
       shots.push(await shot(page, dir, `08-${tab}`));
       if (f) checks[tab] = await screenChecks(f);
+      if (f && tab === 'analytics') {
+        const ringText = await f.$$eval('.game-ring-svg text', (ts) => ts.map((t) => getComputedStyle(t).display !== 'none' && t.textContent.trim()).filter(Boolean).length).catch(() => 0);
+        const col = await f.$('.game-day-col[data-tip]');
+        let tipText = '';
+        if (col) { await col.click(); await page.waitForTimeout(300); tipText = await f.$eval('#gameDayTip', (t) => t.textContent).catch(() => ''); }
+        step('Напредък: числа в кръговете и стойност за ден', ringText > 0 && !!tipText, `кръгове ${ringText}, ден: „${tipText}“`);
+        shots.push(await shot(page, dir, '09-analytics-day'));
+      }
     }
   } catch (e) {
     step('Неочаквано прекъсване', false, String(e.message).split('\n')[0].slice(0, 200));

@@ -85,8 +85,11 @@ jobs:
 
           APK_NAME="NutriPlan-v${V_NAME}.apk"
           APK_LATEST="NutriPlan.apk"
+          # Името, което вижда клиентът при сваляне от сайта; NutriPlan-v* остава за обновяванията на старите версии.
+          APK_EAT="Eatologix-v${V_NAME}.apk"
           cp "$APK_FILE" "$APK_NAME"
           cp "$APK_FILE" "$APK_LATEST"
+          cp "$APK_FILE" "$APK_EAT"
 
           publish_release() {
             local tag="$1"
@@ -97,7 +100,7 @@ jobs:
               --latest \
               --title "Eatologix v${V_NAME} (${tag})" \
               --notes "Публикуван от workflow — build run ${V_CODE}, commit ${SHORT_SHA}."
-            for asset in "$APK_NAME" "$APK_LATEST"; do
+            for asset in "$APK_NAME" "$APK_LATEST" "$APK_EAT"; do
               local uploaded=0
               for attempt in 1 2 3 4 5 6 7 8; do
                 if gh release upload "$tag" "$asset" --clobber --repo "${{ github.repository }}"; then
