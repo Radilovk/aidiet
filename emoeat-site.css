@@ -16,3 +16,16 @@
 
 /* Цената на лендинга — същата като в теста; ред под бутона „Направи теста“. */
 .emo-price { margin-top: 18px; font-size: 15px; font-weight: 600; color: var(--text, inherit); }
+
+/* Научна основа */
+.emo-sci { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 760px) { .emo-sci { grid-template-columns: 1fr; } }
+.emo-cite { margin-top: 12px; font-size: 13px !important; font-weight: 600; color: var(--acc-text) !important; letter-spacing: .01em; }
+.emo-refs { margin-top: 26px; padding: 16px 20px; border-radius: 18px; border: 1px solid var(--line); background: color-mix(in srgb, var(--acc) 4%, transparent); }
+.emo-refs summary { cursor: pointer; font-weight: 650; min-height: 32px; display: flex; align-items: center; }
+.emo-refs ol { margin: 12px 0 0 18px; padding: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.emo-refs li { margin-bottom: 8px; }
+.emo-refs p { margin-top: 10px; color: var(--muted); font-size: 13.5px; }
+.emo-sci-link { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
+/* На телефон плочката е 2 колони (икона | текст) — източникът стои под текста, не под иконата. */
+@media (max-width: 760px) { .emo-sci .tile .emo-cite { grid-column: 2; margin-top: 8px; } }
