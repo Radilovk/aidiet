@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Текущ анализ и здравен индекс за твоя хранителен план в Eatologix.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F3FBF7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#EDF5F0" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,7 +29,7 @@
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F3FBF7';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EDF5F0';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
     <style>body{opacity:0}</style>
     <style>
@@ -41,7 +41,7 @@
             --accent-light-red: #f87171;
             --text-dark: #0F2F2E;
             --text-light: #6b7280;
-            --bg-color: #F3FBF7;
+            --bg-color: #EDF5F0;
             --card-bg: rgba(255, 255, 255, 0.72);
             --shadow: 0 4px 12px rgba(3,147,156,0.08);
             --radius: 24px;
@@ -277,16 +277,21 @@
         .game-ring-fg  { fill: none; stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1); }
         .game-ring-label { font-size: 0.75rem; font-weight: 600; color: var(--text-light); text-align: center; }
         /* Index rows */
+        /* Всеки показател — своя лека карта: фин оттенък, тънка рамка и отстояние, за да не
+           се смесва с съседния (DESIGN_PRINCIPLES.md → „Карти и разделения“). */
         .game-index-row {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             cursor: pointer;
-            border-radius: 10px;
-            padding: 8px 10px;
-            transition: background 0.2s;
+            border-radius: 16px;
+            padding: 12px 14px 10px;
+            background: var(--ds-surface-sunken, #F6FAF8);
+            border: 1px solid var(--ds-line, rgba(15, 47, 46, 0.07));
+            transition: background 0.2s, border-color 0.2s;
             -webkit-tap-highlight-color: transparent;
         }
-        .game-index-row:hover { background: rgba(3,147,156,0.06); }
-        .game-index-row:active { background: rgba(3,147,156,0.1); }
+        .game-index-row:last-child { margin-bottom: 0; }
+        .game-index-row:hover { border-color: rgba(3,147,156,0.22); }
+        .game-index-row:active { background: rgba(3,147,156,0.06); }
         .game-index-label {
             display: flex;
             justify-content: space-between;
@@ -298,8 +303,8 @@
         }
         /* Показателите (вариант C): иконата в тониран квадрат и нивото като етикет. */
         .ga-mname { display: inline-flex; align-items: center; gap: 8px; }
-        .ga-mi { width: 26px; height: 26px; border-radius: 9px; display: inline-grid; place-items: center; font-size: 13px; flex: none; }
-        .ga-lvl { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; line-height: 1.5; }
+        .ga-mi { width: 18px; text-align: center; font-size: 15px; flex: none; }
+        .ga-lvl { font-size: 0.8125rem; font-weight: 700; }
         .game-index-hint {
             font-size: 0.75rem;
             color: var(--text-light, #6b7280);
@@ -307,7 +312,7 @@
         }
         .game-index-bar-wrap {
             height: 8px;
-            background: var(--soft-red);
+            background: var(--ds-track, rgba(15, 47, 46, 0.09));
             border-radius: 999px;
             overflow: hidden;
         }
@@ -531,7 +536,6 @@
         .game-index-row {
             transition: background 0.2s ease, transform 0.18s ease;
         }
-        .game-index-row:hover { transform: translateX(4px); }
         .game-insight-card,
         .game-alert-card,
         .game-scenario-card {
@@ -773,7 +777,7 @@
 
     <script>
         function setThemeColor(theme) {
-            var c = theme === 'dark' ? '#0A1A1A' : '#F3FBF7';
+            var c = theme === 'dark' ? '#0A1A1A' : '#EDF5F0';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});
                 if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                     var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
@@ -1106,13 +1110,14 @@
             // Стойността за деня (балончето над стълбчето) — само нивото. Емоциите — със думите от вечерния въпрос.
             // Вариант C: всеки показател — свой оттенък (design-system.css → --ds-metric-*).
             var MC = {
-                act:   { c: 'var(--ds-metric-activity)', bg: 'var(--ds-metric-activity-bg)', t: 'var(--ds-metric-activity-text)', icon: 'fa-person-walking' },
-                sleep: { c: 'var(--ds-metric-sleep)',    bg: 'var(--ds-metric-sleep-bg)',    t: 'var(--ds-metric-sleep-text)',    icon: 'fa-moon' },
-                mood:  { c: 'var(--ds-metric-mood)',     bg: 'var(--ds-metric-mood-bg)',     t: 'var(--ds-metric-mood-text)',     icon: 'fa-face-smile' },
-                water: { c: 'var(--ds-metric-water)',    bg: 'var(--ds-metric-water-bg)',    t: 'var(--ds-metric-water-text)',    icon: 'fa-droplet' }
+                act:   { c: 'var(--ds-metric-activity)', t: 'var(--ds-metric-activity-text)', icon: 'fa-person-walking' },
+                sleep: { c: 'var(--ds-metric-sleep)',    t: 'var(--ds-metric-sleep-text)',    icon: 'fa-moon' },
+                mood:  { c: 'var(--ds-metric-mood)',     t: 'var(--ds-metric-mood-text)',     icon: 'fa-face-smile' },
+                water: { c: 'var(--ds-metric-water)',    t: 'var(--ds-metric-water-text)',    icon: 'fa-droplet' }
             };
-            var metricName = function(m, name){ return '<span class="ga-mname"><span class="ga-mi" style="background:'+m.bg+';color:'+m.t+'"><i class="fas '+m.icon+'"></i></span>'+name+'</span>'; };
-            var metricLevel = function(m, text){ return '<span class="ga-lvl" style="background:'+m.bg+';color:'+m.t+'">'+text+'</span> <i class="fas fa-circle-info"></i>'; };
+            // Без тонирани фонове: иконата е в цвета на показателя, нивото — в по-тъмния му тон.
+            var metricName = function(m, name){ return '<span class="ga-mname"><i class="fas '+m.icon+' ga-mi" style="color:'+m.c+'"></i>'+name+'</span>'; };
+            var metricLevel = function(m, text){ return '<span class="ga-lvl" style="color:'+m.t+'">'+text+'</span> <i class="fas fa-circle-info"></i>'; };
             var moodLabel = function(v){ return v>=70 ? 'Позитивно' : v>=40 ? 'Спокойно' : 'Напрегнато'; };
             var levelLabel = function(v, female){ return v>=70 ? (female?'Добра':'Добър') : v>=40 ? (female?'Средна':'Среден') : (female?'Лоша':'Лош'); };
             // Активността: пет нива спрямо целта за деня (крачки + тренировката).
@@ -1354,8 +1359,7 @@
             var ACT_SCALE = 150;
             function actBar(pct) {
                 if (pct==null) return pBar(null);
-                var over = pct>100;
-                return '<div class="game-index-bar-wrap game-act-wrap"><div class="game-index-bar" style="width:0%;background:'+(over?'linear-gradient(90deg,var(--ds-metric-activity),var(--ds-metric-activity-text))':'var(--ds-metric-activity)')+'" data-ga-bar="'+Math.min(100,Math.max(0,pct/ACT_SCALE*100)).toFixed(1)+'"></div>' +
+                return '<div class="game-index-bar-wrap game-act-wrap"><div class="game-index-bar" style="width:0%;background:var(--ds-metric-activity)" data-ga-bar="'+Math.min(100,Math.max(0,pct/ACT_SCALE*100)).toFixed(1)+'"></div>' +
                     '<span class="game-act-target" style="left:'+(100/ACT_SCALE*100).toFixed(1)+'%" aria-hidden="true"></span></div>';
             }
             function miniBarChart(perDayValues, maxVal, color, overColor, tips) {
@@ -1496,7 +1500,7 @@
             if(actPct!=null) html += '<div class="game-index-row" data-explain="activity">' +
                 '<div class="game-index-label">'+metricName(MC.act,'Активност')+'<span>'+actRawPct+'%</span></div>' +
                 '<div class="game-index-hint">'+metricLevel(MC.act, actLevel(actRawPct))+'</div>' +
-                actBar(actRawPct) + miniBarChart(actRawByDay,ACT_SCALE,MC.act.c,'var(--ds-metric-activity-text)',actTips) +
+                actBar(actRawPct) + miniBarChart(actRawByDay,ACT_SCALE,MC.act.c,MC.act.c,actTips) +
                 (actExtraBurn>0 ? '<div class="game-index-hint" style="margin-top:4px"><i class="fas fa-fire-flame-curved" style="color:var(--ds-metric-activity)"></i> ~'+actExtraBurn+' kcal допълнителен разход в '+actOverDays+' '+(actOverDays===1?'ден':'дни')+' — реалният дефицит е по-голям; влиза в седмичния преглед на плана</div>' : '') +
             '</div>';
 

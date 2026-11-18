@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Твоите хранителни насоки и макроелементи в Eatologix.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F3FBF7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#EDF5F0" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -28,7 +28,7 @@
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F3FBF7';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EDF5F0';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <!-- Detect embedded context before first paint -->
     <script>(function(){if(new URLSearchParams(window.location.search).get('embedded')==='1')document.documentElement.setAttribute('data-embedded-tab','1');})();</script>
     <!-- Вътре в приложението навигацията е на обвивката — собствената не мига при зареждане. -->
@@ -44,7 +44,7 @@
             --accent-light-red: #f87171;
             --text-dark: #0F2F2E;
             --text-light: #6b7280;
-            --bg-color: #F3FBF7;
+            --bg-color: #EDF5F0;
             --card-bg: rgba(255, 255, 255, 0.72);
             --shadow: 0 4px 12px rgba(3,147,156,0.08);
             --radius: 24px;
@@ -1215,6 +1215,48 @@
         <!-- UI Banner Zone (shown only when image is configured in admin) -->
         <div id="guidelinesBanner" style="display:none; position:relative; overflow:hidden; border-radius:20px; margin-bottom:20px; min-height:180px; background:transparent;"></div>
 
+        <!-- Хранителната цел — най-горе, директно на страницата (без обвивка около картата) -->
+        <div id="macrosVizContainer" class="macros-viz-container" style="display: none;">
+            <div class="macros-viz-header">
+                <div class="macros-viz-title">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Твоята Хранителна Цел</span>
+                </div>
+            </div>
+
+            <div class="calories-display">
+                <div class="calories-label">Дневни Калории</div>
+                <div class="calories-value" id="targetCalories">2000</div>
+                <div class="calories-unit">kcal</div>
+            </div>
+
+            <div class="macros-grid">
+                <div class="macro-card protein">
+                    <div class="macro-icon">🥩</div>
+                    <div class="macro-label">Протеини</div>
+                    <div class="macro-value" id="targetProtein">120</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="proteinPercentage">25%</div>
+                </div>
+
+                <div class="macro-card carbs">
+                    <div class="macro-icon">🍞</div>
+                    <div class="macro-label">Въгле&shy;хидрати</div>
+                    <div class="macro-value" id="targetCarbs">250</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="carbsPercentage">50%</div>
+                </div>
+
+                <div class="macro-card fats">
+                    <div class="macro-icon">🥑</div>
+                    <div class="macro-label">Мазнини</div>
+                    <div class="macro-value" id="targetFats">55</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="fatsPercentage">25%</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Бележката от специалиста (от гласа на плана) — само когато я има -->
         <div class="specialist-card" id="specialistCard" hidden>
             <div class="specialist-card-label"><i class="fas fa-user-doctor" aria-hidden="true"></i> Бележка от специалиста</div>
@@ -1292,58 +1334,6 @@
                 </div>
                 <div class="acc-content">
                     <div class="acc-content-inner" id="hacksContent"></div>
-                </div>
-            </div>
-            <div data-guide="numbers" class="acc-item">
-                <div class="acc-header" onclick="toggleAccordion(this)">
-                    <span><i class="fas fa-chart-pie"></i> Дневната цел в числа</span>
-                    <i class="fas fa-chevron-down chevron"></i>
-                </div>
-                <div class="acc-content">
-                    <div class="acc-content-inner">
-        <!-- Числата на целта — второстепенни, в сгъната секция (калориите и макросите не са начало на екрана) -->
-        <div id="macrosVizContainer" class="macros-viz-container" style="display: none;">
-            <div class="macros-viz-header">
-                <div class="macros-viz-title">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Твоята Хранителна Цел</span>
-                </div>
-            </div>
-
-            <div class="calories-display">
-                <div class="calories-label">Дневни Калории</div>
-                <div class="calories-value" id="targetCalories">2000</div>
-                <div class="calories-unit">kcal</div>
-            </div>
-
-            <div class="macros-grid">
-                <div class="macro-card protein">
-                    <div class="macro-icon">🥩</div>
-                    <div class="macro-label">Протеини</div>
-                    <div class="macro-value" id="targetProtein">120</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="proteinPercentage">25%</div>
-                </div>
-
-                <div class="macro-card carbs">
-                    <div class="macro-icon">🍞</div>
-                    <div class="macro-label">Въгле&shy;хидрати</div>
-                    <div class="macro-value" id="targetCarbs">250</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="carbsPercentage">50%</div>
-                </div>
-
-                <div class="macro-card fats">
-                    <div class="macro-icon">🥑</div>
-                    <div class="macro-label">Мазнини</div>
-                    <div class="macro-value" id="targetFats">55</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="fatsPercentage">25%</div>
-                </div>
-            </div>
-        </div>
-
-                    </div>
                 </div>
             </div>
         </div>
@@ -1449,7 +1439,7 @@
 
 
         function setThemeColor(theme) {
-            var c = theme === 'dark' ? '#0A1A1A' : '#F3FBF7';
+            var c = theme === 'dark' ? '#0A1A1A' : '#EDF5F0';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m) { m.setAttribute('content', c); });
                 if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                     var navBar = (window.Capacitor.Plugins || {}).NavigationBar;

@@ -112,7 +112,7 @@
      * Задава цвят на системната навигационна лента.
      * На APK използва Capacitor NavigationBar плъгин; на PWA/Web — no-op.
      *
-     * @param {string} color   HEX цвят, напр. '#F3FBF7'
+     * @param {string} color   HEX цвят, напр. '#EDF5F0'
      * @param {boolean} [isDark=false]  true = тъмни бутони (светла лента)
      */
     function setNavBar(color, isDark) {

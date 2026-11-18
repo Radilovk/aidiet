@@ -19,7 +19,9 @@
   `health-sync.js`, `activity-tracker.js` (крачкомер + въпрос за тренировка; дневните цели — `nutrition-engine/metabolic.js`), `native-backup.js`, `drive-backup.js`, `meal-swaps.js`, `game-scoring.js`, `sw.js`, `manifest.json`.
 - Марка (бивш NutriPlan): лого/икони в `brand/` + `icon-*.png|svg`, `favicon.svg` — генерират се с `npm run build:brand`
   (`scripts/build-brand.mjs`, един векторен източник; не рисувай на ръка). Цветове: токени `--brand-*` в `design-system.css`,
-  класове `.ex-logo` / `.ex-mark`. Идентификаторите остават старите: `window.NutriPlan*`, `com.biocode.nutriplan`,
+  класове `.ex-logo` / `.ex-mark`.
+- **Дизайн: `DESIGN_PRINCIPLES.md`** — ролите на цветовете (60-30-10), структурата на екрана (хиро без кутия →
+  обобщение → разгъващи се секции/карти), разделенията, думите за нивата. Всяка промяна по вида — оттам и с токените. Идентификаторите остават старите: `window.NutriPlan*`, `com.biocode.nutriplan`,
   `NutriPlan-v*.apk` (по тях старите версии намират обновления), ключове в localStorage.
 - Домейн eatologix.com: `app-domain.js` във worker-а (страниците от biocode.website, `/api/` същият), `APP_HOSTS` в `wrangler.toml`.
 - Преводи: `i18n.js` + `i18n/<език>/common.json` и `i18n/<език>/<страница>.json` (bg е изходният език; ръчен речник
