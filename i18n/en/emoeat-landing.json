@@ -15,7 +15,6 @@
   "Без писане": "No typing",
   "Отговорите стоят на устройството ти": "Your answers stay on your device",
   "Примерен профил": "Sample profile",
-  "Осезаемо": "Noticeable",
   "Хранене при напрежение": "Stress eating",
   "Хранене от скука": "Boredom eating",
   "Хранене като награда": "Eating as a reward",
@@ -79,6 +78,7 @@
   "Поверителност на отговорите": "Privacy of your answers",
   "Тестът": "The test",
   "ирисов анализ": "iris analysis",
-  "личен хранителен план": "personal nutrition plan"
+  "личен хранителен план": "personal nutrition plan",
+  "Емоционален": "Emotional"
  }
 }

@@ -15,7 +15,6 @@
   "Без писане": "Sin escribir",
   "Отговорите стоят на устройството ти": "Tus respuestas se quedan en tu dispositivo",
   "Примерен профил": "Perfil de ejemplo",
-  "Осезаемо": "Notable",
   "Хранене при напрежение": "Comer por tensión",
   "Хранене от скука": "Comer por aburrimiento",
   "Хранене като награда": "Comer como premio",
@@ -79,6 +78,7 @@
   "Поверителност на отговорите": "Privacidad de tus respuestas",
   "Тестът": "El test",
   "ирисов анализ": "análisis del iris",
-  "личен хранителен план": "plan de alimentación personal"
+  "личен хранителен план": "plan de alimentación personal",
+  "Емоционален": "Emocional"
  }
 }
