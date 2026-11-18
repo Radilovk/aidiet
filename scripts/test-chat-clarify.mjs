@@ -59,5 +59,13 @@ ok(sanitizeQuestions('нещо').length === 0 && sanitizeQuestions([{ id: 'meds'
 const wq = [{ id: 'weight:80', text: 'Теглото…', options: [{ value: 'airis', label: '74 кг' }] }, { id: 'iris:digestive', text: 'Подуване?', options: [{ value: 'yes', label: 'Да' }] }];
 ok(relevantQuestion(wq, 'Сега съм 80 кг')?.id === 'weight:80', '„кг“ на кирилица → въпросът за теглото');
 ok(relevantQuestion(wq, 'имам газове след обяд')?.id === 'iris:digestive', '„газове“ → храносмилането');
+// Рязка промяна в движението: асистентът я уточнява от разговора, без прозореца.
+{
+  const aq = sanitizeQuestions([{ id: 'activity_shift:down', source: 'device', topic: 'Активност', text: 'Последната седмица се движиш много по-малко…', options: [{ value: 'lasting', label: 'Да, сега се движа по-малко' }, { value: 'temporary', label: 'Не, временно е' }] }]);
+  ok(relevantQuestion(aq, 'Тази седмица бях болна с грип')?.id === 'activity_shift:down', 'болест → въпросът за движението');
+  ok(relevantQuestion(aq, 'В отпуск съм до петък')?.id === 'activity_shift:down', 'отпуск → въпросът за движението');
+  ok(relevantQuestion(aq, 'Какво да хапна за вечеря?') === null, 'вечеря → без въпрос');
+  ok(extractClarify('Оздравявай! [RESOLVE:activity_shift:down=temporary]', aq[0]).resolved?.value === 'temporary', 'отговорът от чата се приема');
+}
 console.log(`\n=== chat clarify: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

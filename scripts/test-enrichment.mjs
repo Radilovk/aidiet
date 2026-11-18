@@ -3,7 +3,7 @@
  * Обогатяване на профила (enrichment*.js): факти → профил → ниво на
  * преизчисляване → двигател. Без мрежа и без AI.
  */
-import { normalizeFact, mergeFacts, deriveEnrichment, applyEnrichment, recalcLevel, isUrgent } from '../enrichment.js';
+import { normalizeFact, mergeFacts, deriveEnrichment, applyEnrichment, recalcLevel, isUrgent, stepsActivity } from '../enrichment.js';
 import { deriveEmoEat } from '../enrichment-emoeat.js';
 import { deriveLabs } from '../enrichment-labs.js';
 import { compileProfile } from '../profile-code.js';
@@ -12,6 +12,7 @@ import { buildPlanSummary } from '../plan-summary.js';
 import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
 import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
 import { supplementsFor } from '../supplement-rules.js';
+import { essenceText } from '../health-essence.js';
 import { reanalyze } from '../analysis-reanalysis.js';
 import { calculateBMR, calculateTDEE, calculateUnifiedActivityScore, calculateActivityTDEE, kcalPerStep } from '../energy.js';
 
@@ -227,6 +228,57 @@ ok(plain.analysis.currentHealthStatus.score === plain.baseline.score && !plain.r
   ok(!usesPowder || sumV.supplements.some(x => /протеин на прах/i.test(x.name) && /белтък/.test(x.reason)), 'протеинът на прах в менюто е и в добавките, с причина');
   const sumNo = buildPlanSummary({ userData: base(), strategy: {}, weekPlan: {}, protocolSupplements: [] });
   ok(!sumNo.supplements.some(x => /протеин/i.test(x.name)), 'без прах в менюто — без протеин в добавките');
+}
+// ── Обичайните крачки: медиана за 4 седмици, рязка промяна → въпрос ─────────
+{
+  const day = (n, v) => ({ kind: 'steps', value: v, at: daysAgo(n), source: 'phone' });
+  const weeks = (recent, prior) => [...Array.from({ length: 7 }, (_, i) => day(i + 1, recent)), ...Array.from({ length: 21 }, (_, i) => day(i + 8, prior))];
+  const answer = (dir, value, n = 1) => ({ kind: 'resolution', key: `activity_shift:${dir}`, value, at: daysAgo(n), source: 'client', status: 'confirmed' });
+  // Седмица в планината: 22 000 при обичайни 7 000 — разходът не скача.
+  const hike = stepsActivity(weeks(22000, 7000), NOW);
+  ok(hike.steps === 7000, `една седмица 22 000 не мести обичайното (${hike.steps})`);
+  ok(hike.shift?.dir === 'up' && hike.shift.recent === 22000 && hike.shift.prior === 7000 && !hike.shift.answer, 'рязка промяна нагоре е открита');
+  ok(stepsActivity(weeks(22000, 7000).concat(answer('up', 'lasting')), NOW).steps === 22000, '„трайно“ → новото ниво веднага');
+  ok(stepsActivity(weeks(22000, 7000).concat(answer('up', 'temporary')), NOW).steps === 7000, '„временно“ → старото ниво');
+  ok(stepsActivity(weeks(22000, 7000).concat(answer('up', 'lasting', 30)), NOW).shift.answer === null, 'отговор отпреди 3+ седмици не важи');
+  // Седмица болест: 1 500 при обичайни 8 000.
+  const sick = stepsActivity(weeks(1500, 8000), NOW);
+  ok(sick.steps === 8000 && sick.shift?.dir === 'down', `седмица болест не сваля обичайното (${sick.steps}), пита се`);
+  // Малка промяна — без въпрос.
+  ok(stepsActivity(weeks(8500, 7500), NOW).shift === null, 'промяна под 2000 крачки — без въпрос');
+  // Трайна промяна без отговор: след 3 седмици медианата е новото ниво.
+  const lasting = stepsActivity([...Array.from({ length: 21 }, (_, i) => day(i + 1, 4000)), ...Array.from({ length: 7 }, (_, i) => day(i + 22, 9000))], NOW);
+  ok(lasting.steps === 4000 && !lasting.shift, `3 седмици на новото ниво → то е обичайното (${lasting.steps})`);
+  // Епизодът свърши, отговорът „временно“ е бил преди 5 дни: дните около него не местят обичайното.
+  const after = [...Array.from({ length: 3 }, (_, i) => day(i + 1, 8000)), ...Array.from({ length: 11 }, (_, i) => day(i + 4, 1500)), ...Array.from({ length: 14 }, (_, i) => day(i + 15, 8000))];
+  ok(stepsActivity(after.concat(answer('down', 'temporary', 5)), NOW).steps === 8000, '„временно“ след края на епизода — болните дни не се броят');
+  // Въпросът за сверката: пръв в опашката, с двата отговора.
+  const cc = applyEnrichment(base(), { facts: weeks(1500, 8000) }, NOW)._enrichment.crossCheck.questions;
+  ok(cc[0]?.id === 'activity_shift:down' && cc[0].options.map(o => o.value).join() === 'lasting,temporary', 'въпрос „трайно ли е“ е първи');
+  ok(!applyEnrichment(base(), { facts: weeks(1500, 8000).concat(answer('down', 'temporary')) }, NOW)._enrichment.crossCheck.questions.some(q => q.id === 'activity_shift:down'), 'с отговор — без въпрос');
+  ok(normalizeFact({ kind: 'resolution', key: 'activity_shift:down', value: 'temporary', at: daysAgo(1) }) !== null, 'отговорът е валиден факт');
+  // Ниво на преизчисляване: седмица болест без отговор не е промяна в крачките.
+  const lvlSick = recalcLevel(applyEnrichment(base(), { facts: weeks(8000, 8000) }, NOW), applyEnrichment(base(), { facts: weeks(1500, 8000) }, NOW));
+  ok(!lvlSick.reasons.includes('крачки'), `седмица болест → крачките не са причина за преизчисляване (${lvlSick.reasons.join(', ')})`);
+  // Един сигнал за промяната навсякъде (профил, напредък, картон, чат) — не два с различни числа.
+  const sigs = (facts) => applyEnrichment(base(), { facts }, NOW)._enrichment.essence.signals.map(x => x.code);
+  const drop = [...Array.from({ length: 7 }, (_, i) => day(i + 1, 1500)), ...Array.from({ length: 28 }, (_, i) => day(i + 8, 8000))];
+  ok(sigs(drop).includes('activity_shift') && !sigs(drop).includes('activity_drop'), 'activity_drop се заменя с activity_shift');
+  ok(/временно/.test(applyEnrichment(base(), { facts: drop.concat(answer('down', 'temporary')) }, NOW)._enrichment.essence.signals.find(x => x.code === 'activity_shift').text), 'сигналът знае отговора');
+  // Спад + натоварено тяло (пулс/HRV) → временно, без въпрос.
+  const strain = [
+    ...Array.from({ length: 30 }, (_, i) => ({ kind: 'resting_hr', value: i < 7 ? 70 : 62, at: daysAgo(i + 1), source: 'health_connect' })),
+    ...Array.from({ length: 30 }, (_, i) => ({ kind: 'hrv', value: i < 7 ? 30 : 40, at: daysAgo(i + 1), source: 'health_connect' })),
+  ];
+  const sickStrain = applyEnrichment(base(), { facts: weeks(1500, 8000).concat(strain) }, NOW)._enrichment;
+  ok(sickStrain.activity.shift.auto && sickStrain.activity.steps === 8000, 'спад + натоварване → временно, обичайното остава');
+  ok(!sickStrain.crossCheck.questions.some(q => q.id === 'activity_shift:down'), 'спад + натоварване → без въпрос');
+  // Малък ефект върху калориите (лек човек) → без въпрос; медианата поема промяната сама.
+  const light = { ...base(), weight: '48', height: '150' };
+  const lightQ = applyEnrichment(light, { facts: weeks(4500, 2500) }, NOW)._enrichment;
+  ok(lightQ.activity.shift && !lightQ.crossCheck.questions.some(q => q.id.startsWith('activity_shift')), 'промяна под 3% от разхода → без въпрос');
+  // Картонът и чатът: текстът на промяната е вътре.
+  ok(/Планът следва обичайните/.test(essenceText(applyEnrichment(base(), { facts: drop }, NOW)._enrichment.essence)), 'промяната е в текста за картона и чата');
 }
 console.log(`\n=== enrichment: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

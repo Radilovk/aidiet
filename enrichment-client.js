@@ -94,6 +94,12 @@
             else if (data && data.derived) localStorage.removeItem('np_health_essence');
             // Отворените въпроси — за чата (асистентът пита само свързаните с темата).
             if (data && data.derived) localStorage.setItem('np_open_questions', JSON.stringify(data.derived.questions || []));
+            // Обичайните крачки на плана — денят се сравнява с тях (activity-tracker.js).
+            if (data && data.derived) {
+                var act = data.derived.activity;
+                if (act && act.steps > 0) localStorage.setItem('np_typical_steps', JSON.stringify({ steps: act.steps, source: act.source, at: Date.now() }));
+                else localStorage.removeItem('np_typical_steps');
+            }
             // Анализът наново с всички данни — страницата „Анализ“ и профилът го показват веднага.
             if (data && data.reanalysis) localStorage.setItem('np_reanalysis', JSON.stringify(Object.assign({ at: new Date().toISOString() }, data.reanalysis)));
         } catch (_) {}
@@ -169,7 +175,7 @@
         remove: function (kinds) {
             // След изтриване есенцията се презарежда — остава само от данните, които още са в профила.
             return post('/api/enrichment/delete', { kinds: kinds || null }).then(function (r) {
-                try { localStorage.removeItem('np_health_essence'); } catch (_) {}
+                try { localStorage.removeItem('np_health_essence'); localStorage.removeItem('np_typical_steps'); } catch (_) {}
                 return getFresh().catch(function () {}).then(function () { return r; });
             });
         },

@@ -2,7 +2,7 @@
 // Configure base path - use '/' for a custom domain (eatologix.com, served from GitHub Pages) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v71'; // v69: заключването на платените функции в plan/profile, цени във features
+const CACHE_NAME = 'nutriplan-v74'; // v74: в кеша не влиза пренасочен отговор или HTML вместо картинка (празната икона на чата)
 // Android приложението (Capacitor) е на https://localhost и носи файловете си —
 // там service worker само връща стари версии след обновяване. Самоизключва се.
 const IS_NATIVE_APP_ORIGIN = self.location.origin === 'https://localhost';
@@ -204,6 +204,18 @@ self.addEventListener('activate', (event) => {
 });
 
 // Fetch event - serve from cache or network
+/**
+ * Файл за кеша: 200, без пренасочване и с очаквания вид. Иначе картинка, пренасочена към
+ * началната страница, остава в кеша като HTML под името на картинката (празна икона).
+ */
+function cacheableAsset(request, response) {
+  if (!response || response.status !== 200 || response.type === 'error' || response.redirected) return false;
+  const type = response.headers.get('Content-Type') || '';
+  if (request.destination === 'image' && !/^image\//i.test(type)) return false;
+  if ((request.destination === 'script' || request.destination === 'style') && /text\/html/i.test(type)) return false;
+  return true;
+}
+
 self.addEventListener('fetch', (event) => {
   if (IS_NATIVE_APP_ORIGIN) return;
   const { request } = event;
@@ -277,8 +289,11 @@ self.addEventListener('fetch', (event) => {
     caches.open(CACHE_NAME).then((cache) => {
       return cache.match(request).then((cachedResponse) => {
         const networkFetch = fetch(request).then((response) => {
-          if (response && response.status === 200 && response.type !== 'error') {
+          if (cacheableAsset(request, response)) {
             cache.put(request, response.clone());
+          } else if (cachedResponse && response && response.redirected) {
+            // Пренасочване вместо файла (напр. домейнът връща началната страница) — старият запис отпада.
+            cache.delete(request);
           }
           return response;
         }).catch(() => cachedResponse || new Response('Not found', { status: 404 }));

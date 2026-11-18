@@ -767,7 +767,7 @@ var init_errors = __esm({
 });
 
 // node_modules/@anthropic-ai/sdk/core/error.mjs
-var AnthropicError, APIError, APIUserAbortError, APIConnectionError, APIConnectionTimeoutError, RetryableError, BadRequestError, AuthenticationError, PaymentRequiredError, PermissionDeniedError, NotFoundError, RequestTimeoutError, ConflictError, PreconditionFailedError, ContentTooLargeError, UnprocessableEntityError, RateLimitError, RequestHeaderFieldsTooLargeError, ClientClosedRequestError, InternalServerError, NotImplementedError, ServiceUnavailableError, GatewayTimeoutError, OverloadedError, STATUS_ERROR_CLASSES;
+var AnthropicError, APIError, APIUserAbortError, APIConnectionError, APIConnectionTimeoutError, RetryableError, BadRequestError, AuthenticationError, PermissionDeniedError, NotFoundError, RequestTimeoutError, ConflictError, PreconditionFailedError, ContentTooLargeError, UnprocessableEntityError, RateLimitError, RequestHeaderFieldsTooLargeError, ClientClosedRequestError, InternalServerError, NotImplementedError, ServiceUnavailableError, GatewayTimeoutError, OverloadedError, STATUS_ERROR_CLASSES;
 var init_error = __esm({
   "node_modules/@anthropic-ai/sdk/core/error.mjs"() {
     init_errors();
@@ -881,12 +881,6 @@ var init_error = __esm({
       AuthenticationError2._errorName = "AuthenticationError";
       return AuthenticationError2;
     })();
-    PaymentRequiredError = /* @__PURE__ */ (() => {
-      class PaymentRequiredError2 extends APIError {
-      }
-      PaymentRequiredError2._errorName = "PaymentRequiredError";
-      return PaymentRequiredError2;
-    })();
     PermissionDeniedError = /* @__PURE__ */ (() => {
       class PermissionDeniedError2 extends APIError {
       }
@@ -980,7 +974,6 @@ var init_error = __esm({
     STATUS_ERROR_CLASSES = /* @__PURE__ */ new Map([
       [400, BadRequestError],
       [401, AuthenticationError],
-      [402, PaymentRequiredError],
       [403, PermissionDeniedError],
       [404, NotFoundError],
       [408, RequestTimeoutError],
@@ -12787,7 +12780,8 @@ async function handleStudioApi(request, env, ctx, opts = {}) {
 
 // app-domain.js
 var ORIGIN2 = "https://biocode.website";
-var OTHER_PROJECTS = /^\/(xbody|xb-studio|xems-|studio|acuity\/|fitness\/|kids|pep|reta|aix|lqto|vaprosnik|dopamine|health\.html|admin|notifications-test|pwa-test|design_presentation|samples\/|clients\/|docs\/|KV\/|migrations\/|workflows\/|viber-sender\/|scripts\/|\.github\/|CNAME$)/i;
+var OTHER_PROJECTS = /^\/(xbody|xb-studio|xems-|studio|acuity\/|fitness\/|kids|pep|reta|aix|lqto|vaprosnik|dopamine|health\.html|notifications-test|pwa-test|design_presentation|samples\/|clients\/|docs\/|KV\/|migrations\/|workflows\/|viber-sender\/|scripts\/|\.github\/|CNAME$)/i;
+var APP_ASSETS = /^\/docs\/[^/]+\.png$/i;
 var list2 = (v) => String(v || "").toLowerCase().split(",").map((x) => x.trim()).filter(Boolean);
 function isAppHost(env, host) {
   const bare = String(host || "").toLowerCase().replace(/^www\./, "");
@@ -12809,7 +12803,7 @@ async function handleAppDomain(request, env) {
   if (url.pathname.startsWith("/api/")) return null;
   if (request.method !== "GET" && request.method !== "HEAD") return null;
   const mod = MODULE_HOSTS[bare];
-  if (OTHER_PROJECTS.test(url.pathname)) return Response.redirect(`https://${mod ? MAIN_HOST : bare}/`, 302);
+  if (OTHER_PROJECTS.test(url.pathname) && !APP_ASSETS.test(url.pathname)) return Response.redirect(`https://${mod ? MAIN_HOST : bare}/`, 302);
   if (mod && url.pathname !== "/" && /\.html$/i.test(url.pathname) && !mod.pages.test(url.pathname)) {
     return Response.redirect(`https://${MAIN_HOST}${url.pathname}${url.search}`, 302);
   }
@@ -50423,7 +50417,7 @@ function essenceText(essence, digest = null) {
   if (m.glucose?.morning) rows.push(`\u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D ${fmt5(m.glucose.morning)} mmol/L`);
   const lines = [];
   if (rows.length) lines.push(`\u0434\u0430\u043D\u043D\u0438: ${rows.join("; ")}`);
-  const warn = (essence.signals || []).filter((s) => s.level === "warn").map((s) => s.text);
+  const warn = (essence.signals || []).filter((s) => s.level === "warn" || s.code === "activity_shift").map((s) => s.text);
   if (warn.length) lines.push(`\u0441\u0438\u0433\u043D\u0430\u043B\u0438: ${warn.join(" ")}`);
   if (digest?.coachNote) lines.push(`\u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438\u0435: ${digest.coachNote}`);
   return lines.join(" | ").slice(0, 1600);
@@ -50544,6 +50538,15 @@ function resolutionsOf(facts2) {
   }
   return out;
 }
+function shiftMatters(data, shift) {
+  try {
+    const perStep = kcalPerStep(data);
+    const { tdee } = calculateActivityTDEE(calculateBMR(data), data);
+    if (perStep > 0 && tdee > 0) return Math.abs(shift.recent - shift.prior) * perStep >= tdee * 0.03;
+  } catch (_) {
+  }
+  return true;
+}
 function crossCheck(data, derived, resolutions = {}) {
   const hypotheses = [];
   const questions = [];
@@ -50651,6 +50654,18 @@ function crossCheck(data, derived, resolutions = {}) {
   if (act?.disputed && !resolutions.steps_source) {
     const more = act.ratio > 1 ? "\u0433\u0440\u0438\u0432\u043D\u0430\u0442\u0430/\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A\u044A\u0442" : "\u0442\u0435\u043B\u0435\u0444\u043E\u043D\u044A\u0442";
     questions.push({ id: "steps_source", source: "device", topic: "\u041A\u0440\u0430\u0447\u043A\u0438", text: `\u0422\u0435\u043B\u0435\u0444\u043E\u043D\u044A\u0442 \u0438 \u0433\u0440\u0438\u0432\u043D\u0430\u0442\u0430/\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A\u044A\u0442 \u043E\u0442\u0447\u0438\u0442\u0430\u0442 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0438 \u043A\u0440\u0430\u0447\u043A\u0438 \u0432 \u0435\u0434\u043D\u0438 \u0438 \u0441\u044A\u0449\u0438 \u0434\u043D\u0438 \u2014 ${more} \u043F\u043E\u043A\u0430\u0437\u0432\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(((act.ratio > 1 ? act.ratio : 1 / act.ratio) - 1) * 100)}% \u043F\u043E\u0432\u0435\u0447\u0435. \u041A\u043E\u0435 \u043D\u043E\u0441\u0438\u0442\u0435 \u043F\u043E-\u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F?`, options: [{ value: "device", label: "\u0413\u0440\u0438\u0432\u043D\u0430\u0442\u0430/\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A\u0430" }, { value: "phone", label: "\u0422\u0435\u043B\u0435\u0444\u043E\u043D\u0430 (\u0432 \u0434\u0436\u043E\u0431\u0430)" }] });
+  }
+  const shift = act?.shift;
+  if (shift && !shift.answer && shiftMatters(plain, shift)) {
+    const fmt7 = (n) => (Math.round(n / 100) * 100).toLocaleString("bg-BG");
+    const up = shift.dir === "up";
+    questions.unshift({
+      id: `activity_shift:${shift.dir}`,
+      source: "device",
+      topic: "\u0410\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442",
+      text: `\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0441\u0435 \u0434\u0432\u0438\u0436\u0438\u0448 ${up ? "\u043C\u043D\u043E\u0433\u043E \u043F\u043E\u0432\u0435\u0447\u0435" : "\u043C\u043D\u043E\u0433\u043E \u043F\u043E-\u043C\u0430\u043B\u043A\u043E"} \u043E\u0442 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u043E\u0442\u043E \u2014 \u043E\u043A\u043E\u043B\u043E ${fmt7(shift.recent)} \u043A\u0440\u0430\u0447\u043A\u0438 \u043D\u0430 \u0434\u0435\u043D \u043F\u0440\u0438 ${fmt7(shift.prior)} \u043F\u0440\u0435\u0434\u0438. \u0422\u043E\u0432\u0430 \u043B\u0438 \u0435 \u043D\u043E\u0432\u043E\u0442\u043E \u0442\u0438 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u043E \u043D\u0438\u0432\u043E?`,
+      options: up ? [{ value: "lasting", label: "\u0414\u0430, \u0432\u0435\u0447\u0435 \u0441\u0435 \u0434\u0432\u0438\u0436\u0430 \u0442\u0430\u043A\u0430" }, { value: "temporary", label: "\u041D\u0435, \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u0435 (\u043E\u0442\u043F\u0443\u0441\u043A, \u043F\u044A\u0442\u0443\u0432\u0430\u043D\u0435, \u043F\u043E\u0445\u043E\u0434)" }] : [{ value: "lasting", label: "\u0414\u0430, \u0441\u0435\u0433\u0430 \u0441\u0435 \u0434\u0432\u0438\u0436\u0430 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E" }, { value: "temporary", label: "\u041D\u0435, \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u0435 (\u0431\u043E\u043B\u0435\u0441\u0442, \u043E\u0442\u043F\u0443\u0441\u043A, \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0435\u043D \u043F\u0435\u0440\u0438\u043E\u0434)" }]
+    });
   }
   const confirmed = hypotheses.filter((h) => h.status === "confirmed");
   if (confirmed.some((h) => h.blockedBy.length)) {
@@ -50884,8 +50899,18 @@ var median = (xs) => {
   const m = Math.floor(a.length / 2);
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 };
+var STEPS_WINDOW_DAYS = 28;
+var SHIFT_RECENT_DAYS = 7;
+var SHIFT_MIN_STEPS = 2e3;
+var SHIFT_MIN_SHARE = 0.3;
+var SHIFT_ANSWER_DAYS = 21;
+function shiftAnswerOf(facts2, dir, now) {
+  const from = now.getTime() - SHIFT_ANSWER_DAYS * DAY_MS3;
+  const last = (facts2 || []).filter((f) => f.kind === "resolution" && f.key === `activity_shift:${dir}` && Date.parse(f.at) >= from && Date.parse(f.at) <= now.getTime()).sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0];
+  return last ? { value: last.value, at: Date.parse(last.at) } : null;
+}
 function stepsActivity(facts2, now = /* @__PURE__ */ new Date(), resolutions = {}) {
-  const from = now.getTime() - 14 * DAY_MS3;
+  const from = now.getTime() - STEPS_WINDOW_DAYS * DAY_MS3;
   const steps = (facts2 || []).filter((f) => f.kind === "steps" && f.status !== "pending" && Date.parse(f.at) >= from);
   if (!steps.length) return null;
   const series = { phone: [], device: [] };
@@ -50901,16 +50926,60 @@ function stepsActivity(facts2, now = /* @__PURE__ */ new Date(), resolutions = {
   const trained = new Set((facts2 || []).filter((f) => f.kind === "train_check" && Number(f.value) > 0 || f.kind === "workout").map((f) => dayOf2(f.at)));
   const all = series[source];
   const rest = all.filter((p) => !trained.has(p.day));
-  const use = rest.length >= 4 ? rest : all;
+  let use = rest.length >= 4 ? rest : all;
+  const values = (list4) => list4.map((p) => p.value);
+  let typical = median(values(use));
+  const cut = now.getTime() - SHIFT_RECENT_DAYS * DAY_MS3;
+  const recentDays = use.filter((p) => p.t >= cut);
+  const priorDays = use.filter((p) => p.t < cut);
+  let shift = null;
+  if (recentDays.length >= 4 && priorDays.length >= 7) {
+    const recent2 = median(values(recentDays));
+    const prior = median(values(priorDays));
+    if (Math.abs(recent2 - prior) >= Math.max(SHIFT_MIN_STEPS, prior * SHIFT_MIN_SHARE)) {
+      const dir = (
+        /** @type {'up'|'down'} */
+        recent2 > prior ? "up" : "down"
+      );
+      const answer = shiftAnswerOf(facts2, dir, now);
+      shift = { dir, recent: Math.round(recent2), prior: Math.round(prior), answer: answer?.value || null };
+      if (answer?.value === "lasting") typical = recent2;
+      else if (answer?.value === "temporary") typical = prior;
+    }
+  }
+  if (!shift) {
+    const temp = ["up", "down"].map((d) => shiftAnswerOf(facts2, d, now)).filter((a) => a?.value === "temporary").sort((a, b) => b.at - a.at)[0];
+    if (temp) {
+      const kept = use.filter((p) => p.t < temp.at - SHIFT_RECENT_DAYS * DAY_MS3 || p.t > temp.at + SHIFT_RECENT_DAYS * DAY_MS3);
+      if (kept.length >= 4) {
+        use = kept;
+        typical = median(values(kept));
+      }
+    }
+  }
   return {
-    steps: Math.round(use.reduce((s, p) => s + p.value, 0) / use.length),
+    steps: Math.round(typical),
     days: all.length,
     restDays: rest.length,
     source,
     overlap: ratios.length,
     ratio: ratio == null ? null : Math.round(ratio * 100) / 100,
-    disputed
+    disputed,
+    shift
   };
+}
+function settleActivityShift(activity, essence) {
+  const sh = activity.shift;
+  if (!sh.answer && sh.dir === "down" && essence.checkin?.recoveryLow) {
+    sh.answer = "temporary";
+    sh.auto = true;
+    activity.steps = sh.prior;
+  }
+  const k = (n) => (Math.round(n / 100) * 100).toLocaleString("bg-BG");
+  const now = `~${k(sh.recent)} \u043A\u0440\u0430\u0447\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`;
+  const text2 = sh.auto ? `\u041A\u0440\u0430\u0447\u043A\u0438\u0442\u0435 \u0441\u0430 \u0441\u043F\u0430\u0434\u043D\u0430\u043B\u0438 \u0434\u043E ${now} (\u043E\u0431\u0438\u0447\u0430\u0439\u043D\u043E ~${k(sh.prior)}) \u0437\u0430\u0435\u0434\u043D\u043E \u0441 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043F\u043E \u043F\u0443\u043B\u0441\u0430 \u2014 \u043F\u0440\u0438\u0435\u043C\u0430 \u0441\u0435 \u0437\u0430 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E; \u043F\u043B\u0430\u043D\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430 \u043F\u043E \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438\u0442\u0435.` : sh.answer === "temporary" ? `\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u2014 ${now} \u043F\u0440\u0438 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438 ~${k(sh.prior)}; \u043F\u043E \u0442\u0432\u043E\u044F \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0435 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E, \u043F\u043B\u0430\u043D\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430 \u043F\u043E \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438\u0442\u0435.` : sh.answer === "lasting" ? `\u0414\u0432\u0438\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0435 \u043D\u0430 \u043D\u043E\u0432\u043E \u043D\u0438\u0432\u043E \u2014 ${now} (\u043F\u0440\u0435\u0434\u0438 ~${k(sh.prior)}); \u0440\u0430\u0437\u0445\u043E\u0434\u044A\u0442 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430 \u043F\u043E \u043D\u0435\u0433\u043E \u043E\u0442 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043F\u0440\u0435\u0433\u043B\u0435\u0434.` : `\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u2014 ${now} \u043F\u0440\u0438 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438 ~${k(sh.prior)}. \u041F\u043B\u0430\u043D\u044A\u0442 \u0441\u043B\u0435\u0434\u0432\u0430 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438\u0442\u0435; \u0430\u043A\u043E \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u0442\u0430 \u0441\u0435 \u0437\u0430\u0434\u044A\u0440\u0436\u0438, \u0440\u0430\u0437\u0445\u043E\u0434\u044A\u0442 \u044F \u043F\u043E\u0441\u043B\u0435\u0434\u0432\u0430 \u0441\u0430\u043C.`;
+  essence.signals = (essence.signals || []).filter((s) => s.code !== "activity_drop");
+  essence.signals.push({ code: "activity_shift", level: "info", text: text2 });
 }
 function withoutAnsweredSteps(facts2) {
   const answered = new Set((facts2 || []).filter((f) => f?.kind === "activity_check").map((f) => dayOf2(f.at)));
@@ -50925,6 +50994,8 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   const checkin = {};
   const resolutions = resolutionsOf(facts2);
   const activity = stepsActivity(facts2, now, resolutions);
+  const essence = computeEssence(activity ? facts2.filter((f) => f.kind !== "steps" || stepsClassOf(f) === activity.source) : facts2, now, ctx);
+  if (activity?.shift) settleActivityShift(activity, essence);
   if (activity) {
     overrides.dailyActivityLevel = activityLabelOf(activity.steps);
     reasons.push(`\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442 \u043F\u043E ${activity.source === "phone" ? "\u043A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440\u0430 \u043D\u0430 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430" : "\u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E\u0442\u043E"}: ~${Math.round(activity.steps / 100) * 100} \u043A\u0440\u0430\u0447\u043A\u0438 \u0432 \u0434\u0435\u043D \u0431\u0435\u0437 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430`);
@@ -50944,7 +51015,6 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   if (intake.days >= 4 && intake.mean != null) checkin.intakeKcal = Math.round(intake.mean);
   const emo = deriveEmoEat(facts2);
   const labs = deriveLabs(facts2, now, sex);
-  const essence = computeEssence(activity ? facts2.filter((f) => f.kind !== "steps" || stepsClassOf(f) === activity.source) : facts2, now, ctx);
   Object.assign(overrides, essence.overrides);
   Object.assign(checkin, essence.checkin);
   const digest = store?.digest && typeof store.digest === "object" ? store.digest : null;
@@ -51068,6 +51138,8 @@ var TOPIC_WORDS = {
   meds: /лекарств|хапче|таблетк|медикамент/i,
   weight: /тегло|теглото|килограм|(?<![а-я])кг(?![а-я])|везна|претегл/i,
   steps_source: /крач|крачкомер|гривн|часовник|смарт ?часовник|фитнес тракер/i,
+  // „activity_shift:up|down“ — рязка промяна в движението: болест, отпуск, пътуване или ново ниво.
+  activity_shift: /крач|разход(к|ж)|ходя|ходих|движ(а|ех|иш)|болен|болна|болест|грип|настин|вирус|температур|контуз|травм|отпуск|ваканци|пътув|почивк|планин|поход|натоварен|нова работа|куче/i,
   emoeat_vs_q: /емоци|преяжд|от скука|когато съм напрегнат|не мога да спра|нощем ям|ям вечер|посягам/i
 };
 var PATTERN_WORDS = /веган|вегетариан|месо|растителн/i;
@@ -51076,7 +51148,7 @@ var ALLERGY_RELATED = { \u043B\u0430\u043A\u0442\u043E\u0437\u0430: /мляко|
 var stem = (s) => String(s || "").toLowerCase().replace(/[^a-zа-я0-9]/gi, "").slice(0, 5);
 function matches(q, text2) {
   const topic = TOPIC_WORDS[q.id] ? q.id : q.id.split(":")[0];
-  if (topic === "weight" || topic === "meds" || TOPIC_WORDS[q.id]) {
+  if (TOPIC_WORDS[topic]) {
     if (TOPIC_WORDS[topic].test(text2)) return true;
     if (topic === "meds") {
       const name = stem((q.text.match(/„([^“]+)“/) || [])[1]);
@@ -51872,7 +51944,7 @@ var sleep = (ms, signal) => new Promise((resolve) => {
 init_errors();
 
 // node_modules/@anthropic-ai/sdk/version.mjs
-var VERSION = "1.10.0";
+var VERSION = "1.9.0";
 
 // node_modules/@anthropic-ai/sdk/internal/detect-platform.mjs
 var isRunningInBrowser = () => {
@@ -55817,18 +55889,6 @@ var RequestBodyEncodingUnsupportedError = /* @__PURE__ */ (() => {
   RequestBodyEncodingUnsupportedError2._errorName = "RequestBodyEncodingUnsupportedError";
   return RequestBodyEncodingUnsupportedError2;
 })();
-var LinkedOrganizationBillingUnavailableError = /* @__PURE__ */ (() => {
-  class LinkedOrganizationBillingUnavailableError2 extends PaymentRequiredError {
-  }
-  LinkedOrganizationBillingUnavailableError2._errorName = "LinkedOrganizationBillingUnavailableError";
-  return LinkedOrganizationBillingUnavailableError2;
-})();
-var LinkedOrganizationSpendLimitReachedError = /* @__PURE__ */ (() => {
-  class LinkedOrganizationSpendLimitReachedError2 extends PaymentRequiredError {
-  }
-  LinkedOrganizationSpendLimitReachedError2._errorName = "LinkedOrganizationSpendLimitReachedError";
-  return LinkedOrganizationSpendLimitReachedError2;
-})();
 var SandboxEgressRestrictedError = /* @__PURE__ */ (() => {
   class SandboxEgressRestrictedError2 extends PermissionDeniedError {
   }
@@ -55840,12 +55900,6 @@ var RequestBodyTooLargeAfterDecodingError = /* @__PURE__ */ (() => {
   }
   RequestBodyTooLargeAfterDecodingError2._errorName = "RequestBodyTooLargeAfterDecodingError";
   return RequestBodyTooLargeAfterDecodingError2;
-})();
-var ContractSpendLimitReachedError = /* @__PURE__ */ (() => {
-  class ContractSpendLimitReachedError2 extends RateLimitError {
-  }
-  ContractSpendLimitReachedError2._errorName = "ContractSpendLimitReachedError";
-  return ContractSpendLimitReachedError2;
 })();
 var EnforcedSpendLimitReachedError = /* @__PURE__ */ (() => {
   class EnforcedSpendLimitReachedError2 extends RateLimitError {
@@ -57306,7 +57360,6 @@ var _IdleClock_maxIdleMs;
 var _IdleClock_onExpire;
 var _IdleClock_blockers;
 var _IdleClock_armPending;
-var _IdleClock_idleMayBeStale;
 var _IdleClock_timer;
 var _SessionToolRunner_instances;
 var _SessionToolRunner_consumed;
@@ -57319,7 +57372,6 @@ var _SessionToolRunner_seen;
 var _SessionToolRunner_answered;
 var _SessionToolRunner_confirmationVerdicts;
 var _SessionToolRunner_awaitingConfirmation;
-var _SessionToolRunner_terminatedThreads;
 var _SessionToolRunner_results;
 var _SessionToolRunner_inFlightCount;
 var _SessionToolRunner_sendRetryWindowMs;
@@ -57334,8 +57386,6 @@ var _SessionToolRunner_reconcile;
 var _SessionToolRunner_ingestHistory;
 var _SessionToolRunner_notePrimaryThread;
 var _SessionToolRunner_handleStreamEvent;
-var _SessionToolRunner_inTerminatedThread;
-var _SessionToolRunner_releaseTerminatedHolds;
 var _SessionToolRunner_routeToolEvent;
 var _SessionToolRunner_noteConfirmation;
 var _SessionToolRunner_applyVerdict;
@@ -57356,9 +57406,6 @@ function endsTurn(ev) {
     return false;
   return ev.stop_reason?.type !== "requires_action";
 }
-function isIdleNeutral(ev) {
-  return ev.type === "user.tool_confirmation" || ev.type === "session.thread_status_terminated";
-}
 var IdleClock = /* @__PURE__ */ (() => {
   class IdleClock2 {
     constructor(maxIdleMs, onExpire) {
@@ -57366,28 +57413,24 @@ var IdleClock = /* @__PURE__ */ (() => {
       _IdleClock_onExpire.set(this, void 0);
       _IdleClock_blockers.set(this, /* @__PURE__ */ new Set());
       _IdleClock_armPending.set(this, false);
-      _IdleClock_idleMayBeStale.set(this, false);
       _IdleClock_timer.set(this, void 0);
       __classPrivateFieldSet(this, _IdleClock_maxIdleMs, maxIdleMs, "f");
       __classPrivateFieldSet(this, _IdleClock_onExpire, onExpire, "f");
     }
     /**
-     * Arm on an idle that ends the turn; disarm on any other event that is not {@link isIdleNeutral},
-     * and on a session thread's termination while `#idleMayBeStale` is true.
+     * Arm on an idle that ends the turn; disarm otherwise. `user.tool_confirmation`
+     * is neutral: it signals neither agent activity nor an idle, and its effect
+     * on the clock flows through {@link block} / {@link unblock} instead —
+     * disarming here would discard the pending arm the verdict is about to
+     * settle.
      */
     noteEvent(ev) {
-      if (__classPrivateFieldGet(this, _IdleClock_idleMayBeStale, "f") && ev.type === "session.thread_status_terminated")
-        this.disarm();
-      if (isIdleNeutral(ev))
+      if (ev.type === "user.tool_confirmation")
         return;
-      __classPrivateFieldSet(this, _IdleClock_idleMayBeStale, false, "f");
       if (endsTurn(ev))
         this.arm();
       else
         this.disarm();
-    }
-    noteHistoryRead(succeeded) {
-      __classPrivateFieldSet(this, _IdleClock_idleMayBeStale, !succeeded, "f");
     }
     /** Register gated work that must resolve before an idle countdown starts. */
     block(toolUseId) {
@@ -57406,12 +57449,6 @@ var IdleClock = /* @__PURE__ */ (() => {
       __classPrivateFieldGet(this, _IdleClock_blockers, "f").delete(toolUseId);
       if (__classPrivateFieldGet(this, _IdleClock_blockers, "f").size === 0 && __classPrivateFieldGet(this, _IdleClock_armPending, "f"))
         this.arm();
-    }
-    /** Retire gated work that can no longer resolve, and drop a pending arm that may be stale rather than apply it. */
-    abandon(toolUseId) {
-      if (__classPrivateFieldGet(this, _IdleClock_idleMayBeStale, "f"))
-        this.disarm();
-      this.unblock(toolUseId);
     }
     /**
      * (Re)start the idle countdown — or, while blockers are outstanding, hold
@@ -57443,7 +57480,7 @@ var IdleClock = /* @__PURE__ */ (() => {
       }
     }
   }
-  _IdleClock_maxIdleMs = /* @__PURE__ */ new WeakMap(), _IdleClock_onExpire = /* @__PURE__ */ new WeakMap(), _IdleClock_blockers = /* @__PURE__ */ new WeakMap(), _IdleClock_armPending = /* @__PURE__ */ new WeakMap(), _IdleClock_idleMayBeStale = /* @__PURE__ */ new WeakMap(), _IdleClock_timer = /* @__PURE__ */ new WeakMap();
+  _IdleClock_maxIdleMs = /* @__PURE__ */ new WeakMap(), _IdleClock_onExpire = /* @__PURE__ */ new WeakMap(), _IdleClock_blockers = /* @__PURE__ */ new WeakMap(), _IdleClock_armPending = /* @__PURE__ */ new WeakMap(), _IdleClock_timer = /* @__PURE__ */ new WeakMap();
   return IdleClock2;
 })();
 var SessionToolRunner = /* @__PURE__ */ (() => {
@@ -57460,7 +57497,6 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
       _SessionToolRunner_answered.set(this, /* @__PURE__ */ new Set());
       _SessionToolRunner_confirmationVerdicts.set(this, /* @__PURE__ */ new Map());
       _SessionToolRunner_awaitingConfirmation.set(this, /* @__PURE__ */ new Map());
-      _SessionToolRunner_terminatedThreads.set(this, /* @__PURE__ */ new Set());
       _SessionToolRunner_results.set(this, new AsyncQueue());
       _SessionToolRunner_inFlightCount.set(this, 0);
       _SessionToolRunner_sendRetryWindowMs.set(this, SEND_RETRY_WINDOW_MS);
@@ -57503,7 +57539,7 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
     _setSendRetryWindow(ms) {
       __classPrivateFieldSet(this, _SessionToolRunner_sendRetryWindowMs, ms, "f");
     }
-    async *[(_SessionToolRunner_consumed = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_controller = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_detachExternal = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_requestOpts = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_toolByName = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_logger = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_seen = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_answered = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_confirmationVerdicts = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_awaitingConfirmation = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_terminatedThreads = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_results = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_inFlightCount = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_sendRetryWindowMs = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_onIdle = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_idleClock = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_otelContext = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_primaryThreadId = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_historyRead = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_instances = /* @__PURE__ */ new WeakSet(), Symbol.asyncIterator)]() {
+    async *[(_SessionToolRunner_consumed = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_controller = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_detachExternal = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_requestOpts = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_toolByName = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_logger = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_seen = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_answered = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_confirmationVerdicts = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_awaitingConfirmation = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_results = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_inFlightCount = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_sendRetryWindowMs = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_onIdle = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_idleClock = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_otelContext = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_primaryThreadId = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_historyRead = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_instances = /* @__PURE__ */ new WeakSet(), Symbol.asyncIterator)]() {
       if (__classPrivateFieldGet(this, _SessionToolRunner_consumed, "f")) {
         throw new AnthropicError("Cannot iterate over a consumed SessionToolRunner");
       }
@@ -57600,7 +57636,7 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
     try {
       for await (const ev of this.client.beta.sessions.events.list(this.sessionId, { limit: 1e3 }, __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_requestOptions).call(this))) {
         __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_ingestHistory).call(this, ev, pending);
-        if (!isIdleNeutral(ev))
+        if (ev.type !== "user.tool_confirmation")
           lastEndedTurn = endsTurn(ev);
       }
     } catch (e) {
@@ -57608,13 +57644,9 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
       __classPrivateFieldGet(this, _SessionToolRunner_logger, "f").warn("reconcile list failed", { error: String(e) });
       for (const ev of pending)
         __classPrivateFieldGet(this, _SessionToolRunner_seen, "f").delete(ev.id);
-      __classPrivateFieldGet(this, _SessionToolRunner_idleClock, "f").noteHistoryRead(false);
-      __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_releaseTerminatedHolds).call(this);
       return;
     }
     __classPrivateFieldSet(this, _SessionToolRunner_historyRead, true, "f");
-    __classPrivateFieldGet(this, _SessionToolRunner_idleClock, "f").noteHistoryRead(true);
-    __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_releaseTerminatedHolds).call(this);
     const unanswered = pending.filter((ev) => !__classPrivateFieldGet(this, _SessionToolRunner_answered, "f").has(ev.id));
     __classPrivateFieldGet(this, _SessionToolRunner_idleClock, "f").disarm();
     for (const ev of unanswered)
@@ -57624,7 +57656,7 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
       if (verdict !== void 0)
         await __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_applyVerdict).call(this, held, verdict);
     }
-    const outstanding = unanswered.filter((ev) => !__classPrivateFieldGet(this, _SessionToolRunner_answered, "f").has(ev.id) && !__classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_inTerminatedThread).call(this, ev) && !__classPrivateFieldGet(this, _SessionToolRunner_awaitingConfirmation, "f").has(ev.id));
+    const outstanding = unanswered.filter((ev) => !__classPrivateFieldGet(this, _SessionToolRunner_answered, "f").has(ev.id) && !__classPrivateFieldGet(this, _SessionToolRunner_awaitingConfirmation, "f").has(ev.id));
     if (lastEndedTurn && outstanding.length === 0)
       __classPrivateFieldGet(this, _SessionToolRunner_idleClock, "f").arm();
     else
@@ -57642,8 +57674,6 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
     } else if (ev.type === "user.tool_confirmation") {
       if (!__classPrivateFieldGet(this, _SessionToolRunner_answered, "f").has(ev.tool_use_id))
         __classPrivateFieldGet(this, _SessionToolRunner_confirmationVerdicts, "f").set(ev.tool_use_id, ev.result);
-    } else if (ev.type === "session.thread_status_terminated") {
-      __classPrivateFieldGet(this, _SessionToolRunner_terminatedThreads, "f").add(ev.session_thread_id);
     }
   }, _SessionToolRunner_notePrimaryThread = function _SessionToolRunner_notePrimaryThread2(ev) {
     if (!this.client._tracer || __classPrivateFieldGet(this, _SessionToolRunner_primaryThreadId, "f") !== void 0)
@@ -57677,10 +57707,6 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
       case "user.custom_tool_result":
         __classPrivateFieldGet(this, _SessionToolRunner_answered, "f").add(ev.custom_tool_use_id);
         return false;
-      case "session.thread_status_terminated":
-        __classPrivateFieldGet(this, _SessionToolRunner_terminatedThreads, "f").add(ev.session_thread_id);
-        __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_releaseTerminatedHolds).call(this);
-        return false;
       case "session.status_terminated":
       case "session.deleted":
         __classPrivateFieldGet(this, _SessionToolRunner_logger, "f").info("session terminated", {
@@ -57692,42 +57718,15 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
       default:
         return false;
     }
-  }, _SessionToolRunner_inTerminatedThread = function _SessionToolRunner_inTerminatedThread2(ev) {
-    return !!ev.session_thread_id && __classPrivateFieldGet(this, _SessionToolRunner_terminatedThreads, "f").has(ev.session_thread_id);
-  }, _SessionToolRunner_releaseTerminatedHolds = function _SessionToolRunner_releaseTerminatedHolds2() {
-    for (const held of __classPrivateFieldGet(this, _SessionToolRunner_awaitingConfirmation, "f").values()) {
-      if (!__classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_inTerminatedThread).call(this, held))
-        continue;
-      __classPrivateFieldGet(this, _SessionToolRunner_logger, "f").info("session thread terminated; not executing", {
-        component: "session-tool-runner",
-        session_id: this.sessionId,
-        session_thread_id: held.session_thread_id,
-        tool: held.name,
-        tool_use_id: held.id
-      });
-      __classPrivateFieldGet(this, _SessionToolRunner_awaitingConfirmation, "f").delete(held.id);
-      __classPrivateFieldGet(this, _SessionToolRunner_idleClock, "f").abandon(held.id);
-    }
   }, _SessionToolRunner_routeToolEvent = // ===== confirmation gating (always_ask tools) =====
   /**
    * Dispatch `ev`, honoring its evaluated permission. A call the server gated
    * (`evaluated_permission == "ask"`) is held until its `user.tool_confirmation`
    * arrives. Fails closed: only an explicit `allow` verdict releases a gated
    * call; a server-side `deny` overrides any recorded verdict; an unrecognized
-   * permission is held like `ask` and an unrecognized verdict is denied. A call
-   * of a terminated session thread is dropped.
+   * permission is held like `ask` and an unrecognized verdict is denied.
    */
   async function _SessionToolRunner_routeToolEvent2(ev) {
-    if (__classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_inTerminatedThread).call(this, ev)) {
-      __classPrivateFieldGet(this, _SessionToolRunner_logger, "f").debug("session thread terminated; not executing", {
-        component: "session-tool-runner",
-        session_id: this.sessionId,
-        session_thread_id: ev.session_thread_id,
-        tool: ev.name,
-        tool_use_id: ev.id
-      });
-      return;
-    }
     const permission = ev.evaluated_permission;
     const verdict = permission === "deny" ? "deny" : __classPrivateFieldGet(this, _SessionToolRunner_confirmationVerdicts, "f").get(ev.id);
     if (verdict === void 0) {
@@ -58067,9 +58066,7 @@ var EnvironmentWorker = /* @__PURE__ */ (() => {
      * environment key resolved. Throws `SessionMemoryError` when the
      * session has memory stores attached but they cannot be mounted — the work
      * item carried no sessions token (unless `memorySyncIntervalMs` turned
-     * memory off), or a store failed to download. When the session has already
-     * terminated, which includes an archived one, nothing is downloaded, no tools
-     * run, and `SessionMemoryError` is not thrown.
+     * memory off), or a store failed to download.
      *
      * `workSecret` is the work item's per-item `secret` payload from the poll
      * response, falling back to `ANTHROPIC_WORK_SECRET`; unlike the others it is
@@ -58108,8 +58105,7 @@ var EnvironmentWorker = /* @__PURE__ */ (() => {
    * The per-item body shared by {@link EnvironmentWorker.run}'s poll loop and
    * {@link EnvironmentWorker.handleItem}: run a {@link SessionToolRunner} for the
    * work item's session while heartbeating its lease, force-stopping on exit
-   * unless the lease was lost. Non-session work items, and the work item of a
-   * session that has already terminated, run no tools.
+   * unless the lease was lost. Non-session work items are ignored.
    *
    * When the poll response carried a per-item `secret` (a short-lived payload
    * scoped to this work item), the sessions token extracted from it is
@@ -58156,13 +58152,6 @@ var EnvironmentWorker = /* @__PURE__ */ (() => {
         return;
       }
       const session = await sessionClient.beta.sessions.retrieve(sessionId);
-      if (session.status === "terminated") {
-        log.info("skipping the work item of a terminated session", {
-          session_id: sessionId,
-          work_id: work.id
-        });
-        return;
-      }
       if (sessionsToken === null && this.memorySyncIntervalMs !== null && hasMemoryStore(session)) {
         throw new agentToolset.SessionMemoryError(`cannot mount the session's memories: the work item carried no sessions token (work_id=${work.id}, session_id=${sessionId}); the memory endpoints reject the environment key, so the poller must issue a per-item \`secret\` carrying \`sessions_token\`, or set \`memorySyncIntervalMs: null\` to run without memory`);
       }
@@ -58392,14 +58381,12 @@ var BetaHeartbeatPreconditionFailedError = /* @__PURE__ */ (() => {
 var Work = /* @__PURE__ */ (() => {
   class Work2 extends APIResource {
     /**
-     * Retrieve detailed information about a specific work item.
+     * Note: these endpoints are called automatically by the pre-built environment
+     * worker provided in the SDKs and CLI, for orchestrating sessions with self-hosted
+     * sandbox environments. They are included here as a reference; you do not need to
+     * invoke them directly.
      *
-     * This endpoint accepts a Claude API key. It rejects the environment key and the
-     * work item's `secret`. On
-     * [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws)
-     * or
-     * [Claude Models on Google Cloud (Anthropic managed)](https://platform.claude.com/docs/en/build-with-claude/claude-models-on-google-cloud/anthropic-managed),
-     * use that platform's credentials instead.
+     * Retrieve detailed information about a specific work item.
      *
      * @throws {ClaudeCodeKeyCreatorNotMemberError}
      * @throws {OrganizationOnHoldError}
@@ -58431,14 +58418,12 @@ var Work = /* @__PURE__ */ (() => {
       });
     }
     /**
-     * Update work item metadata with merge semantics.
+     * Note: these endpoints are called automatically by the pre-built environment
+     * worker provided in the SDKs and CLI, for orchestrating sessions with self-hosted
+     * sandbox environments. They are included here as a reference; you do not need to
+     * invoke them directly.
      *
-     * This endpoint accepts a Claude API key. It rejects the environment key and the
-     * work item's `secret`. On
-     * [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws)
-     * or
-     * [Claude Models on Google Cloud (Anthropic managed)](https://platform.claude.com/docs/en/build-with-claude/claude-models-on-google-cloud/anthropic-managed),
-     * use that platform's credentials instead.
+     * Update work item metadata with merge semantics.
      *
      * @throws {ClaudeCodeKeyCreatorNotMemberError}
      * @throws {BetaInvalidMetadataError}
@@ -58473,14 +58458,12 @@ var Work = /* @__PURE__ */ (() => {
       });
     }
     /**
-     * List work items in an environment.
+     * Note: these endpoints are called automatically by the pre-built environment
+     * worker provided in the SDKs and CLI, for orchestrating sessions with self-hosted
+     * sandbox environments. They are included here as a reference; you do not need to
+     * invoke them directly.
      *
-     * This endpoint accepts the environment key as a bearer token. It rejects a Claude
-     * API key. On
-     * [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws)
-     * or
-     * [Claude Models on Google Cloud (Anthropic managed)](https://platform.claude.com/docs/en/build-with-claude/claude-models-on-google-cloud/anthropic-managed),
-     * use that platform's credentials instead.
+     * List work items in an environment.
      *
      * @example
      * ```ts
@@ -58645,6 +58628,11 @@ var Work = /* @__PURE__ */ (() => {
       });
     }
     /**
+     * Note: these endpoints are called automatically by the pre-built environment
+     * worker provided in the SDKs and CLI, for orchestrating sessions with self-hosted
+     * sandbox environments. They are included here as a reference; you do not need to
+     * invoke them directly.
+     *
      * Stop a work item, initiating graceful or forced shutdown.
      *
      * @throws {ClaudeCodeKeyCreatorNotMemberError}
@@ -63200,12 +63188,8 @@ var Plugins2 = /* @__PURE__ */ (() => {
     /**
      * Change which stored version of an organization-owned Plugin is served to
      * members, for example to roll back to an earlier one. This pins the served
-     * version: later uploads through this API are stored but no longer change what is
-     * served, and pinning cannot currently be undone, here or in claude.ai.
-     *
-     * A version from claude.ai might still change what is served: see
-     * [Versions and the served version](/docs/en/manage-claude/plugins-api#versions-and-the-served-version)
-     * in the Plugins API guide.
+     * version: later uploads are stored but no longer change what is served, and
+     * pinning cannot currently be undone, here or in claude.ai.
      *
      * Pass the version as `served_version_id`: an earlier one to roll back, a later
      * one to start serving a version that was stored without being served, or the one
@@ -75136,24 +75120,6 @@ var UserProfileNotFoundError = /* @__PURE__ */ (() => {
   UserProfileNotFoundError2._errorName = "UserProfileNotFoundError";
   return UserProfileNotFoundError2;
 })();
-var UserProfileRequiredError = /* @__PURE__ */ (() => {
-  class UserProfileRequiredError2 extends BadRequestError {
-  }
-  UserProfileRequiredError2._errorName = "UserProfileRequiredError";
-  return UserProfileRequiredError2;
-})();
-var UserProfileBillingNotAuthorizedError = /* @__PURE__ */ (() => {
-  class UserProfileBillingNotAuthorizedError2 extends PermissionDeniedError {
-  }
-  UserProfileBillingNotAuthorizedError2._errorName = "UserProfileBillingNotAuthorizedError";
-  return UserProfileBillingNotAuthorizedError2;
-})();
-var UserProfileNotBillableError = /* @__PURE__ */ (() => {
-  class UserProfileNotBillableError2 extends PermissionDeniedError {
-  }
-  UserProfileNotBillableError2._errorName = "UserProfileNotBillableError";
-  return UserProfileNotBillableError2;
-})();
 var UserProfiles2 = /* @__PURE__ */ (() => {
   class UserProfiles3 extends APIResource {
     constructor() {
@@ -75285,9 +75251,6 @@ var UserProfiles2 = /* @__PURE__ */ (() => {
     }
   }
   UserProfiles3.UserProfileNotFoundError = UserProfileNotFoundError;
-  UserProfiles3.UserProfileRequiredError = UserProfileRequiredError;
-  UserProfiles3.UserProfileBillingNotAuthorizedError = UserProfileBillingNotAuthorizedError;
-  UserProfiles3.UserProfileNotBillableError = UserProfileNotBillableError;
   UserProfiles3.ActionURLs = ActionURLs2;
   return UserProfiles3;
 })();
@@ -75345,12 +75308,9 @@ var ERROR_CODE_CLASSES = /* @__PURE__ */ new Map([
   ["400 tool_reference_unresolved", ToolReferenceUnresolvedError],
   ["400 unsupported_charset", BetaUnsupportedCharsetError],
   ["400 user_profile_not_found", UserProfileNotFoundError],
-  ["400 user_profile_required", UserProfileRequiredError],
   ["400 workspace_api_key_limit_exceeded", WorkspaceAPIKeyLimitExceededError],
   ["400 workspace_member_limit_exceeded", WorkspaceMemberLimitExceededError],
   ["400 workspace_policy_violation", WorkspacePolicyViolationError],
-  ["402 linked_organization_billing_unavailable", LinkedOrganizationBillingUnavailableError],
-  ["402 linked_organization_spend_limit_reached", LinkedOrganizationSpendLimitReachedError],
   ["403 api_key_scope_missing", BetaAPIKeyScopeMissingError],
   ["403 cannot_sign_out_managed_member", BetaCannotSignOutManagedMemberError],
   ["403 cannot_sign_out_membership_admin", BetaCannotSignOutMembershipAdminError],
@@ -75363,8 +75323,6 @@ var ERROR_CODE_CLASSES = /* @__PURE__ */ new Map([
   ["403 organization_level_scoped_api_key_required", BetaOrganizationLevelScopedAPIKeyRequiredError],
   ["403 sandbox_egress_restricted", SandboxEgressRestrictedError],
   ["403 spend_limits_admin_api_writes_not_enabled", BetaSpendLimitsAdminAPIWritesNotEnabledError],
-  ["403 user_profile_billing_not_authorized", UserProfileBillingNotAuthorizedError],
-  ["403 user_profile_not_billable", UserProfileNotBillableError],
   ["404 environment_not_found", BetaEnvironmentNotFoundError],
   ["404 file_expired", FileExpiredError],
   ["404 rbac_role_not_found", RBACRoleNotFoundError],
@@ -75379,7 +75337,6 @@ var ERROR_CODE_CLASSES = /* @__PURE__ */ new Map([
   ["409 slack_channel_set_up_settings_conflict", BetaSlackChannelSetUpSettingsConflictError],
   ["412 heartbeat_precondition_failed", BetaHeartbeatPreconditionFailedError],
   ["413 request_body_too_large_after_decoding", RequestBodyTooLargeAfterDecodingError],
-  ["429 contract_spend_limit_reached", ContractSpendLimitReachedError],
   ["429 enforced_spend_limit_reached", EnforcedSpendLimitReachedError],
   ["429 ramp_limit_exceeded", RampLimitExceededError],
   ["503 cmek_context_unavailable", CMEKContextUnavailableError],
@@ -77227,7 +77184,6 @@ var BaseAnthropic = /* @__PURE__ */ (() => {
   BaseAnthropic2.InternalServerError = InternalServerError;
   BaseAnthropic2.NotImplementedError = NotImplementedError;
   BaseAnthropic2.GatewayTimeoutError = GatewayTimeoutError;
-  BaseAnthropic2.PaymentRequiredError = PaymentRequiredError;
   BaseAnthropic2.ContentTooLargeError = ContentTooLargeError;
   BaseAnthropic2.PermissionDeniedError = PermissionDeniedError;
   BaseAnthropic2.PreconditionFailedError = PreconditionFailedError;
@@ -77279,9 +77235,6 @@ var Anthropic = /* @__PURE__ */ (() => {
   Anthropic2.SkillReadBlockedUndecryptableError = SkillReadBlockedUndecryptableError;
   Anthropic2.UserProfiles = UserProfiles2;
   Anthropic2.UserProfileNotFoundError = UserProfileNotFoundError;
-  Anthropic2.UserProfileRequiredError = UserProfileRequiredError;
-  Anthropic2.UserProfileBillingNotAuthorizedError = UserProfileBillingNotAuthorizedError;
-  Anthropic2.UserProfileNotBillableError = UserProfileNotBillableError;
   Anthropic2.Organization = Organization2;
   Anthropic2.OrgMemberLimitExceededError = OrgMemberLimitExceededError;
   Anthropic2.RBACRoleNotFoundError = RBACRoleNotFoundError;
@@ -77298,11 +77251,8 @@ var Anthropic = /* @__PURE__ */ (() => {
   Anthropic2.ParentOrganizationRequiredError = ParentOrganizationRequiredError;
   Anthropic2.RequestBodyEncodingInvalidError = RequestBodyEncodingInvalidError;
   Anthropic2.RequestBodyEncodingUnsupportedError = RequestBodyEncodingUnsupportedError;
-  Anthropic2.LinkedOrganizationBillingUnavailableError = LinkedOrganizationBillingUnavailableError;
-  Anthropic2.LinkedOrganizationSpendLimitReachedError = LinkedOrganizationSpendLimitReachedError;
   Anthropic2.SandboxEgressRestrictedError = SandboxEgressRestrictedError;
   Anthropic2.RequestBodyTooLargeAfterDecodingError = RequestBodyTooLargeAfterDecodingError;
-  Anthropic2.ContractSpendLimitReachedError = ContractSpendLimitReachedError;
   Anthropic2.EnforcedSpendLimitReachedError = EnforcedSpendLimitReachedError;
   Anthropic2.RampLimitExceededError = RampLimitExceededError;
   Anthropic2.CMEKContextUnavailableError = CMEKContextUnavailableError;
@@ -83790,11 +83740,12 @@ function weeklyAnswersText(questions, answers2) {
   const byId = new Map((questions || []).map((q) => [q.id, q.text]));
   return (answers2 || []).filter((a) => a && a.questionId && String(a.value ?? "").trim()).map((a) => `- ${byId.get(a.questionId) || a.questionId}: ${String(a.value).slice(0, 400)}${a.source === "device" ? ` (\u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E${a.typed ? `; \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0432\u044A\u0432\u0435\u0434\u0435 ${a.typed}` : ""})` : ""}`).join("\n");
 }
-async function savePendingWeeklyRelease(env, userId, clientId, release) {
+async function savePendingWeeklyRelease(env, userId, clientId, input) {
   if (!userId) return;
+  const { keepPending = false, ...release } = input || {};
   const ttl = userId.startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
   const profile = await kvGetJSON(env, `user_profile:${userId}`) || { userId };
-  if (profile.enrichment?.pendingLevel) {
+  if (profile.enrichment?.pendingLevel && !keepPending) {
     profile.enrichment = { ...profile.enrichment, pendingLevel: 0, appliedAt: (/* @__PURE__ */ new Date()).toISOString() };
   }
   profile.pendingWeekly = {
@@ -83878,6 +83829,7 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
   }
   return updated;
 }
+var RECAL_MAX_CUT = 250;
 function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers) {
   if (!plan?.analysis) return null;
   const before = parseFinalCalories(plan.analysis.Final_Calories);
@@ -83901,9 +83853,36 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   enforceCalorieGuardrails(probe, data, tdee);
   const after = parseFinalCalories(probe.Final_Calories);
   if (!after || Math.abs(after - before) / before < 0.03) return null;
-  probe._baseCalories = intake;
+  const strained = (checkinAnswers || []).some((a) => (a.questionId === "recoveryLow" || a.questionId === "leanLoss") && String(a.value) === "true");
+  if (after < before && strained && !phaseChanged) {
+    return { deferred: true, before, after, reason: `\u041D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u043F\u043E\u043A\u0430\u0437\u0432\u0430\u0442 \u043F\u043E-\u043D\u0438\u0441\u044A\u043A \u0440\u0430\u0437\u0445\u043E\u0434 (${before} \u2192 ${after} kcal), \u043D\u043E \u043F\u0440\u0438 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0442\u044F\u043B\u043E\u0442\u043E \u043D\u0430\u043C\u0430\u043B\u0435\u043D\u0438\u0435\u0442\u043E \u0441\u0435 \u043E\u0442\u043B\u0430\u0433\u0430 \u0437\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u043F\u0440\u0435\u0433\u043B\u0435\u0434.` };
+  }
+  let target = after;
+  let staged = false;
+  let applied = after;
+  const secondStep = Date.now() - (Number(plan.analysis._recalStaged) || 0) < 10 * 864e5;
+  if (!phaseChanged && !secondStep && before - after > RECAL_MAX_CUT) {
+    probe.Final_Calories = before - Math.max(RECAL_MAX_CUT, Math.ceil((before - after) / 2));
+    probe.recommendedCalories = probe.Final_Calories;
+    enforceCalorieGuardrails(probe, data, tdee);
+    applied = parseFinalCalories(probe.Final_Calories) || after;
+    staged = applied > after;
+  }
+  probe._baseCalories = staged ? applied - shift : intake;
+  if (staged) probe._recalStaged = Date.now();
+  else delete probe._recalStaged;
   probe._goalDirection = direction;
   const why = phaseChanged && plan.analysis._goalDirection ? `\u043D\u043E\u0432\u0430 \u0444\u0430\u0437\u0430 \u2014 ${goalModel.directionLabel}` : overstated ? "\u0440\u0430\u0437\u0445\u043E\u0434\u044A\u0442 \u0435 \u0441\u043C\u0435\u0442\u043D\u0430\u0442 \u043F\u0440\u0435\u0434\u043F\u0430\u0437\u043B\u0438\u0432\u043E, \u0434\u043E\u043A\u0430\u0442\u043E \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u0438" : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(", ");
+  if (staged) {
+    return {
+      analysis: probe,
+      before,
+      after: applied,
+      target,
+      staged: true,
+      reason: `\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438${why ? ` (${why})` : ""}: \u043D\u043E\u0432\u0430\u0442\u0430 \u0446\u0435\u043B \u0435 ${target} kcal \u2014 \u043D\u0430 \u0434\u0432\u0435 \u0441\u0442\u044A\u043F\u043A\u0438, \u0437\u0430 \u0434\u0430 \u0435 \u043F\u043E-\u043B\u0435\u0441\u043D\u043E; \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 ${before} \u2192 ${applied} kcal.`
+    };
+  }
   return { analysis: probe, before, after, reason: `\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438${why ? ` (${why})` : ""}: ${before} \u2192 ${after} kcal.` };
 }
 async function runWeeklyAdaptation(env, payload, jobId) {
@@ -83957,9 +83936,18 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     const answersText = weeklyAnswersText(payload.questions, checkinAnswers);
     const priorCouncil = enrichedData._goalCouncil || null;
     const goalCouncil = await conveneGoalCouncil(env, enrichedData, { history: weeklyAdaptHistory, answersText });
-    const recal = recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers);
+    const recalResult = recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers);
+    const deferredRecal = recalResult?.deferred ? recalResult : null;
+    const recal = deferredRecal ? null : recalResult;
     const decisionPlan = recal ? { ...plan, analysis: recal.analysis } : plan;
     const decision = getWeeklyAdaptationDecision(enrichedData, decisionPlan, analytics, checkinAnswers, weeklyAdaptHistory);
+    if (deferredRecal) decision.reasoning = `${decision.reasoning} ${deferredRecal.reason}`.trim();
+    if (recal?.staged && decision.calorieAdjust < 0) {
+      decision.calorieAdjust = 0;
+      decision.kcal = recal.after;
+      decision.changeSummary = decision.changeSummary.filter((c) => !/^Калории:/.test(c));
+      decision.reasoning = `${decision.reasoning} \u0422\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0432\u0435\u0447\u0435 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u2014 \u0431\u0435\u0437 \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u043E \u043D\u0430\u043C\u0430\u043B\u0435\u043D\u0438\u0435.`.trim();
+    }
     if (recal) {
       decision.changeSummary = [`\u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0430 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D\u0438 \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438: ${recal.before} \u2192 ${recal.after} kcal`, ...decision.changeSummary].slice(0, 4);
       decision.reasoning = `${recal.reason} ${decision.reasoning}`.trim();
@@ -84048,6 +84036,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       ...auto ? { auto: true } : {}
     };
     await savePendingWeeklyRelease(env, userId, clientId, {
+      ...deferredRecal || recal?.staged ? { keepPending: true } : {},
       auto,
       notice,
       plan: newPlan,
@@ -91262,7 +91251,10 @@ function publicEnrichmentView(d) {
     documents: d.documents || [],
     // Сверка: какво е потвърдено от два източника и кои разминавания чакат отговор.
     hypotheses: d.crossCheck?.hypotheses || [],
-    questions: d.crossCheck?.questions || []
+    questions: d.crossCheck?.questions || [],
+    // Обичайните крачки, с които е сметнат планът (медиана за 4 седмици, с отговора „трайно/временно“) —
+    // телефонът сравнява деня с тях (activity-tracker.js → baselineSteps).
+    activity: d.activity ? { steps: d.activity.steps, source: d.activity.source, shift: d.activity.shift || null } : null
   };
 }
 function profileContextText(d) {

@@ -20,6 +20,8 @@ const TOPIC_WORDS = {
   meds: /лекарств|хапче|таблетк|медикамент/i,
   weight: /тегло|теглото|килограм|(?<![а-я])кг(?![а-я])|везна|претегл/i,
   steps_source: /крач|крачкомер|гривн|часовник|смарт ?часовник|фитнес тракер/i,
+  // „activity_shift:up|down“ — рязка промяна в движението: болест, отпуск, пътуване или ново ниво.
+  activity_shift: /крач|разход(к|ж)|ходя|ходих|движ(а|ех|иш)|болен|болна|болест|грип|настин|вирус|температур|контуз|травм|отпуск|ваканци|пътув|почивк|планин|поход|натоварен|нова работа|куче/i,
   emoeat_vs_q: /емоци|преяжд|от скука|когато съм напрегнат|не мога да спра|нощем ям|ям вечер|посягам/i,
 };
 
@@ -32,7 +34,7 @@ const stem = (s) => String(s || '').toLowerCase().replace(/[^a-zа-я0-9]/gi, ''
 function matches(q, text) {
   // „weight:80“, „meds:no“ — въпросът е вързан за стойността в Eatologix; темата е частта преди „:“.
   const topic = TOPIC_WORDS[q.id] ? q.id : q.id.split(':')[0];
-  if (topic === 'weight' || topic === 'meds' || TOPIC_WORDS[q.id]) {
+  if (TOPIC_WORDS[topic]) {
     if (TOPIC_WORDS[topic].test(text)) return true;
     if (topic === 'meds') {
       const name = stem((q.text.match(/„([^“]+)“/) || [])[1]);

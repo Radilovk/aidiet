@@ -80,7 +80,8 @@
         'demoProfileRegenCount',
         'np_health_essence',
         'np_open_questions',
-        'np_reanalysis'
+        'np_reanalysis',
+        'np_typical_steps'
     ];
 
     var PLAN_SESSION_KEYS = [

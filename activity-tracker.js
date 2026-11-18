@@ -789,9 +789,17 @@
         return out;
     }
 
-    /** Обичайните крачки в ден без тренировка — медиана от последните дни. */
+    /**
+     * Обичайните крачки в ден без тренировка. С крачкомера на телефона — числото, с което
+     * сървърът е сметнал плана (медиана за 4 седмици с отговора „трайно/временно“), до 8 дни
+     * старо; иначе медиана от последните дни тук.
+     */
     function baselineSteps() {
         var st = readState();
+        try {
+            var srv = JSON.parse(localStorage.getItem('np_typical_steps') || 'null');
+            if (st.enabled && srv && srv.source === 'phone' && srv.steps > 0 && Date.now() - srv.at < 8 * DAY_MS) return srv.steps;
+        } catch (_) { /* без кеш — медианата тук */ }
         var gd = gameData();
         var vals = Object.keys(st.days || {}).filter(function (k) {
             var d = st.days[k];

@@ -281,6 +281,16 @@ ok(stepsEss.metrics.steps && stepsEss.metrics.steps.avg7 === Math.round((9000 + 
   store.np_activity_state = JSON.stringify({ ext: { [key(4)]: 6000 } });
   A.fillFromSteps();
   ok(JSON.parse(store.gameData)[key(4)].eveningCheck.extraKcal === 0, 'под целта — без разход над обичайното');
+  // Обичайните на плана от сървъра (медиана за 4 седмици с отговора „трайно/временно“) — с крачкомера на телефона.
+  store.userData = JSON.stringify({ gender: 'Жена', height: '165', weight: '65' });
+  store.np_activity_state = JSON.stringify({ enabled: true, readAt: Date.now(), days: { [key(2)]: { s: 12000 } } });
+  const extraWith = (srv) => { if (srv) store.np_typical_steps = JSON.stringify(srv); else delete store.np_typical_steps; return A.recompute({}, key(2)).extraKcal; };
+  const plain = extraWith(null);
+  const fromServer = extraWith({ steps: 11000, source: 'phone', at: Date.now() });
+  ok(fromServer < plain && fromServer > 0, `крачкомер: денят се сравнява с обичайните на плана (${fromServer} < ${plain} kcal)`);
+  ok(extraWith({ steps: 11000, source: 'device', at: Date.now() }) === plain, 'обичайните на гривната не се ползват за крачкомера');
+  ok(extraWith({ steps: 11000, source: 'phone', at: Date.now() - 9 * 86400000 }) === plain, 'стари (над 8 дни) — медианата тук');
+  delete store.np_typical_steps;
   delete globalThis.NutriPlanGoalFocus;
   // Въпросът за движението по дни: ден без измерени крачки → въпрос.
   store.userData = JSON.stringify({ gender: 'Жена', height: '165', weight: '62', sportActivity: 'Никаква (0 дни седмично)' });

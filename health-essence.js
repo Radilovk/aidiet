@@ -451,7 +451,8 @@ export function essenceText(essence, digest = null) {
   if (m.glucose?.morning) rows.push(`захар сутрин ${fmt(m.glucose.morning)} mmol/L`);
   const lines = [];
   if (rows.length) lines.push(`данни: ${rows.join('; ')}`);
-  const warn = (essence.signals || []).filter(s => s.level === 'warn').map(s => s.text);
+  // Предупрежденията и рязката промяна в движението (защо приемът е/не е преизчислен).
+  const warn = (essence.signals || []).filter(s => s.level === 'warn' || s.code === 'activity_shift').map(s => s.text);
   if (warn.length) lines.push(`сигнали: ${warn.join(' ')}`);
   if (digest?.coachNote) lines.push(`обобщение: ${digest.coachNote}`);
   return lines.join(' | ').slice(0, 1600);

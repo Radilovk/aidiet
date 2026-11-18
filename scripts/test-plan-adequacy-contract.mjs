@@ -33,6 +33,10 @@ import {
   VEGAN_ANALYSIS_RAW,
 } from './plan-adequacy/fixtures/contract-cases.mjs';
 import { HARD_PROFILES } from './plan-adequacy/fixtures/hard-profiles.mjs';
+import { PROFILES as BASE_PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
+import { EXTENDED_PROFILES } from './plan-adequacy/fixtures/extended-profiles.mjs';
+import { MATRIX_PROFILES } from './plan-adequacy/fixtures/matrix-profiles.mjs';
+import { compileProfile as compileForLabels } from '../profile-code.js';
 import { buildGoldenAnalysis } from './plan-adequacy/fixtures/golden-analysis.mjs';
 
 const results = [];
@@ -230,6 +234,14 @@ for (const profile of HARD_PROFILES) {
   normalizeAnalysisOutput(analysis);
   const issues = validateAnalysis(analysis, profile);
   check(`hard:${profile.id}`, issues.length === 0, issues.slice(0, 2).join('; '));
+}
+
+console.log('\n-- 13. Fixture labels are the questionnaire\'s own --');
+// Непознат етикет за тренировките се чете като 0 дни: профилът „мускулна маса, 5+ тренировки“
+// се тестваше като заседнал (без тренировъчни дни и без креатин).
+for (const profile of [...BASE_PROFILES, ...HARD_PROFILES, ...EXTENDED_PROFILES, ...MATRIX_PROFILES]) {
+  if (!profile?.sportActivity || /^Никаква/.test(profile.sportActivity)) continue;
+  check(`sport label:${profile.id || profile.name}`, compileForLabels(profile).activity.sportDays > 0, `непознат етикет „${profile.sportActivity}“`);
 }
 
 const passed = results.filter(Boolean).length;

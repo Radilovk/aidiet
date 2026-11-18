@@ -16,6 +16,7 @@
  */
 
 import { compileProfile, normLabel } from './profile-code.js';
+import { calculateBMR, calculateActivityTDEE, kcalPerStep } from './energy.js';
 
 /**
  * Системите на IrisMap → доказателства в Eatologix и действие в менюто.
@@ -82,6 +83,19 @@ export function resolutionsOf(facts) {
     out[f.key] = f.value;
   }
   return out;
+}
+
+/**
+ * Струва ли си въпросът „трайно ли е?“: само ако отговорът мести приема над шума на
+ * седмичното преизчисляване (3%). По-малка разлика медианата поема сама — без въпрос.
+ */
+function shiftMatters(data, shift) {
+  try {
+    const perStep = kcalPerStep(data);
+    const { tdee } = calculateActivityTDEE(calculateBMR(data), data);
+    if (perStep > 0 && tdee > 0) return Math.abs(shift.recent - shift.prior) * perStep >= tdee * 0.03;
+  } catch (_) { /* непълен профил — по прага на крачките */ }
+  return true;
 }
 
 /**
@@ -206,6 +220,24 @@ export function crossCheck(data, derived, resolutions = {}) {
   if (act?.disputed && !resolutions.steps_source) {
     const more = act.ratio > 1 ? 'гривната/часовникът' : 'телефонът';
     questions.push({ id: 'steps_source', source: 'device', topic: 'Крачки', text: `Телефонът и гривната/часовникът отчитат различни крачки в едни и същи дни — ${more} показва около ${Math.round(((act.ratio > 1 ? act.ratio : 1 / act.ratio) - 1) * 100)}% повече. Кое носите по-постоянно през деня?`, options: [{ value: 'device', label: 'Гривната/часовника' }, { value: 'phone', label: 'Телефона (в джоба)' }] });
+  }
+
+  // ── 5. Рязка промяна в движението: трайна ли е? ─────────────────────
+  // Последната седмица се различава рязко от предишните три (enrichment.js → stepsActivity).
+  // До отговора разходът следва медианата за 4 седмици (една седмица почти не я мести);
+  // „трайно“ → новото ниво важи от следващия преглед, „временно“ → тези дни не местят приема.
+  const shift = act?.shift;
+  if (shift && !shift.answer && shiftMatters(plain, shift)) {
+    // Пръв в опашката: зависи от последната седмица и мести калориите — остарява бързо.
+    const fmt = (n) => (Math.round(n / 100) * 100).toLocaleString('bg-BG');
+    const up = shift.dir === 'up';
+    questions.unshift({
+      id: `activity_shift:${shift.dir}`, source: 'device', topic: 'Активност',
+      text: `Последната седмица се движиш ${up ? 'много повече' : 'много по-малко'} от обичайното — около ${fmt(shift.recent)} крачки на ден при ${fmt(shift.prior)} преди. Това ли е новото ти обичайно ниво?`,
+      options: up
+        ? [{ value: 'lasting', label: 'Да, вече се движа така' }, { value: 'temporary', label: 'Не, временно е (отпуск, пътуване, поход)' }]
+        : [{ value: 'lasting', label: 'Да, сега се движа по-малко' }, { value: 'temporary', label: 'Не, временно е (болест, отпуск, натоварен период)' }],
+    });
   }
 
   const confirmed = hypotheses.filter(h => h.status === 'confirmed');
