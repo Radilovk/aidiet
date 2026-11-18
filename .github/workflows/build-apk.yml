@@ -146,6 +146,10 @@ jobs:
             --exclude 'iris-gate.js' \
             --exclude 'turnstile.js' \
             --exclude 'plan-review.js' \
+            --exclude 'email-domain.js' \
+            --exclude 'bot-check.js' \
+            --exclude 'admin.html' \
+            --exclude 'admin-*' \
             --exclude 'pricing.html' \
             --exclude 'brand/wordmark-glyphs.json' \
             --exclude 'brand/concept-eatologix.png' \
@@ -176,6 +180,19 @@ jobs:
             --exclude 'loading.gif' \
             --exclude 'log1' \
             --exclude 'workererrors'
+          # Само за сайта: препращането biocode.website → eatologix.com (i18n.js, между web-only маркерите).
+          # В приложението не трябва код, който пренасочва към друг домейн — проверките за сигурност го отчитат.
+          python3 - <<'PY_WEBONLY'
+          import re
+          from pathlib import Path
+          for f in Path('capacitor-shell').rglob('*.js'):
+              t = f.read_text(encoding='utf-8', errors='ignore')
+              if 'web-only:start' not in t:
+                  continue
+              n = re.sub(r'/\* web-only:start.*?/\* web-only:end \*/\n?', '', t, flags=re.S)
+              f.write_text(n, encoding='utf-8')
+              print('web-only removed:', f)
+          PY_WEBONLY
 
       - name: Build APK
         id: build_apk
@@ -204,13 +221,16 @@ jobs:
           if ! command -v convert &>/dev/null; then
             echo "ImageMagick 'convert' not found – installing…" && { sudo apt-get update -q && sudo apt-get install -y imagemagick; }
           fi
-          # Legacy launcher icons: resize PWA icon directly (maskable icon already has background)
+          # Старите (не адаптивни) икони: плътен тъмен квадрат със знака (brand/icon-launcher-512.png).
+          # Huawei/EMUI и др. ползват тях и слагат прозрачна икона върху бяла плочка — затова без прозрачност.
+          LAUNCHER_SRC="brand/icon-launcher-512.png"
+          if [ ! -f "$LAUNCHER_SRC" ]; then LAUNCHER_SRC="$ICON_SRC"; fi
           for entry in "48 mdpi" "72 hdpi" "96 xhdpi" "144 xxhdpi" "192 xxxhdpi"; do
             SIZE=${entry%% *}
             DPI=${entry##* }
             ICON_DIR="android/app/src/main/res/mipmap-${DPI}"
-            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher.png"
-            convert "$ICON_SRC" -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher_round.png"
+            convert "$LAUNCHER_SRC" -resize "${SIZE}x${SIZE}" "${ICON_DIR}/ic_launcher.png"
+            convert "$LAUNCHER_SRC" -resize "${SIZE}x${SIZE}" \( +clone -alpha extract -fill black -colorize 100 -fill white -draw "circle $((SIZE/2)),$((SIZE/2)) $((SIZE/2)),0" \) -alpha off -compose CopyOpacity -composite "${ICON_DIR}/ic_launcher_round.png"
           done
           # Adaptive icon foreground (108dp base) — icon centered within safe zone (66% of canvas)
           for entry in "108 mdpi" "162 hdpi" "216 xhdpi" "324 xxhdpi" "432 xxxhdpi"; do
@@ -242,6 +262,14 @@ jobs:
           PY_COLORS
 
           npx cap sync android
+          mkdir -p android/app/src/main/res/mipmap-anydpi-v26
+          for name in ic_launcher ic_launcher_round; do
+            printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' \
+              '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' \
+              '    <background android:drawable="@color/ic_launcher_background"/>' \
+              '    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>' \
+              '</adaptive-icon>' > "android/app/src/main/res/mipmap-anydpi-v26/${name}.xml"
+          done
           python3 android-res/patch-local-notifications.py
           python3 android-res/patch-app-exit.py
           python3 android-res/patch-print-plugin.py
@@ -339,6 +367,10 @@ jobs:
           if [ ! -f "$SPLASH_SRC" ]; then SPLASH_SRC="$MARK_SRC"; fi
           convert "$SPLASH_SRC" -resize 256x256 \
             android/app/src/main/res/drawable-nodpi/nutriplan_splash_logo.png
+          # Android 12+ (SplashScreen API): иконата се вписва в кръг = 2/3 от полето — знакът в средата
+          # с поле, иначе системата го реже и мащабира (размазан, изрязан квадрат).
+          convert "$SPLASH_SRC" -resize 480x480 -gravity center -background none -extent 1152x1152 \
+            android/app/src/main/res/drawable-nodpi/nutriplan_splash_icon.png
           convert "$MARK_SRC" -resize 96x96 -alpha extract -threshold 1% android/app/src/main/res/drawable/ic_stat_nutriplan.png
           for entry in "24 mdpi" "36 hdpi" "48 xhdpi" "72 xxhdpi" "96 xxxhdpi"; do
             SIZE=${entry%% *}
@@ -400,7 +432,7 @@ jobs:
               new_launch_style = (
                   '    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">\n'
                   '        <item name="windowSplashScreenBackground">@color/backgroundColor</item>\n'
-                  '        <item name="windowSplashScreenAnimatedIcon">@drawable/nutriplan_splash_logo</item>\n'
+                  '        <item name="windowSplashScreenAnimatedIcon">@drawable/nutriplan_splash_icon</item>\n'
                   '        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>\n'
                   '    </style>'
               )
@@ -461,7 +493,7 @@ jobs:
                   '    </style>\n'
                   '    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">\n'
                   '        <item name="windowSplashScreenBackground">@color/backgroundColor</item>\n'
-                  '        <item name="windowSplashScreenAnimatedIcon">@drawable/nutriplan_splash_logo</item>\n'
+                  '        <item name="windowSplashScreenAnimatedIcon">@drawable/nutriplan_splash_icon</item>\n'
                   '        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>\n'
                   '    </style>\n'
                   '</resources>\n'
@@ -597,8 +629,11 @@ jobs:
 
           APK_NAME="NutriPlan-v${V_NAME}.apk"
           APK_LATEST="NutriPlan.apk"
+          # Името, което вижда клиентът при сваляне от сайта; NutriPlan-v* остава за обновяванията на старите версии.
+          APK_EAT="Eatologix-v${V_NAME}.apk"
           cp "$APK_FILE" "$APK_NAME"
           cp "$APK_FILE" "$APK_LATEST"
+          cp "$APK_FILE" "$APK_EAT"
 
           # Step 1: create lightweight release (no assets yet — smaller API call).
           gh release delete "$TAG" -y --repo "${{ github.repository }}" 2>/dev/null || true
@@ -620,7 +655,7 @@ jobs:
           done
 
           # Step 2: upload each APK separately with retries (uploads.github.com often fails independently).
-          for asset in "$APK_NAME" "$APK_LATEST"; do
+          for asset in "$APK_NAME" "$APK_LATEST" "$APK_EAT"; do
             uploaded=0
             for attempt in 1 2 3 4 5 6 7 8; do
               if gh release upload "$TAG" "$asset" --clobber --repo "${{ github.repository }}"; then

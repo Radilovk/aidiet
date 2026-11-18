@@ -21,6 +21,7 @@
  *      Елементи <select data-lang-picker> (или data-lang-picker="short") стават избор на език.
  *      data-i18n-skip — поддървото не се превежда (имена, въведен текст и т.н.).
  */
+/* web-only:start — препращането е само за сайта; сглобяването на APK го маха (build-apk.yml) */
 // Публичният адрес на Eatologix е eatologix.com (EmoEat — emoeat.app). biocode.website е само
 // източникът на GitHub Pages: отворена там страница на приложението отива на новия адрес
 // (същият път и параметри). Другите проекти и админът остават. Само в горния прозорец.
@@ -34,6 +35,7 @@
         location.replace(host + p + location.search + location.hash);
     } catch (_) {}
 })();
+/* web-only:end */
 
 (function () {
     'use strict';

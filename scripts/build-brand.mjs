@@ -167,6 +167,8 @@ if (process.argv.includes('--png')) {
     await shot('icon-512x512.svg', size, dest);                      // прозрачни
   }
   await shot('brand/eatologix-icon-ios.svg', 180, 'brand/apple-touch-icon.png'); // iPhone: непрозрачна
+  // Android, старата (не адаптивна) икона: плътен тъмен квадрат — Huawei/EMUI слага прозрачната върху бяла плочка.
+  await shot('brand/eatologix-icon-ios.svg', 512, 'brand/icon-launcher-512.png');
   await shot('brand/eatologix-icon.svg', 512, 'brand/icon-solid-512.png');
   for (const size of [32, 48, 192]) await shot('favicon.svg', size, `brand/favicon-${size}.png`);
   await shot('brand/eatologix-icon-maskable.svg', 512, 'brand/icon-maskable-512.png');
