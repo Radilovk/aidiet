@@ -81927,7 +81927,7 @@ var DEFAULT_EMAIL_TEMPLATE = {
   buttonText: "\u0412\u0438\u0436 \u043C\u043E\u044F \u043F\u043B\u0430\u043D \u2192",
   contactEmail: "info@biocode.online"
 };
-var PLAN_APP_BASE_URL = "https://biocode.website";
+var PLAN_APP_BASE_URL = "https://eatologix.com";
 var EMAIL_LOGO_HTML = `<img src="${PLAN_APP_BASE_URL}/brand/eatologix-email-logo.png" width="240" height="50" alt="EATOLOGIX" style="display:block;margin:0 auto;border:0;outline:none;width:240px;height:auto;">`;
 var PLAN_CLAIM_TTL_SEC = 72 * 60 * 60;
 var DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE = {
@@ -90515,7 +90515,7 @@ async function handleEnrichmentResolve(request, env) {
   }
 }
 var HANDOFF_PREFIX = "handoff:";
-var NUTRIPLAN_SITE = "https://biocode.website";
+var NUTRIPLAN_SITE = "https://eatologix.com";
 function newHandoffToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -90993,7 +90993,7 @@ function linkResultPage(ok, title, text2, fromApp = false) {
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#EEFDFC;color:#032E36}
 main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? "#05737D" : "#B45309"}}
 a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#05737D;color:#fff;text-decoration:none}</style></head>
-<body><main><div class="i">${ok ? "\u2713" : "!"}</div><h1>${esc3(title)}</h1><p>${esc3(text2)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : "https://biocode.website/index.html?app=1&tab=profile"}">\u041E\u0431\u0440\u0430\u0442\u043D\u043E \u0432 Eatologix</a></main>
+<body><main><div class="i">${ok ? "\u2713" : "!"}</div><h1>${esc3(title)}</h1><p>${esc3(text2)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : "https://eatologix.com/index.html?app=1&tab=profile"}">\u041E\u0431\u0440\u0430\u0442\u043D\u043E \u0432 Eatologix</a></main>
 ${fromApp ? `<script>setTimeout(function(){location.href=${JSON.stringify(APP_INTENT_URL)};},${ok ? 600 : 2500});<\/script>` : ""}</body></html>`;
   return new Response(html, { status: ok ? 200 : 400, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
 }

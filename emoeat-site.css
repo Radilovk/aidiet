@@ -13,3 +13,6 @@
     background: rgba(255, 255, 255, .06); color: #E4FBF8; border: 1px solid rgba(255, 255, 255, .16);
 }
 .emo-lang-foot select option, .emo-lang option { color: #14212B; }
+
+/* Цената на лендинга — същата като в теста; ред под бутона „Направи теста“. */
+.emo-price { margin-top: 18px; font-size: 15px; font-weight: 600; color: var(--text, inherit); }
