@@ -1348,6 +1348,7 @@ const RATE_LIMIT = {
   STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 },   // studio platform: the admin's 5-digit code
   HANDOFF: { maxRequests: 10, windowSec: 600 },        // модул → Eatologix: нова пратка
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 },   // преглед и прибиране на пратка
+  SESSION_MOVE: { maxRequests: 20, windowSec: 600 },   // biocode.website → eatologix.com: пренасяне на паметта на браузъра
 };
 
 /**
@@ -15311,6 +15312,54 @@ async function handleHandoffCreate(request, env) {
   }
 }
 
+/* ── Пренасяне на сесията между домейните ───────────────────────────────
+ * biocode.website → eatologix.com (EmoEat → emoeat.app): браузърът пази паметта
+ * (localStorage) по домейн, затова при пренасочването тя се качва еднократно под
+ * случаен ключ за 10 минути и новият домейн я прибира веднага (i18n.js). Ключът е в
+ * хеша на адреса (не стига до сървърите), прибира се веднъж и се изтрива.
+ */
+const SESSION_MOVE_PREFIX = 'session_move:';
+const SESSION_MOVE_TTL_SEC = 600;
+const SESSION_MOVE_MAX_BYTES = 4 * 1024 * 1024;
+const SESSION_MOVE_FROM = /^https:\/\/(www\.)?biocode\.website$/i;
+
+/** POST /api/session/move — Body: { data: { ключ: стойност } } от biocode.website. */
+async function handleSessionMoveCreate(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    if (!SESSION_MOVE_FROM.test(request.headers.get('Origin') || '')) return jsonResponse({ error: 'forbidden' }, 403);
+    const text = await request.text();
+    if (text.length > SESSION_MOVE_MAX_BYTES) return jsonResponse({ error: 'too_large' }, 413);
+    let body;
+    try { body = JSON.parse(text); } catch (_) { return jsonResponse({ error: 'Невалиден JSON' }, 400); }
+    const data = body?.data && typeof body.data === 'object' && !Array.isArray(body.data) ? body.data : null;
+    const entries = data ? Object.entries(data).filter(([k, v]) => typeof k === 'string' && k.length <= 200 && typeof v === 'string') : [];
+    if (!entries.length) return jsonResponse({ error: 'empty' }, 400);
+    const token = newHandoffToken();
+    await kvPutJSON(env, SESSION_MOVE_PREFIX + token, { data: Object.fromEntries(entries), at: new Date().toISOString() }, SESSION_MOVE_TTL_SEC);
+    return jsonResponse({ success: true, token });
+  } catch (error) {
+    console.error('session move create failed:', error);
+    return jsonResponse({ error: 'failed' }, 500);
+  }
+}
+
+/** POST /api/session/move/claim — Body: { token }. Връща паметта веднъж и я изтрива. */
+async function handleSessionMoveClaim(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { token } = await request.json();
+    if (!/^[A-Za-z0-9_-]{20,64}$/.test(String(token || ''))) return jsonResponse({ error: 'bad_token' }, 400);
+    const key = SESSION_MOVE_PREFIX + token;
+    const rec = await kvGetJSON(env, key);
+    if (!rec?.data) return jsonResponse({ error: 'expired' }, 404);
+    await env.page_content.delete(key);
+    return jsonResponse({ success: true, data: rec.data });
+  } catch (error) {
+    return jsonResponse({ error: 'Невалидна заявка' }, 400);
+  }
+}
+
 /** POST /api/handoff/peek — Body: { token }. Какво носи пратката + попълване на въпросника. */
 async function handleHandoffPeek(request, env) {
   try {
@@ -18497,6 +18546,14 @@ export default {
         return await gatedRun(request, env, 'docs', () => handleLabExtract(request, env));
       } else if (url.pathname === '/api/admin/handoff-stats' && request.method === 'GET') {
         return await handleAdminHandoffStats(request, env);
+      } else if (url.pathname === '/api/session/move' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'SESSION_MOVE');
+        if (rlErr) return rlErr;
+        return await handleSessionMoveCreate(request, env);
+      } else if (url.pathname === '/api/session/move/claim' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'SESSION_MOVE');
+        if (rlErr) return rlErr;
+        return await handleSessionMoveClaim(request, env);
       } else if (url.pathname === '/api/handoff' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'HANDOFF');
         if (rlErr) return rlErr;
