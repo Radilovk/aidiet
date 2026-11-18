@@ -41,7 +41,15 @@
   "Позитивно": "Pozitiv",
   "Спокойно": "Calm",
   "Напрегнато": "Tensionat",
-  "В напрегнатите дни вредните хранения са по-чести": "În zilele tensionate mesele nesănătoase sunt mai frecvente"
+  "В напрегнатите дни вредните хранения са по-чести": "În zilele tensionate mesele nesănătoase sunt mai frecvente",
+  "Движение · крачки": "Mișcare · pași",
+  "Да, вече се движа така": "Da, acum mă mișc așa",
+  "Не, временно е (отпуск, пътуване, поход)": "Nu, e temporar (concediu, călătorie, drumeție)",
+  "Да, сега се движа по-малко": "Da, acum mă mișc mai puțin",
+  "Не, временно е (болест, отпуск, натоварен период)": "Nu, e temporar (boală, concediu, perioadă aglomerată)",
+  "+0,5 л вода днес": "+0,5 l apă azi",
+  "Добави закуска с белтък": "Adaugă o gustare cu proteine",
+  "По-лека седмица: повече сън, по-леки тренировки": "Săptămână mai ușoară: mai mult somn, antrenamente mai ușoare"
  },
  "keys": {},
  "patterns": []

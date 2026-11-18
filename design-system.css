@@ -130,8 +130,8 @@
     --ds-gray-950: #030712;
     
     /* === LIGHT THEME SEMANTIC COLORS (Glassmorphism) === */
-    --ds-bg-primary: #EEFDFC;
-    --ds-bg-secondary: #F5FFFE;
+    --ds-bg-primary: #F3FBF7;           /* вариант A: лек ментов оттенък вместо студеното тюркоазено */
+    --ds-bg-secondary: #F7FCF9;
     --ds-bg-tertiary: #ffffff;
     --ds-bg-card: rgba(255, 255, 255, 0.72);
     --ds-bg-card-rgb: 255, 255, 255;
@@ -302,9 +302,9 @@
     --ds-glass-border-light: rgba(255, 255, 255, 0.35);
     
     /* === MESH GRADIENT COLORS (Teal/Cyan) === */
-    --ds-mesh-1: rgba(3, 147, 156, 0.08);
-    --ds-mesh-2: rgba(6, 182, 212, 0.06);
-    --ds-mesh-3: rgba(34, 211, 238, 0.04);
+    --ds-mesh-1: rgba(3, 147, 156, 0.07);
+    --ds-mesh-2: rgba(16, 204, 80, 0.05);
+    --ds-mesh-3: rgba(160, 245, 0, 0.04);
 
     /* === ПЛЪТЕН АКЦЕНТ И ТЕКСТ ВЪРХУ НЕГО ===
        Фонове с бял текст ползват само тези стойности: и двата края на
@@ -312,8 +312,27 @@
        икони и декорация върху тъмен фон — никога под бял текст. */
     --ds-fill: #05737D;
     --ds-fill-strong: #075C66;
-    --ds-fill-grad: linear-gradient(135deg, #075C66 0%, #05737D 55%, #0C8379 100%);
+    /* Вариант A: градиентът на логото (тюркоаз → зелено); всяка точка — ≥ 4.8:1 с бяло. */
+    --ds-fill-grad: linear-gradient(125deg, #075C66 0%, #05737D 40%, #0B7F5A 78%, #11804F 100%);
     --ds-on-fill: #ffffff;
+
+    /* === АКЦЕНТ (вариант A, правилото 60-30-10) ===
+       Лаймът от логото — 10%: завършено, „в нормата“, серия. Само върху тъмен/плътен фон
+       (тъмен текст върху него — 9.6:1). Върху светъл фон — зеленото за текст и мекият фон. */
+    --ds-lime: #B6F34A;
+    --ds-on-lime: #1D3A06;
+    --ds-green-text: #2F7D12;           /* 4.6:1 върху --ds-green-soft, 5.2:1 върху бяло */
+    --ds-green-soft: #E4F8D6;
+    --ds-done: #12A150;                 /* отметка „изядено“: бялата чавка — ≥ 3:1 */
+    /* Лентата „Калории“ върху тъмната карта: недостиг / норма / над плана. */
+    --ds-cal-under: #BFEFFF;
+    --ds-cal-norm: #B6F34A;
+    --ds-cal-over: #FFC857;
+    /* Показателите в Напредък (вариант C): оттенък, ивица и текст (текстът ≥ 4.5:1 върху оттенъка). */
+    --ds-metric-sleep: #8B6CF0;    --ds-metric-sleep-bg: #EFEAFE;    --ds-metric-sleep-text: #5B3FC4;
+    --ds-metric-water: #2B9FD9;    --ds-metric-water-bg: #E0F1FB;    --ds-metric-water-text: #17699A;
+    --ds-metric-activity: #F08A24; --ds-metric-activity-bg: #FFF0E0; --ds-metric-activity-text: #9A4A06;
+    --ds-metric-mood: #22A55A;     --ds-metric-mood-bg: #E0F7E8;     --ds-metric-mood-text: #13703B;
     --ds-accent-text: #05737D;          /* акцентен текст: 5.5:1 върху бяло */
     --ds-text-soft: #5B6E6B;            /* помощен текст: 5.4:1 върху бяло */
 
@@ -419,6 +438,13 @@
     /* Плътният акцент остава тъмен и в тъмна тема — отделя се от фона
        с тон и сянка, а белият текст върху него остава четим. */
     --ds-accent-text: #19D6D2;
+    --ds-green-text: #A3E635;
+    --ds-green-soft: rgba(160, 245, 0, 0.12);
+    --ds-done: #22C55E;
+    --ds-metric-sleep: #A78BFA;    --ds-metric-sleep-bg: rgba(167, 139, 250, 0.14);  --ds-metric-sleep-text: #C4B5FD;
+    --ds-metric-water: #38BDF8;    --ds-metric-water-bg: rgba(56, 189, 248, 0.14);   --ds-metric-water-text: #7DD3FC;
+    --ds-metric-activity: #FB923C; --ds-metric-activity-bg: rgba(251, 146, 60, 0.14); --ds-metric-activity-text: #FDBA74;
+    --ds-metric-mood: #34D399;     --ds-metric-mood-bg: rgba(52, 211, 153, 0.14);    --ds-metric-mood-text: #6EE7B7;
     --ds-text-soft: #9AB3AF;
     --ds-success-text: #4ADE80;
     --ds-macro-protein-text: #A5B4FC;
@@ -1862,13 +1888,14 @@ nav.bottom-nav .bottom-nav-item i {
     font-size: 22px;
     line-height: 1;
 }
+/* Вариант A: активният таб — мекото зелено на акцента (еднакво на всички страници). */
 nav.bottom-nav .bottom-nav-item.active {
-    color: var(--ds-accent-text);
-    background: rgba(5, 115, 125, 0.10);
+    color: var(--ds-green-text);
+    background: var(--ds-green-soft);
 }
 [data-theme="dark"] nav.bottom-nav .bottom-nav-item.active {
-    color: var(--ds-accent-text);
-    background: rgba(25, 214, 210, 0.14);
+    color: var(--ds-green-text);
+    background: var(--ds-green-soft);
 }
 nav.bottom-nav .bottom-nav-item:active {
     transform: scale(var(--ds-press-scale));
@@ -1908,3 +1935,4 @@ nav.bottom-nav .bottom-nav-item:focus-visible {
 /* Тънка лента с логото най-горе (въпросник, чакане на плана). */
 .ex-topbar { display: flex; justify-content: center; align-items: center; padding: max(10px, env(safe-area-inset-top)) 16px 6px; text-decoration: none; }
 .ex-topbar .ex-logo { height: 26px; }
+

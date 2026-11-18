@@ -48,10 +48,13 @@ export function bmiCategory(bmi) {
   return 'Затлъстяване III степен';
 }
 
-/** Дневна нужда от вода — 33 мл/кг, +0,5 л при редовен спорт. */
+/**
+ * Дневна нужда от вода — 33 мл/кг, +0,5 л при редовен спорт, +0,3 л при висока ежедневна
+ * активност (по крачките или отговора — enrichment.js → dailyActivityLevel „Високо“).
+ */
 export function waterNeedLiters(profile) {
   const w = Number(profile.weightKg) || 70;
-  const base = w * 0.033 + ((profile.activity?.sportBand || 0) >= 2 ? 0.5 : 0);
+  const base = w * 0.033 + ((profile.activity?.sportBand || 0) >= 2 ? 0.5 : 0) + ((profile.activity?.daily || 0) >= 3 ? 0.3 : 0);
   return Math.round(Math.min(4, Math.max(1.5, base)) * 10) / 10;
 }
 

@@ -42456,7 +42456,7 @@ function bmiCategory(bmi) {
 }
 function waterNeedLiters(profile) {
   const w = Number(profile.weightKg) || 70;
-  const base = w * 0.033 + ((profile.activity?.sportBand || 0) >= 2 ? 0.5 : 0);
+  const base = w * 0.033 + ((profile.activity?.sportBand || 0) >= 2 ? 0.5 : 0) + ((profile.activity?.daily || 0) >= 3 ? 0.3 : 0);
   return Math.round(Math.min(4, Math.max(1.5, base)) * 10) / 10;
 }
 var has2 = (list4, code) => Array.isArray(list4) && list4.includes(code);
@@ -49803,7 +49803,11 @@ function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, floorKca
     delta = 0;
     onTrack = false;
     cancelDelta("\u041F\u0443\u043B\u0441\u044A\u0442 \u0432 \u043F\u043E\u043A\u043E\u0439 \u0438 HRV \u043F\u043E\u043A\u0430\u0437\u0432\u0430\u0442 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u2014 \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u043D\u0435 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430\u0442; \u043F\u0440\u0438\u043E\u0440\u0438\u0442\u0435\u0442 \u0441\u0430 \u0441\u044A\u043D\u044F\u0442 \u0438 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0432\u0430\u043D\u0435\u0442\u043E.");
+  } else if (checkin.recoveryLow) {
+    onTrack = false;
+    reasons.push("\u041F\u0443\u043B\u0441\u044A\u0442 \u0432 \u043F\u043E\u043A\u043E\u0439 \u0438 HRV \u043F\u043E\u043A\u0430\u0437\u0432\u0430\u0442 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u2014 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430 \u0435 \u043F\u043E-\u043B\u0435\u043A\u0430: \u0441\u044A\u043D 7\u20139 \u0447\u0430\u0441\u0430, \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u043F\u043E-\u043A\u0440\u0430\u0442\u043A\u0438 \u0438 \u043F\u043E-\u043B\u0435\u043A\u0438 (\u0440\u0430\u0437\u0445\u043E\u0434\u043A\u0430, \u0440\u0430\u0437\u0442\u044F\u0433\u0430\u043D\u0435), \u0431\u0435\u0437 \u043D\u043E\u0432\u0438 \u0440\u0435\u043A\u043E\u0440\u0434\u0438.");
   }
+  if (checkin.recoveryLow) changes.push("\u041F\u043E-\u043B\u0435\u043A\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430: \u043F\u043E\u0432\u0435\u0447\u0435 \u0441\u044A\u043D, \u043F\u043E-\u043B\u0435\u043A\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438");
   if (checkin.leanLoss) {
     onTrack = false;
     modifications.push("increase_protein");
@@ -79940,8 +79944,10 @@ var RATE_LIMIT = {
   // модул → Eatologix: нова пратка
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 },
   // преглед и прибиране на пратка
-  SESSION_MOVE: { maxRequests: 20, windowSec: 600 }
+  SESSION_MOVE: { maxRequests: 20, windowSec: 600 },
   // biocode.website → eatologix.com: пренасяне на паметта на браузъра
+  PROTOCOL_AI: { maxRequests: 5, windowSec: 3600 }
+  // AI протокол без плащане (protocols.html)
 };
 var KV_RATE_LIMITED = /* @__PURE__ */ new Set(["GENERATE_PLAN", "FOOD_ANALYSIS", "SOCIAL_AUTH", "FORGOT_PASSWORD", "STUDIO_VERIFY", "STUDIO_LOGIN"]);
 var memoryRateCounters = /* @__PURE__ */ new Map();
@@ -83618,6 +83624,10 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
   if (`fb_${firebaseUser.uid}` !== userId) {
     throw new Error("Token does not match userId");
   }
+}
+async function freeBudgetGuard(env) {
+  if (await budgetOk(env, "free")) return null;
+  return jsonResponse2({ error: "budget", message: "AI \u0444\u0443\u043D\u043A\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043F\u0440\u0435\u0442\u043E\u0432\u0430\u0440\u0435\u043D\u0438. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0441\u043B\u0435\u0434 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0447\u0430\u0441\u0430." }, 503);
 }
 async function gatedRun(request, env, feature, run, fields) {
   if (!await budgetOk(env, "free")) {
@@ -93020,6 +93030,10 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/admin/save-step-token-limits" && request.method === "POST") {
         return await handleSaveStepTokenLimits(request, env);
       } else if (url.pathname === "/api/generate-protocol" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "PROTOCOL_AI");
+        if (rlErr) return rlErr;
+        const budgetErr = await freeBudgetGuard(env);
+        if (budgetErr) return budgetErr;
         return await handleGenerateProtocol(request, env);
       } else if (url.pathname === "/api/generate-emoeat-analysis" && request.method === "POST") {
         const emoBody = await request.clone().json().catch(() => ({}));

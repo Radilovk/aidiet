@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Standalone преглед на loading екрана за здравния анализ в Eatologix.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#F3FBF7" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,14 +19,14 @@
     <link rel="apple-touch-icon" sizes="152x152" href="./brand/apple-touch-icon.png">
     <title>Analysis Loading Preview</title>
     <link rel="stylesheet" href="./design-system.css">
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EEFDFC';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F3FBF7';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <style>
         :root {
             --primary-red: #05737D;
             --primary-red-hover: #075C66;
             --text-dark: #0F2F2E;
             --text-gray: #6b7280;
-            --bg-color: #EEFDFC;
+            --bg-color: #F3FBF7;
             --input-bg: #f3f4f6;
             --card-bg: rgba(255, 255, 255, 0.72);
             --glass-border: rgba(3, 147, 156, 0.1);
@@ -322,7 +322,7 @@
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
-            var color = theme === 'dark' ? '#0A1A1A' : '#EEFDFC';
+            var color = theme === 'dark' ? '#0A1A1A' : '#F3FBF7';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(meta) {
                 meta.setAttribute('content', color);
             });

@@ -41,7 +41,15 @@
   "Позитивно": "Pozytywnie",
   "Спокойно": "Spokojnie",
   "Напрегнато": "Napięty",
-  "В напрегнатите дни вредните хранения са по-чести": "W napięte dni niezdrowe posiłki są częstsze"
+  "В напрегнатите дни вредните хранения са по-чести": "W napięte dni niezdrowe posiłki są częstsze",
+  "Движение · крачки": "Ruch · kroki",
+  "Да, вече се движа така": "Tak, teraz tak się ruszam",
+  "Не, временно е (отпуск, пътуване, поход)": "Nie, to chwilowe (urlop, podróż, wędrówka)",
+  "Да, сега се движа по-малко": "Tak, teraz ruszam się mniej",
+  "Не, временно е (болест, отпуск, натоварен период)": "Nie, to chwilowe (choroba, urlop, intensywny okres)",
+  "+0,5 л вода днес": "+0,5 l wody dziś",
+  "Добави закуска с белтък": "Dodaj przekąskę z białkiem",
+  "По-лека седмица: повече сън, по-леки тренировки": "Lżejszy tydzień: więcej snu, lżejsze treningi"
  },
  "keys": {},
  "patterns": []

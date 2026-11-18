@@ -548,7 +548,12 @@ export function decideWeeklyAdjustment({ checkin, goal, direction, kcal, tdee, f
     delta = 0;
     onTrack = false;
     cancelDelta('Пулсът в покой и HRV показват натоварване — тази седмица калориите не се намаляват; приоритет са сънят и възстановяването.');
+  } else if (checkin.recoveryLow) {
+    onTrack = false;
+    reasons.push('Пулсът в покой и HRV показват натоварване — седмицата е по-лека: сън 7–9 часа, тренировките по-кратки и по-леки (разходка, разтягане), без нови рекорди.');
   }
+  // По-лека седмица — съветът стига до клиента и при отменено намаление.
+  if (checkin.recoveryLow) changes.push('По-лека седмица: повече сън, по-леки тренировки');
   if (checkin.leanLoss) {
     onTrack = false;
     modifications.push('increase_protein');

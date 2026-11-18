@@ -1349,6 +1349,7 @@ const RATE_LIMIT = {
   HANDOFF: { maxRequests: 10, windowSec: 600 },        // модул → Eatologix: нова пратка
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 },   // преглед и прибиране на пратка
   SESSION_MOVE: { maxRequests: 20, windowSec: 600 },   // biocode.website → eatologix.com: пренасяне на паметта на браузъра
+  PROTOCOL_AI: { maxRequests: 5, windowSec: 3600 },    // AI протокол без плащане (protocols.html)
 };
 
 /**
@@ -6211,6 +6212,15 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
  * Платена функция: проверка на нивото и тавана преди обработчика; използването
  * се брои само при успешен отговор (грешка на AI не изяжда от тавана).
  */
+/**
+ * AI протокол без плащане (protocols.html): спира при общия
+ * дневен таван на разхода (spend.js), както безплатните функции на Eatologix.
+ */
+async function freeBudgetGuard(env) {
+  if (await budgetOk(env, 'free')) return null;
+  return jsonResponse({ error: 'budget', message: 'AI функциите са временно претоварени. Опитай отново след няколко часа.' }, 503);
+}
+
 async function gatedRun(request, env, feature, run, fields) {
   // Общият дневен таван (spend.js): достигнат ли е — AI спира за неплатилите, платилите продължават.
   if (!(await budgetOk(env, 'free'))) {
@@ -18331,6 +18341,10 @@ export default {
       } else if (url.pathname === '/api/admin/save-step-token-limits' && request.method === 'POST') {
         return await handleSaveStepTokenLimits(request, env);
       } else if (url.pathname === '/api/generate-protocol' && request.method === 'POST') {
+        const rlErr = await checkRateLimit(env, request, 'PROTOCOL_AI');
+        if (rlErr) return rlErr;
+        const budgetErr = await freeBudgetGuard(env);
+        if (budgetErr) return budgetErr;
         return await handleGenerateProtocol(request, env);
       } else if (url.pathname === '/api/generate-emoeat-analysis' && request.method === 'POST') {
         // Купен личен анализ (2,99 €) → кредит на устройството/акаунта; изразходва се при успех.
