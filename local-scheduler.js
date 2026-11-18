@@ -1274,6 +1274,39 @@ const GameNotifier = {
         }
     },
 
+    /**
+     * Часовете сън за нощта преди деня от гривна/телефон или облачна връзка (health-sync.js);
+     * без модула (напр. бързият отговор от известие) — от неговата памет. Иначе null.
+     */
+    _deviceSleepHours(recordKey) {
+        try {
+            const key = this._normalizeRecordKey(recordKey);
+            const H = typeof window !== 'undefined' && (window.NutriPlanHealth || (window.top && window.top.NutriPlanHealth));
+            if (H && typeof H.sleepFor === 'function') {
+                const h = H.sleepFor(key);
+                return h > 0 ? h : null;
+            }
+            const st = JSON.parse(localStorage.getItem('np_health_state') || '{}') || {};
+            const granted = st.connected && (!st.granted || !st.granted.length || st.granted.indexOf('sleep') !== -1);
+            const v = (granted && st.sleep && st.sleep[key]) || (st.cloudSleep && st.cloudSleep[key]);
+            return v > 0 ? v : null;
+        } catch (_) {
+            return null;
+        }
+    },
+
+    /**
+     * С данни за съня от устройство въпросът „Спа ли добре?“ не се задава: отговорът се записва
+     * от часовете (7+ ч — добър, 6–7 ч — среден, под 6 ч — лош; същото като plan.html).
+     * @returns {boolean} записан ли е
+     */
+    _fillMorningFromDevice(recordKey) {
+        const h = this._deviceSleepHours(recordKey);
+        if (!h) return false;
+        const level = h >= 7 ? 'good' : h >= 6 ? 'mid' : 'bad';
+        return this._saveMorningAnswer(recordKey, level !== 'bad', { level, hours: h, source: 'device' });
+    },
+
     _hasRealMorningAnswer(rec) {
         return !!(rec && rec.morningCheck && typeof rec.morningCheck.sleptWell === 'boolean');
     },
@@ -1299,8 +1332,8 @@ const GameNotifier = {
         const meta = this._slotMetaByType(notifType);
         if (!meta) return false;
         const rec = this._getGameRecord(recordKey);
+        if (meta.type === 'morning_check') return this._hasRealMorningAnswer(rec) || this._fillMorningFromDevice(recordKey);
         if (!rec) return false;
-        if (meta.type === 'morning_check') return this._hasRealMorningAnswer(rec);
         return this._hasRealEveningField(rec, meta.saveKind, recordKey);
     },
 
@@ -2046,20 +2079,20 @@ const GameNotifier = {
         }
     },
 
-    _saveMorningAnswer(recordKey, sleptWell) {
+    _saveMorningAnswer(recordKey, sleptWell, extra) {
         const gm = typeof window !== 'undefined' && window.gameModule;
         if (gm && typeof gm.getRecord === 'function' && typeof gm.saveRecord === 'function') {
             try {
                 const rec = gm.getRecord(recordKey);
                 if (this._hasRealMorningAnswer(rec)) return false;
-                rec.morningCheck = { sleptWell: !!sleptWell, ts: new Date().toISOString() };
+                rec.morningCheck = Object.assign({ sleptWell: !!sleptWell }, extra || {}, { ts: new Date().toISOString() });
                 gm.saveRecord(recordKey, rec);
                 if (typeof gm.recalcAndShowScore === 'function') gm.recalcAndShowScore(recordKey);
                 this.notifyAnswerSaved(recordKey);
                 return true;
             } catch (_) { /* fall through */ }
         }
-        const saved = this._saveQuickAnswer(recordKey, 'morning_check', { sleptWell: !!sleptWell });
+        const saved = this._saveQuickAnswer(recordKey, 'morning_check', Object.assign({ sleptWell: !!sleptWell }, extra || {}));
         if (saved) this.notifyAnswerSaved(recordKey);
         return saved;
     },
@@ -2251,6 +2284,8 @@ const GameNotifier = {
                     sleptWell: !!(payload && payload.sleptWell),
                     ts: new Date().toISOString()
                 };
+                // Сънят от устройство: нивото и часовете (за Напредък).
+                ['level', 'hours', 'source'].forEach((k) => { if (payload && payload[k] != null) record.morningCheck[k] = payload[k]; });
             } else if (type === 'evening_check' && payload) {
                 if (record.eveningCheck) return false;
                 record.eveningCheck = {
