@@ -22,14 +22,11 @@
   "Твоят модел": "Tu patrón",
   "План за седмицата": "Plan para la semana",
   "Как е устроен": "Cómo funciona",
-  "Без въпроси от типа „имаш ли проблем“.": "Sin preguntas del tipo «¿tienes un problema?».",
   "Повечето са избор между неща, които са нормални за всеки, няколко кратки сценки и четири фигури.": "La mayoría son elecciones entre cosas normales para cualquiera, algunas escenas breves y cuatro figuras.",
   "Едно докосване на въпрос": "Un toque por pregunta",
-  "Без писане. Първото, което ти идва, е най-точно.": "Sin escribir. Lo primero que se te ocurre es lo más preciso.",
   "Няма верни отговори": "No hay respuestas correctas",
   "Всеки вариант е нещо, което се случва на хората.": "Cada opción es algo que le pasa a la gente.",
   "Накрая — план за седмицата": "Al final, un plan para la semana",
-  "Три конкретни неща и какво да правиш, когато импулсът е силен.": "Tres cosas concretas y qué hacer cuando el impulso es fuerte.",
   "След теста": "Después del test",
   "Резултатът влиза направо в плана ти.": "El resultado pasa directo a tu plan.",
   "Профил": "Perfil",
@@ -41,10 +38,8 @@
   "Поверителност": "Privacidad",
   "Отговорите стоят на устройството ти. За личния текст ги изпращаме без име към AI модел.": "Tus respuestas se quedan en tu dispositivo. Para tu texto personal las enviamos sin nombre a un modelo de IA.",
   "Без име": "Sin nombre",
-  "На устройството": "En el dispositivo",
   "Три минути": "Tres minutos",
   "Започни с първия въпрос.": "Empieza por la primera pregunta.",
-  "Без подготовка. Отговаряш, както ти дойде.": "Sin preparación. Responde como te salga.",
   "Не е медицинска диагноза. При хранително разстройство потърси специалист.": "No es un diagnóstico médico. Si tienes un trastorno alimentario, busca a un especialista.",
   "Логиката е наша. Резултатът — твой.": "La lógica es nuestra. El resultado, tuyo.",
   "Хранителен план с точни грамажи, изчислен по тялото, здравето и целта ти и преизчисляван всяка седмица.": "Un plan de alimentación con cantidades exactas, calculado según tu cuerpo, tu salud y tu objetivo, y recalculado cada semana.",
@@ -79,6 +74,11 @@
   "Тестът": "El test",
   "ирисов анализ": "análisis del iris",
   "личен хранителен план": "plan de alimentación personal",
-  "Емоционален": "Emocional"
+  "Емоционален": "Emocional",
+  "Конкретни насоки и как да се справиш в ключовите моменти.": "Pautas concretas y qué hacer en los momentos clave.",
+  "Без писане и обмисляне. Първото, което ти идва, е най-точно.": "Sin escribir ni pensarlo. Lo primero que se te ocurre es lo más preciso.",
+  "Само в твоето устройство": "Solo en tu dispositivo",
+  "Не го мисли. Отговаряй, както ти дойде.": "No lo pienses. Responde como te salga.",
+  "Без повърхностни или неудобни въпроси.": "Sin preguntas superficiales ni incómodas."
  }
 }

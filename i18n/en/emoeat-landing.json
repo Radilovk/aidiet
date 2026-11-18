@@ -22,14 +22,11 @@
   "Твоят модел": "Your pattern",
   "План за седмицата": "Plan for the week",
   "Как е устроен": "How it works",
-  "Без въпроси от типа „имаш ли проблем“.": "No “do you have a problem” questions.",
   "Повечето са избор между неща, които са нормални за всеки, няколко кратки сценки и четири фигури.": "Most are choices between things that are normal for everyone, a few short scenes and four shapes.",
   "Едно докосване на въпрос": "One tap per question",
-  "Без писане. Първото, което ти идва, е най-точно.": "No typing. The first thing that comes to mind is the most accurate.",
   "Няма верни отговори": "No right answers",
   "Всеки вариант е нещо, което се случва на хората.": "Every option is something that happens to people.",
   "Накрая — план за седмицата": "At the end — a plan for the week",
-  "Три конкретни неща и какво да правиш, когато импулсът е силен.": "Three concrete things and what to do when the urge is strong.",
   "След теста": "After the test",
   "Резултатът влиза направо в плана ти.": "The result goes straight into your plan.",
   "Профил": "Profile",
@@ -41,10 +38,8 @@
   "Поверителност": "Privacy",
   "Отговорите стоят на устройството ти. За личния текст ги изпращаме без име към AI модел.": "Your answers stay on your device. For your personal text we send them to an AI model without your name.",
   "Без име": "No name",
-  "На устройството": "On your device",
   "Три минути": "Three minutes",
   "Започни с първия въпрос.": "Start with the first question.",
-  "Без подготовка. Отговаряш, както ти дойде.": "No preparation. Answer however it comes.",
   "Не е медицинска диагноза. При хранително разстройство потърси специалист.": "Not a medical diagnosis. If you have an eating disorder, see a specialist.",
   "Логиката е наша. Резултатът — твой.": "The logic is ours. The results are yours.",
   "Хранителен план с точни грамажи, изчислен по тялото, здравето и целта ти и преизчисляван всяка седмица.": "A nutrition plan with exact portions, calculated for your body, health and goal, and recalculated every week.",
@@ -79,6 +74,11 @@
   "Тестът": "The test",
   "ирисов анализ": "iris analysis",
   "личен хранителен план": "personal nutrition plan",
-  "Емоционален": "Emotional"
+  "Емоционален": "Emotional",
+  "Конкретни насоки и как да се справиш в ключовите моменти.": "Specific guidance and how to handle key moments.",
+  "Без писане и обмисляне. Първото, което ти идва, е най-точно.": "No typing or overthinking. The first thing that comes to mind is the most accurate.",
+  "Само в твоето устройство": "Only on your device",
+  "Не го мисли. Отговаряй, както ти дойде.": "Don't overthink it. Answer with whatever comes to mind.",
+  "Без повърхностни или неудобни въпроси.": "No superficial or uncomfortable questions."
  }
 }

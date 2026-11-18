@@ -22,14 +22,11 @@
   "Твоят модел": "Senin modelin",
   "План за седмицата": "Haftalık plan",
   "Как е устроен": "Nasıl kurgulandı",
-  "Без въпроси от типа „имаш ли проблем“.": "„Bir problemin var mı“ türünde sorular yok.",
   "Повечето са избор между неща, които са нормални за всеки, няколко кратки сценки и четири фигури.": "Çoğu, herkes için normal olan durumlar arasında bir seçim, birkaç kısa senaryo ve dört figürden oluşur.",
   "Едно докосване на въпрос": "Soru başına tek dokunuş",
-  "Без писане. Първото, което ти идва, е най-точно.": "Yazmak yok. Aklına ilk gelen en doğrusudur.",
   "Няма верни отговори": "Doğru cevap yok",
   "Всеки вариант е нещо, което се случва на хората.": "Her seçenek insanların başına gelebilecek bir durumdur.",
   "Накрая — план за седмицата": "Sonunda — haftalık plan",
-  "Три конкретни неща и какво да правиш, когато импулсът е силен.": "Üç somut adım ve dürtü güçlü olduğunda ne yapman gerektiği.",
   "След теста": "Testten sonra",
   "Резултатът влиза направо в плана ти.": "Sonuç doğrudan planına eklenir.",
   "Профил": "Profil",
@@ -41,10 +38,8 @@
   "Поверителност": "Gizlilik",
   "Отговорите стоят на устройството ти. За личния текст ги изпращаме без име към AI модел.": "Yanıtlar cihazında kalır. Kişisel metinler anonim olarak yapay zeka modeline gönderilir.",
   "Без име": "Anonim",
-  "На устройството": "Cihazda",
   "Три минути": "Üç dakika",
   "Започни с първия въпрос.": "İlk soruyla başla.",
-  "Без подготовка. Отговаряш, както ти дойде.": "Hazırlık yok. İçinden geldiği gibi cevapla.",
   "Не е медицинска диагноза. При хранително разстройство потърси специалист.": "Tıbbi bir teşhis değildir. Yeme bozukluğu durumunda bir uzmana danış.",
   "Логиката е наша. Резултатът — твой.": "Mantık bizim. Sonuç — senin.",
   "Хранителен план с точни грамажи, изчислен по тялото, здравето и целта ти и преизчисляван всяка седмица.": "Vücuduna, sağlığına ve hedefine göre hesaplanan ve her hafta yeniden güncellenen net gramajlı beslenme planı.",
@@ -79,6 +74,11 @@
   "Тестът": "Test",
   "ирисов анализ": "iris analizi",
   "личен хранителен план": "kişisel beslenme planı",
-  "Емоционален": "Duygusal"
+  "Емоционален": "Duygusal",
+  "Конкретни насоки и как да се справиш в ключовите моменти.": "Somut yönlendirmeler ve kritik anlarda ne yapman gerektiği.",
+  "Без писане и обмисляне. Първото, което ти идва, е най-точно.": "Yazmak ve düşünmek yok. Aklına ilk gelen en doğrusudur.",
+  "Само в твоето устройство": "Sadece senin cihazında.",
+  "Не го мисли. Отговаряй, както ти дойде.": "Hiç düşünme. İçinden geldiği gibi cevapla.",
+  "Без повърхностни или неудобни въпроси.": "Yüzeysel veya rahatsız edici sorular yok."
  }
 }

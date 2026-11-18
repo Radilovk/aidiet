@@ -22,14 +22,11 @@
   "Твоят модел": "Tiparul tău",
   "План за седмицата": "Planul pentru săptămână",
   "Как е устроен": "Cum este structurat",
-  "Без въпроси от типа „имаш ли проблем“.": "Fără întrebări de tipul „ai o problemă”.",
   "Повечето са избор между неща, които са нормални за всеки, няколко кратки сценки и четири фигури.": "Majoritatea sunt o alegere între lucruri normale pentru oricine, câteva scenete scurte și patru figuri.",
   "Едно докосване на въпрос": "O singură atingere per întrebare",
-  "Без писане. Първото, което ти идва, е най-точно.": "Fără scris. Primul lucru care îți vine în minte este cel mai exact.",
   "Няма верни отговори": "Nu există răspunsuri corecte",
   "Всеки вариант е нещо, което се случва на хората.": "Fiecare variantă este ceva ce li se întâmplă oamenilor.",
   "Накрая — план за седмицата": "La final — planul pentru săptămână",
-  "Три конкретни неща и какво да правиш, когато импулсът е силен.": "Trei lucruri concrete și ce să faci când impulsul este puternic.",
   "След теста": "După test",
   "Резултатът влиза направо в плана ти.": "Rezultatul intră direct în planul tău.",
   "Профил": "Profil",
@@ -41,10 +38,8 @@
   "Поверителност": "Confidențialitate",
   "Отговорите стоят на устройството ти. За личния текст ги изпращаме без име към AI модел.": "Răspunsurile rămân pe dispozitivul tău. Pentru textul personal, le trimitem fără nume către un model AI.",
   "Без име": "Fără nume",
-  "На устройството": "Pe dispozitiv",
   "Три минути": "Trei minute",
   "Започни с първия въпрос.": "Începe cu prima întrebare.",
-  "Без подготовка. Отговаряш, както ти дойде.": "Fără pregătire. Răspunzi așa cum îți vine.",
   "Не е медицинска диагноза. При хранително разстройство потърси специалист.": "Nu este un diagnostic medical. În caz de tulburare de alimentație, consultă un specialist.",
   "Логиката е наша. Резултатът — твой.": "Logica este a noastră. Rezultatul — al tău.",
   "Хранителен план с точни грамажи, изчислен по тялото, здравето и целта ти и преизчисляван всяка седмица.": "Plan alimentar cu gramaje exacte, calculat în funcție de corpul, sănătatea și obiectivul tău și recalculat în fiecare săptămână.",
@@ -79,6 +74,11 @@
   "Тестът": "Testul",
   "ирисов анализ": "analiza irisului",
   "личен хранителен план": "plan alimentar personal",
-  "Емоционален": "Emoțional"
+  "Емоционален": "Emoțional",
+  "Конкретни насоки и как да се справиш в ключовите моменти.": "Indicații concrete și cum să faci față în momentele cheie.",
+  "Без писане и обмисляне. Първото, което ти идва, е най-точно.": "Fără scris și fără să stai pe gânduri. Primul lucru care îți vine în minte este cel mai exact.",
+  "Само в твоето устройство": "Doar pe dispozitivul tău",
+  "Не го мисли. Отговаряй, както ти дойде.": "Nu sta pe gânduri. Răspunde așa cum îți vine.",
+  "Без повърхностни или неудобни въпроси.": "Fără întrebări superficiale sau inconfortabile."
  }
 }
