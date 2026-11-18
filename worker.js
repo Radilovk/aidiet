@@ -79947,7 +79947,7 @@ var RATE_LIMIT = {
   SESSION_MOVE: { maxRequests: 20, windowSec: 600 },
   // biocode.website → eatologix.com: пренасяне на паметта на браузъра
   PROTOCOL_AI: { maxRequests: 5, windowSec: 3600 }
-  // другите проекти (protocols.html, longevity.html): AI протокол без плащане
+  // AI протокол без плащане (protocols.html)
 };
 var KV_RATE_LIMITED = /* @__PURE__ */ new Set(["GENERATE_PLAN", "FOOD_ANALYSIS", "SOCIAL_AUTH", "FORGOT_PASSWORD", "STUDIO_VERIFY", "STUDIO_LOGIN"]);
 var memoryRateCounters = /* @__PURE__ */ new Map();
@@ -92998,8 +92998,6 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/analyze-kids-food" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "FOOD_ANALYSIS");
         if (rlErr) return rlErr;
-        const budgetErr = await freeBudgetGuard(env);
-        if (budgetErr) return budgetErr;
         return await handleAnalyzeKidsFoodImage(request, env);
       } else if (url.pathname === "/api/report-problem" && request.method === "POST") {
         return await handleReportProblem(request, env, ctx);
@@ -93052,10 +93050,6 @@ var worker_entry_default = {
         if (!emoHuman.ok) return jsonResponse2({ error: "bot", reason: emoHuman.reason, message: BOT_MESSAGE }, 403);
         return await gatedRun(request, env, "emoeat_ai", () => handleGenerateEmoeatAnalysis(request, env));
       } else if (url.pathname === "/api/generate-longevity-protocol" && request.method === "POST") {
-        const rlErr = await checkRateLimit(env, request, "PROTOCOL_AI");
-        if (rlErr) return rlErr;
-        const budgetErr = await freeBudgetGuard(env);
-        if (budgetErr) return budgetErr;
         return await handleGenerateLongevityProtocol(request, env);
       } else if (url.pathname === "/api/admin/get-config" && request.method === "GET") {
         return await handleGetConfig(request, env);

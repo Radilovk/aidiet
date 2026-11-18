@@ -1349,7 +1349,7 @@ const RATE_LIMIT = {
   HANDOFF: { maxRequests: 10, windowSec: 600 },        // модул → Eatologix: нова пратка
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 },   // преглед и прибиране на пратка
   SESSION_MOVE: { maxRequests: 20, windowSec: 600 },   // biocode.website → eatologix.com: пренасяне на паметта на браузъра
-  PROTOCOL_AI: { maxRequests: 5, windowSec: 3600 },    // другите проекти (protocols.html, longevity.html): AI протокол без плащане
+  PROTOCOL_AI: { maxRequests: 5, windowSec: 3600 },    // AI протокол без плащане (protocols.html)
 };
 
 /**
@@ -6213,7 +6213,7 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
  * се брои само при успешен отговор (грешка на AI не изяжда от тавана).
  */
 /**
- * AI без плащане в другите проекти (протоколи, дълголетие, детско меню): спира при общия
+ * AI протокол без плащане (protocols.html): спира при общия
  * дневен таван на разхода (spend.js), както безплатните функции на Eatologix.
  */
 async function freeBudgetGuard(env) {
@@ -18309,8 +18309,6 @@ export default {
       } else if (url.pathname === '/api/analyze-kids-food' && request.method === 'POST') {
         const rlErr = await checkRateLimit(env, request, 'FOOD_ANALYSIS');
         if (rlErr) return rlErr;
-        const budgetErr = await freeBudgetGuard(env);
-        if (budgetErr) return budgetErr;
         return await handleAnalyzeKidsFoodImage(request, env);
       } else if (url.pathname === '/api/report-problem' && request.method === 'POST') {
         return await handleReportProblem(request, env, ctx);
@@ -18366,10 +18364,6 @@ export default {
         if (!emoHuman.ok) return jsonResponse({ error: 'bot', reason: emoHuman.reason, message: BOT_MESSAGE }, 403);
         return await gatedRun(request, env, 'emoeat_ai', () => handleGenerateEmoeatAnalysis(request, env));
       } else if (url.pathname === '/api/generate-longevity-protocol' && request.method === 'POST') {
-        const rlErr = await checkRateLimit(env, request, 'PROTOCOL_AI');
-        if (rlErr) return rlErr;
-        const budgetErr = await freeBudgetGuard(env);
-        if (budgetErr) return budgetErr;
         return await handleGenerateLongevityProtocol(request, env);
       } else if (url.pathname === '/api/admin/get-config' && request.method === 'GET') {
         return await handleGetConfig(request, env);

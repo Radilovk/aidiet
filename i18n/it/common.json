@@ -41,7 +41,15 @@
   "Позитивно": "Positivo",
   "Спокойно": "Tranquillo",
   "Напрегнато": "Teso",
-  "В напрегнатите дни вредните хранения са по-чести": "Nei giorni tesi i pasti poco sani sono più frequenti"
+  "В напрегнатите дни вредните хранения са по-чести": "Nei giorni tesi i pasti poco sani sono più frequenti",
+  "Движение · крачки": "Movimento · passi",
+  "Да, вече се движа така": "Sì, ora mi muovo così",
+  "Не, временно е (отпуск, пътуване, поход)": "No, è temporaneo (vacanza, viaggio, escursione)",
+  "Да, сега се движа по-малко": "Sì, ora mi muovo meno",
+  "Не, временно е (болест, отпуск, натоварен период)": "No, è temporaneo (malattia, vacanza, periodo intenso)",
+  "+0,5 л вода днес": "+0,5 l d'acqua oggi",
+  "Добави закуска с белтък": "Aggiungi uno spuntino proteico",
+  "По-лека седмица: повече сън, по-леки тренировки": "Settimana più leggera: più sonno, allenamenti più leggeri"
  },
  "keys": {},
  "patterns": []

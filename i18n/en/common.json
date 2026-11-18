@@ -41,7 +41,15 @@
   "Позитивно": "Positive",
   "Спокойно": "Calm",
   "Напрегнато": "Tense",
-  "В напрегнатите дни вредните хранения са по-чести": "On tense days, unhealthy meals are more frequent"
+  "В напрегнатите дни вредните хранения са по-чести": "On tense days, unhealthy meals are more frequent",
+  "Движение · крачки": "Movement · steps",
+  "Да, вече се движа така": "Yes, this is how I move now",
+  "Не, временно е (отпуск, пътуване, поход)": "No, it's temporary (holiday, travel, hike)",
+  "Да, сега се движа по-малко": "Yes, I move less now",
+  "Не, временно е (болест, отпуск, натоварен период)": "No, it's temporary (illness, holiday, busy period)",
+  "+0,5 л вода днес": "+0.5 L water today",
+  "Добави закуска с белтък": "Add a protein snack",
+  "По-лека седмица: повече сън, по-леки тренировки": "Lighter week: more sleep, easier workouts"
  },
  "keys": {},
  "patterns": []
