@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Хранителен план, изчислен от над 30 твои показателя, проверен от специалист и преизчисляван всяка седмица. Ти се храниш и виждаш резултата — логиката е наша.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F3FBF7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#EDF5F0" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -79,7 +79,7 @@
         #spaShell { transition: opacity 0.35s ease; }
         @media (prefers-reduced-motion: reduce) { html.app-booting::after { animation: none; } }
     </style>
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F3FBF7';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EDF5F0';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <!-- Приложението от магазина (Capacitor): без сваляне на APK и без чужди магазини. -->
     <script>try{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())document.documentElement.classList.add('is-native')}catch(e){}</script>
     <script src="./session-utils.js"></script>
@@ -151,7 +151,7 @@
             --accent-blue: #06B6D4;
             --secondary-accent: #06B6D4;
             --accent-light-red: #f87171;
-            --bg-color: #F3FBF7;
+            --bg-color: #EDF5F0;
             --text-dark: #0F2F2E;
             --text-gray: #4b5563;
             --white: rgba(255, 255, 255, 0.72);
@@ -2041,7 +2041,7 @@
         }
         #loginModal.active { display: flex; }
         .login-modal-box {
-            background: var(--bg-color, #F3FBF7);
+            background: var(--bg-color, #EDF5F0);
             border-radius: 20px;
             padding: 26px 22px 18px;
             max-width: 340px;
@@ -2843,7 +2843,7 @@
 
 
         function setThemeColor(theme) {
-            var c = theme === 'dark' ? '#0A1A1A' : '#F3FBF7';
+            var c = theme === 'dark' ? '#0A1A1A' : '#EDF5F0';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m) { m.setAttribute('content', c); });
             var applyBars = function () {
                 var platform = window.NutriPlanPlatform;

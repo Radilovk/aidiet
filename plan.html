@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Твоят комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти с AI анализ.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#F3FBF7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#EDF5F0" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -46,7 +46,7 @@
     <!-- Font Awesome за икони -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F3FBF7';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EDF5F0';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
     <style>body{opacity:0}html[data-embedded-tab="1"] body{opacity:1!important;transition:none!important}</style>
     <!-- Detect shellChat overlay mode before first paint -->
@@ -66,7 +66,7 @@
             --soft-red: #CDF9F6;
             --text-dark: #0F2F2E;
             --text-light: #6b7280;
-            --bg-color: #F3FBF7;
+            --bg-color: #EDF5F0;
             --card-bg: rgba(255, 255, 255, 0.72);
             --shadow: 0 10px 40px rgba(3, 147, 156, 0.1);
             --shadow-hover: 0 20px 50px rgba(3, 147, 156, 0.15);
@@ -3075,7 +3075,7 @@
                 --soft-red: #CDF9F6 !important;
                 --text-dark: #0F2F2E !important;
                 --text-light: #6b7280 !important;
-                --bg-color: #F3FBF7 !important;
+                --bg-color: #EDF5F0 !important;
                 --card-bg: rgba(255,255,255,0.72) !important;
                 --shadow: 0 10px 40px rgba(3,147,156,0.1) !important;
                 --shadow-hover: 0 20px 50px rgba(3,147,156,0.15) !important;
@@ -3864,7 +3864,7 @@
                         '--primary-red': '#05737D',
                         '--primary-accent': '#19D6D2',
                         '--secondary-accent': '#fbbf24',
-                        '--soft-red': '#F3FBF7'
+                        '--soft-red': '#EDF5F0'
                     },
                     dark: {
                         '--primary-red': '#19D6D2',
@@ -3953,7 +3953,7 @@
         @keyframes _pa_spin { to { transform: rotate(360deg); } }
         #planAuthOverlay {
             position: fixed; inset: 0;
-            background: var(--bg-color, #F3FBF7);
+            background: var(--bg-color, #EDF5F0);
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             z-index: 99999; padding: 24px;
@@ -5123,7 +5123,7 @@
 
 
         function setThemeColor(theme) {
-            var c = theme === 'dark' ? '#0A1A1A' : '#F3FBF7';
+            var c = theme === 'dark' ? '#0A1A1A' : '#EDF5F0';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m) { m.setAttribute('content', c); });
                 if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                     var navBar = (window.Capacitor.Plugins || {}).NavigationBar;

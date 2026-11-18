@@ -130,8 +130,8 @@
     --ds-gray-950: #030712;
     
     /* === LIGHT THEME SEMANTIC COLORS (Glassmorphism) === */
-    --ds-bg-primary: #F3FBF7;           /* вариант A: лек ментов оттенък вместо студеното тюркоазено */
-    --ds-bg-secondary: #F7FCF9;
+    --ds-bg-primary: #EDF5F0;           /* вариант A: ментов фон, достатъчно плътен, за да се откроят белите карти */
+    --ds-bg-secondary: #F4F9F6;
     --ds-bg-tertiary: #ffffff;
     --ds-bg-card: rgba(255, 255, 255, 0.72);
     --ds-bg-card-rgb: 255, 255, 255;
@@ -328,11 +328,13 @@
     --ds-cal-under: #BFEFFF;
     --ds-cal-norm: #B6F34A;
     --ds-cal-over: #FFC857;
-    /* Показателите в Напредък (вариант C): оттенък, ивица и текст (текстът ≥ 4.5:1 върху оттенъка). */
-    --ds-metric-sleep: #8B6CF0;    --ds-metric-sleep-bg: #EFEAFE;    --ds-metric-sleep-text: #5B3FC4;
-    --ds-metric-water: #2B9FD9;    --ds-metric-water-bg: #E0F1FB;    --ds-metric-water-text: #17699A;
-    --ds-metric-activity: #F08A24; --ds-metric-activity-bg: #FFF0E0; --ds-metric-activity-text: #9A4A06;
-    --ds-metric-mood: #22A55A;     --ds-metric-mood-bg: #E0F7E8;     --ds-metric-mood-text: #13703B;
+    /* Показателите в Напредък: наситен цвят за иконата, лентата и стълбчетата; текстът на нивото —
+       по-тъмният тон (≥ 4.5:1 върху бяло). Без тонирани фонове. */
+    --ds-metric-sleep: #7C5CFC;    --ds-metric-sleep-text: #5B3FC4;
+    --ds-metric-water: #0EA5E9;    --ds-metric-water-text: #0369A1;
+    --ds-metric-activity: #F97316; --ds-metric-activity-text: #C2410C;
+    --ds-metric-mood: #16A34A;     --ds-metric-mood-text: #15803D;
+    --ds-track: rgba(15, 47, 46, 0.09);   /* неутрална ивица под лентите */
     --ds-accent-text: #05737D;          /* акцентен текст: 5.5:1 върху бяло */
     --ds-text-soft: #5B6E6B;            /* помощен текст: 5.4:1 върху бяло */
 
@@ -441,10 +443,11 @@
     --ds-green-text: #A3E635;
     --ds-green-soft: rgba(160, 245, 0, 0.12);
     --ds-done: #22C55E;
-    --ds-metric-sleep: #A78BFA;    --ds-metric-sleep-bg: rgba(167, 139, 250, 0.14);  --ds-metric-sleep-text: #C4B5FD;
-    --ds-metric-water: #38BDF8;    --ds-metric-water-bg: rgba(56, 189, 248, 0.14);   --ds-metric-water-text: #7DD3FC;
-    --ds-metric-activity: #FB923C; --ds-metric-activity-bg: rgba(251, 146, 60, 0.14); --ds-metric-activity-text: #FDBA74;
-    --ds-metric-mood: #34D399;     --ds-metric-mood-bg: rgba(52, 211, 153, 0.14);    --ds-metric-mood-text: #6EE7B7;
+    --ds-metric-sleep: #A78BFA;    --ds-metric-sleep-text: #C4B5FD;
+    --ds-metric-water: #38BDF8;    --ds-metric-water-text: #7DD3FC;
+    --ds-metric-activity: #FB923C; --ds-metric-activity-text: #FDBA74;
+    --ds-metric-mood: #34D399;     --ds-metric-mood-text: #6EE7B7;
+    --ds-track: rgba(255, 255, 255, 0.10);
     --ds-text-soft: #9AB3AF;
     --ds-success-text: #4ADE80;
     --ds-macro-protein-text: #A5B4FC;

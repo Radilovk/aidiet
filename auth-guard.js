@@ -53,7 +53,7 @@ function _resolveGuardReady(user) {
     let ov = null;
     if (!likelyAuthed) {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const bg     = isDark ? '#0A1A1A' : '#F3FBF7';
+        const bg     = isDark ? '#0A1A1A' : '#EDF5F0';
 
         ov = document.createElement('div');
         ov.id    = 'auth-guard-overlay';
