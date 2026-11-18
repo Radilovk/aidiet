@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Твоят комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти с AI анализ.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#F3FBF7" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -46,7 +46,7 @@
     <!-- Font Awesome за икони -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EEFDFC';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F3FBF7';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
     <style>body{opacity:0}html[data-embedded-tab="1"] body{opacity:1!important;transition:none!important}</style>
     <!-- Detect shellChat overlay mode before first paint -->
@@ -66,7 +66,7 @@
             --soft-red: #CDF9F6;
             --text-dark: #0F2F2E;
             --text-light: #6b7280;
-            --bg-color: #EEFDFC;
+            --bg-color: #F3FBF7;
             --card-bg: rgba(255, 255, 255, 0.72);
             --shadow: 0 10px 40px rgba(3, 147, 156, 0.1);
             --shadow-hover: 0 20px 50px rgba(3, 147, 156, 0.15);
@@ -2367,7 +2367,7 @@
             margin-left: 6px;
             -webkit-tap-highlight-color: transparent;
         }
-        .meal-check-btn.done { background: var(--ds-fill); border-color: var(--ds-fill); color: var(--ds-on-fill); transform: scale(1.06); }
+        .meal-check-btn.done { background: var(--ds-done, #12A150); border-color: var(--ds-done, #12A150); color: #fff; transform: scale(1.06); }
         .meal-check-btn:active { transform: scale(0.92); }
         /* --- Чат: заглавие и бутони за режим --- */
         .chat-header {
@@ -2475,7 +2475,7 @@
             text-align: left;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 14px 34px -16px rgba(5, 115, 125, 0.65);
+            box-shadow: 0 14px 34px -16px rgba(8, 110, 80, 0.6);
         }
         #dailyScoreCard.day-card::after {
             content: '';
@@ -2483,7 +2483,7 @@
             right: -60px; top: -80px;
             width: 200px; height: 200px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(95, 230, 227, 0.22), transparent 70%);
+            background: radial-gradient(circle, rgba(160, 245, 0, 0.24), transparent 70%);
             pointer-events: none;
         }
         #dailyScoreCard.day-card--empty { background: var(--card-bg); color: var(--text-dark); box-shadow: none; border: 1px dashed var(--glass-border); }
@@ -2531,7 +2531,7 @@
         .dc-seg-bar::after {
             content: '';
             position: absolute; inset: 0;
-            background: #5FE6E3;
+            background: var(--ds-lime, #B6F34A);
             transform: scaleX(0);
             transform-origin: left;
             transition: transform var(--ds-motion-transition) var(--ds-ease-emphasis);
@@ -2558,10 +2558,13 @@
         .dc-cal-info { background: none; border: 0; min-width: 44px; min-height: 44px; margin: -14px -12px -14px 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: inherit; opacity: .8; cursor: pointer; font-size: 1rem; line-height: 1; -webkit-tap-highlight-color: transparent; }
         .dc-cal-track { position: relative; height: 6px; margin-top: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.16); overflow: hidden; }
         .dc-cal-zone { position: absolute; top: 0; bottom: 0; background: rgba(255, 255, 255, 0.32); }
-        .dc-cal-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: #ffffff; transition: width var(--ds-motion-expressive) var(--ds-ease-emphasis); }
-        .dc-cal.is-over .dc-cal-fill { background: #FCD34D; }
+        /* Три състояния: недостиг (още не е стигнат планът) — светлосиньо, норма (±10%) — лайм, над — кехлибар. */
+        .dc-cal-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--ds-cal-under, #BFEFFF); transition: width var(--ds-motion-expressive) var(--ds-ease-emphasis), background-color var(--ds-motion-transition) var(--ds-ease-standard); }
+        .dc-cal.is-zone .dc-cal-fill { background: var(--ds-cal-norm, #B6F34A); }
+        .dc-cal.is-over .dc-cal-fill { background: var(--ds-cal-over, #FFC857); }
         .dc-cal.is-over .dc-cal-note { color: #FFFFFF; }
-        .dc-cal.is-over .dc-cal-note::before { content: "\f062"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 0.8em; margin-right: 4px; color: #FCD34D; }
+        .dc-cal.is-over .dc-cal-note::before { content: "\f062"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 0.8em; margin-right: 4px; color: var(--ds-cal-over, #FFC857); }
+        .dc-cal.is-zone .dc-cal-note::before { content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 0.8em; margin-right: 4px; color: var(--ds-cal-norm, #B6F34A); }
         .dc-chips { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 6px; }
         .dc-chip {
             display: inline-flex; align-items: center; gap: 6px;
@@ -2572,7 +2575,7 @@
             font-weight: 600;
         }
         .dc-chip i { font-size: 0.85em; opacity: 0.9; }
-        .dc-chip--streak { background: rgba(252, 211, 77, 0.2); color: #FEF3C7; }
+        .dc-chip--streak { background: var(--ds-lime, #B6F34A); color: var(--ds-on-lime, #1D3A06); }
         .dc-chip--streak.is-new { animation: streakPop 0.5s var(--ds-ease-emphasis); }
         #dailyScoreCard.dc-reveal .dc-stars i.on { animation: starItemPop 0.4s var(--ds-ease-emphasis) both; }
         .meal-card.dc-focus { animation: dcFocus 1.4s var(--ds-ease-standard); }
@@ -3072,7 +3075,7 @@
                 --soft-red: #CDF9F6 !important;
                 --text-dark: #0F2F2E !important;
                 --text-light: #6b7280 !important;
-                --bg-color: #EEFDFC !important;
+                --bg-color: #F3FBF7 !important;
                 --card-bg: rgba(255,255,255,0.72) !important;
                 --shadow: 0 10px 40px rgba(3,147,156,0.1) !important;
                 --shadow-hover: 0 20px 50px rgba(3,147,156,0.15) !important;
@@ -3861,7 +3864,7 @@
                         '--primary-red': '#05737D',
                         '--primary-accent': '#19D6D2',
                         '--secondary-accent': '#fbbf24',
-                        '--soft-red': '#EEFDFC'
+                        '--soft-red': '#F3FBF7'
                     },
                     dark: {
                         '--primary-red': '#19D6D2',
@@ -3950,7 +3953,7 @@
         @keyframes _pa_spin { to { transform: rotate(360deg); } }
         #planAuthOverlay {
             position: fixed; inset: 0;
-            background: var(--bg-color, #EEFDFC);
+            background: var(--bg-color, #F3FBF7);
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             z-index: 99999; padding: 24px;
@@ -5120,7 +5123,7 @@
 
 
         function setThemeColor(theme) {
-            var c = theme === 'dark' ? '#0A1A1A' : '#EEFDFC';
+            var c = theme === 'dark' ? '#0A1A1A' : '#F3FBF7';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m) { m.setAttribute('content', c); });
                 if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                     var navBar = (window.Capacitor.Plugins || {}).NavigationBar;

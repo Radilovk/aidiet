@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Текущ анализ и здравен индекс за твоя хранителен план в Eatologix.">
     <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#F3FBF7" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,7 +29,7 @@
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Inline theme init: apply saved theme before first paint to prevent FOUC -->
-    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#EEFDFC';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
+    <script>(function(){var t=localStorage.getItem('theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);var c=t==='dark'?'#0A1A1A':'#F3FBF7';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});})();</script>
     <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
     <style>body{opacity:0}</style>
     <style>
@@ -41,7 +41,7 @@
             --accent-light-red: #f87171;
             --text-dark: #0F2F2E;
             --text-light: #6b7280;
-            --bg-color: #EEFDFC;
+            --bg-color: #F3FBF7;
             --card-bg: rgba(255, 255, 255, 0.72);
             --shadow: 0 4px 12px rgba(3,147,156,0.08);
             --radius: 24px;
@@ -290,11 +290,16 @@
         .game-index-label {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             font-size: 0.82rem;
             font-weight: 600;
             color: var(--text-dark);
             margin-bottom: 5px;
         }
+        /* Показателите (вариант C): иконата в тониран квадрат и нивото като етикет. */
+        .ga-mname { display: inline-flex; align-items: center; gap: 8px; }
+        .ga-mi { width: 26px; height: 26px; border-radius: 9px; display: inline-grid; place-items: center; font-size: 13px; flex: none; }
+        .ga-lvl { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; line-height: 1.5; }
         .game-index-hint {
             font-size: 0.75rem;
             color: var(--text-light, #6b7280);
@@ -768,7 +773,7 @@
 
     <script>
         function setThemeColor(theme) {
-            var c = theme === 'dark' ? '#0A1A1A' : '#EEFDFC';
+            var c = theme === 'dark' ? '#0A1A1A' : '#F3FBF7';
             document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute('content',c);});
                 if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
                     var navBar = (window.Capacitor.Plugins || {}).NavigationBar;
@@ -1099,6 +1104,15 @@
             var waterValid = waterByDay.filter(function(v){return v!==null;});
             var waterPct = waterValid.length>0 ? Math.round(waterValid.reduce(function(a,b){return a+b;},0)/waterValid.length) : null;
             // Стойността за деня (балончето над стълбчето) — само нивото. Емоциите — със думите от вечерния въпрос.
+            // Вариант C: всеки показател — свой оттенък (design-system.css → --ds-metric-*).
+            var MC = {
+                act:   { c: 'var(--ds-metric-activity)', bg: 'var(--ds-metric-activity-bg)', t: 'var(--ds-metric-activity-text)', icon: 'fa-person-walking' },
+                sleep: { c: 'var(--ds-metric-sleep)',    bg: 'var(--ds-metric-sleep-bg)',    t: 'var(--ds-metric-sleep-text)',    icon: 'fa-moon' },
+                mood:  { c: 'var(--ds-metric-mood)',     bg: 'var(--ds-metric-mood-bg)',     t: 'var(--ds-metric-mood-text)',     icon: 'fa-face-smile' },
+                water: { c: 'var(--ds-metric-water)',    bg: 'var(--ds-metric-water-bg)',    t: 'var(--ds-metric-water-text)',    icon: 'fa-droplet' }
+            };
+            var metricName = function(m, name){ return '<span class="ga-mname"><span class="ga-mi" style="background:'+m.bg+';color:'+m.t+'"><i class="fas '+m.icon+'"></i></span>'+name+'</span>'; };
+            var metricLevel = function(m, text){ return '<span class="ga-lvl" style="background:'+m.bg+';color:'+m.t+'">'+text+'</span> <i class="fas fa-circle-info"></i>'; };
             var moodLabel = function(v){ return v>=70 ? 'Позитивно' : v>=40 ? 'Спокойно' : 'Напрегнато'; };
             var levelLabel = function(v, female){ return v>=70 ? (female?'Добра':'Добър') : v>=40 ? (female?'Средна':'Среден') : (female?'Лоша':'Лош'); };
             // Активността: пет нива спрямо целта за деня (крачки + тренировката).
@@ -1341,7 +1355,7 @@
             function actBar(pct) {
                 if (pct==null) return pBar(null);
                 var over = pct>100;
-                return '<div class="game-index-bar-wrap game-act-wrap"><div class="game-index-bar" style="width:0%;background:'+(over?'linear-gradient(90deg,#f59e0b,#ea580c)':'linear-gradient(90deg,#f59e0b,#fbbf24)')+'" data-ga-bar="'+Math.min(100,Math.max(0,pct/ACT_SCALE*100)).toFixed(1)+'"></div>' +
+                return '<div class="game-index-bar-wrap game-act-wrap"><div class="game-index-bar" style="width:0%;background:'+(over?'linear-gradient(90deg,var(--ds-metric-activity),var(--ds-metric-activity-text))':'var(--ds-metric-activity)')+'" data-ga-bar="'+Math.min(100,Math.max(0,pct/ACT_SCALE*100)).toFixed(1)+'"></div>' +
                     '<span class="game-act-target" style="left:'+(100/ACT_SCALE*100).toFixed(1)+'%" aria-hidden="true"></span></div>';
             }
             function miniBarChart(perDayValues, maxVal, color, overColor, tips) {
@@ -1390,7 +1404,7 @@
                 var offset = circ - (pct||0)/100*circ;
                 return '<svg class="game-ring-svg" width="'+(r*2+8)+'" height="'+(r*2+8)+'" viewBox="0 0 '+(r*2+8)+' '+(r*2+8)+'">' +
                     '<circle class="game-ring-bg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5"/>' +
-                    '<circle class="game-ring-fg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5" stroke="'+color+'" stroke-dasharray="'+circ+'" stroke-dashoffset="'+circ+'" data-ga-ring-offset="'+offset.toFixed(2)+'"/>' +
+                    '<circle class="game-ring-fg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5" style="stroke:'+color+'" stroke-dasharray="'+circ+'" stroke-dashoffset="'+circ+'" data-ga-ring-offset="'+offset.toFixed(2)+'"/>' +
                     '<text x="'+(r+4)+'" y="'+(r+4)+'" text-anchor="middle" dominant-baseline="central" style="fill:var(--text-dark);font-size:'+(r>24?'0.9':'0.78')+'rem;font-weight:700;transform:rotate(90deg);transform-origin:'+(r+4)+'px '+(r+4)+'px" data-ga-ring-count="'+(pct!=null?pct:'')+'" data-ga-ring-target="'+(shown!=null?shown:pct!=null?pct:'')+'" >'+(pct!=null?'0%':'?')+'</text>' +
                     '</svg>';
             }
@@ -1421,9 +1435,9 @@
 
             html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
                 '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#03939C',22) + '<div class="game-ring-label">Навици</div></div>' +
-                (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,'#f59e0b',22,actRawPct) + '<div class="game-ring-label">Активност</div></div>' : '') +
-                (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,'#6366f1',22) + '<div class="game-ring-label">Сън</div></div>' : '') +
-                (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,'#10b981',22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
+                (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,MC.act.c,22,actRawPct) + '<div class="game-ring-label">Активност</div></div>' : '') +
+                (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,MC.sleep.c,22) + '<div class="game-ring-label">Сън</div></div>' : '') +
+                (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,MC.mood.c,22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
             '</div>';
 
             if(trendUp)   html += '<div class="ga-card-enter" style="text-align:center;font-size:0.78rem;color:#10b981;font-weight:600;margin-bottom:10px;animation-delay:0.18s"><i class="fas fa-chart-line"></i> Тенденцията е нагоре — ти се подобряваш!</div>';
@@ -1468,28 +1482,28 @@
             '</div>';
 
             if(balancePct!=null) html += '<div class="game-index-row" data-explain="stress">' +
-                '<div class="game-index-label"><span><i class="fas fa-heart-pulse" style="color:#10b981"></i> Емоции</span><span>'+balancePct+'%</span></div>' +
-                '<div class="game-index-hint">'+(balancePct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> ':balancePct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> ':'<i class="fas fa-circle" style="color:#ef4444"></i> ')+moodLabel(balancePct)+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(balancePct,'linear-gradient(90deg,#10b981,#06B6D4)') + miniBarChart(balanceByDay,100,'#10b981',null,balanceTips) +
+                '<div class="game-index-label">'+metricName(MC.mood,'Емоции')+'<span>'+balancePct+'%</span></div>' +
+                '<div class="game-index-hint">'+metricLevel(MC.mood, moodLabel(balancePct))+'</div>' +
+                pBar(balancePct,MC.mood.c) + miniBarChart(balanceByDay,100,MC.mood.c,null,balanceTips) +
             '</div>';
 
             if(sleepPct!=null) html += '<div class="game-index-row" data-explain="sleep">' +
-                '<div class="game-index-label"><span><i class="fas fa-bed" style="color:#6366f1"></i> Сън</span><span>'+sleepPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(sleepPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> ':sleepPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> ':'<i class="fas fa-circle" style="color:#ef4444"></i> ')+levelLabel(sleepPct)+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(sleepPct,'linear-gradient(90deg,#6366f1,#8b5cf6)') + miniBarChart(sleepByDay,100,'#6366f1',null,sleepTips) +
+                '<div class="game-index-label">'+metricName(MC.sleep,'Сън')+'<span>'+sleepPct+'%</span></div>' +
+                '<div class="game-index-hint">'+metricLevel(MC.sleep, levelLabel(sleepPct))+'</div>' +
+                pBar(sleepPct,MC.sleep.c) + miniBarChart(sleepByDay,100,MC.sleep.c,null,sleepTips) +
             '</div>';
 
             if(actPct!=null) html += '<div class="game-index-row" data-explain="activity">' +
-                '<div class="game-index-label"><span><i class="fas fa-person-walking" style="color:#f59e0b"></i> Активност</span><span>'+actRawPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(actRawPct>=130?'<i class="fas fa-arrow-up" style="color:#ea580c"></i> ':actRawPct>=90?'<i class="fas fa-check-circle" style="color:#10b981"></i> ':actRawPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> ':'<i class="fas fa-circle" style="color:#ef4444"></i> ')+actLevel(actRawPct)+' <i class="fas fa-circle-info"></i></div>' +
-                actBar(actRawPct) + miniBarChart(actRawByDay,ACT_SCALE,'#f59e0b','#ea580c',actTips) +
-                (actExtraBurn>0 ? '<div class="game-index-hint" style="margin-top:4px"><i class="fas fa-fire-flame-curved" style="color:#ea580c"></i> ~'+actExtraBurn+' kcal допълнителен разход в '+actOverDays+' '+(actOverDays===1?'ден':'дни')+' — реалният дефицит е по-голям; влиза в седмичния преглед на плана</div>' : '') +
+                '<div class="game-index-label">'+metricName(MC.act,'Активност')+'<span>'+actRawPct+'%</span></div>' +
+                '<div class="game-index-hint">'+metricLevel(MC.act, actLevel(actRawPct))+'</div>' +
+                actBar(actRawPct) + miniBarChart(actRawByDay,ACT_SCALE,MC.act.c,'var(--ds-metric-activity-text)',actTips) +
+                (actExtraBurn>0 ? '<div class="game-index-hint" style="margin-top:4px"><i class="fas fa-fire-flame-curved" style="color:var(--ds-metric-activity)"></i> ~'+actExtraBurn+' kcal допълнителен разход в '+actOverDays+' '+(actOverDays===1?'ден':'дни')+' — реалният дефицит е по-голям; влиза в седмичния преглед на плана</div>' : '') +
             '</div>';
 
             if(waterPct!=null) html += '<div class="game-index-row" data-explain="water">' +
-                '<div class="game-index-label"><span><i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратация</span><span>'+waterPct+'%</span></div>' +
-                '<div class="game-index-hint">'+(waterPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> ':waterPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> ':'<i class="fas fa-circle" style="color:#ef4444"></i> ')+levelLabel(waterPct, true)+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(waterPct,'linear-gradient(90deg,#06B6D4,#0284C7)') + miniBarChart(waterByDay,100,'#06B6D4',null,waterTips) +
+                '<div class="game-index-label">'+metricName(MC.water,'Хидратация')+'<span>'+waterPct+'%</span></div>' +
+                '<div class="game-index-hint">'+metricLevel(MC.water, levelLabel(waterPct, true))+'</div>' +
+                pBar(waterPct,MC.water.c) + miniBarChart(waterByDay,100,MC.water.c,null,waterTips) +
             '</div>';
 
             if(noDataDaysCount>0) html += '<div class="game-no-data-note"><i class="fas fa-calendar-xmark"></i> ' + noDataDaysCount + ' ' + (noDataDaysCount===1?'ден':'дни') + ' без отбелязана активност (не влизат в средните стойности)</div>';
