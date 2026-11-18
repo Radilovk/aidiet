@@ -79944,8 +79944,10 @@ var RATE_LIMIT = {
   // модул → Eatologix: нова пратка
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 },
   // преглед и прибиране на пратка
-  SESSION_MOVE: { maxRequests: 20, windowSec: 600 }
+  SESSION_MOVE: { maxRequests: 20, windowSec: 600 },
   // biocode.website → eatologix.com: пренасяне на паметта на браузъра
+  PROTOCOL_AI: { maxRequests: 5, windowSec: 3600 }
+  // другите проекти (protocols.html, longevity.html): AI протокол без плащане
 };
 var KV_RATE_LIMITED = /* @__PURE__ */ new Set(["GENERATE_PLAN", "FOOD_ANALYSIS", "SOCIAL_AUTH", "FORGOT_PASSWORD", "STUDIO_VERIFY", "STUDIO_LOGIN"]);
 var memoryRateCounters = /* @__PURE__ */ new Map();
@@ -83622,6 +83624,10 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
   if (`fb_${firebaseUser.uid}` !== userId) {
     throw new Error("Token does not match userId");
   }
+}
+async function freeBudgetGuard(env) {
+  if (await budgetOk(env, "free")) return null;
+  return jsonResponse2({ error: "budget", message: "AI \u0444\u0443\u043D\u043A\u0446\u0438\u0438\u0442\u0435 \u0441\u0430 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043F\u0440\u0435\u0442\u043E\u0432\u0430\u0440\u0435\u043D\u0438. \u041E\u043F\u0438\u0442\u0430\u0439 \u043E\u0442\u043D\u043E\u0432\u043E \u0441\u043B\u0435\u0434 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0447\u0430\u0441\u0430." }, 503);
 }
 async function gatedRun(request, env, feature, run, fields) {
   if (!await budgetOk(env, "free")) {
@@ -92992,6 +92998,8 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/analyze-kids-food" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "FOOD_ANALYSIS");
         if (rlErr) return rlErr;
+        const budgetErr = await freeBudgetGuard(env);
+        if (budgetErr) return budgetErr;
         return await handleAnalyzeKidsFoodImage(request, env);
       } else if (url.pathname === "/api/report-problem" && request.method === "POST") {
         return await handleReportProblem(request, env, ctx);
@@ -93024,6 +93032,10 @@ var worker_entry_default = {
       } else if (url.pathname === "/api/admin/save-step-token-limits" && request.method === "POST") {
         return await handleSaveStepTokenLimits(request, env);
       } else if (url.pathname === "/api/generate-protocol" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "PROTOCOL_AI");
+        if (rlErr) return rlErr;
+        const budgetErr = await freeBudgetGuard(env);
+        if (budgetErr) return budgetErr;
         return await handleGenerateProtocol(request, env);
       } else if (url.pathname === "/api/generate-emoeat-analysis" && request.method === "POST") {
         const emoBody = await request.clone().json().catch(() => ({}));
@@ -93040,6 +93052,10 @@ var worker_entry_default = {
         if (!emoHuman.ok) return jsonResponse2({ error: "bot", reason: emoHuman.reason, message: BOT_MESSAGE }, 403);
         return await gatedRun(request, env, "emoeat_ai", () => handleGenerateEmoeatAnalysis(request, env));
       } else if (url.pathname === "/api/generate-longevity-protocol" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "PROTOCOL_AI");
+        if (rlErr) return rlErr;
+        const budgetErr = await freeBudgetGuard(env);
+        if (budgetErr) return budgetErr;
         return await handleGenerateLongevityProtocol(request, env);
       } else if (url.pathname === "/api/admin/get-config" && request.method === "GET") {
         return await handleGetConfig(request, env);
