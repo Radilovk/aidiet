@@ -1275,6 +1275,7 @@
             -webkit-tap-highlight-color: transparent;
         }
         .meal-swap-btn:active { transform: scale(0.96); }
+        .modal-swap-btn { display: flex; width: 100%; justify-content: center; margin: 12px 0 4px; }
         .swap-sheet-overlay {
             position: fixed;
             inset: 0;
@@ -4009,6 +4010,7 @@
     <script src="./platform.js"></script>
     <script src="./platform-compat.js"></script>
     <script src="./meal-swaps.js"></script>
+    <script src="./weight-log.js"></script>
     <script src="./plan-sync.js"></script>
     <script src="./pricing-config.js"></script>
     <script src="./access.js"></script>
@@ -4457,7 +4459,6 @@
     <main class="container" id="main-content" role="main">
         
         <!-- MEAL PLAN SECTION -->
-        <div id="weightChip" class="weight-chip" hidden></div>
         <div id="mealContainer" aria-live="polite"></div>
 
         <!-- Моите храни и продукти banner -->
@@ -5901,58 +5902,8 @@
                 return;
             }
 
-            // Какъв е денят (metabolic.js): тренировъчен / почивен / по-лек, горивото и прозорецът.
-            const energy = dayData.energy;
-            if (energy && energy.kind) {
-                const mp = dietPlan.strategy && dietPlan.strategy.metabolicPlan;
-                const MEAL_NAMES = { 'Хранене 1': 'закуската', 'Хранене 2': 'обяда', 'Хранене 3': 'следобедната закуска', 'Хранене 4': 'вечерята' };
-                const head = energy.kind === 'train' ? 'Тренировъчен ден' : energy.kind === 'low' ? 'По-лек ден' : 'Почивен ден';
-                const icon = energy.kind === 'train' ? 'fa-dumbbell' : energy.kind === 'low' ? 'fa-feather' : 'fa-leaf';
-                const detail = energy.kind === 'train'
-                    ? (energy.carbsBefore
-                        ? (energy.preWorkoutMeal && MEAL_NAMES[energy.preWorkoutMeal] ? 'Въглехидратите са в ' + MEAL_NAMES[energy.preWorkoutMeal] + ' преди тренировката, след нея — белтък и зеленчуци' : 'Въглехидратите са по-рано, след тренировката — белтък и зеленчуци')
-                        : energy.postWorkoutMeal && MEAL_NAMES[energy.postWorkoutMeal] ? 'Въглехидратите са най-много в ' + MEAL_NAMES[energy.postWorkoutMeal] + ' след тренировката' : 'Повече въглехидрати за тренировката')
-                    : energy.window ? 'Хранене в прозорец ' + energy.window : (energy.kind === 'low' ? 'Пълният белтък, по-малко въглехидрати' : 'Повече зеленчуци и мазнини, въглехидратите — по-рано през деня');
-                // Числата са на менюто на деня — същите като „изядено / план“ в картата на деня
-                // (целта на двигателя се разминаваше с тях); при свободно хранене — целта.
-                const menuSum = (dayData.meals || []).reduce(function(t, m) {
-                    if (m && m.macros) { t.kcal += Number(m.calories) || 0; t.protein += Number(m.macros.protein) || 0; t.carbs += Number(m.macros.carbs) || 0; t.fats += Number(m.macros.fats) || 0; }
-                    else if (m && m.type === 'Свободно хранене') t.free = true;
-                    return t;
-                }, { kcal: 0, protein: 0, carbs: 0, fats: 0, free: false });
-                const shown = menuSum.kcal > 0 && !menuSum.free ? menuSum : energy;
-                const card = document.createElement('div');
-                card.className = 'meal-card breakfast-note-card meal-card--clickable day-energy-card';
-                card.innerHTML =
-                    '<div class="meal-info">' +
-                    '<div class="meal-type"><i class="fas ' + icon + '" style="font-size:0.75em;margin-right:4px;opacity:0.75"></i>' + head + '</div>' +
-                    '<div class="meal-name" style="font-size:0.92em;font-weight:600">' + escapeHtml(detail) + '</div>' +
-                    '</div>';
-                card.setAttribute('role', 'button');
-                card.setAttribute('tabindex', '0');
-                card.setAttribute('aria-label', head + ' — подробности');
-                const openEnergy = function() {
-                    const lines = (mp && mp.principles) || [];
-                    const micro = (mp && mp.micro && mp.micro.items) || [];
-                    // Клиентът вижда решението и какво да направи сам. Качеството на менюто е работа
-                    // на двигателя (за специалиста), а измерванията, които са наред, не са действие.
-                    const microTodo = micro.filter(function(q) { return q.status !== 'ok' && q.advice; });
-                    const activityNote = dietPlan.analysis && dietPlan.analysis._activityNote;
-                    const numbers = shown && shown.kcal > 0
-                        ? 'Денят в числа: ~' + Math.round(shown.kcal) + ' kcal · белтък ' + Math.round(shown.protein) + ' г · въглехидрати ' + Math.round(shown.carbs) + ' г · мазнини ' + Math.round(shown.fats) + ' г'
-                        : '';
-                    openModal(head, lines
-                        .concat(numbers ? [numbers] : [])
-                        .concat(activityNote ? [activityNote] : [])
-                        .concat(microTodo.length ? ['Какво да добавиш:'].concat(microTodo.map(function(q) { return '• ' + q.label + ' — ' + q.advice; })) : [])
-                        .join('\n\n'), '', null, null, null, null);
-                };
-                card.addEventListener('click', openEnergy);
-                card.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEnergy(); }
-                });
-                mealContainer.appendChild(card);
-            }
+            // Картата „Тренировъчен / Почивен ден“ отпадна: насоките за деня са в стратегията (Насоки),
+            // менюто вече е сглобено по тях — на екрана с менюто не носят действие.
 
             // Check if the current day has a free eating meal (determined by AI in step 3)
             const hasFreeMeal = dayData.meals.some(meal => meal.type === 'Свободно хранене');
@@ -6034,30 +5985,18 @@
                         '<div class="meal-type">' + escapeHtmlWithBreaks(getFreeMealSlotDisplayLabel()) + '</div>' +
                         '<div class="meal-name"><span class="free-day-icon-inline" aria-hidden="true">🍕</span>Свободно хранене</div>';
                 } else {
+                    // На картата — само храненето и името; ползите, десертът, грамажът и „Друго ястие“ са в
+                    // прозореца на храненето (bindMealCardDetailOpen).
                     mealInfo.innerHTML = `
                     <div class="meal-type">${escapeHtmlWithBreaks(getMealDisplayLabel(meal.type))}</div>
                     <div class="meal-name">${escapeHtmlWithBreaks(meal.name)}</div>
-                    ${mealWhyHtml(meal)}
-                    ${meal.dessert && typeof meal.dessert === 'object' && meal.dessert.name ? `<div class="meal-dessert"><i class="fas fa-cookie-bite"></i> <strong>Десерт:</strong> ${escapeHtmlWithBreaks(meal.dessert.name)}${meal.dessert.weight ? ` • ${escapeHtmlWithBreaks(meal.dessert.weight)}` : ''}</div>` : ''}
                 `;
-                    // Смяна с равностойна алтернатива — за днес и бъдещите дни.
-                    const planIdx = dayData.meals.indexOf(meal);
-                    if (planIdx >= 0 && Array.isArray(meal.alternatives) && meal.alternatives.length && !isViewedDayPast(dayNum)) {
-                        const swapBtn = document.createElement('button');
-                        swapBtn.type = 'button';
-                        swapBtn.className = 'meal-swap-btn';
-                        swapBtn.setAttribute('aria-label', 'Друго ястие за ' + (meal.name || 'това хранене'));
-                        swapBtn.innerHTML = '<i class="fas fa-shuffle" aria-hidden="true"></i> ' + (meal._originalDishId ? 'Сменено' : 'Друго ястие');
-                        swapBtn.addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            openMealSwapSheet(dayNum, planIdx);
-                        });
-                        mealInfo.appendChild(swapBtn);
-                    }
                 }
 
                 mealCard.appendChild(mealInfo);
-                bindMealCardDetailOpen(mealCard, meal, isFreeMeal);
+                const planIdx = dayData.meals.indexOf(meal);
+                const canSwap = !isFreeMeal && planIdx >= 0 && Array.isArray(meal.alternatives) && meal.alternatives.length && !isViewedDayPast(dayNum);
+                bindMealCardDetailOpen(mealCard, meal, isFreeMeal, canSwap ? { dayNum: dayNum, planIdx: planIdx } : null);
                 mealCard.style.animation = `cardEnter 0.45s cubic-bezier(0.22,1,0.36,1) ${_mi * 65}ms both`;
                 mealContainer.appendChild(mealCard);
             });
@@ -6864,7 +6803,7 @@
             box.hidden = !note;
         }
 
-        function bindMealCardDetailOpen(card, meal, isFreeMeal) {
+        function bindMealCardDetailOpen(card, meal, isFreeMeal, swap) {
             card.classList.add('meal-card--clickable');
             card.setAttribute('role', 'button');
             card.setAttribute('tabindex', '0');
@@ -6885,6 +6824,7 @@
                 );
                 showMealRecipeSteps(meal);
                 showMealPersonalNote(meal.personalNote || '');
+                showMealSwapAction(swap, meal);
             };
             card.addEventListener('click', function(e) {
                 if (e.target.closest('.meal-check-btn, .meal-describe-btn, .meal-swap-btn')) return;
@@ -6898,7 +6838,31 @@
             });
         }
 
+        /** „Друго ястие“ в прозореца на храненето (на картата е само името). */
+        function showMealSwapAction(swap, meal) {
+            var old = document.getElementById('mSwapAction');
+            if (old) old.remove();
+            if (!swap) return;
+            var box = document.querySelector('#infoModal .modal-card');
+            if (!box) return;
+            // Под заглавието и грамажа — видимо веднага, без превъртане до края на рецептата.
+            var anchor = document.getElementById('mWeightBadge');
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.id = 'mSwapAction';
+            btn.className = 'meal-swap-btn modal-swap-btn';
+            btn.innerHTML = '<i class="fas fa-shuffle" aria-hidden="true"></i> ' + (meal && meal._originalDishId ? 'Сменено — избери друго' : 'Друго ястие');
+            btn.addEventListener('click', function() {
+                if (typeof closeModal === 'function') closeModal();
+                openMealSwapSheet(swap.dayNum, swap.planIdx);
+            });
+            if (anchor && anchor.parentNode && box.contains(anchor)) anchor.parentNode.insertBefore(btn, anchor.nextSibling);
+            else box.appendChild(btn);
+        }
+
         function openModal(title, description, benefit, macros, dessert, weight, calories) {
+            var staleSwap = document.getElementById('mSwapAction');
+            if (staleSwap) staleSwap.remove();
             showMealPersonalNote('');
             // Strip dessert name from title to avoid duplication with the mDessert section below
             let displayTitle = title;
@@ -8146,67 +8110,7 @@
             }, delay);
         }
 
-        /* Запис на теглото в екрана на плана. Пази се локално и попълва седмичния преглед —
-           без тегло нито едно правило за калориите не може да работи. */
-        (function() {
-            var KEY = 'np_weight_log';
-            var DAY = 86400000;
-            function load() { try { var l = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(l) ? l : []; } catch (_) { return []; } }
-            function fmt(n) { return String(Math.round(n * 10) / 10).replace('.', ','); }
-            function startKg() { try { return parseFloat(String(JSON.parse(localStorage.getItem('userData') || '{}').weight || '').replace(',', '.')) || null; } catch (_) { return null; } }
-            function render(editing) {
-                var el = document.getElementById('weightChip');
-                if (!el) return;
-                // Само когато целта е в килограмите (сваляне или покачване) — при стягане,
-                // здраве и поддържане теглото не е мярката и редът би бил излишен.
-                var dir = '';
-                try { dir = ((JSON.parse(localStorage.getItem('dietPlan') || '{}') || {}).analysis || {})._goalDirection || ''; } catch (_) {}
-                if (dir !== 'lose' && dir !== 'gain') { el.hidden = true; return; }
-                var log = load();
-                var last = log[log.length - 1];
-                var days = last ? Math.floor((Date.now() - last.at) / DAY) : null;
-                var due = !last || days >= 7;
-                el.hidden = false;
-                el.classList.toggle('is-due', due);
-                if (editing) {
-                    el.innerHTML = '<i class="fas fa-weight-scale" aria-hidden="true"></i><label class="wc-text" for="wcInput">Тегло сутрин, на гладно (кг)</label>' +
-                        '<input id="wcInput" type="text" inputmode="decimal" autocomplete="off" placeholder="' + (last ? fmt(last.kg) : 'напр. 82,4') + '">' +
-                        '<button type="button" class="meal-swap-btn" id="wcSave">Запиши</button>';
-                    var inp = document.getElementById('wcInput');
-                    var save = function() {
-                        var v = parseFloat(String(inp.value).replace(',', '.'));
-                        if (!(v >= 30 && v <= 300)) { inp.setAttribute('aria-invalid', 'true'); inp.focus(); return; }
-                        var l = load().filter(function(x) { return Date.now() - x.at > 12 * 3600000; }); // едно число на ден
-                        l.push({ at: Date.now(), kg: Math.round(v * 10) / 10 });
-                        localStorage.setItem(KEY, JSON.stringify(l.slice(-60)));
-                        render(false);
-                    };
-                    document.getElementById('wcSave').addEventListener('click', save);
-                    inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') save(); });
-                    inp.focus();
-                    return;
-                }
-                var start = startKg();
-                var delta = last && start ? Math.round((last.kg - start) * 10) / 10 : null;
-                var main = last
-                    ? 'Тегло: <b>' + fmt(last.kg) + ' кг</b>' + (delta ? ' · ' + (delta > 0 ? '+' : '−') + fmt(Math.abs(delta)) + ' кг от началото' : '')
-                    : '<b>Запиши теглото си</b>';
-                var sub = !last ? 'По него планът се настройва към резултата ти.'
-                    : due ? 'Последно преди ' + days + ' дни — време е за ново претегляне.'
-                    : days === 0 ? 'Записано днес.' : 'Записано преди ' + days + (days === 1 ? ' ден.' : ' дни.');
-                el.innerHTML = '<i class="fas fa-weight-scale" aria-hidden="true"></i><span class="wc-text">' + main + '<small>' + sub + '</small></span>' +
-                    '<button type="button" class="meal-swap-btn" id="wcEdit">' + (last ? 'Ново' : 'Запиши') + '</button>';
-                document.getElementById('wcEdit').addEventListener('click', function() { render(true); });
-            }
-            window.NPWeight = {
-                /** Последното тегло, ако е от последните 3 дни (за седмичния преглед). */
-                recent: function() { var l = load(); var x = l[l.length - 1]; return x && Date.now() - x.at <= 3 * DAY ? x.kg : null; },
-                /** Последните записи за чата: [{ date, kg }]. */
-                log: function() { return load().slice(-6).map(function(x) { return { date: new Date(x.at).toISOString().slice(0, 10), kg: x.kg }; }); }
-            };
-            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function() { render(false); });
-            else render(false);
-        })();
+        // Теглото: weight-log.js (записът е в „Напредък“; тук остава window.NPWeight за прегледа и чата).
 
         /** Поздравът и готови въпроси за начало — празният чат не оставя човека сам пред полето. */
         function showChatWelcome() {

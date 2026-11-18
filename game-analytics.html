@@ -258,7 +258,21 @@
             gap: 4px;
         }
         .game-ring-svg { transform: rotate(-90deg); }
-        .game-ring-svg text { display: none; }
+        /* Теглото (weight-log.js) */
+        .weight-chip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; padding: 10px 14px; border-radius: 16px; background: var(--card-bg); border: 1px solid rgba(3, 147, 156, 0.14); font-size: 0.86rem; color: var(--text-dark); }
+        .weight-chip.is-due { border-color: rgba(3, 147, 156, 0.45); background: rgba(3, 147, 156, 0.07); }
+        .weight-chip > i { color: #03939C; }
+        .weight-chip .wc-text { flex: 1; min-width: 140px; }
+        .weight-chip .wc-text small { display: block; color: var(--text-light); font-size: 0.76rem; margin-top: 1px; }
+        .weight-chip input { width: 92px; min-height: 44px; padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(3, 147, 156, 0.35); background: var(--bg-color); color: var(--text-dark); font: inherit; font-size: 1rem; }
+        .weight-chip .meal-swap-btn { display: inline-flex; align-items: center; min-height: 44px; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(3, 147, 156, 0.3); background: rgba(3, 147, 156, 0.08); color: #03939C; font: inherit; font-weight: 600; cursor: pointer; }
+        .game-day-col[data-tip] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .game-day-col.is-tip span { color: var(--text-dark); font-weight: 700; }
+        .game-day-tip { position: fixed; z-index: 10002; max-width: 240px; padding: 8px 12px; border-radius: 10px; background: var(--text-dark, #0F2F2E); color: var(--bg-color, #fff);
+            font-size: 0.82rem; font-weight: 600; line-height: 1.35; box-shadow: 0 6px 20px rgba(0,0,0,.25); pointer-events: none; animation: gaTipIn .14s ease-out; }
+        .game-day-tip::after { content: ''; position: absolute; left: var(--arrow-x, 50%); bottom: -6px; transform: translateX(-50%); border: 6px solid transparent; border-bottom: 0; border-top-color: var(--text-dark, #0F2F2E); }
+        .game-day-tip.is-below::after { bottom: auto; top: -6px; border: 6px solid transparent; border-top: 0; border-bottom-color: var(--text-dark, #0F2F2E); }
+        @keyframes gaTipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
         .game-ring-bg  { fill: none; stroke: rgba(3,147,156,0.12); }
         .game-ring-fg  { fill: none; stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1); }
         .game-ring-label { font-size: 0.75rem; font-weight: 600; color: var(--text-light); text-align: center; }
@@ -724,6 +738,8 @@
 
     <!-- Main Content -->
     <div class="container">
+        <!-- Теглото (weight-log.js): само при цел в килограмите; преди беше на екрана с менюто. -->
+        <div id="weightChip" class="weight-chip" hidden></div>
         <div class="game-analytics-section open" id="goalFocusSection" hidden>
             <div class="game-analytics-header">
                 <div class="game-analytics-title">
@@ -836,6 +852,7 @@
     </script>
 
     <script src="./game-scoring.js"></script>
+    <script src="./weight-log.js"></script>
     <script src="./goal-model.js"></script>
     <script src="./goal-focus.js"></script>
     <script src="./persona.js"></script>
@@ -1079,6 +1096,19 @@
             });
             var waterValid = waterByDay.filter(function(v){return v!==null;});
             var waterPct = waterValid.length>0 ? Math.round(waterValid.reduce(function(a,b){return a+b;},0)/waterValid.length) : null;
+            // Стойността за деня (балончето над стълбчето).
+            var balanceTips = balanceByDay.map(function(v){ return v==null ? 'Няма данни' : v>=100 ? 'Висок баланс' : v>=50 ? 'Умерен баланс' : 'Нисък баланс'; });
+            var sleepTips = sleepByDay.map(function(v){ return v==null ? 'Няма данни' : v ? 'Спал/а добре' : 'Лош сън'; });
+            var waterTips = waterByDay.map(function(v){ return v==null ? 'Няма данни' : v ? 'Достатъчно вода' : 'Малко вода'; });
+            var actTips = days.map(function(d, i){
+                var e = d.rec && d.rec.eveningCheck; var v = actRawByDay[i];
+                if (v == null) return 'Няма данни';
+                var parts = [];
+                if (e && e.steps > 0) parts.push(fmtSteps(Math.round(e.steps)) + ' крачки');
+                parts.push(v + '% от целта');
+                if (e && e.trained) parts.push('тренировка');
+                return parts.join(' · ');
+            });
 
             var junkCount7=0;
             days.forEach(function(d){ ((d.rec&&d.rec.extraMeals)||[]).forEach(function(em){
@@ -1224,6 +1254,31 @@
                 if (e.key === 'Escape') window.NutriPlanHandleBack();
             });
             var gaNumbers = {};
+            // Балонче със стойността за деня — над стълбчето, със стрелка; затваря се с докосване другаде.
+            function hideDayTip() { var t = document.getElementById('gameDayTip'); if (t) t.remove(); document.querySelectorAll('.game-day-col.is-tip').forEach(function(c){ c.classList.remove('is-tip'); }); }
+            function showDayTip(col) {
+                var same = col.classList.contains('is-tip');
+                hideDayTip();
+                if (same) return;
+                var tip = document.createElement('div');
+                tip.id = 'gameDayTip'; tip.className = 'game-day-tip'; tip.setAttribute('role', 'status');
+                tip.textContent = col.getAttribute('data-tip');
+                document.body.appendChild(tip);
+                col.classList.add('is-tip');
+                var r = col.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+                var left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+                var top = r.top - h - 10;
+                var below = top < 8;
+                if (below) top = r.bottom + 10;
+                tip.style.left = left + 'px'; tip.style.top = top + 'px';
+                tip.style.setProperty('--arrow-x', (r.left + r.width / 2 - left) + 'px');
+                if (below) tip.classList.add('is-below');
+            }
+            if (!window._gaDayTipBound) {
+                window._gaDayTipBound = true;
+                document.addEventListener('click', function(e){ if (!e.target.closest('.game-day-col[data-tip]')) hideDayTip(); });
+                window.addEventListener('scroll', hideDayTip, { passive: true });
+            }
             function showExplanation(key) {
                 var info = EXPLANATIONS[key]; if(!info) return;
                 var old = document.getElementById('gameExplainOverlay'); if(old) old.remove();
@@ -1272,8 +1327,9 @@
             var BAR_MIN_H = 4;
             var BAR_MAX_H = 36;
             var LABEL_STYLE = 'font-size:0.75rem;color:var(--text-light)';
-            function miniBarCol(barStyle, label, dataAttr) {
-                return '<div class="game-day-col">' +
+            function tipAttr(t) { return t ? ' data-tip="' + String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;') + '" role="button" tabindex="0"' : ''; }
+            function miniBarCol(barStyle, label, dataAttr, tip) {
+                return '<div class="game-day-col"' + tipAttr(tip ? label + ' · ' + tip : '') + '>' +
                     '<div class="game-day-dot" style="' + barStyle + '"' + (dataAttr ? ' ' + dataAttr : '') + '></div>' +
                     '<span style="' + LABEL_STYLE + '">' + label + '</span>' +
                     '</div>';
@@ -1286,16 +1342,17 @@
                 return '<div class="game-index-bar-wrap game-act-wrap"><div class="game-index-bar" style="width:0%;background:'+(over?'linear-gradient(90deg,#f59e0b,#ea580c)':'linear-gradient(90deg,#f59e0b,#fbbf24)')+'" data-ga-bar="'+Math.min(100,Math.max(0,pct/ACT_SCALE*100)).toFixed(1)+'"></div>' +
                     '<span class="game-act-target" style="left:'+(100/ACT_SCALE*100).toFixed(1)+'%" aria-hidden="true"></span></div>';
             }
-            function miniBarChart(perDayValues, maxVal, color, overColor) {
+            function miniBarChart(perDayValues, maxVal, color, overColor, tips) {
                 var cols = perDayValues.map(function(v,idx){
                     var dow   = new Date(days[idx].key).getDay();
                     var label = DAY_NAMES[(dow+6)%7];
-                    if(v==null) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.25)', label);
+                    var tip = tips ? tips[idx] : (v==null ? 'Няма данни' : v + '%');
+                    if(v==null) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.25)', label, '', tip || 'Няма данни');
                     // 0 е отговор (лош сън, без вода) — показва се в цвят, не като „няма данни“.
-                    if(v===0) return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color+';opacity:.55', label);
+                    if(v===0) return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color+';opacity:.55', label, '', tip);
                     var pct2 = maxVal>0?Math.min(100,Math.round(v/maxVal*100)):0;
                     var h    = Math.max(BAR_MIN_H, Math.round(pct2*BAR_MAX_H/100));
-                    return miniBarCol('height:'+BAR_MIN_H+'px;background:'+(overColor&&v>100?overColor:color), label, 'data-ga-bar-h="'+h+'px"');
+                    return miniBarCol('height:'+BAR_MIN_H+'px;background:'+(overColor&&v>100?overColor:color), label, 'data-ga-bar-h="'+h+'px"', tip);
                 });
                 return '<div class="game-day-dots">'+ cols.join('') +'</div>';
             }
@@ -1311,14 +1368,15 @@
                 var cols = perDayConsumed.map(function(v, idx) {
                     var dow   = new Date(days[idx].key).getDay();
                     var label = DAY_NAMES[(dow+6)%7];
-                    if (v == null) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.2)', label);
+                    if (v == null) return miniBarCol('height:'+BAR_MIN_H+'px;background:rgba(156,163,175,0.2)', label, '', 'Няма данни');
                     var consumed = v;
                     var dayPlanned = perDayPlanned[idx] || avgPlanned;
                     var isOverTarget = dayPlanned > 0 ? consumed > dayPlanned : consumed > DEFAULT_SURPLUS_THRESHOLD;
                     var color = isOverTarget ? surplusColor : deficitColor;
                     var pct = dayPlanned > 0 ? consumed / dayPlanned : 0;
                     var h = consumed > 0 ? Math.max(BAR_MIN_H, Math.min(BAR_MAX_H, Math.round(pct * TARGET_BAR_PX))) : BAR_MIN_H;
-                    return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color, label, 'data-ga-bar-h="'+h+'px"');
+                    var calTip = Math.round(consumed) + (dayPlanned > 0 ? ' от ' + Math.round(dayPlanned) : '') + ' kcal';
+                    return miniBarCol('height:'+BAR_MIN_H+'px;background:'+color, label, 'data-ga-bar-h="'+h+'px"', calTip);
                 });
                 return '<div class="game-day-dots-cal">' +
                     '<div class="game-cal-target-line" style="bottom:'+targetLineBottom+'px"></div>' +
@@ -1356,12 +1414,6 @@
                     '<div class="game-week-title">Текуща седмица</div>' +
                     '<div class="game-week-score">'+weekStarsHtml+'</div>' +
                     '<div class="game-week-sub">'+(engagementPct>=80?'Отлична седмица':engagementPct>=60?'Добра седмица':'Има накъде да растем')+'</div>' +
-                    '<div class="game-week-dots">' +
-                    weekScores.map(function(s){
-                        var bg = (s&&s.score!=null)?(s.score>=4?'rgba(255,255,255,0.9)':s.score>=3?'rgba(251,191,36,0.85)':'rgba(248,113,113,0.8)'):'rgba(255,255,255,0.18)';
-                        return '<div class="game-week-dot" style="background:'+bg+'" title="'+(s&&s.score!=null?s.label:'Няма данни')+'"></div>';
-                    }).join('') +
-                    '</div>' +
                 '</div>' +
             '</div>';
 
@@ -1386,8 +1438,8 @@
             html += '<div id="gameMetricsDetails" style="display:block;">';
 
             html += '<div class="game-index-row" data-explain="engagement">' +
-                '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#03939C"></i> Ангажираност</span><span></span></div>' +
-                '<div class="game-index-hint">'+(!validScores.length?'<i class="fas fa-seedling" style="color:#10b981"></i> Започваш — отбелязвай храненията си':engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#03939C"></i> Ангажираност</span><span>'+engagementPct+'%</span></div>' +
+                '<div class="game-index-hint">'+(!validScores.length?'<i class="fas fa-seedling" style="color:#10b981"></i> Започваш — отбелязвай храненията си':engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+(mealAdherencePct!=null?' · спазени хранения '+mealAdherencePct+'%':'')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(engagementPct,'linear-gradient(90deg,#03939C,#06B6D4)') + miniBarChart(engPcts,100,'#03939C') +
             '</div>';
 
@@ -1406,7 +1458,7 @@
                 calBalanceLabel = '<i class="fas fa-arrow-down" style="color:#3b82f6"></i> Нетен дефицит';
             }
             html += '<div class="game-index-row" data-explain="calories">' +
-                '<div class="game-index-label"><span><i class="fas fa-scale-balanced" style="color:#f59e0b"></i> Калориен баланс</span><span></span></div>' +
+                '<div class="game-index-label"><span><i class="fas fa-scale-balanced" style="color:#f59e0b"></i> Калориен баланс</span><span>'+(calBalanceByDay.some(function(v){ return v!==null; }) ? (netCalBalance>0?'+':'')+netCalBalance+' kcal' : '—')+'</span></div>' +
                 '<div class="game-index-hint">'+calBalanceLabel+' <i class="fas fa-circle-info"></i></div>' +
                 (calBalanceByDay.some(function(v){ return v!==null; }) ? '' : '<div class="game-index-bar-wrap"></div>') +
                 (!calBalanceByDay.some(function(v){ return v!==null; }) ? '' : pBar(calAdherencePct, netCalBalance>700?'linear-gradient(90deg,#ef4444,#f97316)':netCalBalance>0?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#3b82f6,#06B6D4)')) +
@@ -1414,29 +1466,29 @@
             '</div>';
 
             if(balancePct!=null) html += '<div class="game-index-row" data-explain="stress">' +
-                '<div class="game-index-label"><span><i class="fas fa-heart-pulse" style="color:#10b981"></i> Емоционален баланс</span><span></span></div>' +
+                '<div class="game-index-label"><span><i class="fas fa-heart-pulse" style="color:#10b981"></i> Емоционален баланс</span><span>'+balancePct+'%</span></div>' +
                 '<div class="game-index-hint">'+(balancePct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висок баланс':balancePct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък баланс')+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(balancePct,'linear-gradient(90deg,#10b981,#06B6D4)') + miniBarChart(balanceByDay,100,'#10b981') +
+                pBar(balancePct,'linear-gradient(90deg,#10b981,#06B6D4)') + miniBarChart(balanceByDay,100,'#10b981',null,balanceTips) +
             '</div>';
 
             if(sleepPct!=null) html += '<div class="game-index-row" data-explain="sleep">' +
-                '<div class="game-index-label"><span><i class="fas fa-bed" style="color:#6366f1"></i> Сън</span><span></span></div>' +
+                '<div class="game-index-label"><span><i class="fas fa-bed" style="color:#6366f1"></i> Сън</span><span>'+sleepPct+'%</span></div>' +
                 '<div class="game-index-hint">'+(sleepPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добър сън':sleepPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерен':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(sleepPct,'linear-gradient(90deg,#6366f1,#8b5cf6)') + miniBarChart(sleepByDay,100,'#6366f1') +
+                pBar(sleepPct,'linear-gradient(90deg,#6366f1,#8b5cf6)') + miniBarChart(sleepByDay,100,'#6366f1',null,sleepTips) +
             '</div>';
 
             if(actPct!=null) html += '<div class="game-index-row" data-explain="activity">' +
-                '<div class="game-index-label"><span><i class="fas fa-person-walking" style="color:#f59e0b"></i> Активност</span><span></span></div>' +
+                '<div class="game-index-label"><span><i class="fas fa-person-walking" style="color:#f59e0b"></i> Активност</span><span>'+actRawPct+'%</span></div>' +
                 '<div class="game-index-hint">'+(actRawPct>100?'<i class="fas fa-arrow-up" style="color:#ea580c"></i> Над целта':actPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Висока':actPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+
-                    ' <i class="fas fa-circle-info"></i></div>' +
-                actBar(actRawPct) + miniBarChart(actRawByDay,ACT_SCALE,'#f59e0b','#ea580c') +
-                (actExtraBurn>0 ? '<div class="game-index-hint" style="margin-top:4px"><i class="fas fa-fire-flame-curved" style="color:#ea580c"></i> Движиш се над целта — разходът ти е по-голям от очаквания; отчита се в седмичния преглед на плана</div>' : '') +
+                    (actStepsAvg!=null ? ' · ~'+fmtSteps(actStepsAvg)+' крачки/ден, цел '+fmtSteps(actTarget) : '')+' <i class="fas fa-circle-info"></i></div>' +
+                actBar(actRawPct) + miniBarChart(actRawByDay,ACT_SCALE,'#f59e0b','#ea580c',actTips) +
+                (actExtraBurn>0 ? '<div class="game-index-hint" style="margin-top:4px"><i class="fas fa-fire-flame-curved" style="color:#ea580c"></i> ~'+actExtraBurn+' kcal допълнителен разход в '+actOverDays+' '+(actOverDays===1?'ден':'дни')+' — реалният дефицит е по-голям; влиза в седмичния преглед на плана</div>' : '') +
             '</div>';
 
             if(waterPct!=null) html += '<div class="game-index-row" data-explain="water">' +
-                '<div class="game-index-label"><span><i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратация</span><span></span></div>' +
+                '<div class="game-index-label"><span><i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратация</span><span>'+waterPct+'%</span></div>' +
                 '<div class="game-index-hint">'+(waterPct>=70?'<i class="fas fa-check-circle" style="color:#10b981"></i> Добра':waterPct>=40?'<i class="fas fa-circle" style="color:#f59e0b"></i> Умерена':'<i class="fas fa-circle" style="color:#ef4444"></i> Ниска')+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(waterPct,'linear-gradient(90deg,#06B6D4,#0284C7)') + miniBarChart(waterByDay,100,'#06B6D4') +
+                pBar(waterPct,'linear-gradient(90deg,#06B6D4,#0284C7)') + miniBarChart(waterByDay,100,'#06B6D4',null,waterTips) +
             '</div>';
 
             if(noDataDaysCount>0) html += '<div class="game-no-data-note"><i class="fas fa-calendar-xmark"></i> ' + noDataDaysCount + ' ' + (noDataDaysCount===1?'ден':'дни') + ' без отбелязана активност (не влизат в средните стойности)</div>';
@@ -1547,6 +1599,11 @@
             });
 
             // Attach explain handlers
+            body.querySelectorAll('.game-day-col[data-tip]').forEach(function(col){
+                var open = function(e){ e.stopPropagation(); showDayTip(col); };
+                col.addEventListener('click', open);
+                col.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(e); } });
+            });
             body.querySelectorAll('[data-explain]').forEach(function(el){
                 el.addEventListener('click', function(){ showExplanation(el.getAttribute('data-explain')); });
             });
