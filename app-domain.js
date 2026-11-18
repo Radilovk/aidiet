@@ -17,6 +17,9 @@ const ORIGIN = 'https://biocode.website';
 // Страниците на другите проекти не се показват на домейна на приложението (админ панелът — admin.html — е позволен: линковете за одобрение на планове).
 // (EmoEat — emoeat.html, emoeat-landing.html — е част от системата и минава.)
 const OTHER_PROJECTS = /^\/(xbody|xb-studio|xems-|studio|acuity\/|fitness\/|kids|pep|reta|aix|lqto|vaprosnik|dopamine|health\.html|notifications-test|pwa-test|design_presentation|samples\/|clients\/|docs\/|KV\/|migrations\/|workflows\/|viber-sender\/|scripts\/|\.github\/|CNAME$)/i;
+// Изключение: картинките направо в docs/ (напр. docs/Chat2.png — иконата на асистента) са част от
+// приложението; влизат и в APK (build-apk.yml: docs/*.png). Без това иконата на чата е празна на eatologix.com.
+const APP_ASSETS = /^\/docs\/[^/]+\.png$/i;
 const list = (v) => String(v || '').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
 
 export function isAppHost(env, host) {
@@ -44,7 +47,7 @@ export async function handleAppDomain(request, env) {
   if (url.pathname.startsWith('/api/')) return null;
   if (request.method !== 'GET' && request.method !== 'HEAD') return null;
   const mod = MODULE_HOSTS[bare];
-  if (OTHER_PROJECTS.test(url.pathname)) return Response.redirect(`https://${mod ? MAIN_HOST : bare}/`, 302);
+  if (OTHER_PROJECTS.test(url.pathname) && !APP_ASSETS.test(url.pathname)) return Response.redirect(`https://${mod ? MAIN_HOST : bare}/`, 302);
   // Домейн на модул: страниците на Eatologix се отварят на основния домейн.
   if (mod && url.pathname !== '/' && /\.html$/i.test(url.pathname) && !mod.pages.test(url.pathname)) {
     return Response.redirect(`https://${MAIN_HOST}${url.pathname}${url.search}`, 302);
