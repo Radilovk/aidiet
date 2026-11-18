@@ -74,3 +74,6 @@ fitness/data/.translate-checkpoint.json
 # Изход от scripts/design-audit.mjs
 design-audit.json
 design-audit-shots/
+
+# Бета-тест: снимки и отчети (scripts/beta/run.mjs)
+beta-report/

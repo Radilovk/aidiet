@@ -94,7 +94,7 @@ KEEP = {
     "android.permission.health.READ_HEART_RATE",
 }
 MIN_SDK = 26
-PRIVACY_URL = "https://biocode.website/privacy-policy.html"
+PRIVACY_URL = "https://eatologix.com/privacy-policy.html"
 
 
 def main() -> int:

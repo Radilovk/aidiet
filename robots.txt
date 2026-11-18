@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://biocode.website/sitemap.xml
+Sitemap: https://eatologix.com/sitemap.xml

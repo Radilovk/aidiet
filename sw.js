@@ -1,5 +1,5 @@
 // Service Worker for Eatologix PWA
-// Configure base path - use '/' for custom domain (biocode.website) or '/aidiet' for GitHub Pages
+// Configure base path - use '/' for a custom domain (eatologix.com, served from GitHub Pages) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
 const CACHE_NAME = 'nutriplan-v69'; // v69: заключването на платените функции в plan/profile, цени във features

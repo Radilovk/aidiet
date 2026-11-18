@@ -767,7 +767,7 @@ var init_errors = __esm({
 });
 
 // node_modules/@anthropic-ai/sdk/core/error.mjs
-var AnthropicError, APIError, APIUserAbortError, APIConnectionError, APIConnectionTimeoutError, RetryableError, BadRequestError, AuthenticationError, PermissionDeniedError, NotFoundError, RequestTimeoutError, ConflictError, PreconditionFailedError, ContentTooLargeError, UnprocessableEntityError, RateLimitError, RequestHeaderFieldsTooLargeError, ClientClosedRequestError, InternalServerError, NotImplementedError, ServiceUnavailableError, GatewayTimeoutError, OverloadedError, STATUS_ERROR_CLASSES;
+var AnthropicError, APIError, APIUserAbortError, APIConnectionError, APIConnectionTimeoutError, RetryableError, BadRequestError, AuthenticationError, PaymentRequiredError, PermissionDeniedError, NotFoundError, RequestTimeoutError, ConflictError, PreconditionFailedError, ContentTooLargeError, UnprocessableEntityError, RateLimitError, RequestHeaderFieldsTooLargeError, ClientClosedRequestError, InternalServerError, NotImplementedError, ServiceUnavailableError, GatewayTimeoutError, OverloadedError, STATUS_ERROR_CLASSES;
 var init_error = __esm({
   "node_modules/@anthropic-ai/sdk/core/error.mjs"() {
     init_errors();
@@ -881,6 +881,12 @@ var init_error = __esm({
       AuthenticationError2._errorName = "AuthenticationError";
       return AuthenticationError2;
     })();
+    PaymentRequiredError = /* @__PURE__ */ (() => {
+      class PaymentRequiredError2 extends APIError {
+      }
+      PaymentRequiredError2._errorName = "PaymentRequiredError";
+      return PaymentRequiredError2;
+    })();
     PermissionDeniedError = /* @__PURE__ */ (() => {
       class PermissionDeniedError2 extends APIError {
       }
@@ -974,6 +980,7 @@ var init_error = __esm({
     STATUS_ERROR_CLASSES = /* @__PURE__ */ new Map([
       [400, BadRequestError],
       [401, AuthenticationError],
+      [402, PaymentRequiredError],
       [403, PermissionDeniedError],
       [404, NotFoundError],
       [408, RequestTimeoutError],
@@ -51864,7 +51871,7 @@ var sleep = (ms, signal) => new Promise((resolve) => {
 init_errors();
 
 // node_modules/@anthropic-ai/sdk/version.mjs
-var VERSION = "1.9.0";
+var VERSION = "1.10.0";
 
 // node_modules/@anthropic-ai/sdk/internal/detect-platform.mjs
 var isRunningInBrowser = () => {
@@ -55809,6 +55816,18 @@ var RequestBodyEncodingUnsupportedError = /* @__PURE__ */ (() => {
   RequestBodyEncodingUnsupportedError2._errorName = "RequestBodyEncodingUnsupportedError";
   return RequestBodyEncodingUnsupportedError2;
 })();
+var LinkedOrganizationBillingUnavailableError = /* @__PURE__ */ (() => {
+  class LinkedOrganizationBillingUnavailableError2 extends PaymentRequiredError {
+  }
+  LinkedOrganizationBillingUnavailableError2._errorName = "LinkedOrganizationBillingUnavailableError";
+  return LinkedOrganizationBillingUnavailableError2;
+})();
+var LinkedOrganizationSpendLimitReachedError = /* @__PURE__ */ (() => {
+  class LinkedOrganizationSpendLimitReachedError2 extends PaymentRequiredError {
+  }
+  LinkedOrganizationSpendLimitReachedError2._errorName = "LinkedOrganizationSpendLimitReachedError";
+  return LinkedOrganizationSpendLimitReachedError2;
+})();
 var SandboxEgressRestrictedError = /* @__PURE__ */ (() => {
   class SandboxEgressRestrictedError2 extends PermissionDeniedError {
   }
@@ -55820,6 +55839,12 @@ var RequestBodyTooLargeAfterDecodingError = /* @__PURE__ */ (() => {
   }
   RequestBodyTooLargeAfterDecodingError2._errorName = "RequestBodyTooLargeAfterDecodingError";
   return RequestBodyTooLargeAfterDecodingError2;
+})();
+var ContractSpendLimitReachedError = /* @__PURE__ */ (() => {
+  class ContractSpendLimitReachedError2 extends RateLimitError {
+  }
+  ContractSpendLimitReachedError2._errorName = "ContractSpendLimitReachedError";
+  return ContractSpendLimitReachedError2;
 })();
 var EnforcedSpendLimitReachedError = /* @__PURE__ */ (() => {
   class EnforcedSpendLimitReachedError2 extends RateLimitError {
@@ -57280,6 +57305,7 @@ var _IdleClock_maxIdleMs;
 var _IdleClock_onExpire;
 var _IdleClock_blockers;
 var _IdleClock_armPending;
+var _IdleClock_idleMayBeStale;
 var _IdleClock_timer;
 var _SessionToolRunner_instances;
 var _SessionToolRunner_consumed;
@@ -57292,6 +57318,7 @@ var _SessionToolRunner_seen;
 var _SessionToolRunner_answered;
 var _SessionToolRunner_confirmationVerdicts;
 var _SessionToolRunner_awaitingConfirmation;
+var _SessionToolRunner_terminatedThreads;
 var _SessionToolRunner_results;
 var _SessionToolRunner_inFlightCount;
 var _SessionToolRunner_sendRetryWindowMs;
@@ -57306,6 +57333,8 @@ var _SessionToolRunner_reconcile;
 var _SessionToolRunner_ingestHistory;
 var _SessionToolRunner_notePrimaryThread;
 var _SessionToolRunner_handleStreamEvent;
+var _SessionToolRunner_inTerminatedThread;
+var _SessionToolRunner_releaseTerminatedHolds;
 var _SessionToolRunner_routeToolEvent;
 var _SessionToolRunner_noteConfirmation;
 var _SessionToolRunner_applyVerdict;
@@ -57326,6 +57355,9 @@ function endsTurn(ev) {
     return false;
   return ev.stop_reason?.type !== "requires_action";
 }
+function isIdleNeutral(ev) {
+  return ev.type === "user.tool_confirmation" || ev.type === "session.thread_status_terminated";
+}
 var IdleClock = /* @__PURE__ */ (() => {
   class IdleClock2 {
     constructor(maxIdleMs, onExpire) {
@@ -57333,24 +57365,28 @@ var IdleClock = /* @__PURE__ */ (() => {
       _IdleClock_onExpire.set(this, void 0);
       _IdleClock_blockers.set(this, /* @__PURE__ */ new Set());
       _IdleClock_armPending.set(this, false);
+      _IdleClock_idleMayBeStale.set(this, false);
       _IdleClock_timer.set(this, void 0);
       __classPrivateFieldSet(this, _IdleClock_maxIdleMs, maxIdleMs, "f");
       __classPrivateFieldSet(this, _IdleClock_onExpire, onExpire, "f");
     }
     /**
-     * Arm on an idle that ends the turn; disarm otherwise. `user.tool_confirmation`
-     * is neutral: it signals neither agent activity nor an idle, and its effect
-     * on the clock flows through {@link block} / {@link unblock} instead —
-     * disarming here would discard the pending arm the verdict is about to
-     * settle.
+     * Arm on an idle that ends the turn; disarm on any other event that is not {@link isIdleNeutral},
+     * and on a session thread's termination while `#idleMayBeStale` is true.
      */
     noteEvent(ev) {
-      if (ev.type === "user.tool_confirmation")
+      if (__classPrivateFieldGet(this, _IdleClock_idleMayBeStale, "f") && ev.type === "session.thread_status_terminated")
+        this.disarm();
+      if (isIdleNeutral(ev))
         return;
+      __classPrivateFieldSet(this, _IdleClock_idleMayBeStale, false, "f");
       if (endsTurn(ev))
         this.arm();
       else
         this.disarm();
+    }
+    noteHistoryRead(succeeded) {
+      __classPrivateFieldSet(this, _IdleClock_idleMayBeStale, !succeeded, "f");
     }
     /** Register gated work that must resolve before an idle countdown starts. */
     block(toolUseId) {
@@ -57369,6 +57405,12 @@ var IdleClock = /* @__PURE__ */ (() => {
       __classPrivateFieldGet(this, _IdleClock_blockers, "f").delete(toolUseId);
       if (__classPrivateFieldGet(this, _IdleClock_blockers, "f").size === 0 && __classPrivateFieldGet(this, _IdleClock_armPending, "f"))
         this.arm();
+    }
+    /** Retire gated work that can no longer resolve, and drop a pending arm that may be stale rather than apply it. */
+    abandon(toolUseId) {
+      if (__classPrivateFieldGet(this, _IdleClock_idleMayBeStale, "f"))
+        this.disarm();
+      this.unblock(toolUseId);
     }
     /**
      * (Re)start the idle countdown — or, while blockers are outstanding, hold
@@ -57400,7 +57442,7 @@ var IdleClock = /* @__PURE__ */ (() => {
       }
     }
   }
-  _IdleClock_maxIdleMs = /* @__PURE__ */ new WeakMap(), _IdleClock_onExpire = /* @__PURE__ */ new WeakMap(), _IdleClock_blockers = /* @__PURE__ */ new WeakMap(), _IdleClock_armPending = /* @__PURE__ */ new WeakMap(), _IdleClock_timer = /* @__PURE__ */ new WeakMap();
+  _IdleClock_maxIdleMs = /* @__PURE__ */ new WeakMap(), _IdleClock_onExpire = /* @__PURE__ */ new WeakMap(), _IdleClock_blockers = /* @__PURE__ */ new WeakMap(), _IdleClock_armPending = /* @__PURE__ */ new WeakMap(), _IdleClock_idleMayBeStale = /* @__PURE__ */ new WeakMap(), _IdleClock_timer = /* @__PURE__ */ new WeakMap();
   return IdleClock2;
 })();
 var SessionToolRunner = /* @__PURE__ */ (() => {
@@ -57417,6 +57459,7 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
       _SessionToolRunner_answered.set(this, /* @__PURE__ */ new Set());
       _SessionToolRunner_confirmationVerdicts.set(this, /* @__PURE__ */ new Map());
       _SessionToolRunner_awaitingConfirmation.set(this, /* @__PURE__ */ new Map());
+      _SessionToolRunner_terminatedThreads.set(this, /* @__PURE__ */ new Set());
       _SessionToolRunner_results.set(this, new AsyncQueue());
       _SessionToolRunner_inFlightCount.set(this, 0);
       _SessionToolRunner_sendRetryWindowMs.set(this, SEND_RETRY_WINDOW_MS);
@@ -57459,7 +57502,7 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
     _setSendRetryWindow(ms) {
       __classPrivateFieldSet(this, _SessionToolRunner_sendRetryWindowMs, ms, "f");
     }
-    async *[(_SessionToolRunner_consumed = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_controller = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_detachExternal = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_requestOpts = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_toolByName = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_logger = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_seen = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_answered = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_confirmationVerdicts = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_awaitingConfirmation = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_results = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_inFlightCount = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_sendRetryWindowMs = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_onIdle = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_idleClock = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_otelContext = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_primaryThreadId = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_historyRead = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_instances = /* @__PURE__ */ new WeakSet(), Symbol.asyncIterator)]() {
+    async *[(_SessionToolRunner_consumed = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_controller = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_detachExternal = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_requestOpts = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_toolByName = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_logger = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_seen = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_answered = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_confirmationVerdicts = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_awaitingConfirmation = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_terminatedThreads = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_results = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_inFlightCount = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_sendRetryWindowMs = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_onIdle = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_idleClock = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_otelContext = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_primaryThreadId = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_historyRead = /* @__PURE__ */ new WeakMap(), _SessionToolRunner_instances = /* @__PURE__ */ new WeakSet(), Symbol.asyncIterator)]() {
       if (__classPrivateFieldGet(this, _SessionToolRunner_consumed, "f")) {
         throw new AnthropicError("Cannot iterate over a consumed SessionToolRunner");
       }
@@ -57556,7 +57599,7 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
     try {
       for await (const ev of this.client.beta.sessions.events.list(this.sessionId, { limit: 1e3 }, __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_requestOptions).call(this))) {
         __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_ingestHistory).call(this, ev, pending);
-        if (ev.type !== "user.tool_confirmation")
+        if (!isIdleNeutral(ev))
           lastEndedTurn = endsTurn(ev);
       }
     } catch (e) {
@@ -57564,9 +57607,13 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
       __classPrivateFieldGet(this, _SessionToolRunner_logger, "f").warn("reconcile list failed", { error: String(e) });
       for (const ev of pending)
         __classPrivateFieldGet(this, _SessionToolRunner_seen, "f").delete(ev.id);
+      __classPrivateFieldGet(this, _SessionToolRunner_idleClock, "f").noteHistoryRead(false);
+      __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_releaseTerminatedHolds).call(this);
       return;
     }
     __classPrivateFieldSet(this, _SessionToolRunner_historyRead, true, "f");
+    __classPrivateFieldGet(this, _SessionToolRunner_idleClock, "f").noteHistoryRead(true);
+    __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_releaseTerminatedHolds).call(this);
     const unanswered = pending.filter((ev) => !__classPrivateFieldGet(this, _SessionToolRunner_answered, "f").has(ev.id));
     __classPrivateFieldGet(this, _SessionToolRunner_idleClock, "f").disarm();
     for (const ev of unanswered)
@@ -57576,7 +57623,7 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
       if (verdict !== void 0)
         await __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_applyVerdict).call(this, held, verdict);
     }
-    const outstanding = unanswered.filter((ev) => !__classPrivateFieldGet(this, _SessionToolRunner_answered, "f").has(ev.id) && !__classPrivateFieldGet(this, _SessionToolRunner_awaitingConfirmation, "f").has(ev.id));
+    const outstanding = unanswered.filter((ev) => !__classPrivateFieldGet(this, _SessionToolRunner_answered, "f").has(ev.id) && !__classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_inTerminatedThread).call(this, ev) && !__classPrivateFieldGet(this, _SessionToolRunner_awaitingConfirmation, "f").has(ev.id));
     if (lastEndedTurn && outstanding.length === 0)
       __classPrivateFieldGet(this, _SessionToolRunner_idleClock, "f").arm();
     else
@@ -57594,6 +57641,8 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
     } else if (ev.type === "user.tool_confirmation") {
       if (!__classPrivateFieldGet(this, _SessionToolRunner_answered, "f").has(ev.tool_use_id))
         __classPrivateFieldGet(this, _SessionToolRunner_confirmationVerdicts, "f").set(ev.tool_use_id, ev.result);
+    } else if (ev.type === "session.thread_status_terminated") {
+      __classPrivateFieldGet(this, _SessionToolRunner_terminatedThreads, "f").add(ev.session_thread_id);
     }
   }, _SessionToolRunner_notePrimaryThread = function _SessionToolRunner_notePrimaryThread2(ev) {
     if (!this.client._tracer || __classPrivateFieldGet(this, _SessionToolRunner_primaryThreadId, "f") !== void 0)
@@ -57627,6 +57676,10 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
       case "user.custom_tool_result":
         __classPrivateFieldGet(this, _SessionToolRunner_answered, "f").add(ev.custom_tool_use_id);
         return false;
+      case "session.thread_status_terminated":
+        __classPrivateFieldGet(this, _SessionToolRunner_terminatedThreads, "f").add(ev.session_thread_id);
+        __classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_releaseTerminatedHolds).call(this);
+        return false;
       case "session.status_terminated":
       case "session.deleted":
         __classPrivateFieldGet(this, _SessionToolRunner_logger, "f").info("session terminated", {
@@ -57638,15 +57691,42 @@ var SessionToolRunner = /* @__PURE__ */ (() => {
       default:
         return false;
     }
+  }, _SessionToolRunner_inTerminatedThread = function _SessionToolRunner_inTerminatedThread2(ev) {
+    return !!ev.session_thread_id && __classPrivateFieldGet(this, _SessionToolRunner_terminatedThreads, "f").has(ev.session_thread_id);
+  }, _SessionToolRunner_releaseTerminatedHolds = function _SessionToolRunner_releaseTerminatedHolds2() {
+    for (const held of __classPrivateFieldGet(this, _SessionToolRunner_awaitingConfirmation, "f").values()) {
+      if (!__classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_inTerminatedThread).call(this, held))
+        continue;
+      __classPrivateFieldGet(this, _SessionToolRunner_logger, "f").info("session thread terminated; not executing", {
+        component: "session-tool-runner",
+        session_id: this.sessionId,
+        session_thread_id: held.session_thread_id,
+        tool: held.name,
+        tool_use_id: held.id
+      });
+      __classPrivateFieldGet(this, _SessionToolRunner_awaitingConfirmation, "f").delete(held.id);
+      __classPrivateFieldGet(this, _SessionToolRunner_idleClock, "f").abandon(held.id);
+    }
   }, _SessionToolRunner_routeToolEvent = // ===== confirmation gating (always_ask tools) =====
   /**
    * Dispatch `ev`, honoring its evaluated permission. A call the server gated
    * (`evaluated_permission == "ask"`) is held until its `user.tool_confirmation`
    * arrives. Fails closed: only an explicit `allow` verdict releases a gated
    * call; a server-side `deny` overrides any recorded verdict; an unrecognized
-   * permission is held like `ask` and an unrecognized verdict is denied.
+   * permission is held like `ask` and an unrecognized verdict is denied. A call
+   * of a terminated session thread is dropped.
    */
   async function _SessionToolRunner_routeToolEvent2(ev) {
+    if (__classPrivateFieldGet(this, _SessionToolRunner_instances, "m", _SessionToolRunner_inTerminatedThread).call(this, ev)) {
+      __classPrivateFieldGet(this, _SessionToolRunner_logger, "f").debug("session thread terminated; not executing", {
+        component: "session-tool-runner",
+        session_id: this.sessionId,
+        session_thread_id: ev.session_thread_id,
+        tool: ev.name,
+        tool_use_id: ev.id
+      });
+      return;
+    }
     const permission = ev.evaluated_permission;
     const verdict = permission === "deny" ? "deny" : __classPrivateFieldGet(this, _SessionToolRunner_confirmationVerdicts, "f").get(ev.id);
     if (verdict === void 0) {
@@ -57986,7 +58066,9 @@ var EnvironmentWorker = /* @__PURE__ */ (() => {
      * environment key resolved. Throws `SessionMemoryError` when the
      * session has memory stores attached but they cannot be mounted — the work
      * item carried no sessions token (unless `memorySyncIntervalMs` turned
-     * memory off), or a store failed to download.
+     * memory off), or a store failed to download. When the session has already
+     * terminated, which includes an archived one, nothing is downloaded, no tools
+     * run, and `SessionMemoryError` is not thrown.
      *
      * `workSecret` is the work item's per-item `secret` payload from the poll
      * response, falling back to `ANTHROPIC_WORK_SECRET`; unlike the others it is
@@ -58025,7 +58107,8 @@ var EnvironmentWorker = /* @__PURE__ */ (() => {
    * The per-item body shared by {@link EnvironmentWorker.run}'s poll loop and
    * {@link EnvironmentWorker.handleItem}: run a {@link SessionToolRunner} for the
    * work item's session while heartbeating its lease, force-stopping on exit
-   * unless the lease was lost. Non-session work items are ignored.
+   * unless the lease was lost. Non-session work items, and the work item of a
+   * session that has already terminated, run no tools.
    *
    * When the poll response carried a per-item `secret` (a short-lived payload
    * scoped to this work item), the sessions token extracted from it is
@@ -58072,6 +58155,13 @@ var EnvironmentWorker = /* @__PURE__ */ (() => {
         return;
       }
       const session = await sessionClient.beta.sessions.retrieve(sessionId);
+      if (session.status === "terminated") {
+        log.info("skipping the work item of a terminated session", {
+          session_id: sessionId,
+          work_id: work.id
+        });
+        return;
+      }
       if (sessionsToken === null && this.memorySyncIntervalMs !== null && hasMemoryStore(session)) {
         throw new agentToolset.SessionMemoryError(`cannot mount the session's memories: the work item carried no sessions token (work_id=${work.id}, session_id=${sessionId}); the memory endpoints reject the environment key, so the poller must issue a per-item \`secret\` carrying \`sessions_token\`, or set \`memorySyncIntervalMs: null\` to run without memory`);
       }
@@ -58301,12 +58391,14 @@ var BetaHeartbeatPreconditionFailedError = /* @__PURE__ */ (() => {
 var Work = /* @__PURE__ */ (() => {
   class Work2 extends APIResource {
     /**
-     * Note: these endpoints are called automatically by the pre-built environment
-     * worker provided in the SDKs and CLI, for orchestrating sessions with self-hosted
-     * sandbox environments. They are included here as a reference; you do not need to
-     * invoke them directly.
-     *
      * Retrieve detailed information about a specific work item.
+     *
+     * This endpoint accepts a Claude API key. It rejects the environment key and the
+     * work item's `secret`. On
+     * [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws)
+     * or
+     * [Claude Models on Google Cloud (Anthropic managed)](https://platform.claude.com/docs/en/build-with-claude/claude-models-on-google-cloud/anthropic-managed),
+     * use that platform's credentials instead.
      *
      * @throws {ClaudeCodeKeyCreatorNotMemberError}
      * @throws {OrganizationOnHoldError}
@@ -58338,12 +58430,14 @@ var Work = /* @__PURE__ */ (() => {
       });
     }
     /**
-     * Note: these endpoints are called automatically by the pre-built environment
-     * worker provided in the SDKs and CLI, for orchestrating sessions with self-hosted
-     * sandbox environments. They are included here as a reference; you do not need to
-     * invoke them directly.
-     *
      * Update work item metadata with merge semantics.
+     *
+     * This endpoint accepts a Claude API key. It rejects the environment key and the
+     * work item's `secret`. On
+     * [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws)
+     * or
+     * [Claude Models on Google Cloud (Anthropic managed)](https://platform.claude.com/docs/en/build-with-claude/claude-models-on-google-cloud/anthropic-managed),
+     * use that platform's credentials instead.
      *
      * @throws {ClaudeCodeKeyCreatorNotMemberError}
      * @throws {BetaInvalidMetadataError}
@@ -58378,12 +58472,14 @@ var Work = /* @__PURE__ */ (() => {
       });
     }
     /**
-     * Note: these endpoints are called automatically by the pre-built environment
-     * worker provided in the SDKs and CLI, for orchestrating sessions with self-hosted
-     * sandbox environments. They are included here as a reference; you do not need to
-     * invoke them directly.
-     *
      * List work items in an environment.
+     *
+     * This endpoint accepts the environment key as a bearer token. It rejects a Claude
+     * API key. On
+     * [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws)
+     * or
+     * [Claude Models on Google Cloud (Anthropic managed)](https://platform.claude.com/docs/en/build-with-claude/claude-models-on-google-cloud/anthropic-managed),
+     * use that platform's credentials instead.
      *
      * @example
      * ```ts
@@ -58548,11 +58644,6 @@ var Work = /* @__PURE__ */ (() => {
       });
     }
     /**
-     * Note: these endpoints are called automatically by the pre-built environment
-     * worker provided in the SDKs and CLI, for orchestrating sessions with self-hosted
-     * sandbox environments. They are included here as a reference; you do not need to
-     * invoke them directly.
-     *
      * Stop a work item, initiating graceful or forced shutdown.
      *
      * @throws {ClaudeCodeKeyCreatorNotMemberError}
@@ -63108,8 +63199,12 @@ var Plugins2 = /* @__PURE__ */ (() => {
     /**
      * Change which stored version of an organization-owned Plugin is served to
      * members, for example to roll back to an earlier one. This pins the served
-     * version: later uploads are stored but no longer change what is served, and
-     * pinning cannot currently be undone, here or in claude.ai.
+     * version: later uploads through this API are stored but no longer change what is
+     * served, and pinning cannot currently be undone, here or in claude.ai.
+     *
+     * A version from claude.ai might still change what is served: see
+     * [Versions and the served version](/docs/en/manage-claude/plugins-api#versions-and-the-served-version)
+     * in the Plugins API guide.
      *
      * Pass the version as `served_version_id`: an earlier one to roll back, a later
      * one to start serving a version that was stored without being served, or the one
@@ -75040,6 +75135,24 @@ var UserProfileNotFoundError = /* @__PURE__ */ (() => {
   UserProfileNotFoundError2._errorName = "UserProfileNotFoundError";
   return UserProfileNotFoundError2;
 })();
+var UserProfileRequiredError = /* @__PURE__ */ (() => {
+  class UserProfileRequiredError2 extends BadRequestError {
+  }
+  UserProfileRequiredError2._errorName = "UserProfileRequiredError";
+  return UserProfileRequiredError2;
+})();
+var UserProfileBillingNotAuthorizedError = /* @__PURE__ */ (() => {
+  class UserProfileBillingNotAuthorizedError2 extends PermissionDeniedError {
+  }
+  UserProfileBillingNotAuthorizedError2._errorName = "UserProfileBillingNotAuthorizedError";
+  return UserProfileBillingNotAuthorizedError2;
+})();
+var UserProfileNotBillableError = /* @__PURE__ */ (() => {
+  class UserProfileNotBillableError2 extends PermissionDeniedError {
+  }
+  UserProfileNotBillableError2._errorName = "UserProfileNotBillableError";
+  return UserProfileNotBillableError2;
+})();
 var UserProfiles2 = /* @__PURE__ */ (() => {
   class UserProfiles3 extends APIResource {
     constructor() {
@@ -75171,6 +75284,9 @@ var UserProfiles2 = /* @__PURE__ */ (() => {
     }
   }
   UserProfiles3.UserProfileNotFoundError = UserProfileNotFoundError;
+  UserProfiles3.UserProfileRequiredError = UserProfileRequiredError;
+  UserProfiles3.UserProfileBillingNotAuthorizedError = UserProfileBillingNotAuthorizedError;
+  UserProfiles3.UserProfileNotBillableError = UserProfileNotBillableError;
   UserProfiles3.ActionURLs = ActionURLs2;
   return UserProfiles3;
 })();
@@ -75228,9 +75344,12 @@ var ERROR_CODE_CLASSES = /* @__PURE__ */ new Map([
   ["400 tool_reference_unresolved", ToolReferenceUnresolvedError],
   ["400 unsupported_charset", BetaUnsupportedCharsetError],
   ["400 user_profile_not_found", UserProfileNotFoundError],
+  ["400 user_profile_required", UserProfileRequiredError],
   ["400 workspace_api_key_limit_exceeded", WorkspaceAPIKeyLimitExceededError],
   ["400 workspace_member_limit_exceeded", WorkspaceMemberLimitExceededError],
   ["400 workspace_policy_violation", WorkspacePolicyViolationError],
+  ["402 linked_organization_billing_unavailable", LinkedOrganizationBillingUnavailableError],
+  ["402 linked_organization_spend_limit_reached", LinkedOrganizationSpendLimitReachedError],
   ["403 api_key_scope_missing", BetaAPIKeyScopeMissingError],
   ["403 cannot_sign_out_managed_member", BetaCannotSignOutManagedMemberError],
   ["403 cannot_sign_out_membership_admin", BetaCannotSignOutMembershipAdminError],
@@ -75243,6 +75362,8 @@ var ERROR_CODE_CLASSES = /* @__PURE__ */ new Map([
   ["403 organization_level_scoped_api_key_required", BetaOrganizationLevelScopedAPIKeyRequiredError],
   ["403 sandbox_egress_restricted", SandboxEgressRestrictedError],
   ["403 spend_limits_admin_api_writes_not_enabled", BetaSpendLimitsAdminAPIWritesNotEnabledError],
+  ["403 user_profile_billing_not_authorized", UserProfileBillingNotAuthorizedError],
+  ["403 user_profile_not_billable", UserProfileNotBillableError],
   ["404 environment_not_found", BetaEnvironmentNotFoundError],
   ["404 file_expired", FileExpiredError],
   ["404 rbac_role_not_found", RBACRoleNotFoundError],
@@ -75257,6 +75378,7 @@ var ERROR_CODE_CLASSES = /* @__PURE__ */ new Map([
   ["409 slack_channel_set_up_settings_conflict", BetaSlackChannelSetUpSettingsConflictError],
   ["412 heartbeat_precondition_failed", BetaHeartbeatPreconditionFailedError],
   ["413 request_body_too_large_after_decoding", RequestBodyTooLargeAfterDecodingError],
+  ["429 contract_spend_limit_reached", ContractSpendLimitReachedError],
   ["429 enforced_spend_limit_reached", EnforcedSpendLimitReachedError],
   ["429 ramp_limit_exceeded", RampLimitExceededError],
   ["503 cmek_context_unavailable", CMEKContextUnavailableError],
@@ -77104,6 +77226,7 @@ var BaseAnthropic = /* @__PURE__ */ (() => {
   BaseAnthropic2.InternalServerError = InternalServerError;
   BaseAnthropic2.NotImplementedError = NotImplementedError;
   BaseAnthropic2.GatewayTimeoutError = GatewayTimeoutError;
+  BaseAnthropic2.PaymentRequiredError = PaymentRequiredError;
   BaseAnthropic2.ContentTooLargeError = ContentTooLargeError;
   BaseAnthropic2.PermissionDeniedError = PermissionDeniedError;
   BaseAnthropic2.PreconditionFailedError = PreconditionFailedError;
@@ -77155,6 +77278,9 @@ var Anthropic = /* @__PURE__ */ (() => {
   Anthropic2.SkillReadBlockedUndecryptableError = SkillReadBlockedUndecryptableError;
   Anthropic2.UserProfiles = UserProfiles2;
   Anthropic2.UserProfileNotFoundError = UserProfileNotFoundError;
+  Anthropic2.UserProfileRequiredError = UserProfileRequiredError;
+  Anthropic2.UserProfileBillingNotAuthorizedError = UserProfileBillingNotAuthorizedError;
+  Anthropic2.UserProfileNotBillableError = UserProfileNotBillableError;
   Anthropic2.Organization = Organization2;
   Anthropic2.OrgMemberLimitExceededError = OrgMemberLimitExceededError;
   Anthropic2.RBACRoleNotFoundError = RBACRoleNotFoundError;
@@ -77171,8 +77297,11 @@ var Anthropic = /* @__PURE__ */ (() => {
   Anthropic2.ParentOrganizationRequiredError = ParentOrganizationRequiredError;
   Anthropic2.RequestBodyEncodingInvalidError = RequestBodyEncodingInvalidError;
   Anthropic2.RequestBodyEncodingUnsupportedError = RequestBodyEncodingUnsupportedError;
+  Anthropic2.LinkedOrganizationBillingUnavailableError = LinkedOrganizationBillingUnavailableError;
+  Anthropic2.LinkedOrganizationSpendLimitReachedError = LinkedOrganizationSpendLimitReachedError;
   Anthropic2.SandboxEgressRestrictedError = SandboxEgressRestrictedError;
   Anthropic2.RequestBodyTooLargeAfterDecodingError = RequestBodyTooLargeAfterDecodingError;
+  Anthropic2.ContractSpendLimitReachedError = ContractSpendLimitReachedError;
   Anthropic2.EnforcedSpendLimitReachedError = EnforcedSpendLimitReachedError;
   Anthropic2.RampLimitExceededError = RampLimitExceededError;
   Anthropic2.CMEKContextUnavailableError = CMEKContextUnavailableError;
@@ -77180,9 +77309,142 @@ var Anthropic = /* @__PURE__ */ (() => {
   return Anthropic2;
 })();
 
+// meal-swaps.js
+(function(global2) {
+  "use strict";
+  var KEY = "mealSwaps";
+  function load() {
+    try {
+      var v = JSON.parse(global2.localStorage.getItem(KEY) || "{}");
+      return v && typeof v === "object" ? v : {};
+    } catch (_) {
+      return {};
+    }
+  }
+  function save(map) {
+    try {
+      global2.localStorage.setItem(KEY, JSON.stringify(map));
+    } catch (_) {
+    }
+  }
+  function strip2(meal) {
+    var c = {};
+    for (var k in meal) {
+      if (Object.prototype.hasOwnProperty.call(meal, k) && k !== "alternatives" && k !== "_originalDishId") c[k] = meal[k];
+    }
+    return c;
+  }
+  function mealAt(plan, dayKey, idx) {
+    var day2 = plan && plan.weekPlan && plan.weekPlan[dayKey];
+    return day2 && Array.isArray(day2.meals) ? day2.meals[idx] : null;
+  }
+  function originalOf(meal) {
+    return meal && (meal._originalDishId || meal.dishId) || "";
+  }
+  function swapIn(plan, dayKey, idx, dishId) {
+    var meal = mealAt(plan, dayKey, idx);
+    if (!meal || !Array.isArray(meal.alternatives)) return false;
+    if (meal.dishId === dishId) return true;
+    var alt = null;
+    for (var i = 0; i < meal.alternatives.length; i++) {
+      if (meal.alternatives[i] && meal.alternatives[i].dishId === dishId) {
+        alt = meal.alternatives[i];
+        break;
+      }
+    }
+    if (!alt) return false;
+    var originalId = originalOf(meal);
+    var rest = meal.alternatives.filter(function(a) {
+      return a !== alt;
+    });
+    var next = strip2(alt);
+    next.type = meal.type;
+    if (meal.targetCalories != null) next.targetCalories = meal.targetCalories;
+    next.alternatives = [strip2(meal)].concat(rest);
+    if (dishId !== originalId) next._originalDishId = originalId;
+    plan.weekPlan[dayKey].meals[idx] = next;
+    var diff = function(a, b) {
+      return (Number(a) || 0) - (Number(b) || 0);
+    };
+    var shift = function(t) {
+      if (!t || typeof t !== "object") return;
+      t.calories = Math.round((Number(t.calories) || 0) + diff(next.calories, meal.calories));
+      ["protein", "carbs", "fats"].forEach(function(k) {
+        t[k] = Math.round((Number(t[k]) || 0) + diff(next.macros && next.macros[k], meal.macros && meal.macros[k]));
+      });
+    };
+    shift(plan.weekPlan[dayKey].dailyTotals);
+    var names = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    var scheme = plan.strategy && plan.strategy.weeklyScheme && plan.strategy.weeklyScheme[names[Number(String(dayKey).replace("day", "")) - 1]];
+    if (scheme) {
+      shift(scheme);
+      var slot = Array.isArray(scheme.mealBreakdown) ? scheme.mealBreakdown.filter(function(b) {
+        return b && b.type === meal.type;
+      })[0] : null;
+      if (slot) {
+        slot.calories = Number(next.calories) || slot.calories;
+        ["protein", "carbs", "fats"].forEach(function(k) {
+          if (next.macros && next.macros[k] != null) slot[k] = next.macros[k];
+        });
+      }
+    }
+    return true;
+  }
+  function apply(plan) {
+    if (!plan || !plan.weekPlan) return plan;
+    var map = load();
+    var changed = false;
+    Object.keys(map).forEach(function(key) {
+      var rec = map[key];
+      var parts = key.split(":");
+      var meal = mealAt(plan, parts[0], Number(parts[1]));
+      if (!rec || !meal || originalOf(meal) !== rec.from) {
+        delete map[key];
+        changed = true;
+        return;
+      }
+      if (meal.dishId !== rec.to && !swapIn(plan, parts[0], Number(parts[1]), rec.to)) {
+        delete map[key];
+        changed = true;
+      }
+    });
+    if (changed) save(map);
+    return plan;
+  }
+  function choose(plan, dayKey, idx, dishId) {
+    var meal = mealAt(plan, dayKey, idx);
+    if (!meal) return false;
+    var from = originalOf(meal);
+    if (!swapIn(plan, dayKey, idx, dishId)) return false;
+    var map = load();
+    var key = dayKey + ":" + idx;
+    if (dishId === from) delete map[key];
+    else map[key] = { from, to: dishId, at: (/* @__PURE__ */ new Date()).toISOString() };
+    save(map);
+    return true;
+  }
+  global2.NutriMealSwaps = { apply, choose, originalOf, swapIn };
+})(globalThis);
+
 // plan-review.js
 var REVIEW_MODEL = "claude-opus-5-5";
-var REVIEW_EFFORT = "high";
+var EFFORT_RISK = "high";
+var EFFORT_BASE = "medium";
+var MEDICAL_CONDITIONS = /* @__PURE__ */ new Set([
+  "\u0414\u0438\u0430\u0431\u0435\u0442 / \u0418\u043D\u0441\u0443\u043B\u0438\u043D\u043E\u0432\u0430 \u0440\u0435\u0437\u0438\u0441\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442",
+  "\u0410\u0432\u0442\u043E\u0438\u043C\u0443\u043D\u043D\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F",
+  "\u0429\u0438\u0442\u043E\u0432\u0438\u0434\u043D\u0430 \u0436\u043B\u0435\u0437\u0430 (\u0425\u0430\u0448\u0438\u043C\u043E\u0442\u043E \u0438 \u0434\u0440.)",
+  "\u0425\u0440\u0430\u043D\u043E\u0441\u043C\u0438\u043B\u0430\u0442\u0435\u043B\u043D\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0438",
+  "\u0421\u044A\u0440\u0434\u0435\u0447\u043D\u043E-\u0441\u044A\u0434\u043E\u0432\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F",
+  "\u0415\u043D\u0434\u043E\u043A\u0440\u0438\u043D\u043D\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F",
+  "\u041C\u0435\u0442\u0430\u0431\u043E\u043B\u0438\u0442\u043D\u0438 \u043D\u0430\u0440\u0443\u0448\u0435\u043D\u0438\u044F",
+  "\u0410\u043B\u0435\u0440\u0433\u0438\u0438 \u0438 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442",
+  "\u0410\u043D\u0435\u043C\u0438\u044F",
+  "\u041C\u0435\u043D\u043E\u043F\u0430\u0443\u0437\u0430",
+  "\u0421\u043B\u0435\u0434 \u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442",
+  "\u0414\u0440\u0443\u0433\u043E"
+]);
+var MAX_FINDINGS = 8;
 var MAX_TOKENS = 32e3;
 var PRICE2 = { in: 4, out: 20, cacheRead: 0.2, cacheWrite: 5 };
 var CRON_SCAN = 60;
@@ -77195,32 +77457,52 @@ var clip = (v, n) => String(v == null ? "" : v).slice(0, n);
 var GUIDE = `\u041F\u0440\u0435\u0433\u043B\u0435\u0436\u0434\u0430\u0448 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D \u043D\u0430 Eatologix, \u043F\u0440\u0435\u0434\u0438 \u0434\u0430 \u0441\u0442\u0438\u0433\u043D\u0435 \u0434\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u0415\u043A\u0438\u043F\u044A\u0442 \u0433\u043E \u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430 \u0441\u043B\u0435\u0434 \u0442\u0435\u0431.
 \u041F\u0438\u0448\u0435\u0448 \u043D\u0430 \u0435\u043A\u0438\u043F\u0430, \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438: \u043A\u0440\u0430\u0442\u043A\u043E, \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E, \u0441 \u043C\u044F\u0441\u0442\u043E (\u0434\u0435\u043D, \u0445\u0440\u0430\u043D\u0435\u043D\u0435). \u041D\u0435 \u043F\u0438\u0448\u0435\u0448 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430.
 
-\u041F\u043E\u043B\u0443\u0447\u0430\u0432\u0430\u0448 answers (\u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u044A\u0442: \u0446\u0435\u043B, \u0432\u044A\u0437\u0440\u0430\u0441\u0442, \u043F\u043E\u043B, \u0442\u0435\u0433\u043B\u043E, \u0440\u044A\u0441\u0442, \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442, \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F, \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430, \u0430\u043B\u0435\u0440\u0433\u0438\u0438,
-\u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442\u0438, \u043A\u0430\u043A\u0432\u043E \u043D\u0435 \u044F\u0434\u0435, \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u0440\u0435\u0436\u0438\u043C, \u0431\u0440\u043E\u0439 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F, \u0431\u044E\u0434\u0436\u0435\u0442, \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F) \u0438 plan (analysis \u2014 \u0434\u043D\u0435\u0432\u043D\u0438 \u0446\u0435\u043B\u0438;
-strategy; weekPlan \u2014 \u0434\u043D\u0438 \u2192 meals \u0441 \u044F\u0441\u0442\u0438\u044F, \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043C\u0430\u043A\u0440\u043E\u0441\u0438; summary; \u0434\u043E\u0431\u0430\u0432\u043A\u0438 \u0438 \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438, \u0430\u043A\u043E \u0438\u043C\u0430).
+\u0413\u043B\u0430\u0432\u043D\u043E\u0442\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u043E: \u043F\u043B\u0430\u043D\u044A\u0442 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u0421\u041F\u0410\u0417\u0415\u041D \u043E\u0442 \u0442\u043E\u0437\u0438 \u0447\u043E\u0432\u0435\u043A. \u041F\u043B\u0430\u043D, \u0442\u043E\u0447\u0435\u043D \u043D\u0430 80%, \u043D\u043E \u043B\u0435\u0441\u0435\u043D \u0438 \u0433\u044A\u0432\u043A\u0430\u0432, \u0434\u0430\u0432\u0430 \u043F\u043E\u0432\u0435\u0447\u0435
+\u043E\u0442 \u043F\u0435\u0440\u0444\u0435\u043A\u0442\u0435\u043D \u043F\u043E \u0443\u0447\u0435\u0431\u043D\u0438\u043A, \u043A\u043E\u0439\u0442\u043E \u0447\u043E\u0432\u0435\u043A\u044A\u0442 \u0438\u0437\u043E\u0441\u0442\u0430\u0432\u044F \u0441\u043B\u0435\u0434 \u0441\u0435\u0434\u043C\u0438\u0446\u0430. \u041D\u0435 \u0433\u043E\u043D\u0438\u0448 \u0441\u044A\u0432\u044A\u0440\u0448\u0435\u043D\u0441\u0442\u0432\u043E \u2014 \u0442\u044A\u0440\u0441\u0438\u0448 \u0441\u0430\u043C\u043E \u0442\u043E\u0432\u0430, \u043A\u043E\u0435\u0442\u043E
+\u0437\u0430\u0441\u0442\u0440\u0430\u0448\u0430\u0432\u0430 \u0437\u0434\u0440\u0430\u0432\u0435\u0442\u043E \u0438\u043B\u0438 \u0440\u0435\u0430\u043B\u043D\u043E\u0442\u043E \u0441\u043F\u0430\u0437\u0432\u0430\u043D\u0435.
 
-\u041F\u0440\u043E\u0432\u0435\u0440\u044F\u0432\u0430\u0439 \u0446\u0435\u043B\u0438\u044F \u043F\u043B\u0430\u043D, \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D \u0438 \u0432\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435:
-1. \u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442 (critical): \u0430\u043B\u0435\u0440\u0433\u0435\u043D\u0438 \u0438 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442\u0438 \u0432\u044A\u0432 \u0432\u0441\u044F\u043A\u043E \u044F\u0441\u0442\u0438\u0435; \u0445\u0440\u0430\u043D\u0438 \u0438 \u0434\u043E\u0431\u0430\u0432\u043A\u0438, \u043F\u0440\u043E\u0442\u0438\u0432\u043E\u043F\u043E\u043A\u0430\u0437\u043D\u0438 \u043F\u0440\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F\u0442\u0430
-   \u0438 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430\u0442\u0430 (\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442 \u0438 \u0441\u0442\u0430\u0442\u0438\u043D\u0438, \u0432\u0438\u0442\u0430\u043C\u0438\u043D K \u0438 \u0432\u0430\u0440\u0444\u0430\u0440\u0438\u043D, \u0439\u043E\u0434 \u043F\u0440\u0438 \u0425\u0430\u0448\u0438\u043C\u043E\u0442\u043E \u0431\u0435\u0437 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u0435, \u043C\u043D\u043E\u0433\u043E \u043A\u0430\u043B\u0438\u0439 \u043F\u0440\u0438 \u0431\u044A\u0431\u0440\u0435\u0447\u043D\u043E
-   \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435, \u0437\u0430\u0445\u0430\u0440\u0438 \u043F\u0440\u0438 \u0434\u0438\u0430\u0431\u0435\u0442, \u0441\u043E\u043B \u043F\u0440\u0438 \u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F, \u0441\u0443\u0440\u043E\u0432\u0438 \u0438 \u0440\u0438\u0441\u043A\u043E\u0432\u0438 \u0445\u0440\u0430\u043D\u0438 \u043F\u0440\u0438 \u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442); \u0434\u043E\u0437\u0438 \u043D\u0430 \u0434\u043E\u0431\u0430\u0432\u043A\u0438\u0442\u0435 \u043D\u0430\u0434
-   \u0433\u043E\u0440\u043D\u0438\u044F \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u0435\u043D \u043F\u0440\u0430\u0433; \u0442\u0432\u044A\u0440\u0434\u0435 \u043D\u0438\u0441\u044A\u043A \u043F\u0440\u0438\u0435\u043C \u043D\u0430 \u0435\u043D\u0435\u0440\u0433\u0438\u044F (\u043F\u043E\u0434 1200 kcal \u0437\u0430 \u0436\u0435\u043D\u0438, \u043F\u043E\u0434 1500 \u0437\u0430 \u043C\u044A\u0436\u0435) \u0431\u0435\u0437 \u043F\u0440\u0438\u0447\u0438\u043D\u0430.
-2. \u0421\u043F\u0430\u0437\u0432\u0430\u043D\u0435 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 (major): \u0445\u0440\u0430\u043D\u0438, \u043A\u043E\u0438\u0442\u043E \u0435 \u043A\u0430\u0437\u0430\u043B, \u0447\u0435 \u043D\u0435 \u044F\u0434\u0435; \u0440\u0435\u0436\u0438\u043C\u044A\u0442 \u043C\u0443 (\u0432\u0435\u0433\u0435\u0442\u0430\u0440\u0438\u0430\u043D\u0435\u0446, \u0431\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D\u2026); \u0431\u0440\u043E\u044F\u0442
-   \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0438 \u0447\u0430\u0441\u043E\u0432\u0435\u0442\u0435; \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0430\u0442\u0430\u0442\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430, \u0430\u043A\u043E \u0435 \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0430\u043D\u0430.
-3. \u0427\u0438\u0441\u043B\u0430 (major): \u0434\u043D\u0435\u0432\u043D\u0438\u0442\u0435 \u043A\u0430\u043B\u043E\u0440\u0438\u0438 \u0438 \u043C\u0430\u043A\u0440\u043E\u0441\u0438 \u0441\u043F\u0440\u044F\u043C\u043E \u0446\u0435\u043B\u0438\u0442\u0435 \u0432 analysis (\u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u0438\u0435 \u043D\u0430\u0434 10% \u0435 \u0433\u0440\u0435\u0448\u043A\u0430); \u0441\u0443\u043C\u0430\u0442\u0430 \u043D\u0430 \u0434\u0435\u043D\u044F
-   \u0441\u043F\u0440\u044F\u043C\u043E \u0441\u0431\u043E\u0440\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430; \u0440\u0435\u0430\u043B\u0438\u0441\u0442\u0438\u0447\u043D\u0438 \u0433\u0440\u0430\u043C\u043E\u0432\u0435 (\u043D\u0435 7 \u0433 \u043E\u0440\u0438\u0437, \u043D\u0435 600 \u0433 \u043F\u0438\u043B\u0435\u0448\u043A\u043E \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435).
-4. \u0421\u043C\u0438\u0441\u044A\u043B (major \u0438\u043B\u0438 minor): \u044F\u0441\u0442\u0438\u0435, \u043A\u043E\u0435\u0442\u043E \u043D\u0435 \u0435 \u0437\u0430 \u0442\u043E\u0432\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435; \u0435\u0434\u043D\u043E \u044F\u0441\u0442\u0438\u0435 \u043F\u043E\u0432\u0435\u0447\u0435 \u043E\u0442 3 \u043F\u044A\u0442\u0438 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E; \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435
-   \u043D\u0430 \u0431\u0435\u043B\u0442\u044A\u0447\u0438\u043D\u0438 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438; \u0445\u0440\u0430\u043D\u0438, \u0442\u0440\u0443\u0434\u043D\u0438 \u0437\u0430 \u043D\u0430\u043C\u0438\u0440\u0430\u043D\u0435 \u0442\u0430\u043C, \u043A\u044A\u0434\u0435\u0442\u043E \u0435 \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442; \u0431\u044E\u0434\u0436\u0435\u0442\u044A\u0442.
-5. \u0422\u0435\u043A\u0441\u0442\u043E\u0432\u0435 (minor): \u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0440\u0435\u0447\u0438\u044F \u043C\u0435\u0436\u0434\u0443 \u0430\u043D\u0430\u043B\u0438\u0437\u0430, \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438\u0442\u0435 \u0438 \u043C\u0435\u043D\u044E\u0442\u043E; \u0433\u0440\u0435\u0448\u043D\u0438 \u0438\u043C\u0435\u043D\u0430; \u043E\u0431\u0435\u0449\u0430\u043D\u0438\u044F \u0437\u0430 \u043B\u0435\u0447\u0435\u043D\u0438\u0435.
+\u041F\u043E\u043B\u0443\u0447\u0430\u0432\u0430\u0448 answers (\u0432\u044A\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u044A\u0442 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430) \u0438 plan. \u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435, \u043C\u0430\u043A\u0440\u043E\u0441\u0438\u0442\u0435, \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435, \u0441\u0443\u043C\u0438\u0442\u0435 \u0438 \u043A\u043B\u0438\u043D\u0438\u0447\u043D\u0438\u0442\u0435 \u043F\u0440\u0430\u0432\u0438\u043B\u0430
+\u0441\u0430 \u0441\u043C\u0435\u0442\u043D\u0430\u0442\u0438 \u0438 \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u0438 \u043E\u0442 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u044A\u043C\u0430 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u044F\u0432\u0430\u0448 \u0438 \u043D\u0435 \u0433\u0438 \u043A\u043E\u043C\u0435\u043D\u0442\u0438\u0440\u0430\u0448, \u043E\u0441\u0432\u0435\u043D \u043F\u0440\u0438 \u044F\u0432\u043D\u0430 \u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442.
+\u0412 weekPlan \u0432\u0441\u044F\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0438\u043C\u0430: name, description (\u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0441 \u0433\u0440\u0430\u043C\u043E\u0432\u0435\u0442\u0435), recipe, prepTime (\u043C\u0438\u043D\u0443\u0442\u0438), calories,
+macros \u0438 alternatives \u2014 \u0440\u0430\u0432\u043D\u043E\u0441\u0442\u043E\u0439\u043D\u0438\u0442\u0435 \u044F\u0441\u0442\u0438\u044F, \u0441 \u043A\u043E\u0438\u0442\u043E \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u0441\u043C\u0435\u043D\u0438 (dishId \u0438 name). \u041A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0441\u0430\u043C \u043C\u043E\u0436\u0435 \u0434\u0430
+\u0441\u043C\u0435\u043D\u044F \u044F\u0441\u0442\u0438\u0435 \u0441 \u0430\u043B\u0442\u0435\u0440\u043D\u0430\u0442\u0438\u0432\u0430 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u2014 \u0442\u043E\u0432\u0430 \u0435 \u0433\u044A\u0432\u043A\u0430\u0432\u043E\u0441\u0442\u0442\u0430 \u043D\u0430 \u043F\u043B\u0430\u043D\u0430.
 
-\u041F\u0440\u043E\u043C\u0435\u043D\u0438 (changes) \u043F\u0440\u0435\u0434\u043B\u0430\u0433\u0430\u0448 \u0441\u0430\u043C\u043E \u043A\u043E\u0433\u0430\u0442\u043E \u0441\u0430 \u043D\u0443\u0436\u043D\u0438 \u0438 \u0441\u0438 \u0441\u0438\u0433\u0443\u0440\u0435\u043D \u0432 \u0442\u044F\u0445 \u2014 \u0432\u0441\u044F\u043A\u0430 \u0441 \u043F\u0440\u0438\u0447\u0438\u043D\u0430 \u0437\u0430 \u0435\u043A\u0438\u043F\u0430 (reason).
-\u0424\u043E\u0440\u043C\u0430\u0442 JSON Patch: op \u0435 replace, add \u0438\u043B\u0438 remove; path \u0435 \u0441\u0430\u043C\u043E \u043F\u043E\u0434 /plan (\u043D\u0430\u043F\u0440. /plan/weekPlan/day3/meals/1);
-value_json \u0435 \u043D\u043E\u0432\u0430\u0442\u0430 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442 \u043A\u0430\u0442\u043E JSON \u0442\u0435\u043A\u0441\u0442 ("" \u043F\u0440\u0438 remove). \u0421\u043C\u0435\u043D\u044F\u0439 \u0446\u044F\u043B\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u0441 \u044F\u0441\u0442\u0438\u0435 \u0432 \u0441\u044A\u0449\u0430\u0442\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430 \u043A\u0430\u0442\u043E
-\u0434\u0440\u0443\u0433\u0438\u0442\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u2014 \u043A\u043E\u043F\u0438\u0440\u0430\u0439 \u043F\u043E\u043B\u0435\u0442\u0430\u0442\u0430 \u0438\u043C. \u0421\u0443\u043C\u0438\u0442\u0435 \u043D\u0430 \u0434\u0435\u043D\u044F \u0438 summary \u0441\u044A\u0440\u0432\u044A\u0440\u044A\u0442 \u043F\u0440\u0435\u0441\u043C\u044F\u0442\u0430 \u0441\u0430\u043C \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0438\u043F\u0430\u0439. \u041D\u0435 \u043F\u0438\u043F\u0430\u0439
-answers \u0438 \u043D\u0435 \u043F\u0440\u0435\u043D\u0430\u043F\u0438\u0441\u0432\u0430\u0439 \u0446\u0435\u043B\u0438\u044F \u043F\u043B\u0430\u043D (\u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E 25 \u043F\u0440\u043E\u043C\u0435\u043D\u0438). \u0410\u043A\u043E \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u044A\u0442 \u0435 \u0432 \u0446\u0435\u043B\u0438\u0442\u0435 (analysis) \u0438\u043B\u0438 \u0432 \u0446\u044F\u043B\u0430\u0442\u0430
-\u0441\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044F, \u043D\u0435 \u0433\u043E \u043F\u043E\u043F\u0440\u0430\u0432\u044F\u0439: \u043F\u0440\u0438\u0441\u044A\u0434\u0430 "stop" \u0438 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u0435.
+\u041F\u0440\u043E\u0432\u0435\u0440\u044F\u0432\u0430\u0439 \u043F\u043E \u0440\u0435\u0434 \u043D\u0430 \u0432\u0430\u0436\u043D\u043E\u0441\u0442:
+1. \u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442 (critical): \u0430\u043B\u0435\u0440\u0433\u0435\u043D\u0438 \u0438 \u043D\u0435\u043F\u043E\u043D\u043E\u0441\u0438\u043C\u043E\u0441\u0442\u0438 \u0432 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0442\u0435 \u0438\u043B\u0438 \u0440\u0435\u0446\u0435\u043F\u0442\u0430\u0442\u0430; \u0445\u0440\u0430\u043D\u0438 \u0438 \u0434\u043E\u0431\u0430\u0432\u043A\u0438, \u043F\u0440\u043E\u0442\u0438\u0432\u043E\u043F\u043E\u043A\u0430\u0437\u043D\u0438
+   \u043F\u0440\u0438 \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0438\u044F\u0442\u0430 \u0438 \u043B\u0435\u043A\u0430\u0440\u0441\u0442\u0432\u0430\u0442\u0430 (\u0433\u0440\u0435\u0439\u043F\u0444\u0440\u0443\u0442 \u0438 \u0441\u0442\u0430\u0442\u0438\u043D\u0438, \u0432\u0438\u0442\u0430\u043C\u0438\u043D K \u0438 \u0432\u0430\u0440\u0444\u0430\u0440\u0438\u043D, \u0439\u043E\u0434 \u043F\u0440\u0438 \u0425\u0430\u0448\u0438\u043C\u043E\u0442\u043E \u0431\u0435\u0437 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u0435,
+   \u043C\u043D\u043E\u0433\u043E \u043A\u0430\u043B\u0438\u0439 \u043F\u0440\u0438 \u0431\u044A\u0431\u0440\u0435\u0447\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435, \u0441\u043E\u043B \u043F\u0440\u0438 \u0445\u0438\u043F\u0435\u0440\u0442\u043E\u043D\u0438\u044F, \u0441\u0443\u0440\u043E\u0432\u0438 \u0438 \u0440\u0438\u0441\u043A\u043E\u0432\u0438 \u0445\u0440\u0430\u043D\u0438 \u043F\u0440\u0438 \u0431\u0440\u0435\u043C\u0435\u043D\u043D\u043E\u0441\u0442); \u0434\u043E\u0437\u0438 \u043D\u0430
+   \u0434\u043E\u0431\u0430\u0432\u043A\u0438\u0442\u0435 \u043D\u0430\u0434 \u0433\u043E\u0440\u043D\u0438\u044F \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u0435\u043D \u043F\u0440\u0430\u0433; \u0445\u0440\u0430\u043D\u0430, \u043A\u043E\u044F\u0442\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0438\u0437\u0440\u0438\u0447\u043D\u043E \u0435 \u043A\u0430\u0437\u0430\u043B, \u0447\u0435 \u043D\u0435 \u044F\u0434\u0435.
+2. \u0418\u0437\u043F\u044A\u043B\u043D\u0438\u043C\u043E\u0441\u0442 \u0437\u0430 \u0422\u041E\u0417\u0418 \u0447\u043E\u0432\u0435\u043A (major) \u2014 \u043F\u0440\u043E\u0447\u0435\u0442\u0438 \u0433\u043E \u0446\u0435\u043B\u0438\u044F, \u043D\u0435 \u0441\u0430\u043C\u043E \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0430\u0442\u0430 \u0447\u0430\u0441\u0442:
+   - \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044F: \u043A\u043E\u043B\u043A\u043E \u0447\u0435\u0441\u0442\u043E \u043F\u0440\u0435\u044F\u0436\u0434\u0430 (overeatingFrequency), \u0437\u0430 \u043A\u0430\u043A\u0432\u043E \u0438\u043C\u0430 \u0433\u043B\u0430\u0434 (foodCravings), \u043A\u043E\u0435 \u0433\u043E \u043E\u0442\u043A\u043B\u044E\u0447\u0432\u0430
+     (foodTriggers), \u043A\u043E\u043C\u043F\u0435\u043D\u0441\u0430\u0446\u0438\u0438 (compensationMethods), \u0441\u0440\u0430\u0432\u043D\u044F\u0432\u0430\u043D\u0435 \u0441 \u0434\u0440\u0443\u0433\u0438\u0442\u0435 (socialComparison), \u0441\u0442\u0440\u0435\u0441
+     (stressLevel, stressSources). \u041F\u0440\u0438\u043C\u0435\u0440: \u043F\u0440\u0438 \u0441\u0438\u043B\u0435\u043D \u0433\u043B\u0430\u0434 \u0437\u0430 \u0441\u043B\u0430\u0434\u043A\u043E \u2014 \u043F\u043B\u0430\u043D\u0438\u0440\u0430\u043D\u043E \u0441\u043B\u0430\u0434\u043A\u043E \u0432\u043C\u0435\u0441\u0442\u043E \u043F\u044A\u043B\u043D\u0430 \u0437\u0430\u0431\u0440\u0430\u043D\u0430; \u043F\u0440\u0438
+     \u0435\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u043D\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u0440\u0435\u0434\u043E\u0432\u043D\u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0431\u0435\u0437 \u0434\u044A\u043B\u0433\u0438 \u043F\u0430\u0443\u0437\u0438; \u043F\u0440\u0438 \u043A\u043E\u043C\u043F\u0435\u043D\u0441\u0430\u0446\u0438\u0438 \u2014 \u0431\u0435\u0437 \u0443\u0441\u0435\u0449\u0430\u043D\u0435 \u0437\u0430 \u043D\u0430\u043A\u0430\u0437\u0430\u043D\u0438\u0435;
+   - \u0438\u0441\u0442\u043E\u0440\u0438\u044F: \u043F\u0440\u0435\u0434\u0438\u0448\u043D\u0438 \u0434\u0438\u0435\u0442\u0438 \u0438 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u044A\u0442 \u0438\u043C (dietHistory, dietType, dietResult) \u2014 \u0434\u0430 \u043D\u0435 \u043F\u043E\u0432\u0442\u0430\u0440\u044F \u0442\u043E\u0432\u0430, \u043A\u043E\u0435\u0442\u043E \u0432\u0435\u0447\u0435
+     \u043D\u0435 \u0435 \u043F\u0440\u043E\u0440\u0430\u0431\u043E\u0442\u0438\u043B\u043E (\u043F\u0440\u0435\u043A\u0430\u043B\u0435\u043D\u043E \u0441\u0442\u0440\u043E\u0433\u043E, \u0442\u0432\u044A\u0440\u0434\u0435 \u043C\u043D\u043E\u0433\u043E \u043D\u043E\u0432\u0438 \u0445\u0440\u0430\u043D\u0438);
+   - \u043A\u0430\u043A\u0432\u043E \u043E\u0431\u0438\u0447\u0430 \u0438 \u0431\u0435\u0437 \u043A\u0430\u043A\u0432\u043E \u043D\u0435 \u043C\u043E\u0436\u0435 (dietLove) \u2014 \u0434\u0430 \u0433\u043E \u0438\u043C\u0430 \u0432 \u0440\u0430\u0437\u0443\u043C\u043D\u0430 \u0444\u043E\u0440\u043C\u0430; \u043A\u0430\u043A\u0432\u043E \u043D\u0435 \u043E\u0431\u0438\u0447\u0430 (dietDislike);
+   - \u0440\u0438\u0442\u044A\u043C: \u0441\u044A\u043D \u0438 \u0445\u0440\u043E\u043D\u043E\u0442\u0438\u043F (sleepHours, chronotype), \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 (sportTypes, sportSessionMinutes), \u0431\u0440\u043E\u0439 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F
+     \u0438 \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0430\u0442\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u2014 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430 \u0434\u0430 \u043F\u0430\u0441\u0432\u0430\u0442 \u043D\u0430 \u0434\u0435\u043D\u044F \u043C\u0443;
+   - \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u043D\u043E\u0441\u0442: \u0432\u0440\u0435\u043C\u0435 \u0437\u0430 \u0433\u043E\u0442\u0432\u0435\u043D\u0435 \u0432 \u0434\u0435\u043B\u043D\u0438\u043A, \u0442\u0432\u044A\u0440\u0434\u0435 \u043C\u043D\u043E\u0433\u043E \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0437\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430\u0442\u0430, \u0442\u0440\u0443\u0434\u043D\u0438 \u0437\u0430 \u043D\u0430\u043C\u0438\u0440\u0430\u043D\u0435
+     \u0438\u043B\u0438 \u0441\u043A\u044A\u043F\u0438 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438 \u0441\u043F\u0440\u044F\u043C\u043E \u0431\u044E\u0434\u0436\u0435\u0442\u0430. \u041F\u043E\u0432\u0442\u0430\u0440\u044F\u0449\u0438 \u0441\u0435 \u043E\u0441\u043D\u043E\u0432\u0438 \u0438 \u0433\u043E\u0442\u0432\u0435\u043D\u0435 \u0437\u0430 \u0434\u0432\u0430 \u0434\u043D\u0438 \u041D\u0415 \u0441\u0430 \u0433\u0440\u0435\u0448\u043A\u0430, \u0430\u043A\u043E \u0443\u043B\u0435\u0441\u043D\u044F\u0432\u0430\u0442;
+   - \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u0438\u0442\u0435 \u043C\u0443 \u0434\u0443\u043C\u0438: additionalNotes \u0438 \u0432\u0441\u0435\u043A\u0438 \u0441\u0432\u043E\u0431\u043E\u0434\u0435\u043D \u0442\u0435\u043A\u0441\u0442.
+3. \u042F\u0432\u043D\u0438 \u0433\u0440\u0435\u0448\u043A\u0438 (minor): \u044F\u0441\u0442\u0438\u0435, \u043A\u043E\u0435\u0442\u043E \u043D\u0435 \u0435 \u0437\u0430 \u0442\u043E\u0432\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435; \u043D\u0435\u0441\u044A\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u0430 \u043A\u043E\u043C\u0431\u0438\u043D\u0430\u0446\u0438\u044F; \u043F\u0440\u043E\u0442\u0438\u0432\u043E\u0440\u0435\u0447\u0438\u0435 \u043C\u0435\u0436\u0434\u0443 \u0442\u0435\u043A\u0441\u0442\u043E\u0432\u0435\u0442\u0435
+   \u0438 \u043C\u0435\u043D\u044E\u0442\u043E; \u043E\u0431\u0435\u0449\u0430\u043D\u0438\u0435 \u0437\u0430 \u043B\u0435\u0447\u0435\u043D\u0438\u0435.
+
+\u041D\u0435 \u043F\u0438\u0448\u0438 \u0437\u0430\u0431\u0435\u043B\u0435\u0436\u043A\u0438 \u0437\u0430 \u0440\u0430\u0437\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u0438\u0435, \u201E\u043F\u043E-\u0434\u043E\u0431\u044A\u0440\u201C \u0438\u0437\u0431\u043E\u0440 \u043F\u043E \u0443\u0447\u0435\u0431\u043D\u0438\u043A \u0438\u043B\u0438 \u0434\u0440\u0435\u0431\u043D\u0438 \u0447\u0438\u0441\u043B\u0430, \u0430\u043A\u043E \u043F\u043B\u0430\u043D\u044A\u0442 \u0435 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u0435\u043D \u0438
+\u0438\u0437\u043F\u044A\u043B\u043D\u0438\u043C. \u041D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E ${MAX_FINDINGS} \u0437\u0430\u0431\u0435\u043B\u0435\u0436\u043A\u0438, \u043E\u0442 \u0442\u044F\u0445 \u043D\u0430\u0439-\u043C\u043D\u043E\u0433\u043E 3 minor. \u0427\u0438\u0441\u0442 \u043F\u043B\u0430\u043D \u2192 verdict "ok" \u0438 \u043F\u0440\u0430\u0437\u043D\u0438 findings \u2014
+\u0442\u043E\u0432\u0430 \u0435 \u043D\u043E\u0440\u043C\u0430\u043B\u0435\u043D \u0438 \u0434\u043E\u0431\u044A\u0440 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442.
+
+\u041F\u0440\u043E\u043C\u0435\u043D\u0438 (changes) \u2014 \u0441\u0430\u043C\u043E \u043A\u043E\u0433\u0430\u0442\u043E \u0441\u0430 \u043D\u0443\u0436\u043D\u0438 \u0438 \u0441\u0438 \u0441\u0438\u0433\u0443\u0440\u0435\u043D, \u0432\u0441\u044F\u043A\u0430 \u0441 \u043F\u0440\u0438\u0447\u0438\u043D\u0430 \u0437\u0430 \u0435\u043A\u0438\u043F\u0430 (reason):
+- \u0425\u0440\u0430\u043D\u0435\u043D\u0435 \u0441\u0435 \u0441\u043C\u0435\u043D\u044F \u0421\u0410\u041C\u041E \u0441 op "swap": path \u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E (\u043D\u0430\u043F\u0440. /plan/weekPlan/day3/meals/1), value_json \u0435 dishId
+  \u043D\u0430 \u0435\u0434\u043D\u0430 \u043E\u0442 \u043D\u0435\u0433\u043E\u0432\u0438\u0442\u0435 alternatives (\u043A\u0430\u0442\u043E JSON \u0442\u0435\u043A\u0441\u0442, \u043D\u0430\u043F\u0440. "\\"d_chicken_rice\\""). \u0414\u0440\u0443\u0433\u043E \u044F\u0441\u0442\u0438\u0435 \u043D\u0435 \u0438\u0437\u043C\u0438\u0441\u043B\u044F\u0448.
+- \u0422\u0435\u043A\u0441\u0442 \u0438\u0437\u0432\u044A\u043D weekPlan (strategy, \u043F\u0440\u0435\u043F\u043E\u0440\u044A\u043A\u0438) \u2014 op "replace" \u0441 JSON Patch \u043F\u044A\u0442 \u043F\u043E\u0434 /plan \u0438 value_json \u043D\u043E\u0432\u0430\u0442\u0430
+  \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442 \u043A\u0430\u0442\u043E JSON \u0442\u0435\u043A\u0441\u0442. \u041D\u0435 \u043F\u0438\u043F\u0430\u0439 answers, analysis, \u0441\u0443\u043C\u0438\u0442\u0435 \u0438 summary.
+- \u0410\u043A\u043E \u043D\u0438\u043A\u043E\u044F \u0430\u043B\u0442\u0435\u0440\u043D\u0430\u0442\u0438\u0432\u0430 \u043D\u0435 \u0440\u0435\u0448\u0430\u0432\u0430 \u043F\u0440\u043E\u0431\u043B\u0435\u043C \u0441 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0442\u0430, \u0438\u043B\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u044A\u0442 \u0435 \u0432 \u0446\u0435\u043B\u0438\u0442\u0435 (analysis) \u0438\u043B\u0438 \u0432 \u0446\u044F\u043B\u0430\u0442\u0430
+  \u0441\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044F \u2014 \u043D\u0435 \u0433\u043E \u043F\u043E\u043F\u0440\u0430\u0432\u044F\u0439: \u043F\u0440\u0438\u0441\u044A\u0434\u0430 "stop" \u0438 \u043E\u0431\u044F\u0441\u043D\u0435\u043D\u0438\u0435.
 
 \u041F\u0440\u0438\u0441\u044A\u0434\u0430 (verdict): "ok" \u2014 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u043E\u0434\u043E\u0431\u0440\u0438; "fix" \u2014 \u0441 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0435 \u043D\u0430\u0440\u0435\u0434; "stop" \u2014 \u043D\u0443\u0436\u0435\u043D \u0435 \u0447\u043E\u0432\u0435\u043A.
-summary: 2\u20134 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u0437\u0430 \u0435\u043A\u0438\u043F\u0430. findings: \u0432\u0441\u044F\u043A\u0430 \u0437\u0430\u0431\u0435\u043B\u0435\u0436\u043A\u0430 \u0441 severity, where, issue \u0438 fix.`;
+summary: 2\u20134 \u0438\u0437\u0440\u0435\u0447\u0435\u043D\u0438\u044F \u0437\u0430 \u0435\u043A\u0438\u043F\u0430 \u2014 \u043F\u044A\u0440\u0432\u043E \u0434\u0430\u043B\u0438 \u0447\u043E\u0432\u0435\u043A\u044A\u0442 \u0449\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0433\u043E \u0441\u043F\u0430\u0437\u0432\u0430 \u0438 \u0437\u0430\u0449\u043E. findings: \u0432\u0441\u044F\u043A\u0430 \u0437\u0430\u0431\u0435\u043B\u0435\u0436\u043A\u0430
+\u0441 severity, where, issue \u0438 fix.`;
 var OUTPUT_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -77249,7 +77531,7 @@ var OUTPUT_SCHEMA = {
         additionalProperties: false,
         required: ["op", "path", "value_json", "reason"],
         properties: {
-          op: { type: "string", enum: ["replace", "add", "remove"] },
+          op: { type: "string", enum: ["swap", "replace", "add", "remove"] },
           path: { type: "string" },
           value_json: { type: "string" },
           reason: { type: "string" }
@@ -77313,44 +77595,102 @@ async function maybeFireReview(env, { now = Date.now() } = {}) {
   }
   return n ? `queued:${n}` : "same";
 }
+var PRIVATE_ANSWERS = /* @__PURE__ */ new Set(["name", "email", "phone", "password", "photo", "photos"]);
+var MEAL_FIELDS = ["type", "name", "dishId", "description", "recipe", "prepTime", "weight", "calories", "macros", "dessert"];
+function compactMeal(m) {
+  if (!m || typeof m !== "object") return m;
+  const out = {};
+  for (const k of MEAL_FIELDS) if (m[k] != null && m[k] !== "") out[k] = m[k];
+  if (Array.isArray(m.alternatives) && m.alternatives.length) {
+    out.alternatives = m.alternatives.filter(Boolean).map((a) => ({ dishId: a.dishId, name: a.name }));
+  }
+  return out;
+}
 function reviewInput(c) {
   const { _meta, aiVoice, ...plan } = c.plan || {};
-  return JSON.stringify({ answers: c.answers || {}, plan });
+  const answers2 = {};
+  for (const [k, v] of Object.entries(c.answers || {})) {
+    if (PRIVATE_ANSWERS.has(k) || v == null || v === "" || Array.isArray(v) && !v.length) continue;
+    answers2[k] = v;
+  }
+  if (plan.weekPlan && typeof plan.weekPlan === "object") {
+    const wp = {};
+    for (const [day2, d] of Object.entries(plan.weekPlan)) {
+      wp[day2] = d && Array.isArray(d.meals) ? { ...d, meals: d.meals.map(compactMeal) } : d;
+    }
+    plan.weekPlan = wp;
+  }
+  return JSON.stringify({ answers: answers2, plan });
 }
+function reviewEffort(answers2) {
+  const a = answers2 || {};
+  const conditions = Array.isArray(a.healthConditions) ? a.healthConditions : [a.healthConditions].filter(Boolean);
+  const age = Number(a.age);
+  const risky = conditions.some((x) => MEDICAL_CONDITIONS.has(x)) || a.medications === "\u0414\u0430" || a.postpartumStatus && a.postpartumStatus !== "\u041D\u0435 \u043A\u044A\u0440\u043C\u044F, \u043D\u043E \u043D\u0430\u0441\u043A\u043E\u0440\u043E \u0440\u043E\u0434\u0438\u0445 (\u0434\u043E 1 \u0433\u043E\u0434\u0438\u043D\u0430)" || age > 0 && (age < 18 || age >= 70);
+  return risky ? EFFORT_RISK : EFFORT_BASE;
+}
+var MEAL_PATH = /^\/plan\/weekPlan\/(day\d+)\/meals\/(\d+)$/;
 function toPatches(changes) {
-  return (Array.isArray(changes) ? changes : []).map((ch) => {
+  return (Array.isArray(changes) ? changes : []).filter((ch) => ch.op !== "swap").map((ch) => {
     const p = { op: ch.op, path: String(ch.path || "") };
     if (ch.op !== "remove") p.value = JSON.parse(ch.value_json);
     return p;
   });
 }
+function applySwap(copy, ch) {
+  const path3 = String(ch.path || "");
+  const m = path3.match(MEAL_PATH);
+  if (!m) throw new Error(`swap \u0435 \u0441\u0430\u043C\u043E \u0437\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 (/plan/weekPlan/dayN/meals/i), \u043D\u0435 ${path3}`);
+  let dishId;
+  try {
+    dishId = JSON.parse(ch.value_json);
+  } catch {
+    dishId = ch.value_json;
+  }
+  const [, day2, idx] = m;
+  const before = copy.plan?.weekPlan?.[day2]?.meals?.[Number(idx)];
+  if (!before) throw new Error(`\u043D\u044F\u043C\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435 ${path3}`);
+  if (!globalThis.NutriMealSwaps.swapIn(copy.plan, day2, Number(idx), String(dishId))) {
+    throw new Error(`${dishId} \u043D\u0435 \u0435 \u0441\u0440\u0435\u0434 \u0430\u043B\u0442\u0435\u0440\u043D\u0430\u0442\u0438\u0432\u0438\u0442\u0435 \u043D\u0430 ${path3}`);
+  }
+  return { path: path3, before: JSON.parse(JSON.stringify(before)), after: copy.plan.weekPlan[day2].meals[Number(idx)] };
+}
 async function applyChanges(c, changes, reconcile) {
-  const patches = toPatches(changes);
+  const list4 = Array.isArray(changes) ? changes : [];
+  const patches = toPatches(list4);
   if (patches.some((p) => !p.path.startsWith("/plan/"))) throw new Error("\u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0441\u0430 \u0441\u0430\u043C\u043E \u043F\u043E\u0434 /plan/\u2026");
+  if (patches.some((p) => p.path.startsWith("/plan/weekPlan/"))) throw new Error('\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F\u0442\u0430 \u0441\u0435 \u0441\u043C\u0435\u043D\u044F\u0442 \u0441\u0430\u043C\u043E \u0441 op "swap" \u043A\u044A\u043C \u0430\u043B\u0442\u0435\u0440\u043D\u0430\u0442\u0438\u0432\u0430');
   const before = buildPatchDocument(c);
   const copy = JSON.parse(JSON.stringify(c));
-  const { document } = applyJsonPatches(before, patches);
-  mergePatchDocument(copy, document);
+  const swaps = list4.filter((ch) => ch.op === "swap").map((ch) => ({ ch, ...applySwap(copy, ch) }));
+  if (patches.length) {
+    const { document } = applyJsonPatches(buildPatchDocument(copy), patches);
+    mergePatchDocument(copy, document);
+  }
   if (reconcile && copy.plan?.weekPlan) await reconcile(copy.plan, copy.answers);
-  const diff = changes.map((ch, i) => ({
-    op: ch.op,
-    path: patches[i].path,
-    reason: clip(ch.reason, 800),
-    before: valueAt(before, patches[i].path) ?? null,
-    after: ch.op === "remove" ? null : patches[i].value
-  }));
-  return { correctedPlan: copy.plan, patches, changes: diff };
+  const diff = [
+    ...swaps.map(({ ch, path: path3, before: b, after }) => ({ op: "swap", path: path3, reason: clip(ch.reason, 800), before: b, after })),
+    ...list4.filter((ch) => ch.op !== "swap").map((ch, i) => ({
+      op: ch.op,
+      path: patches[i].path,
+      reason: clip(ch.reason, 800),
+      before: valueAt(before, patches[i].path) ?? null,
+      after: ch.op === "remove" ? null : patches[i].value
+    }))
+  ];
+  const allPatches = [...swaps.map((x) => ({ op: "replace", path: x.path, value: x.after })), ...patches];
+  return { correctedPlan: copy.plan, patches: allPatches, changes: diff };
 }
 function costOf(usage) {
   const u = usage || {};
   return ((u.input_tokens || 0) * PRICE2.in + (u.output_tokens || 0) * PRICE2.out + (u.cache_read_input_tokens || 0) * PRICE2.cacheRead + (u.cache_creation_input_tokens || 0) * PRICE2.cacheWrite) / 1e6;
 }
-async function askClaude(client, messages) {
+async function askClaude(client, messages, effort) {
   const message = await client.beta.messages.stream({
     model: REVIEW_MODEL,
     max_tokens: MAX_TOKENS,
     thinking: { type: "adaptive" },
-    output_config: { effort: REVIEW_EFFORT, format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
+    output_config: { effort, format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
     // При отказ по правилата за безопасност същата заявка минава на резервен модел.
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
@@ -77369,8 +77709,9 @@ async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addS
   if (old && old.planUpdatedAt === (c.planUpdatedAt || null)) return "reviewed";
   const api = client || new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   const messages = [{ role: "user", content: reviewInput(c) }];
+  const effort = reviewEffort(c.answers);
   let usd = 0;
-  let { message, result } = await askClaude(api, messages);
+  let { message, result } = await askClaude(api, messages, effort);
   usd += costOf(message.usage);
   let applied = null;
   let applyError = "";
@@ -77382,7 +77723,7 @@ async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addS
         { role: "assistant", content: message.content },
         { role: "user", content: `\u041F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u043D\u0435 \u0441\u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0438\u0445\u0430: ${e.message}. \u041F\u043E\u043F\u0440\u0430\u0432\u0438 \u043F\u044A\u0442\u0438\u0449\u0430\u0442\u0430 \u0438 \u0441\u0442\u043E\u0439\u043D\u043E\u0441\u0442\u0438\u0442\u0435 \u0438 \u0432\u044A\u0440\u043D\u0438 \u0446\u0435\u043B\u0438\u044F \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u043D\u0430\u043D\u043E\u0432\u043E.` }
       );
-      ({ message, result } = await askClaude(api, messages));
+      ({ message, result } = await askClaude(api, messages, effort));
       usd += costOf(message.usage);
       try {
         if (result && result.changes?.length) applied = await applyChanges(c, result.changes, reconcile);
@@ -77393,7 +77734,7 @@ async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addS
   }
   if (addSpend2) await addSpend2(usd);
   const declined = !result;
-  const findings = (declined ? [] : result.findings || []).slice(0, 60).map((f) => ({
+  const findings = (declined ? [] : result.findings || []).slice(0, MAX_FINDINGS).map((f) => ({
     severity: SEVERITIES.has(f?.severity) ? f.severity : "minor",
     where: clip(f?.where, 120),
     issue: clip(f?.issue, 800),
@@ -77408,6 +77749,7 @@ async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addS
     reviewedAt: now,
     reviewer: "claude",
     model: message.model || REVIEW_MODEL,
+    effort,
     verdict,
     summary,
     findings,
@@ -81585,7 +81927,7 @@ var DEFAULT_EMAIL_TEMPLATE = {
   buttonText: "\u0412\u0438\u0436 \u043C\u043E\u044F \u043F\u043B\u0430\u043D \u2192",
   contactEmail: "info@biocode.online"
 };
-var PLAN_APP_BASE_URL = "https://biocode.website";
+var PLAN_APP_BASE_URL = "https://eatologix.com";
 var EMAIL_LOGO_HTML = `<img src="${PLAN_APP_BASE_URL}/brand/eatologix-email-logo.png" width="240" height="50" alt="EATOLOGIX" style="display:block;margin:0 auto;border:0;outline:none;width:240px;height:auto;">`;
 var PLAN_CLAIM_TTL_SEC = 72 * 60 * 60;
 var DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE = {
@@ -82121,6 +82463,7 @@ function normalizeEmail(value) {
 function isPlanEditingAllowed(opts) {
   const { clientId, userId, email } = opts || {};
   if (!PLAN_EDITING_LOCK_ENABLED) return true;
+  if (globalThis.__EATOLOGIX_BETA_UNLOCK === true) return true;
   const cid = String(clientId || "").trim();
   const uid = String(userId || "").trim();
   const em = normalizeEmail(email);
@@ -90172,7 +90515,7 @@ async function handleEnrichmentResolve(request, env) {
   }
 }
 var HANDOFF_PREFIX = "handoff:";
-var NUTRIPLAN_SITE = "https://biocode.website";
+var NUTRIPLAN_SITE = "https://eatologix.com";
 function newHandoffToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -90650,7 +90993,7 @@ function linkResultPage(ok, title, text2, fromApp = false) {
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#EEFDFC;color:#032E36}
 main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? "#05737D" : "#B45309"}}
 a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#05737D;color:#fff;text-decoration:none}</style></head>
-<body><main><div class="i">${ok ? "\u2713" : "!"}</div><h1>${esc3(title)}</h1><p>${esc3(text2)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : "https://biocode.website/index.html?app=1&tab=profile"}">\u041E\u0431\u0440\u0430\u0442\u043D\u043E \u0432 Eatologix</a></main>
+<body><main><div class="i">${ok ? "\u2713" : "!"}</div><h1>${esc3(title)}</h1><p>${esc3(text2)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : "https://eatologix.com/index.html?app=1&tab=profile"}">\u041E\u0431\u0440\u0430\u0442\u043D\u043E \u0432 Eatologix</a></main>
 ${fromApp ? `<script>setTimeout(function(){location.href=${JSON.stringify(APP_INTENT_URL)};},${ok ? 600 : 2500});<\/script>` : ""}</body></html>`;
   return new Response(html, { status: ok ? 200 : 400, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
 }
@@ -90893,16 +91236,18 @@ async function handleGetPlanVersion(request, env) {
       return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
     }
     const url = new URL(request.url);
-    const resolvedUserId = (url.searchParams.get("userId") || "").trim();
+    let resolvedUserId = (url.searchParams.get("userId") || "").trim();
     if (!resolvedUserId) {
       return jsonResponse2({ error: "Missing userId" }, 400);
     }
+    let verifiedEmail = "";
     if (resolvedUserId.startsWith("fb_") && env.FIREBASE_PROJECT_ID) {
       const authHeader = request.headers.get("Authorization") || "";
       const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
       if (idToken) {
         try {
           const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+          verifiedEmail = normalizeEmail(firebaseUser.email);
           if ("fb_" + firebaseUser.uid !== resolvedUserId) {
             return jsonResponse2({ error: "Token does not match userId" }, 403);
           }
@@ -90911,7 +91256,17 @@ async function handleGetPlanVersion(request, env) {
         }
       }
     }
-    const profile = await kvGetJSON(env, `user_profile:${resolvedUserId}`);
+    let profile = await kvGetJSON(env, `user_profile:${resolvedUserId}`);
+    if (!profile?.plan && verifiedEmail) {
+      const emailIndex = await getEmailIndex(env, verifiedEmail);
+      if (emailIndex?.userId && emailIndex.userId !== resolvedUserId) {
+        const canonical2 = await kvGetJSON(env, `user_profile:${emailIndex.userId}`);
+        if (canonical2?.plan) {
+          profile = canonical2;
+          resolvedUserId = emailIndex.userId;
+        }
+      }
+    }
     if (!profile?.plan) {
       return jsonResponse2({ found: false }, 404);
     }

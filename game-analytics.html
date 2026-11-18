@@ -1387,7 +1387,7 @@
 
             html += '<div class="game-index-row" data-explain="engagement">' +
                 '<div class="game-index-label"><span><i class="fas fa-utensils" style="color:#03939C"></i> Ангажираност</span><span></span></div>' +
-                '<div class="game-index-hint">'+(engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
+                '<div class="game-index-hint">'+(!validScores.length?'<i class="fas fa-seedling" style="color:#10b981"></i> Започваш — отбелязвай храненията си':engagementPct>=80?'<i class="fas fa-check-circle" style="color:#10b981"></i> Отлично':engagementPct>=60?'<i class="fas fa-circle" style="color:#f59e0b"></i> Добре':'<i class="fas fa-circle" style="color:#ef4444"></i> Нисък')+' <i class="fas fa-circle-info"></i></div>' +
                 pBar(engagementPct,'linear-gradient(90deg,#03939C,#06B6D4)') + miniBarChart(engPcts,100,'#03939C') +
             '</div>';
 
@@ -1408,7 +1408,8 @@
             html += '<div class="game-index-row" data-explain="calories">' +
                 '<div class="game-index-label"><span><i class="fas fa-scale-balanced" style="color:#f59e0b"></i> Калориен баланс</span><span></span></div>' +
                 '<div class="game-index-hint">'+calBalanceLabel+' <i class="fas fa-circle-info"></i></div>' +
-                pBar(calAdherencePct, netCalBalance>700?'linear-gradient(90deg,#ef4444,#f97316)':netCalBalance>0?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#3b82f6,#06B6D4)') +
+                (calBalanceByDay.some(function(v){ return v!==null; }) ? '' : '<div class="game-index-bar-wrap"></div>') +
+                (!calBalanceByDay.some(function(v){ return v!==null; }) ? '' : pBar(calAdherencePct, netCalBalance>700?'linear-gradient(90deg,#ef4444,#f97316)':netCalBalance>0?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#3b82f6,#06B6D4)')) +
                 calTargetBarChart(calConsumedByDay, calPlannedByDay, netCalBalance>700?'#ef4444':'#f59e0b', '#3b82f6') +
             '</div>';
 

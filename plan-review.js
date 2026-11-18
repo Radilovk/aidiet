@@ -19,10 +19,21 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 import { applyJsonPatches, buildPatchDocument, mergePatchDocument } from './json-patch.js';
+import './meal-swaps.js';   // NutriMealSwaps.swapIn — същата размяна като в приложението
 
 /** Модел: прегледът е клинична проверка (алергени, лекарства, заболявания) — най-точният Opus. */
 export const REVIEW_MODEL = 'claude-opus-5-5';
-const REVIEW_EFFORT = 'high';
+/**
+ * Нивото на мислене по риска на профила: заболявания, лекарства, бременност/кърмене, дете или
+ * възрастен над 70 → high; иначе medium (стандартното за Opus 5.5) — там прегледът е преценка за
+ * изпълнимост, а числата и правилата вече са проверени от двигателя.
+ */
+const EFFORT_RISK = 'high';
+const EFFORT_BASE = 'medium';
+const MEDICAL_CONDITIONS = new Set(['Диабет / Инсулинова резистентност', 'Автоимунни заболявания', 'Щитовидна жлеза (Хашимото и др.)',
+  'Храносмилателни проблеми', 'Сърдечно-съдови заболявания', 'Ендокринни заболявания', 'Метаболитни нарушения',
+  'Алергии и хранителна непоносимост', 'Анемия', 'Менопауза', 'След бременност', 'Друго']);
+const MAX_FINDINGS = 8;
 const MAX_TOKENS = 32000;
 /** $ за 1M токена (вход, изход, четене от кеша, запис в кеша) — за дневния таван на AI разхода. */
 const PRICE = { in: 4, out: 20, cacheRead: 0.2, cacheWrite: 5 };
@@ -38,32 +49,52 @@ const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
 export const GUIDE = `Преглеждаш хранителен план на Eatologix, преди да стигне до клиента. Екипът го одобрява след теб.
 Пишеш на екипа, на български: кратко, конкретно, с място (ден, хранене). Не пишеш на клиента.
 
-Получаваш answers (въпросникът: цел, възраст, пол, тегло, ръст, активност, заболявания, лекарства, алергии,
-непоносимости, какво не яде, хранителен режим, брой хранения, бюджет, изследвания) и plan (analysis — дневни цели;
-strategy; weekPlan — дни → meals с ястия, грамове, калории и макроси; summary; добавки и препоръки, ако има).
+Главното правило: планът трябва да бъде СПАЗЕН от този човек. План, точен на 80%, но лесен и гъвкав, дава повече
+от перфектен по учебник, който човекът изоставя след седмица. Не гониш съвършенство — търсиш само това, което
+застрашава здравето или реалното спазване.
 
-Проверявай целия план, всеки ден и всяко хранене:
-1. Безопасност (critical): алергени и непоносимости във всяко ястие; храни и добавки, противопоказни при заболяванията
-   и лекарствата (грейпфрут и статини, витамин K и варфарин, йод при Хашимото без указание, много калий при бъбречно
-   заболяване, захари при диабет, сол при хипертония, сурови и рискови храни при бременност); дози на добавките над
-   горния безопасен праг; твърде нисък прием на енергия (под 1200 kcal за жени, под 1500 за мъже) без причина.
-2. Спазване на клиента (major): храни, които е казал, че не яде; режимът му (вегетарианец, без глутен…); броят
-   хранения и часовете; пропуснатата закуска, ако е отбелязана.
-3. Числа (major): дневните калории и макроси спрямо целите в analysis (отклонение над 10% е грешка); сумата на деня
-   спрямо сбора на храненията; реалистични грамове (не 7 г ориз, не 600 г пилешко на хранене).
-4. Смисъл (major или minor): ястие, което не е за това хранене; едно ястие повече от 3 пъти седмично; разнообразие
-   на белтъчини и зеленчуци; храни, трудни за намиране там, където е клиентът; бюджетът.
-5. Текстове (minor): противоречия между анализа, препоръките и менюто; грешни имена; обещания за лечение.
+Получаваш answers (въпросникът на клиента) и plan. Калориите, макросите, порциите, сумите и клиничните правила
+са сметнати и проверени от алгоритъма — не ги преизчисляваш и не ги коментираш, освен при явна опасност.
+В weekPlan всяко хранене има: name, description (продуктите с грамовете), recipe, prepTime (минути), calories,
+macros и alternatives — равностойните ястия, с които може да се смени (dishId и name). Клиентът сам може да
+сменя ястие с алтернатива в приложението — това е гъвкавостта на плана.
 
-Промени (changes) предлагаш само когато са нужни и си сигурен в тях — всяка с причина за екипа (reason).
-Формат JSON Patch: op е replace, add или remove; path е само под /plan (напр. /plan/weekPlan/day3/meals/1);
-value_json е новата стойност като JSON текст ("" при remove). Сменяй цяло хранене с ястие в същата структура като
-другите хранения — копирай полетата им. Сумите на деня и summary сървърът пресмята сам — не ги пипай. Не пипай
-answers и не пренаписвай целия план (най-много 25 промени). Ако проблемът е в целите (analysis) или в цялата
-стратегия, не го поправяй: присъда "stop" и обяснение.
+Проверявай по ред на важност:
+1. Безопасност (critical): алергени и непоносимости в продуктите или рецептата; храни и добавки, противопоказни
+   при заболяванията и лекарствата (грейпфрут и статини, витамин K и варфарин, йод при Хашимото без указание,
+   много калий при бъбречно заболяване, сол при хипертония, сурови и рискови храни при бременност); дози на
+   добавките над горния безопасен праг; храна, която клиентът изрично е казал, че не яде.
+2. Изпълнимост за ТОЗИ човек (major) — прочети го целия, не само медицинската част:
+   - психология: колко често преяжда (overeatingFrequency), за какво има глад (foodCravings), кое го отключва
+     (foodTriggers), компенсации (compensationMethods), сравняване с другите (socialComparison), стрес
+     (stressLevel, stressSources). Пример: при силен глад за сладко — планирано сладко вместо пълна забрана; при
+     емоционално хранене — редовни хранения без дълги паузи; при компенсации — без усещане за наказание;
+   - история: предишни диети и резултатът им (dietHistory, dietType, dietResult) — да не повтаря това, което вече
+     не е проработило (прекалено строго, твърде много нови храни);
+   - какво обича и без какво не може (dietLove) — да го има в разумна форма; какво не обича (dietDislike);
+   - ритъм: сън и хронотип (sleepHours, chronotype), тренировки (sportTypes, sportSessionMinutes), брой хранения
+     и пропусната закуска — храненията да пасват на деня му;
+   - практичност: време за готвене в делник, твърде много различни продукти за седмицата, трудни за намиране
+     или скъпи продукти спрямо бюджета. Повтарящи се основи и готвене за два дни НЕ са грешка, ако улесняват;
+   - собствените му думи: additionalNotes и всеки свободен текст.
+3. Явни грешки (minor): ястие, което не е за това хранене; несъвместима комбинация; противоречие между текстовете
+   и менюто; обещание за лечение.
+
+Не пиши забележки за разнообразие, „по-добър“ избор по учебник или дребни числа, ако планът е безопасен и
+изпълним. Най-много ${MAX_FINDINGS} забележки, от тях най-много 3 minor. Чист план → verdict "ok" и празни findings —
+това е нормален и добър резултат.
+
+Промени (changes) — само когато са нужни и си сигурен, всяка с причина за екипа (reason):
+- Хранене се сменя САМО с op "swap": path е храненето (напр. /plan/weekPlan/day3/meals/1), value_json е dishId
+  на една от неговите alternatives (като JSON текст, напр. "\\"d_chicken_rice\\""). Друго ястие не измисляш.
+- Текст извън weekPlan (strategy, препоръки) — op "replace" с JSON Patch път под /plan и value_json новата
+  стойност като JSON текст. Не пипай answers, analysis, сумите и summary.
+- Ако никоя алтернатива не решава проблем с безопасността, или проблемът е в целите (analysis) или в цялата
+  стратегия — не го поправяй: присъда "stop" и обяснение.
 
 Присъда (verdict): "ok" — може да се одобри; "fix" — с промените е наред; "stop" — нужен е човек.
-summary: 2–4 изречения за екипа. findings: всяка забележка с severity, where, issue и fix.`;
+summary: 2–4 изречения за екипа — първо дали човекът ще може да го спазва и защо. findings: всяка забележка
+с severity, where, issue и fix.`;
 
 const OUTPUT_SCHEMA = {
   type: 'object',
@@ -93,7 +124,7 @@ const OUTPUT_SCHEMA = {
         additionalProperties: false,
         required: ['op', 'path', 'value_json', 'reason'],
         properties: {
-          op: { type: 'string', enum: ['replace', 'add', 'remove'] },
+          op: { type: 'string', enum: ['swap', 'replace', 'add', 'remove'] },
           path: { type: 'string' },
           value_json: { type: 'string' },
           reason: { type: 'string' },
@@ -176,36 +207,105 @@ export async function maybeFireReview(env, { now = Date.now() } = {}) {
   return n ? `queued:${n}` : 'same';
 }
 
-/** Входът за Claude: въпросникът и планът (без служебните полета). */
-function reviewInput(c) {
-  const { _meta, aiVoice, ...plan } = c.plan || {};
-  return JSON.stringify({ answers: c.answers || {}, plan });
+/** Лични данни, които прегледът не ползва — не излизат към API. */
+const PRIVATE_ANSWERS = new Set(['name', 'email', 'phone', 'password', 'photo', 'photos']);
+/** Полета на храненето, които прегледът вижда; рецептата по стъпки, ползите и т.н. отпадат. */
+const MEAL_FIELDS = ['type', 'name', 'dishId', 'description', 'recipe', 'prepTime', 'weight', 'calories', 'macros', 'dessert'];
+
+function compactMeal(m) {
+  if (!m || typeof m !== 'object') return m;
+  const out = {};
+  for (const k of MEAL_FIELDS) if (m[k] != null && m[k] !== '') out[k] = m[k];
+  if (Array.isArray(m.alternatives) && m.alternatives.length) {
+    out.alternatives = m.alternatives.filter(Boolean).map((a) => ({ dishId: a.dishId, name: a.name }));
+  }
+  return out;
 }
 
-/** Промените от модела → JSON Patch (value_json → value). */
+/**
+ * Входът за Claude: въпросникът (без лични данни и празни отговори) и планът, в който храненията са
+ * сгъстени — продуктите, рецептата и само имената на алтернативите (пълните им копия са ~2/3 от плана).
+ */
+export function reviewInput(c) {
+  const { _meta, aiVoice, ...plan } = c.plan || {};
+  const answers = {};
+  for (const [k, v] of Object.entries(c.answers || {})) {
+    if (PRIVATE_ANSWERS.has(k) || v == null || v === '' || (Array.isArray(v) && !v.length)) continue;
+    answers[k] = v;
+  }
+  if (plan.weekPlan && typeof plan.weekPlan === 'object') {
+    const wp = {};
+    for (const [day, d] of Object.entries(plan.weekPlan)) {
+      wp[day] = d && Array.isArray(d.meals) ? { ...d, meals: d.meals.map(compactMeal) } : d;
+    }
+    plan.weekPlan = wp;
+  }
+  return JSON.stringify({ answers, plan });
+}
+
+/** Рисков профил → по-високо ниво на мислене. */
+export function reviewEffort(answers) {
+  const a = answers || {};
+  const conditions = Array.isArray(a.healthConditions) ? a.healthConditions : [a.healthConditions].filter(Boolean);
+  const age = Number(a.age);
+  const risky = conditions.some((x) => MEDICAL_CONDITIONS.has(x))
+    || a.medications === 'Да'
+    || (a.postpartumStatus && a.postpartumStatus !== 'Не кърмя, но наскоро родих (до 1 година)')
+    || (age > 0 && (age < 18 || age >= 70));
+  return risky ? EFFORT_RISK : EFFORT_BASE;
+}
+
+const MEAL_PATH = /^\/plan\/weekPlan\/(day\d+)\/meals\/(\d+)$/;
+
+/** Промените от модела → JSON Patch (value_json → value). Размените са отделно — прилагат се като в приложението. */
 function toPatches(changes) {
-  return (Array.isArray(changes) ? changes : []).map((ch) => {
+  return (Array.isArray(changes) ? changes : []).filter((ch) => ch.op !== 'swap').map((ch) => {
     const p = { op: ch.op, path: String(ch.path || '') };
     if (ch.op !== 'remove') p.value = JSON.parse(ch.value_json);
     return p;
   });
 }
 
+/** Сменя храненето с алтернативата му върху копието; → { path, before, after } или грешка. */
+function applySwap(copy, ch) {
+  const path = String(ch.path || '');
+  const m = path.match(MEAL_PATH);
+  if (!m) throw new Error(`swap е само за хранене (/plan/weekPlan/dayN/meals/i), не ${path}`);
+  let dishId;
+  try { dishId = JSON.parse(ch.value_json); } catch { dishId = ch.value_json; }
+  const [, day, idx] = m;
+  const before = copy.plan?.weekPlan?.[day]?.meals?.[Number(idx)];
+  if (!before) throw new Error(`няма хранене ${path}`);
+  if (!globalThis.NutriMealSwaps.swapIn(copy.plan, day, Number(idx), String(dishId))) {
+    throw new Error(`${dishId} не е сред алтернативите на ${path}`);
+  }
+  return { path, before: JSON.parse(JSON.stringify(before)), after: copy.plan.weekPlan[day].meals[Number(idx)] };
+}
+
 /** Прилага промените върху копие; връща коригирания план и „преди/след“ за всяка промяна. */
 async function applyChanges(c, changes, reconcile) {
-  const patches = toPatches(changes);
+  const list = Array.isArray(changes) ? changes : [];
+  const patches = toPatches(list);
   if (patches.some((p) => !p.path.startsWith('/plan/'))) throw new Error('промените са само под /plan/…');
+  if (patches.some((p) => p.path.startsWith('/plan/weekPlan/'))) throw new Error('храненията се сменят само с op "swap" към алтернатива');
   const before = buildPatchDocument(c);
   const copy = JSON.parse(JSON.stringify(c));
-  const { document } = applyJsonPatches(before, patches);
-  mergePatchDocument(copy, document);
+  const swaps = list.filter((ch) => ch.op === 'swap').map((ch) => ({ ch, ...applySwap(copy, ch) }));
+  if (patches.length) {
+    const { document } = applyJsonPatches(buildPatchDocument(copy), patches);
+    mergePatchDocument(copy, document);
+  }
   if (reconcile && copy.plan?.weekPlan) await reconcile(copy.plan, copy.answers);
-  const diff = changes.map((ch, i) => ({
-    op: ch.op, path: patches[i].path, reason: clip(ch.reason, 800),
-    before: valueAt(before, patches[i].path) ?? null,
-    after: ch.op === 'remove' ? null : patches[i].value,
-  }));
-  return { correctedPlan: copy.plan, patches, changes: diff };
+  const diff = [
+    ...swaps.map(({ ch, path, before: b, after }) => ({ op: 'swap', path, reason: clip(ch.reason, 800), before: b, after })),
+    ...list.filter((ch) => ch.op !== 'swap').map((ch, i) => ({
+      op: ch.op, path: patches[i].path, reason: clip(ch.reason, 800),
+      before: valueAt(before, patches[i].path) ?? null,
+      after: ch.op === 'remove' ? null : patches[i].value,
+    })),
+  ];
+  const allPatches = [...swaps.map((x) => ({ op: 'replace', path: x.path, value: x.after })), ...patches];
+  return { correctedPlan: copy.plan, patches: allPatches, changes: diff };
 }
 
 function costOf(usage) {
@@ -215,12 +315,12 @@ function costOf(usage) {
 }
 
 /** Едно извикване на Claude; → { message, result|null } */
-async function askClaude(client, messages) {
+async function askClaude(client, messages, effort) {
   const message = await client.beta.messages.stream({
     model: REVIEW_MODEL,
     max_tokens: MAX_TOKENS,
     thinking: { type: 'adaptive' },
-    output_config: { effort: REVIEW_EFFORT, format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
+    output_config: { effort, format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
     // При отказ по правилата за безопасност същата заявка минава на резервен модел.
     betas: ['server-side-fallback-2026-07-01'],
     fallbacks: 'default',
@@ -249,8 +349,9 @@ export async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcil
 
   const api = client || new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   const messages = [{ role: 'user', content: reviewInput(c) }];
+  const effort = reviewEffort(c.answers);
   let usd = 0;
-  let { message, result } = await askClaude(api, messages);
+  let { message, result } = await askClaude(api, messages, effort);
   usd += costOf(message.usage);
 
   let applied = null;
@@ -262,7 +363,7 @@ export async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcil
       // Един опит за поправка: моделът вижда грешката и праща промените наново.
       messages.push({ role: 'assistant', content: message.content },
         { role: 'user', content: `Промените не се приложиха: ${e.message}. Поправи пътищата и стойностите и върни целия отговор наново.` });
-      ({ message, result } = await askClaude(api, messages));
+      ({ message, result } = await askClaude(api, messages, effort));
       usd += costOf(message.usage);
       try {
         if (result && result.changes?.length) applied = await applyChanges(c, result.changes, reconcile);
@@ -274,7 +375,7 @@ export async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcil
   if (addSpend) await addSpend(usd);
 
   const declined = !result;
-  const findings = (declined ? [] : result.findings || []).slice(0, 60).map((f) => ({
+  const findings = (declined ? [] : result.findings || []).slice(0, MAX_FINDINGS).map((f) => ({
     severity: SEVERITIES.has(f?.severity) ? f.severity : 'minor',
     where: clip(f?.where, 120), issue: clip(f?.issue, 800), fix: clip(f?.fix, 800),
   })).filter((f) => f.issue);
@@ -285,7 +386,7 @@ export async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcil
     : clip(result.summary, 2000) + (applyError ? ` Предложените промени не се приложиха (${clip(applyError, 200)}) — описани са в забележките.` : '');
 
   const review = {
-    clientId, planUpdatedAt: c.planUpdatedAt || null, reviewedAt: now, reviewer: 'claude', model: message.model || REVIEW_MODEL,
+    clientId, planUpdatedAt: c.planUpdatedAt || null, reviewedAt: now, reviewer: 'claude', model: message.model || REVIEW_MODEL, effort,
     verdict, summary, findings,
     changes: applied?.changes || null, patches: applied?.patches || null, correctedPlan: applied?.correctedPlan || null,
     costUsd: Math.round(usd * 10000) / 10000, applied: false,

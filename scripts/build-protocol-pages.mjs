@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { PROTOCOL_STATES, STATE_ICONS, statePageUrl } from '../protocol-states.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SITE = 'https://biocode.website';
+const SITE = 'https://eatologix.com';
 const CSS_V = '20261114c';
 
 /** Статични страници с общия футър (вмъква се между маркерите). */

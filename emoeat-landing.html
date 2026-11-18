@@ -17,7 +17,7 @@
     <meta property="og:title" content="EmoEat — емоционално хранене: кога храната поема чувствата">
     <meta property="og:description" content="Кратък тест за емоционално хранене — около 3 минути, без верни и грешни отговори. Накрая получаваш план за седмицата: три конкретни неща и какво да правиш, когато импулсът е силен.">
     <meta property="og:url" content="https://emoeat.app/">
-    <meta property="og:image" content="https://biocode.website/brand/emoeat-og.png">
+    <meta property="og:image" content="https://emoeat.app/brand/emoeat-og.png">
     <link rel="icon" type="image/svg+xml" href="brand/emoeat-favicon.svg">
     <link rel="icon" type="image/png" sizes="48x48" href="brand/emoeat-favicon-48.png">
     <link rel="apple-touch-icon" sizes="180x180" href="brand/emoeat-apple-touch-icon.png">
@@ -26,7 +26,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="module-landing.css?v=20261114c">
     <link rel="stylesheet" href="site-footer.css?v=20261114b">
-    <link rel="stylesheet" href="emoeat-site.css?v=1">
+    <link rel="stylesheet" href="emoeat-site.css?v=2">
     <style>:root{--acc:#9B5CF6;--acc-2:#E879F9;}</style>
 </head>
 <body>
@@ -56,7 +56,8 @@
                         <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Около 3 минути</li>
                         <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L4 15.5a1.5 1.5 0 0 1 2.3-1.9L9 16"/></svg>Без писане</li>
                         <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.4 8 8 9 4.6-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Отговорите стоят на устройството ти</li>
-                    </ul>
+                    <li data-emo-price-short><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Тестът е безплатен</li>
+</ul>
                 </div>
                 <div class="ml-stage" aria-hidden="true">
                     <div class="glass profile">
@@ -115,7 +116,8 @@
                 <h2 class="h2 rise">Започни с първия въпрос.</h2>
                 <p class="sub rise">Без подготовка. Отговаряш, както ти дойде.</p>
                 <div class="ml-cta rise"><a class="ml-btn ml-btn--main" href="emoeat.html" data-cta>Направи теста <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
-                <p class="fine rise">Не е медицинска диагноза. При хранително разстройство потърси специалист.</p>
+                <p class="emo-price rise" data-emo-price>Тестът е безплатен.</p>
+<p class="fine rise">Не е медицинска диагноза. При хранително разстройство потърси специалист.</p>
             </div>
         </section>
     </main>
@@ -172,6 +174,28 @@
     <script>try{if(/(^|\.)emoeat\.app$/.test(location.hostname))document.querySelectorAll('[data-emo-home]').forEach(function(a){a.setAttribute('href','/')})}catch(e){}</script>
 
     <div class="dock" id="dock"><a class="ml-btn ml-btn--main" href="emoeat.html" data-cta>Направи теста</a></div>
-    <script src="module-landing.js?v=20261114c" defer></script>
+    <!-- Цената: същата като в теста (emoeat.html). Показва се само когато стената и плащането са включени. -->
+<script>
+(function () {
+  var API = 'https://aidiet.radilov-k.workers.dev';
+  var el = document.querySelector('[data-emo-price]');
+  if (!el || !window.fetch) return;
+  function eur(v) { return (Math.round(v) === v ? String(v) : v.toFixed(2).replace('.', ',')) + ' €'; }
+  Promise.all([
+    fetch(API + '/api/billing/status').then(function (r) { return r.json(); }),
+    fetch(API + '/api/user/access').then(function (r) { return r.json(); })
+  ]).then(function (res) {
+    var billing = res[0] || {}, access = res[1] || {};
+    if (!access.paywall) { el.textContent = 'Тестът и личният анализ са безплатни.'; return; }
+    var prod = billing.prices && billing.prices.products && billing.prices.products.emoeat_analysis;
+    if (billing.ready && billing.mode === 'live' && prod && prod.price) {
+      el.textContent = 'Тестът е безплатен. Личният анализ с плана за седмицата — ' + eur(prod.price) + ' еднократно или включен в плана на Eatologix.';
+    } else {
+      el.textContent = 'Тестът е безплатен. Личният анализ с плана за седмицата е включен в плана на Eatologix.';
+    }
+  }).catch(function () { /* остава „Тестът е безплатен.“ — вярно винаги */ });
+})();
+</script>
+<script src="module-landing.js?v=20261114c" defer></script>
 </body>
 </html>

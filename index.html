@@ -17,20 +17,20 @@
 
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://biocode.website/">
+    <meta property="og:url" content="https://eatologix.com/">
     <meta property="og:title" content="Eatologix — логиката на твоето хранене">
     <meta property="og:description" content="Хранителен план, изчислен от над 30 твои показателя, проверен от специалист и преизчисляван всяка седмица. Ти се храниш и виждаш резултата — логиката е наша.">
-    <meta property="og:image" content="https://biocode.website/brand/og-image.png">
+    <meta property="og:image" content="https://eatologix.com/brand/og-image.png">
     <meta property="og:locale" content="bg_BG">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://biocode.website/">
+    <meta name="twitter:url" content="https://eatologix.com/">
     <meta name="twitter:title" content="Eatologix — логиката на твоето хранене">
     <meta name="twitter:description" content="Хранителен план, изчислен от над 30 твои показателя, проверен от специалист и преизчисляван всяка седмица. Ти се храниш и виждаш резултата — логиката е наша.">
-    <meta name="twitter:image" content="https://biocode.website/brand/og-image.png">
+    <meta name="twitter:image" content="https://eatologix.com/brand/og-image.png">
 
-    <link rel="canonical" href="https://biocode.website/">
+    <link rel="canonical" href="https://eatologix.com/">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" sizes="48x48" href="brand/favicon-48.png">
     <link rel="manifest" href="./manifest.json">
@@ -2514,7 +2514,7 @@
                     <h3>От браузъра</h3>
                     <p>Най-бързо. Без файл за сваляне.</p>
                     <ol class="android-steps">
-                        <li>Отвори <strong>biocode.website</strong> в Chrome</li>
+                        <li>Отвори <strong>eatologix.com</strong> в Chrome</li>
                         <li>Меню <strong>⋮</strong> → <strong>„Инсталирай приложение“</strong></li>
                         <li>Потвърди</li>
                     </ol>
@@ -2567,7 +2567,7 @@
                     <h3>iPhone и iPad</h3>
                     <p>От Safari — на началния екран като приложение.</p>
                     <ol class="android-steps">
-                        <li>Отвори <strong>biocode.website</strong> в Safari</li>
+                        <li>Отвори <strong>eatologix.com</strong> в Safari</li>
                         <li>Бутон <strong>„Сподели“</strong> → <strong>„Добави към началния екран“</strong></li>
                         <li>Отвори Eatologix от иконата</li>
                     </ol>
@@ -4373,6 +4373,8 @@
 
         const WORKER_URL = 'https://aidiet.radilov-k.workers.dev';
         const auth = getAuth(getApps().length ? getApp() : initializeApp(firebaseConfig));
+        // plan-sync.js (седмичната проверка, версия на плана) взима токена оттук — както в plan.html.
+        window.__npPlanAuth = window.__npPlanAuth || auth;
         let logoutRequestHandled = false;
 
         /* Expose auth-state promise.  Resolves with the user *after* plan sync/restore

@@ -15,20 +15,20 @@
     
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://biocode.website/plan.html">
+    <meta property="og:url" content="https://eatologix.com/plan.html">
     <meta property="og:title" content="Диетичен План - Eatologix">
     <meta property="og:description" content="Твоят комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти.">
-    <meta property="og:image" content="https://biocode.website/brand/og-image.png">
+    <meta property="og:image" content="https://eatologix.com/brand/og-image.png">
     <meta property="og:locale" content="bg_BG">
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:url" content="https://biocode.website/plan.html">
+    <meta name="twitter:url" content="https://eatologix.com/plan.html">
     <meta name="twitter:title" content="Диетичен План - Eatologix">
     <meta name="twitter:description" content="Твоят комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти.">
-    <meta name="twitter:image" content="https://biocode.website/brand/og-image.png">
+    <meta name="twitter:image" content="https://eatologix.com/brand/og-image.png">
     
-    <link rel="canonical" href="https://biocode.website/plan.html">
+    <link rel="canonical" href="https://eatologix.com/plan.html">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" sizes="48x48" href="brand/favicon-48.png">
     <link rel="manifest" href="./manifest.json">
@@ -1304,7 +1304,7 @@
         .swap-sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
         .swap-sheet-head h3 { margin: 2px 0 0; font-size: 1.1rem; }
         .swap-sheet-kicker { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--primary-red); }
-        .swap-sheet-close { border: 0; background: transparent; color: var(--text-light); font-size: 1.1rem; padding: 6px; cursor: pointer; }
+        .swap-sheet-close { border: 0; background: transparent; color: var(--text-light); font-size: 1.1rem; min-width: 44px; min-height: 44px; margin: -8px -10px -8px 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
         .swap-sheet-note { margin: 8px 0 14px; font-size: 0.85rem; color: var(--text-light); line-height: 1.45; }
         .swap-sheet-list { display: flex; flex-direction: column; gap: 10px; }
         .swap-option {
@@ -6760,7 +6760,8 @@
         function mealWhyHtml(meal) {
             var t = meal && typeof meal.benefits === 'string' ? meal.benefits : '';
             t = t.split(/(?<=[.!?])\s+/)[0] || '';
-            t = t.replace(/\b\d+\s*(г|g|kcal|ккал)\b\.?\s*/gi, '').replace(/\s+/g, ' ').trim();
+            // \b не работи с кирилица — краят на мярката е интервал, препинателен знак или край.
+            t = t.replace(/(^|\s)\d+([.,]\d+)?\s*(г|гр|g|kcal|ккал)(?=$|[\s.,;:—–-])\.?\s*/gi, '$1').replace(/\s+/g, ' ').trim();
             if (!t) return '';
             t = t.charAt(0).toUpperCase() + t.slice(1);
             return '<div class="meal-why">' + escapeHtml(t) + '</div>';

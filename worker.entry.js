@@ -4091,7 +4091,7 @@ const DEFAULT_EMAIL_TEMPLATE = {
   contactEmail: 'info@biocode.online'
 };
 
-const PLAN_APP_BASE_URL = 'https://biocode.website';
+const PLAN_APP_BASE_URL = 'https://eatologix.com';
 // Логото в имейлите: PNG (пощенските програми не показват SVG), от scripts/build-brand.mjs.
 const EMAIL_LOGO_HTML = `<img src="${PLAN_APP_BASE_URL}/brand/eatologix-email-logo.png" width="240" height="50" alt="EATOLOGIX" style="display:block;margin:0 auto;border:0;outline:none;width:240px;height:auto;">`;
 const PLAN_CLAIM_TTL_SEC = 72 * 60 * 60;
@@ -4783,6 +4783,8 @@ function normalizeEmail(value) {
 function isPlanEditingAllowed(opts) {
   const { clientId, userId, email } = opts || {};
   if (!PLAN_EDITING_LOCK_ENABLED) return true;
+  // Локалният бета-тест (scripts/beta/) изключва заключването в своя процес; в Cloudflare никой не го задава.
+  if (globalThis.__EATOLOGIX_BETA_UNLOCK === true) return true;
   const cid = String(clientId || '').trim();
   const uid = String(userId || '').trim();
   const em = normalizeEmail(email);
@@ -15177,7 +15179,7 @@ async function handleEnrichmentResolve(request, env) {
  */
 
 const HANDOFF_PREFIX = 'handoff:';
-const NUTRIPLAN_SITE = 'https://biocode.website';
+const NUTRIPLAN_SITE = 'https://eatologix.com';
 
 function newHandoffToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
@@ -15745,7 +15747,7 @@ function linkResultPage(ok, title, text, fromApp = false) {
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#EEFDFC;color:#032E36}
 main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? '#05737D' : '#B45309'}}
 a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#05737D;color:#fff;text-decoration:none}</style></head>
-<body><main><div class="i">${ok ? '✓' : '!'}</div><h1>${esc(title)}</h1><p>${esc(text)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : 'https://biocode.website/index.html?app=1&tab=profile'}">Обратно в Eatologix</a></main>
+<body><main><div class="i">${ok ? '✓' : '!'}</div><h1>${esc(title)}</h1><p>${esc(text)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : 'https://eatologix.com/index.html?app=1&tab=profile'}">Обратно в Eatologix</a></main>
 ${fromApp ? `<script>setTimeout(function(){location.href=${JSON.stringify(APP_INTENT_URL)};},${ok ? 600 : 2500});</script>` : ''}</body></html>`;
   return new Response(html, { status: ok ? 200 : 400, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
@@ -16040,17 +16042,19 @@ async function handleGetPlanVersion(request, env) {
     }
 
     const url = new URL(request.url);
-    const resolvedUserId = (url.searchParams.get('userId') || '').trim();
+    let resolvedUserId = (url.searchParams.get('userId') || '').trim();
     if (!resolvedUserId) {
       return jsonResponse({ error: 'Missing userId' }, 400);
     }
 
+    let verifiedEmail = '';
     if (resolvedUserId.startsWith('fb_') && env.FIREBASE_PROJECT_ID) {
       const authHeader = request.headers.get('Authorization') || '';
       const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
       if (idToken) {
         try {
           const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+          verifiedEmail = normalizeEmail(firebaseUser.email);
           if ('fb_' + firebaseUser.uid !== resolvedUserId) {
             return jsonResponse({ error: 'Token does not match userId' }, 403);
           }
@@ -16060,7 +16064,16 @@ async function handleGetPlanVersion(request, env) {
       }
     }
 
-    const profile = await kvGetJSON(env, `user_profile:${resolvedUserId}`);
+    let profile = await kvGetJSON(env, `user_profile:${resolvedUserId}`);
+    // Планът от въпросника е записан по имейла (user_profile:<email>), а входът е с fb_… — както в
+    // /api/user/profile, профилът се намира по имейла. Само по имейла от проверения токен.
+    if (!profile?.plan && verifiedEmail) {
+      const emailIndex = await getEmailIndex(env, verifiedEmail);
+      if (emailIndex?.userId && emailIndex.userId !== resolvedUserId) {
+        const canonical = await kvGetJSON(env, `user_profile:${emailIndex.userId}`);
+        if (canonical?.plan) { profile = canonical; resolvedUserId = emailIndex.userId; }
+      }
+    }
     if (!profile?.plan) {
       return jsonResponse({ found: false }, 404);
     }
