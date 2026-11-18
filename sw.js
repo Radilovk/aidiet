@@ -2,7 +2,7 @@
 // Configure base path - use '/' for a custom domain (eatologix.com, served from GitHub Pages) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v77'; // v77: вариант A (градиентът на логото, лайм акцент, ментов фон) и оттенъци по тема в Напредък
+const CACHE_NAME = 'nutriplan-v78'; // v78: подсказки за вода и закуска при много движение днес
 // Android приложението (Capacitor) е на https://localhost и носи файловете си —
 // там service worker само връща стари версии след обновяване. Самоизключва се.
 const IS_NATIVE_APP_ORIGIN = self.location.origin === 'https://localhost';

@@ -10511,6 +10511,13 @@
             if (ds.junkCount > 0) flags.push({ icon: 'fa-cookie-bite', text: ds.junkCount + (ds.junkCount === 1 ? ' вредна храна' : ' вредни храни') });
             if (ds.excessCalories && plan > 0 && eaten > plan) flags.push({ icon: 'fa-arrow-up', text: '+' + Math.round(eaten - plan) + ' kcal над плана' });
             if (ds.calorieBalance === 'deficit' && plan > 0) flags.push({ icon: 'fa-arrow-down', text: Math.round(plan - eaten) + ' kcal под плана' });
+            // Днес, докато денят е отворен: много повече движение от обичайното → вода, а при цел
+            // без дефицит (мускулна маса, смяна на състава, поддържане) — и закуска с белтък.
+            // Целта на деня не се мени; при отслабване по-големият дефицит е наред.
+            if (isToday && !closed && extraBurn >= DAY_EXTRA_WATER_KCAL) {
+                flags.push({ icon: 'fa-glass-water', text: '+0,5 л вода днес' });
+                if (extraBurn >= DAY_EXTRA_SNACK_KCAL && planDirection() !== 'lose') flags.push({ icon: 'fa-drumstick-bite', text: 'Добави закуска с белтък' });
+            }
             var missedMeals = segs.filter(function(sg) { return sg.kind === 'meal' && sg.missed; }).length;
             if (missedMeals) flags.push({ icon: 'fa-circle-xmark', text: missedMeals + (missedMeals === 1 ? ' пропуснато хранене' : ' пропуснати хранения') });
 
@@ -10522,6 +10529,18 @@
             return { segs: segs, closed: closed, isToday: isToday, eaten: Math.round(eaten), plan: Math.round(plan), extraBurn: extraBurn,
                      flags: flags, next: next,
                      doneCount: segs.filter(function(sg) { return sg.done; }).length };
+        }
+
+        // Допълнителен разход за деня, от който картата подсказва вода / закуска (ккал).
+        var DAY_EXTRA_WATER_KCAL = 200, DAY_EXTRA_SNACK_KCAL = 300;
+        /** Посоката на плана: lose | gain | recomp | maintain (от анализа, иначе по целта). */
+        function planDirection() {
+            try {
+                var d = dietPlan && dietPlan.analysis && dietPlan.analysis._goalDirection;
+                if (d) return d;
+                var g = String((userData && userData.goal) || '');
+                return /Мускулна/.test(g) ? 'gain' : /Отслабване|Стягане/.test(g) ? 'lose' : 'maintain';
+            } catch (_) { return 'maintain'; }
         }
 
         // Иконите на лентата — линейни SVG (без шрифтови икони и емоджита).
@@ -10621,7 +10640,11 @@
                 else if (over) t += '\nНад плана с ' + (m.eaten - m.plan) + ' kcal.';
                 else if (inZone) t += '\nВ целевата зона.';
                 else t += '\nДо плана остават ' + (m.plan - m.eaten) + ' kcal.';
-                if (m.extraBurn > 0) t += '\n\nДнес се движиш повече от обичайното — разходът е по-голям с ~' + m.extraBurn + ' kcal, затова реалният дефицит за деня е по-голям.';
+                if (m.extraBurn > 0) {
+                    t += '\n\nДнес се движиш повече от обичайното — разходът е по-голям с ~' + m.extraBurn + ' kcal, затова реалният дефицит за деня е по-голям.';
+                    if (m.isToday && !m.closed && m.extraBurn >= DAY_EXTRA_WATER_KCAL) t += '\nПий около 0,5 л вода повече.';
+                    if (m.isToday && !m.closed && m.extraBurn >= DAY_EXTRA_SNACK_KCAL && planDirection() !== 'lose') t += '\nПри твоята цел допълнителен дефицит не е нужен — добави една закуска с белтък (~200–300 kcal), напр. кисело мляко, извара или яйца.';
+                }
                 openModal('Калории', t, '', null, null, null, null);
             });
 

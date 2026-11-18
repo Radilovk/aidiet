@@ -10,6 +10,7 @@ import { compileProfile } from '../profile-code.js';
 import { readCheckin, decideWeeklyAdjustment } from '../nutrition-engine/monitoring.js';
 import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
 import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
+import { waterNeedLiters } from '../analysis-deterministic.js';
 
 let pass = 0;
 let fail = 0;
@@ -122,5 +123,18 @@ const chat = buildChatContext({ name: 'А', _healthEssence: txt }, { summary: {}
 ok(chat.selectedIds.includes('health') && /#HD v1/.test(chat.contextText), 'чатът винаги вижда данните от устройствата');
 ok(!buildChatContext({ name: 'А' }, { summary: {} }, 'здравей').contextText.includes('#HD'), 'без данни — без блок');
 
+// По-лека седмица при ниско възстановяване — съветът стига до клиента и без намаление.
+{
+  const ctx = { goal: 'LOSS', direction: 'lose', kcal: 1700, tdee: 2200, floorKcal: 1300, weightKg: 80, baseKcal: 1700 };
+  const onTrackWeek = decideWeeklyAdjustment({ ...ctx, checkin: { adherence: 85, hunger: 2, energy: 2, weeklyChangeKg: -0.5, weightKg: 80, recoveryLow: true }, history: [{ weight: 'loss', followed: true }] });
+  ok(onTrackWeek.changeSummary.some(c => /По-лека седмица/.test(c)) && /сън 7–9 часа/.test(onTrackWeek.reasoning) && !onTrackWeek.onTrack, 'ниско възстановяване → по-лека седмица (и при темпо по план)');
+  const stall = decideWeeklyAdjustment({ ...ctx, checkin: { adherence: 85, hunger: 2, energy: 2, weeklyChangeKg: 0, weightKg: 80, recoveryLow: true }, history: [{ weight: 'flat', followed: true }] });
+  ok(stall.calorieAdjust === 0 && stall.changeSummary.some(c => /По-лека седмица/.test(c)), 'застой + натоварване → без намаление, по-лека седмица');
+  const normal = decideWeeklyAdjustment({ ...ctx, checkin: { adherence: 85, hunger: 2, energy: 2, weeklyChangeKg: -0.5, weightKg: 80 }, history: [{ weight: 'loss', followed: true }] });
+  ok(!normal.changeSummary.some(c => /По-лека седмица/.test(c)), 'без натоварване — без по-лека седмица');
+}
+// Вода: +0,3 л при висока ежедневна активност.
+ok(waterNeedLiters({ weightKg: 70, activity: { daily: 3, sportBand: 0 } }) === Math.round((70 * 0.033 + 0.3) * 10) / 10, 'висока ежедневна активност → +0,3 л вода');
+ok(waterNeedLiters({ weightKg: 70, activity: { daily: 2, sportBand: 0 } }) === 2.3, 'средна активност → 33 мл/кг');
 console.log(`\n=== health essence: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);
