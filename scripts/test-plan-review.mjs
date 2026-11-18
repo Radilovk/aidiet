@@ -158,17 +158,37 @@ await check('чист план → „готов за одобрение“, б�
   assert.equal(review('c5').changes, null);
   assert.equal((await handleReviewApply(post({ clientId: 'c5' }), env, { respond })).status, 400);
 });
-await check('таймер (резерва): неразгледан план без пусната задача → в опашката; пуснат — не пак до 3 часа', async () => {
+await check('резерва (дневна): чете само чакащите; неразгледан → в опашката; пуснат — не пак до 3 часа', async () => {
   queue.length = 0;
-  put(client('c6', 'v1'));
-  kv.set('clients_list', JSON.stringify(['c6', 'c5', 'c1']));
   const t = Date.parse('2026-11-18T13:00:00Z');
-  assert.equal(await maybeFireReview(env, { now: t }), 'queued:1');
-  assert.equal(queue.at(-1).clientId, 'c6');
+  // Празен списък на чакащите → нищо, без обхождане на клиенти.
+  kv.delete('plan_review_pending');
+  assert.equal(await maybeFireReview(env, { now: t }), 'none');
+  // Постъпил план влиза в чакащите; прегледът го маха.
+  put(client('c6', 'v1'));
+  assert.equal(await reviewOnPending(env, 'c6', client('c6', 'v1'), { now: t }), 'queued');
+  assert.ok('c6' in JSON.parse(kv.get('plan_review_pending')));
+  // Задачата не е минала: до 3 часа — не пак; след това — пак.
   assert.equal(await maybeFireReview(env, { now: t + 30 * 60e3 }), 'same');
   assert.equal(await maybeFireReview(env, { now: t + 4 * 3600e3 }), 'queued:1');
-  kv.set('plan_review:c6', JSON.stringify({ planUpdatedAt: 'v1' }));
+  assert.equal(queue.at(-1).clientId, 'c6');
+  await runPlanReview(env, { clientId: 'c6', planUpdatedAt: 'v1' }, deps(fakeClaude({ verdict: 'ok', summary: 'ok', findings: [], changes: [] }), []));
+  assert.ok(!('c6' in JSON.parse(kv.get('plan_review_pending'))));
   assert.equal(await maybeFireReview(env, { now: t + 9 * 3600e3 }), 'none');
+  // Активиран (вече не чака) → пада от списъка без задача.
+  put(client('c9', 'v1')); await reviewOnPending(env, 'c9', client('c9', 'v1'), { now: t });
+  put(client('c9', 'v1', 'activated'));
+  assert.equal(await maybeFireReview(env, { now: t + 5 * 3600e3 }), 'none');
+});
+
+await check('без разписание: админът отваря план без преглед → прегледът тръгва; с преглед — нищо', async () => {
+  queue.length = 0;
+  put(client('c10', 'v1'));
+  const g = await json(await handleReviewGet(new URL('https://w/x?clientId=c10'), env, { respond, now: Date.parse('2026-11-19T10:00:00Z') }));
+  assert.equal(g.d.queued, 'queued');
+  assert.equal(queue.at(-1).clientId, 'c10');
+  const g2 = await json(await handleReviewGet(new URL('https://w/x?clientId=c5'), env, { respond }));
+  assert.equal(g2.d.queued, undefined);
 });
 
 console.log(`\nВсички ${ok.length} проверки минаха`);

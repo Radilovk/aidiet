@@ -53,7 +53,8 @@ APP_HOSTS = "eatologix.com,emoeat.app"
 # Фонова синхронизация на свързаните профили (Fitbit, Oura, Withings, Strava).
 # */15 — резерва без AI: неразгледан план → в опашката за преглед от Claude (plan-review.js, REVIEW_CRON).
 [env.production.triggers]
-crons = ["17 */6 * * *", "*/15 * * * *"]
+# Без задачи по разписание: всичко тръгва от събития (виж scheduled() в worker.entry.js).
+crons = []
 
 [[env.production.kv_namespaces]]
 binding = "page_content"
