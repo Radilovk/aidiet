@@ -17,15 +17,27 @@
 /* Цената на лендинга — същата като в теста; ред под бутона „Направи теста“. */
 .emo-price { margin-top: 18px; font-size: 15px; font-weight: 600; color: var(--text, inherit); }
 
-/* Научна основа */
-.emo-sci { grid-template-columns: repeat(2, 1fr); }
-@media (max-width: 760px) { .emo-sci { grid-template-columns: 1fr; } }
-.emo-cite { margin-top: 12px; font-size: 13px !important; font-weight: 600; color: var(--acc-text) !important; letter-spacing: .01em; }
-.emo-refs { margin-top: 26px; padding: 16px 20px; border-radius: 18px; border: 1px solid var(--line); background: color-mix(in srgb, var(--acc) 4%, transparent); }
-.emo-refs summary { cursor: pointer; font-weight: 650; min-height: 32px; display: flex; align-items: center; }
-.emo-refs ol { margin: 12px 0 0 18px; padding: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
-.emo-refs li { margin-bottom: 8px; }
-.emo-refs p { margin-top: 10px; color: var(--muted); font-size: 13.5px; }
+/* Научна основа — компактна карта с 4 опори; подробностите са в прозореца. */
+.emo-sci-sec { padding-top: 8px; padding-bottom: 8px; }
+.emo-sci-card { padding: 26px 26px 22px; }
+.emo-sci-head .kicker { margin-bottom: 6px; }
+.emo-sci-title { font-size: clamp(21px, 2.6vw, 28px); font-weight: 720; line-height: 1.2; letter-spacing: -.01em; }
+.emo-pillars { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.emo-pillars li { padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--acc) 7%, transparent); border: 1px solid color-mix(in srgb, var(--acc) 18%, transparent); }
+.emo-pillars b { display: block; font-size: 16px; font-weight: 750; color: var(--acc-text); }
+.emo-pillars span { display: block; margin-top: 2px; font-size: 13.5px; color: var(--muted); line-height: 1.35; }
+.emo-sci-more { margin-top: 16px; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--acc) 35%, transparent); background: transparent; color: var(--acc-text); font: inherit; font-weight: 650; cursor: pointer; }
+.emo-sci-more:hover { background: color-mix(in srgb, var(--acc) 8%, transparent); }
+@media (max-width: 760px) { .emo-pillars { grid-template-columns: 1fr 1fr; } .emo-sci-card { padding: 20px 18px 18px; } }
+.emo-sci-dialog { width: min(640px, calc(100vw - 24px)); max-height: min(86vh, 900px); padding: 0; border: 0; border-radius: 22px; background: var(--bg, #fff); color: var(--ink, inherit); box-shadow: 0 30px 80px rgba(0,0,0,.35); }
+.emo-sci-dialog::backdrop { background: rgba(8, 10, 20, .55); backdrop-filter: blur(3px); }
+.emo-sci-dialog-in { position: relative; padding: 26px 22px 24px; overflow: auto; max-height: inherit; }
+.emo-sci-dialog h2 { font-size: 22px; font-weight: 720; padding-right: 44px; }
+.emo-sci-dialog h3 { margin-top: 20px; font-size: 15px; font-weight: 700; }
+.emo-sci-close { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--acc) 10%, transparent); color: inherit; font-size: 24px; line-height: 1; cursor: pointer; }
+.emo-sci-dl { margin: 14px 0 0; }
+.emo-sci-dl dt { margin-top: 12px; font-weight: 700; color: var(--acc-text); }
+.emo-sci-dl dd { margin: 3px 0 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.emo-sci-refs { margin: 8px 0 0 18px; padding: 0; color: var(--muted); font-size: 13.5px; line-height: 1.55; }
+.emo-sci-refs li { margin-bottom: 8px; }
 .emo-sci-link { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
-/* На телефон плочката е 2 колони (икона | текст) — източникът стои под текста, не под иконата. */
-@media (max-width: 760px) { .emo-sci .tile .emo-cite { grid-column: 2; margin-top: 8px; } }

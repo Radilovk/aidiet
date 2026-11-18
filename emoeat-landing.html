@@ -26,7 +26,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="module-landing.css?v=20261114c">
     <link rel="stylesheet" href="site-footer.css?v=20261114b">
-    <link rel="stylesheet" href="emoeat-site.css?v=4">
+    <link rel="stylesheet" href="emoeat-site.css?v=5">
     <style>:root{--acc:#9B5CF6;--acc-2:#E879F9;}</style>
 </head>
 <body>
@@ -92,30 +92,56 @@
             </div>
         </section>
 
-        <!-- Научна основа: само вярното — на какво стъпва тестът и какво не е. -->
-        <section class="ml-sec" id="science">
+        <!-- Научна основа: кратко — 4 опори; подробностите и източниците — в прозореца „Източници и методология“. -->
+        <section class="ml-sec emo-sci-sec" id="science">
             <div class="wrap">
-                <div class="kicker rise">Научна основа</div>
-                <h2 class="h2 rise">Стъпва на изследванията, не на догадки.</h2>
-                <p class="sub rise">Въпросите и сметката следват валидирани скали за хранително поведение и доказани техники от психологията на измерването.</p>
-                <div class="grid3 emo-sci">
-                    <div class="glass tile rise"><div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6L5 18a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3L14 9V3"/><path d="M7.5 14h9"/></svg></div><h3>Валидирани скали</h3><p>Темите следват двете утвърдени скали за емоционално хранене: хранене при неприятни чувства, трудно спиране, вина, загуба на контрол.</p><p class="emo-cite">DEBQ — van Strien и сътр., 1986 · EEQ — Garaulet и сътр., 2012</p></div>
-                    <div class="glass tile rise"><div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10Z"/><path d="M8.5 12h2l1-2 1.5 4 1-2h1.5"/></svg></div><h3>Глад или чувство</h3><p>Въпрос за телесните усещания по принципа на интероцептивното осъзнаване — дали различаваш физическия глад от емоцията. Фигурите са без имена, за да не подсказва думата.</p><p class="emo-cite">Интероцепция — Mehling и сътр., 2012 (MAIA)</p></div>
-                    <div class="glass tile rise"><div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 4.5a3 3 0 0 1 0 6M21 20a6 6 0 0 0-4-5.6"/></svg></div><h3>Без „правилен“ отговор</h3><p>Чувствителните теми са сценки за друг човек, а повечето въпроси са избор между еднакво нормални нужди. Така отговорите не се разкрасяват.</p><p class="emo-cite">Непреки въпроси — Fisher, 1993</p></div>
-                    <div class="glass tile rise"><div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5M4 19h16"/><path d="m7 15 3-4 3 2 4-6"/></svg></div><h3>Профил, не етикет</h3><p>Всеки отговор натоварва няколко фактора; профилът е най-близкият модел по сходство. Проверява се и надеждността — при много неутрални отговори резултатът не променя плана ти.</p><p class="emo-cite">Факторно натоварване · косинусово сходство · проверка на надеждността</p></div>
+                <div class="glass emo-sci-card rise">
+                    <div class="emo-sci-head">
+                        <div class="kicker">Научна основа</div>
+                        <h2 class="emo-sci-title">Стъпва на утвърдени скали и изследвания.</h2>
+                    </div>
+                    <ul class="emo-pillars">
+                        <li><b>DEBQ</b><span>Холандски въпросник за хранително поведение</span></li>
+                        <li><b>EEQ</b><span>Въпросник за емоционално хранене</span></li>
+                        <li><b>MAIA</b><span>Интероцепция: глад или чувство</span></li>
+                        <li><b>Непреки въпроси</b><span>Честни отговори без „правилен“ избор</span></li>
+                    </ul>
+                    <button type="button" class="emo-sci-more" data-sci-open aria-haspopup="dialog">Източници и методология</button>
                 </div>
-                <details class="emo-refs rise">
-                    <summary>Източници</summary>
-                    <ol>
-                        <li>van Strien T, Frijters JER, Bergers GPA, Defares PB. The Dutch Eating Behavior Questionnaire (DEBQ) for assessment of restrained, emotional, and external eating behavior. <i>Int J Eat Disord</i>. 1986;5(2):295–315.</li>
-                        <li>Garaulet M, Canteras M, Morales E, López-Guimera G, Sánchez-Carracedo D, Corbalán-Tutau MD. Validation of a questionnaire on emotional eating for use in cases of obesity: the Emotional Eater Questionnaire (EEQ). <i>Nutr Hosp</i>. 2012;27(2):645–651.</li>
-                        <li>Mehling WE, Price C, Daubenmier JJ, Acree M, Bartmess E, Stewart A. The Multidimensional Assessment of Interoceptive Awareness (MAIA). <i>PLoS One</i>. 2012;7(11):e48230.</li>
-                        <li>Fisher RJ. Social desirability bias and the validity of indirect questioning. <i>J Consum Res</i>. 1993;20(2):303–315.</li>
-                    </ol>
-                    <p>EmoEat е кратък тест за самопознание, изграден по тези принципи — не е самият DEBQ или EEQ и не е медицинска диагноза.</p>
-                </details>
             </div>
         </section>
+        <dialog class="emo-sci-dialog" id="sciDialog" aria-labelledby="sciDialogTitle">
+            <div class="emo-sci-dialog-in">
+                <button type="button" class="emo-sci-close" data-sci-close aria-label="Затвори">×</button>
+                <h2 id="sciDialogTitle">Източници и методология</h2>
+                <dl class="emo-sci-dl">
+                    <dt>Валидирани скали</dt>
+                    <dd>Темите следват DEBQ и EEQ: хранене при неприятни чувства, трудно спиране, вина, загуба на контрол.</dd>
+                    <dt>Интероцепция</dt>
+                    <dd>Въпрос за телесните усещания по принципа на MAIA — различаваш ли физическия глад от емоцията. Фигурите са без имена, за да не подсказва думата.</dd>
+                    <dt>Непреки въпроси</dt>
+                    <dd>Чувствителните теми са сценки за друг човек, а повечето въпроси са избор между еднакво нормални нужди — отговорите не се разкрасяват.</dd>
+                    <dt>Профил</dt>
+                    <dd>Всеки отговор натоварва няколко фактора; профилът е най-близкият модел по сходство, с проверка на надеждността на отговорите.</dd>
+                </dl>
+                <h3>Публикации</h3>
+                <ol class="emo-sci-refs">
+                    <li>van Strien T, Frijters JER, Bergers GPA, Defares PB. The Dutch Eating Behavior Questionnaire (DEBQ) for assessment of restrained, emotional, and external eating behavior. <i>Int J Eat Disord</i>. 1986;5(2):295–315.</li>
+                    <li>Garaulet M, Canteras M, Morales E, López-Guimera G, Sánchez-Carracedo D, Corbalán-Tutau MD. Validation of a questionnaire on emotional eating for use in cases of obesity: the Emotional Eater Questionnaire (EEQ). <i>Nutr Hosp</i>. 2012;27(2):645–651.</li>
+                    <li>Mehling WE, Price C, Daubenmier JJ, Acree M, Bartmess E, Stewart A. The Multidimensional Assessment of Interoceptive Awareness (MAIA). <i>PLoS One</i>. 2012;7(11):e48230.</li>
+                    <li>Fisher RJ. Social desirability bias and the validity of indirect questioning. <i>J Consum Res</i>. 1993;20(2):303–315.</li>
+                </ol>
+            </div>
+        </dialog>
+        <script>
+        (function () {
+            var d = document.getElementById('sciDialog');
+            if (!d) return;
+            document.querySelectorAll('[data-sci-open]').forEach(function (b) { b.addEventListener('click', function () { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }); });
+            d.querySelector('[data-sci-close]').addEventListener('click', function () { d.close ? d.close() : d.removeAttribute('open'); });
+            d.addEventListener('click', function (e) { if (e.target === d) d.close(); });
+        })();
+        </script>
 
         <section class="ml-sec" id="privacy">
             <div class="wrap split">
