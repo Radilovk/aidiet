@@ -249,7 +249,7 @@ function shiftAnswerOf(facts, dir, now) {
  * (cross-check.js): „трайно“ → новото ниво важи веднага; „временно“ → тези дни
  * не местят разхода (седмицата преди отговора и седмицата след него).
  * @returns {{ steps: number, days: number, restDays: number, source: 'phone'|'device', overlap: number, ratio: number|null, disputed: boolean,
- *   shift: null | { dir: 'up'|'down', recent: number, prior: number, answer: string|null } } | null}
+ *   shift: null | { dir: 'up'|'down', recent: number, prior: number, answer: string|null, auto?: boolean } } | null}
  */
 export function stepsActivity(facts, now = new Date(), resolutions = {}) {
   const from = now.getTime() - STEPS_WINDOW_DAYS * DAY_MS;
@@ -311,6 +311,32 @@ export function stepsActivity(facts, now = new Date(), resolutions = {}) {
 }
 
 /**
+ * Рязката промяна в движението — едно обяснение навсякъде (профил, напредък, картон, AI):
+ * сигналът „activity_drop“ на есенцията (средно, други прозорци) се заменя с „activity_shift“,
+ * който знае отговора на клиента. Спад заедно с натоварено тяло (пулс/HRV) се приема за
+ * временен без въпрос — болест или претоварване; ако се задържи, медианата го последва сама.
+ */
+function settleActivityShift(activity, essence) {
+  const sh = activity.shift;
+  if (!sh.answer && sh.dir === 'down' && essence.checkin?.recoveryLow) {
+    sh.answer = 'temporary';
+    sh.auto = true;
+    activity.steps = sh.prior;
+  }
+  const k = (n) => (Math.round(n / 100) * 100).toLocaleString('bg-BG');
+  const now = `~${k(sh.recent)} крачки дневно`;
+  const text = sh.auto
+    ? `Крачките са спаднали до ${now} (обичайно ~${k(sh.prior)}) заедно с натоварване по пулса — приема се за временно; планът остава по обичайните.`
+    : sh.answer === 'temporary'
+      ? `Последната седмица — ${now} при обичайни ~${k(sh.prior)}; по твоя отговор е временно, планът остава по обичайните.`
+      : sh.answer === 'lasting'
+        ? `Движението е на ново ниво — ${now} (преди ~${k(sh.prior)}); разходът се смята по него от следващия седмичен преглед.`
+        : `Последната седмица — ${now} при обичайни ~${k(sh.prior)}. Планът следва обичайните; ако промяната се задържи, разходът я последва сам.`;
+  essence.signals = (essence.signals || []).filter(s => s.code !== 'activity_drop');
+  essence.signals.push({ code: 'activity_shift', level: 'info', text });
+}
+
+/**
  * Дни, за които клиентът е отговорил на „Колко се движи?“ (тогава нямаше
  * измерване): за тях важи само отговорът — крачките от същия ден (телефон,
  * гривна, облак), дошли по-късно, не влизат в нивото на активност и анализа.
@@ -337,6 +363,9 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
 
   const resolutions = resolutionsOf(facts);
   const activity = stepsActivity(facts, now, resolutions);
+  // Есенцията вижда крачките от същия единствен източник (без смесване на два уреда).
+  const essence = computeEssence(activity ? facts.filter(f => f.kind !== 'steps' || stepsClassOf(f) === activity.source) : facts, now, ctx);
+  if (activity?.shift) settleActivityShift(activity, essence);
   if (activity) {
     // Нивото остава за етикетите и анализа; енергията се смята от самите крачки (energy.js).
     overrides.dailyActivityLevel = activityLabelOf(activity.steps);
@@ -360,8 +389,6 @@ export function deriveEnrichment(store, now = new Date(), sex = 'X', ctx = {}) {
 
   const emo = deriveEmoEat(facts);
   const labs = deriveLabs(facts, now, sex);
-  // Есенцията вижда крачките от същия единствен източник (без смесване на два уреда).
-  const essence = computeEssence(activity ? facts.filter(f => f.kind !== 'steps' || stepsClassOf(f) === activity.source) : facts, now, ctx);
   Object.assign(overrides, essence.overrides);
   Object.assign(checkin, essence.checkin);
   // AI обобщението предлага само промени в менюто от речника (не калории и не диагнози).

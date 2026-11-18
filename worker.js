@@ -50417,7 +50417,7 @@ function essenceText(essence, digest = null) {
   if (m.glucose?.morning) rows.push(`\u0437\u0430\u0445\u0430\u0440 \u0441\u0443\u0442\u0440\u0438\u043D ${fmt5(m.glucose.morning)} mmol/L`);
   const lines = [];
   if (rows.length) lines.push(`\u0434\u0430\u043D\u043D\u0438: ${rows.join("; ")}`);
-  const warn = (essence.signals || []).filter((s) => s.level === "warn").map((s) => s.text);
+  const warn = (essence.signals || []).filter((s) => s.level === "warn" || s.code === "activity_shift").map((s) => s.text);
   if (warn.length) lines.push(`\u0441\u0438\u0433\u043D\u0430\u043B\u0438: ${warn.join(" ")}`);
   if (digest?.coachNote) lines.push(`\u043E\u0431\u043E\u0431\u0449\u0435\u043D\u0438\u0435: ${digest.coachNote}`);
   return lines.join(" | ").slice(0, 1600);
@@ -50538,6 +50538,15 @@ function resolutionsOf(facts2) {
   }
   return out;
 }
+function shiftMatters(data, shift) {
+  try {
+    const perStep = kcalPerStep(data);
+    const { tdee } = calculateActivityTDEE(calculateBMR(data), data);
+    if (perStep > 0 && tdee > 0) return Math.abs(shift.recent - shift.prior) * perStep >= tdee * 0.03;
+  } catch (_) {
+  }
+  return true;
+}
 function crossCheck(data, derived, resolutions = {}) {
   const hypotheses = [];
   const questions = [];
@@ -50647,7 +50656,7 @@ function crossCheck(data, derived, resolutions = {}) {
     questions.push({ id: "steps_source", source: "device", topic: "\u041A\u0440\u0430\u0447\u043A\u0438", text: `\u0422\u0435\u043B\u0435\u0444\u043E\u043D\u044A\u0442 \u0438 \u0433\u0440\u0438\u0432\u043D\u0430\u0442\u0430/\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A\u044A\u0442 \u043E\u0442\u0447\u0438\u0442\u0430\u0442 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0438 \u043A\u0440\u0430\u0447\u043A\u0438 \u0432 \u0435\u0434\u043D\u0438 \u0438 \u0441\u044A\u0449\u0438 \u0434\u043D\u0438 \u2014 ${more} \u043F\u043E\u043A\u0430\u0437\u0432\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(((act.ratio > 1 ? act.ratio : 1 / act.ratio) - 1) * 100)}% \u043F\u043E\u0432\u0435\u0447\u0435. \u041A\u043E\u0435 \u043D\u043E\u0441\u0438\u0442\u0435 \u043F\u043E-\u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F?`, options: [{ value: "device", label: "\u0413\u0440\u0438\u0432\u043D\u0430\u0442\u0430/\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A\u0430" }, { value: "phone", label: "\u0422\u0435\u043B\u0435\u0444\u043E\u043D\u0430 (\u0432 \u0434\u0436\u043E\u0431\u0430)" }] });
   }
   const shift = act?.shift;
-  if (shift && !shift.answer) {
+  if (shift && !shift.answer && shiftMatters(plain, shift)) {
     const fmt7 = (n) => (Math.round(n / 100) * 100).toLocaleString("bg-BG");
     const up = shift.dir === "up";
     questions.unshift({
@@ -50959,6 +50968,19 @@ function stepsActivity(facts2, now = /* @__PURE__ */ new Date(), resolutions = {
     shift
   };
 }
+function settleActivityShift(activity, essence) {
+  const sh = activity.shift;
+  if (!sh.answer && sh.dir === "down" && essence.checkin?.recoveryLow) {
+    sh.answer = "temporary";
+    sh.auto = true;
+    activity.steps = sh.prior;
+  }
+  const k = (n) => (Math.round(n / 100) * 100).toLocaleString("bg-BG");
+  const now = `~${k(sh.recent)} \u043A\u0440\u0430\u0447\u043A\u0438 \u0434\u043D\u0435\u0432\u043D\u043E`;
+  const text2 = sh.auto ? `\u041A\u0440\u0430\u0447\u043A\u0438\u0442\u0435 \u0441\u0430 \u0441\u043F\u0430\u0434\u043D\u0430\u043B\u0438 \u0434\u043E ${now} (\u043E\u0431\u0438\u0447\u0430\u0439\u043D\u043E ~${k(sh.prior)}) \u0437\u0430\u0435\u0434\u043D\u043E \u0441 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043F\u043E \u043F\u0443\u043B\u0441\u0430 \u2014 \u043F\u0440\u0438\u0435\u043C\u0430 \u0441\u0435 \u0437\u0430 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E; \u043F\u043B\u0430\u043D\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430 \u043F\u043E \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438\u0442\u0435.` : sh.answer === "temporary" ? `\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u2014 ${now} \u043F\u0440\u0438 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438 ~${k(sh.prior)}; \u043F\u043E \u0442\u0432\u043E\u044F \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u0435 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E, \u043F\u043B\u0430\u043D\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430 \u043F\u043E \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438\u0442\u0435.` : sh.answer === "lasting" ? `\u0414\u0432\u0438\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0435 \u043D\u0430 \u043D\u043E\u0432\u043E \u043D\u0438\u0432\u043E \u2014 ${now} (\u043F\u0440\u0435\u0434\u0438 ~${k(sh.prior)}); \u0440\u0430\u0437\u0445\u043E\u0434\u044A\u0442 \u0441\u0435 \u0441\u043C\u044F\u0442\u0430 \u043F\u043E \u043D\u0435\u0433\u043E \u043E\u0442 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043F\u0440\u0435\u0433\u043B\u0435\u0434.` : `\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u2014 ${now} \u043F\u0440\u0438 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438 ~${k(sh.prior)}. \u041F\u043B\u0430\u043D\u044A\u0442 \u0441\u043B\u0435\u0434\u0432\u0430 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u0438\u0442\u0435; \u0430\u043A\u043E \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u0442\u0430 \u0441\u0435 \u0437\u0430\u0434\u044A\u0440\u0436\u0438, \u0440\u0430\u0437\u0445\u043E\u0434\u044A\u0442 \u044F \u043F\u043E\u0441\u043B\u0435\u0434\u0432\u0430 \u0441\u0430\u043C.`;
+  essence.signals = (essence.signals || []).filter((s) => s.code !== "activity_drop");
+  essence.signals.push({ code: "activity_shift", level: "info", text: text2 });
+}
 function withoutAnsweredSteps(facts2) {
   const answered = new Set((facts2 || []).filter((f) => f?.kind === "activity_check").map((f) => dayOf2(f.at)));
   if (!answered.size) return facts2 || [];
@@ -50972,6 +50994,8 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   const checkin = {};
   const resolutions = resolutionsOf(facts2);
   const activity = stepsActivity(facts2, now, resolutions);
+  const essence = computeEssence(activity ? facts2.filter((f) => f.kind !== "steps" || stepsClassOf(f) === activity.source) : facts2, now, ctx);
+  if (activity?.shift) settleActivityShift(activity, essence);
   if (activity) {
     overrides.dailyActivityLevel = activityLabelOf(activity.steps);
     reasons.push(`\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442 \u043F\u043E ${activity.source === "phone" ? "\u043A\u0440\u0430\u0447\u043A\u043E\u043C\u0435\u0440\u0430 \u043D\u0430 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430" : "\u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E\u0442\u043E"}: ~${Math.round(activity.steps / 100) * 100} \u043A\u0440\u0430\u0447\u043A\u0438 \u0432 \u0434\u0435\u043D \u0431\u0435\u0437 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430`);
@@ -50991,7 +51015,6 @@ function deriveEnrichment(store, now = /* @__PURE__ */ new Date(), sex = "X", ct
   if (intake.days >= 4 && intake.mean != null) checkin.intakeKcal = Math.round(intake.mean);
   const emo = deriveEmoEat(facts2);
   const labs = deriveLabs(facts2, now, sex);
-  const essence = computeEssence(activity ? facts2.filter((f) => f.kind !== "steps" || stepsClassOf(f) === activity.source) : facts2, now, ctx);
   Object.assign(overrides, essence.overrides);
   Object.assign(checkin, essence.checkin);
   const digest = store?.digest && typeof store.digest === "object" ? store.digest : null;
@@ -51115,6 +51138,8 @@ var TOPIC_WORDS = {
   meds: /лекарств|хапче|таблетк|медикамент/i,
   weight: /тегло|теглото|килограм|(?<![а-я])кг(?![а-я])|везна|претегл/i,
   steps_source: /крач|крачкомер|гривн|часовник|смарт ?часовник|фитнес тракер/i,
+  // „activity_shift:up|down“ — рязка промяна в движението: болест, отпуск, пътуване или ново ниво.
+  activity_shift: /крач|разход(к|ж)|ходя|ходих|движ(а|ех|иш)|болен|болна|болест|грип|настин|вирус|температур|контуз|травм|отпуск|ваканци|пътув|почивк|планин|поход|натоварен|нова работа|куче/i,
   emoeat_vs_q: /емоци|преяжд|от скука|когато съм напрегнат|не мога да спра|нощем ям|ям вечер|посягам/i
 };
 var PATTERN_WORDS = /веган|вегетариан|месо|растителн/i;
@@ -51123,7 +51148,7 @@ var ALLERGY_RELATED = { \u043B\u0430\u043A\u0442\u043E\u0437\u0430: /мляко|
 var stem = (s) => String(s || "").toLowerCase().replace(/[^a-zа-я0-9]/gi, "").slice(0, 5);
 function matches(q, text2) {
   const topic = TOPIC_WORDS[q.id] ? q.id : q.id.split(":")[0];
-  if (topic === "weight" || topic === "meds" || TOPIC_WORDS[q.id]) {
+  if (TOPIC_WORDS[topic]) {
     if (TOPIC_WORDS[topic].test(text2)) return true;
     if (topic === "meds") {
       const name = stem((q.text.match(/„([^“]+)“/) || [])[1]);
@@ -91226,7 +91251,10 @@ function publicEnrichmentView(d) {
     documents: d.documents || [],
     // Сверка: какво е потвърдено от два източника и кои разминавания чакат отговор.
     hypotheses: d.crossCheck?.hypotheses || [],
-    questions: d.crossCheck?.questions || []
+    questions: d.crossCheck?.questions || [],
+    // Обичайните крачки, с които е сметнат планът (медиана за 4 седмици, с отговора „трайно/временно“) —
+    // телефонът сравнява деня с тях (activity-tracker.js → baselineSteps).
+    activity: d.activity ? { steps: d.activity.steps, source: d.activity.source, shift: d.activity.shift || null } : null
   };
 }
 function profileContextText(d) {

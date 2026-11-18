@@ -15996,6 +15996,9 @@ function publicEnrichmentView(d) {
     // Сверка: какво е потвърдено от два източника и кои разминавания чакат отговор.
     hypotheses: d.crossCheck?.hypotheses || [],
     questions: d.crossCheck?.questions || [],
+    // Обичайните крачки, с които е сметнат планът (медиана за 4 седмици, с отговора „трайно/временно“) —
+    // телефонът сравнява деня с тях (activity-tracker.js → baselineSteps).
+    activity: d.activity ? { steps: d.activity.steps, source: d.activity.source, shift: d.activity.shift || null } : null,
   };
 }
 

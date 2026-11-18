@@ -12,6 +12,7 @@ import { buildPlanSummary } from '../plan-summary.js';
 import { enrichUserDataEngineContext } from '../questionnaire-engine-map.js';
 import { PROFILES } from './plan-adequacy/fixtures/profiles.mjs';
 import { supplementsFor } from '../supplement-rules.js';
+import { essenceText } from '../health-essence.js';
 import { reanalyze } from '../analysis-reanalysis.js';
 import { calculateBMR, calculateTDEE, calculateUnifiedActivityScore, calculateActivityTDEE, kcalPerStep } from '../energy.js';
 
@@ -259,6 +260,25 @@ ok(plain.analysis.currentHealthStatus.score === plain.baseline.score && !plain.r
   // Ниво на преизчисляване: седмица болест без отговор не е промяна в крачките.
   const lvlSick = recalcLevel(applyEnrichment(base(), { facts: weeks(8000, 8000) }, NOW), applyEnrichment(base(), { facts: weeks(1500, 8000) }, NOW));
   ok(!lvlSick.reasons.includes('крачки'), `седмица болест → крачките не са причина за преизчисляване (${lvlSick.reasons.join(', ')})`);
+  // Един сигнал за промяната навсякъде (профил, напредък, картон, чат) — не два с различни числа.
+  const sigs = (facts) => applyEnrichment(base(), { facts }, NOW)._enrichment.essence.signals.map(x => x.code);
+  const drop = [...Array.from({ length: 7 }, (_, i) => day(i + 1, 1500)), ...Array.from({ length: 28 }, (_, i) => day(i + 8, 8000))];
+  ok(sigs(drop).includes('activity_shift') && !sigs(drop).includes('activity_drop'), 'activity_drop се заменя с activity_shift');
+  ok(/временно/.test(applyEnrichment(base(), { facts: drop.concat(answer('down', 'temporary')) }, NOW)._enrichment.essence.signals.find(x => x.code === 'activity_shift').text), 'сигналът знае отговора');
+  // Спад + натоварено тяло (пулс/HRV) → временно, без въпрос.
+  const strain = [
+    ...Array.from({ length: 30 }, (_, i) => ({ kind: 'resting_hr', value: i < 7 ? 70 : 62, at: daysAgo(i + 1), source: 'health_connect' })),
+    ...Array.from({ length: 30 }, (_, i) => ({ kind: 'hrv', value: i < 7 ? 30 : 40, at: daysAgo(i + 1), source: 'health_connect' })),
+  ];
+  const sickStrain = applyEnrichment(base(), { facts: weeks(1500, 8000).concat(strain) }, NOW)._enrichment;
+  ok(sickStrain.activity.shift.auto && sickStrain.activity.steps === 8000, 'спад + натоварване → временно, обичайното остава');
+  ok(!sickStrain.crossCheck.questions.some(q => q.id === 'activity_shift:down'), 'спад + натоварване → без въпрос');
+  // Малък ефект върху калориите (лек човек) → без въпрос; медианата поема промяната сама.
+  const light = { ...base(), weight: '48', height: '150' };
+  const lightQ = applyEnrichment(light, { facts: weeks(4500, 2500) }, NOW)._enrichment;
+  ok(lightQ.activity.shift && !lightQ.crossCheck.questions.some(q => q.id.startsWith('activity_shift')), 'промяна под 3% от разхода → без въпрос');
+  // Картонът и чатът: текстът на промяната е вътре.
+  ok(/Планът следва обичайните/.test(essenceText(applyEnrichment(base(), { facts: drop }, NOW)._enrichment.essence)), 'промяната е в текста за картона и чата');
 }
 console.log(`\n=== enrichment: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

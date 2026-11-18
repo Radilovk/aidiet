@@ -16,6 +16,7 @@
  */
 
 import { compileProfile, normLabel } from './profile-code.js';
+import { calculateBMR, calculateActivityTDEE, kcalPerStep } from './energy.js';
 
 /**
  * Системите на IrisMap → доказателства в Eatologix и действие в менюто.
@@ -82,6 +83,19 @@ export function resolutionsOf(facts) {
     out[f.key] = f.value;
   }
   return out;
+}
+
+/**
+ * Струва ли си въпросът „трайно ли е?“: само ако отговорът мести приема над шума на
+ * седмичното преизчисляване (3%). По-малка разлика медианата поема сама — без въпрос.
+ */
+function shiftMatters(data, shift) {
+  try {
+    const perStep = kcalPerStep(data);
+    const { tdee } = calculateActivityTDEE(calculateBMR(data), data);
+    if (perStep > 0 && tdee > 0) return Math.abs(shift.recent - shift.prior) * perStep >= tdee * 0.03;
+  } catch (_) { /* непълен профил — по прага на крачките */ }
+  return true;
 }
 
 /**
@@ -213,7 +227,7 @@ export function crossCheck(data, derived, resolutions = {}) {
   // До отговора разходът следва медианата за 4 седмици (една седмица почти не я мести);
   // „трайно“ → новото ниво важи от следващия преглед, „временно“ → тези дни не местят приема.
   const shift = act?.shift;
-  if (shift && !shift.answer) {
+  if (shift && !shift.answer && shiftMatters(plain, shift)) {
     // Пръв в опашката: зависи от последната седмица и мести калориите — остарява бързо.
     const fmt = (n) => (Math.round(n / 100) * 100).toLocaleString('bg-BG');
     const up = shift.dir === 'up';
