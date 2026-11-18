@@ -9,9 +9,9 @@
  * „след“ на всяка промяна. Админът вижда прегледа в хъба за одобрение и решава: „Приложи
  * корекциите“ (планът остава pending; старият се пази в прегледа) → „Активирай“.
  *
- * Токени отиват само при нов вариант на план (отбелязване plan_review_fired:<id>). Таймерът на
- * worker-а (на 15 мин, без AI) е резервата: неразгледан план, за който задачата не е пусната
- * или не е минала за 3 часа, влиза наново в опашката. Без ANTHROPIC_API_KEY не тръгва нищо.
+ * Токени отиват само при нов вариант на план (отбелязване plan_review_fired:<id>). Без задачи по
+ * разписание: прегледът тръгва при постъпване на плана; ако задачата не е минала (грешка, 3+ часа),
+ * тръгва пак, когато админът отвори плана (handleReviewGet). Без ANTHROPIC_API_KEY не тръгва нищо.
  *
  * Маршрути (под /api/admin/* — централният guard, X-Admin-Secret):
  *   GET  /api/admin/plan-review?clientId=      → прегледът
@@ -38,9 +38,9 @@ const MAX_TOKENS = 32000;
 /** $ за 1M токена (вход, изход, четене от кеша, запис в кеша) — за дневния таван на AI разхода. */
 const PRICE = { in: 4, out: 20, cacheRead: 0.2, cacheWrite: 5 };
 
-const CRON_SCAN = 60;                  // таймерът гледа само последните клиенти (новите планове са там)
 const REFIRE_MS = 3 * 3600 * 1000;     // неразгледан 3 часа след пускането → нов опит
-export const REVIEW_CRON = '*/15 * * * *';
+/** Чакащите преглед: { clientId: planUpdatedAt } — резервата чете само него (1 четене, когато е празен). */
+const PENDING_KEY = 'plan_review_pending';
 const SEVERITIES = new Set(['critical', 'major', 'minor']);
 const reviewKey = (id) => `plan_review:${id}`;
 const firedKey = (id) => `plan_review_fired:${id}`;
@@ -149,19 +149,21 @@ function valueAt(doc, path) {
   return cur;
 }
 
-/** Чакащите одобрение планове без преглед за текущия им вариант. */
-async function unreviewed(env, scan, max) {
-  const ids = JSON.parse((await env.page_content.get('clients_list')) || '[]').slice(0, scan);
-  const items = [];
-  for (const id of ids) {
-    if (items.length >= max) break;
-    const c = JSON.parse((await env.page_content.get(`client:${id}`)) || 'null');
-    if (!isPending(c)) continue;
-    const r = JSON.parse((await env.page_content.get(reviewKey(id))) || 'null');
-    if (r && r.planUpdatedAt === (c.planUpdatedAt || null)) continue;   // този вариант вече е прегледан
-    items.push({ clientId: id, planUpdatedAt: c.planUpdatedAt || null });
-  }
-  return items;
+async function pendingMap(env) {
+  try { return JSON.parse((await env.page_content.get(PENDING_KEY)) || '{}') || {}; } catch { return {}; }
+}
+async function markPending(env, clientId, planUpdatedAt) {
+  const m = await pendingMap(env);
+  if (m[clientId] === (planUpdatedAt || null)) return;
+  m[clientId] = planUpdatedAt || null;
+  await env.page_content.put(PENDING_KEY, JSON.stringify(m));
+}
+/** Махане от чакащите — само ако там е същият вариант (по-новият има свой запис). */
+async function clearPending(env, clientId, planUpdatedAt) {
+  const m = await pendingMap(env);
+  if (!(clientId in m) || (planUpdatedAt !== undefined && m[clientId] !== (planUpdatedAt || null))) return;
+  delete m[clientId];
+  await env.page_content.put(PENDING_KEY, JSON.stringify(m));
 }
 
 /** Пусната ли е вече задачата за този вариант на плана (и не е изтекъл срокът за нов опит). */
@@ -186,25 +188,34 @@ export async function reviewOnPending(env, clientId, c, { now = Date.now() } = {
   if (await alreadyFired(env, item, now)) return 'same';
   const r = JSON.parse((await env.page_content.get(reviewKey(clientId))) || 'null');
   if (r && r.planUpdatedAt === item.planUpdatedAt) return 'reviewed';
+  await markPending(env, clientId, item.planUpdatedAt);
   await enqueue(env, item, now);
   return 'queued';
 }
 
 /**
- * Таймерът (резервата): неразгледан план без пусната задача (грешка, сменен ключ) или с пусната
- * преди 3 часа без резултат → в опашката. → 'off' | 'none' | 'same' | 'queued:<n>'
+ * Резервата (веднъж дневно): прегледът тръгва от събитието (reviewOnPending); тук само чакащите, за които
+ * задачата не е минала (грешка, сменен ключ) или е пусната преди 3 часа без резултат.
+ * Чете само списъка на чакащите — без обхождане на клиентите. → 'off' | 'none' | 'same' | 'queued:<n>'
  */
 export async function maybeFireReview(env, { now = Date.now() } = {}) {
   if (!env.ANTHROPIC_API_KEY || !env.page_content || !env.PLAN_QUEUE) return 'off';
-  const items = await unreviewed(env, CRON_SCAN, 20);
-  if (!items.length) return 'none';
+  const pending = await pendingMap(env);
+  const ids = Object.keys(pending);
+  if (!ids.length) return 'none';
   let n = 0;
-  for (const i of items) {
-    if (await alreadyFired(env, i, now)) continue;
-    await enqueue(env, i, now);
+  for (const id of ids.slice(0, 20)) {
+    const c = JSON.parse((await env.page_content.get(`client:${id}`)) || 'null');
+    const at = c?.planUpdatedAt || null;
+    const r = isPending(c) ? JSON.parse((await env.page_content.get(reviewKey(id))) || 'null') : null;
+    if (!isPending(c) || (r && r.planUpdatedAt === at)) { await clearPending(env, id); continue; }
+    const item = { clientId: id, planUpdatedAt: at };
+    if (pending[id] !== at) await markPending(env, id, at);
+    if (await alreadyFired(env, item, now)) continue;
+    await enqueue(env, item, now);
     n++;
   }
-  return n ? `queued:${n}` : 'same';
+  return n ? `queued:${n}` : (Object.keys(await pendingMap(env)).length ? 'same' : 'none');
 }
 
 /** Лични данни, които прегледът не ползва — не излизат към API. */
@@ -342,10 +353,10 @@ async function askClaude(client, messages, effort) {
  */
 export async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addSpend, notify, client, now = Date.now() } = {}) {
   const c = JSON.parse((await env.page_content.get(`client:${clientId}`)) || 'null');
-  if (!isPending(c)) return 'skip';
+  if (!isPending(c)) { await clearPending(env, clientId); return 'skip'; }
   if ((c.planUpdatedAt || null) !== (planUpdatedAt || null)) return 'stale';   // новият вариант има своя задача
   const old = JSON.parse((await env.page_content.get(reviewKey(clientId))) || 'null');
-  if (old && old.planUpdatedAt === (c.planUpdatedAt || null)) return 'reviewed';
+  if (old && old.planUpdatedAt === (c.planUpdatedAt || null)) { await clearPending(env, clientId, c.planUpdatedAt); return 'reviewed'; }
 
   const api = client || new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   const messages = [{ role: 'user', content: reviewInput(c) }];
@@ -392,15 +403,23 @@ export async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcil
     costUsd: Math.round(usd * 10000) / 10000, applied: false,
   };
   await env.page_content.put(reviewKey(clientId), JSON.stringify(review), { expirationTtl: 120 * 86400 });
+  await clearPending(env, clientId, c.planUpdatedAt);
   if (notify) await notify(c, review);   // писмото до админа: новият план с прегледа
   return verdict;
 }
 
 /** GET /api/admin/plan-review?clientId= */
-export async function handleReviewGet(url, env, { respond }) {
+export async function handleReviewGet(url, env, { respond, now = Date.now() }) {
   const id = url.searchParams.get('clientId') || '';
   const r = JSON.parse((await env.page_content.get(reviewKey(id))) || 'null');
-  return respond({ review: r });
+  // Резервата без задача по разписание: админът отваря плана, а преглед за този вариант няма
+  // (задачата не е тръгнала или е паднала преди 3+ часа) → пуска се отново, сега.
+  let queued = '';
+  const c = JSON.parse((await env.page_content.get(`client:${id}`)) || 'null');
+  if (id && isPending(c) && (!r || r.planUpdatedAt !== (c.planUpdatedAt || null))) {
+    queued = await reviewOnPending(env, id, c, { now }).catch(() => '');
+  }
+  return respond({ review: r, ...(queued ? { queued } : {}) });
 }
 
 /** POST /api/admin/plan-review/apply { clientId } — коригираният план става текущ; остава за одобрение. */

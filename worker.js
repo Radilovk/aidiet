@@ -77448,9 +77448,8 @@ var MEDICAL_CONDITIONS = /* @__PURE__ */ new Set([
 var MAX_FINDINGS = 8;
 var MAX_TOKENS = 32e3;
 var PRICE2 = { in: 4, out: 20, cacheRead: 0.2, cacheWrite: 5 };
-var CRON_SCAN = 60;
 var REFIRE_MS = 3 * 3600 * 1e3;
-var REVIEW_CRON = "*/15 * * * *";
+var PENDING_KEY = "plan_review_pending";
 var SEVERITIES = /* @__PURE__ */ new Set(["critical", "major", "minor"]);
 var reviewKey = (id) => `plan_review:${id}`;
 var firedKey = (id) => `plan_review_fired:${id}`;
@@ -77553,18 +77552,24 @@ function valueAt(doc, path3) {
   }
   return cur;
 }
-async function unreviewed(env, scan, max) {
-  const ids = JSON.parse(await env.page_content.get("clients_list") || "[]").slice(0, scan);
-  const items = [];
-  for (const id of ids) {
-    if (items.length >= max) break;
-    const c = JSON.parse(await env.page_content.get(`client:${id}`) || "null");
-    if (!isPending(c)) continue;
-    const r = JSON.parse(await env.page_content.get(reviewKey(id)) || "null");
-    if (r && r.planUpdatedAt === (c.planUpdatedAt || null)) continue;
-    items.push({ clientId: id, planUpdatedAt: c.planUpdatedAt || null });
+async function pendingMap(env) {
+  try {
+    return JSON.parse(await env.page_content.get(PENDING_KEY) || "{}") || {};
+  } catch {
+    return {};
   }
-  return items;
+}
+async function markPending(env, clientId, planUpdatedAt) {
+  const m = await pendingMap(env);
+  if (m[clientId] === (planUpdatedAt || null)) return;
+  m[clientId] = planUpdatedAt || null;
+  await env.page_content.put(PENDING_KEY, JSON.stringify(m));
+}
+async function clearPending(env, clientId, planUpdatedAt) {
+  const m = await pendingMap(env);
+  if (!(clientId in m) || planUpdatedAt !== void 0 && m[clientId] !== (planUpdatedAt || null)) return;
+  delete m[clientId];
+  await env.page_content.put(PENDING_KEY, JSON.stringify(m));
 }
 async function alreadyFired(env, item2, now) {
   const m = JSON.parse(await env.page_content.get(firedKey(item2.clientId)) || "null");
@@ -77581,20 +77586,31 @@ async function reviewOnPending(env, clientId, c, { now = Date.now() } = {}) {
   if (await alreadyFired(env, item2, now)) return "same";
   const r = JSON.parse(await env.page_content.get(reviewKey(clientId)) || "null");
   if (r && r.planUpdatedAt === item2.planUpdatedAt) return "reviewed";
+  await markPending(env, clientId, item2.planUpdatedAt);
   await enqueue(env, item2, now);
   return "queued";
 }
 async function maybeFireReview(env, { now = Date.now() } = {}) {
   if (!env.ANTHROPIC_API_KEY || !env.page_content || !env.PLAN_QUEUE) return "off";
-  const items = await unreviewed(env, CRON_SCAN, 20);
-  if (!items.length) return "none";
+  const pending = await pendingMap(env);
+  const ids = Object.keys(pending);
+  if (!ids.length) return "none";
   let n = 0;
-  for (const i of items) {
-    if (await alreadyFired(env, i, now)) continue;
-    await enqueue(env, i, now);
+  for (const id of ids.slice(0, 20)) {
+    const c = JSON.parse(await env.page_content.get(`client:${id}`) || "null");
+    const at = c?.planUpdatedAt || null;
+    const r = isPending(c) ? JSON.parse(await env.page_content.get(reviewKey(id)) || "null") : null;
+    if (!isPending(c) || r && r.planUpdatedAt === at) {
+      await clearPending(env, id);
+      continue;
+    }
+    const item2 = { clientId: id, planUpdatedAt: at };
+    if (pending[id] !== at) await markPending(env, id, at);
+    if (await alreadyFired(env, item2, now)) continue;
+    await enqueue(env, item2, now);
     n++;
   }
-  return n ? `queued:${n}` : "same";
+  return n ? `queued:${n}` : Object.keys(await pendingMap(env)).length ? "same" : "none";
 }
 var PRIVATE_ANSWERS = /* @__PURE__ */ new Set(["name", "email", "phone", "password", "photo", "photos"]);
 var MEAL_FIELDS = ["type", "name", "dishId", "description", "recipe", "prepTime", "weight", "calories", "macros", "dessert"];
@@ -77704,10 +77720,16 @@ async function askClaude(client, messages, effort) {
 }
 async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addSpend: addSpend2, notify, client, now = Date.now() } = {}) {
   const c = JSON.parse(await env.page_content.get(`client:${clientId}`) || "null");
-  if (!isPending(c)) return "skip";
+  if (!isPending(c)) {
+    await clearPending(env, clientId);
+    return "skip";
+  }
   if ((c.planUpdatedAt || null) !== (planUpdatedAt || null)) return "stale";
   const old = JSON.parse(await env.page_content.get(reviewKey(clientId)) || "null");
-  if (old && old.planUpdatedAt === (c.planUpdatedAt || null)) return "reviewed";
+  if (old && old.planUpdatedAt === (c.planUpdatedAt || null)) {
+    await clearPending(env, clientId, c.planUpdatedAt);
+    return "reviewed";
+  }
   const api = client || new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   const messages = [{ role: "user", content: reviewInput(c) }];
   const effort = reviewEffort(c.answers);
@@ -77761,13 +77783,19 @@ async function runPlanReview(env, { clientId, planUpdatedAt }, { reconcile, addS
     applied: false
   };
   await env.page_content.put(reviewKey(clientId), JSON.stringify(review), { expirationTtl: 120 * 86400 });
+  await clearPending(env, clientId, c.planUpdatedAt);
   if (notify) await notify(c, review);
   return verdict;
 }
-async function handleReviewGet(url, env, { respond }) {
+async function handleReviewGet(url, env, { respond, now = Date.now() }) {
   const id = url.searchParams.get("clientId") || "";
   const r = JSON.parse(await env.page_content.get(reviewKey(id)) || "null");
-  return respond({ review: r });
+  let queued = "";
+  const c = JSON.parse(await env.page_content.get(`client:${id}`) || "null");
+  if (id && isPending(c) && (!r || r.planUpdatedAt !== (c.planUpdatedAt || null))) {
+    queued = await reviewOnPending(env, id, c, { now }).catch(() => "");
+  }
+  return respond({ review: r, ...queued ? { queued } : {} });
 }
 async function handleReviewApply(request, env, { respond, now = Date.now() }) {
   const { clientId } = await request.json().catch(() => ({}));
@@ -85639,7 +85667,7 @@ async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
   return decision;
 }
 var WEEKLY_DUE_PREFIX = "weekly_due:";
-var AUTO_WEEKLY_PER_RUN = 5;
+var AUTO_WEEKLY_PER_RUN = 20;
 async function scheduleWeeklyDue(env, userId, dueMs) {
   if (!env?.page_content || !userId || !Number.isFinite(dueMs)) return;
   try {
@@ -85647,6 +85675,13 @@ async function scheduleWeeklyDue(env, userId, dueMs) {
   } catch (e) {
     console.warn("[AutoWeekly] \u0441\u0440\u043E\u043A\u044A\u0442 \u043D\u0435 \u0435 \u0437\u0430\u043F\u0438\u0441\u0430\u043D:", e.message);
   }
+}
+async function runOverdueWeeklyFor(env, userId, now = Date.now()) {
+  if (!env?.page_content || !userId) return "none";
+  const { value, metadata } = await env.page_content.getWithMetadata(`${WEEKLY_DUE_PREFIX}${userId}`);
+  const due = Number(metadata?.due) || 0;
+  if (value == null || !due || now - due < WEEKLY_OVERDUE_GRACE_MS) return "none";
+  return runAutoWeekly(env, userId, now, due);
 }
 async function processOverdueWeekly(env, now = Date.now()) {
   if (!env?.page_content) return 0;
@@ -91279,6 +91314,7 @@ async function handleGetPlanVersion(request, env) {
       return planEditingBlockedResponse();
     }
     const releasedProfile = await applyWeeklyReleaseIfDue(env, profile, resolvedUserId);
+    await runOverdueWeeklyFor(env, resolvedUserId).catch((e) => console.warn("[AutoWeekly] on open:", e.message));
     const planUpdatedAt = getEffectivePlanUpdatedAt(releasedProfile);
     const clientVersion = (url.searchParams.get("v") || "").trim();
     if (clientVersion && planUpdatedAt && clientVersion >= planUpdatedAt) {
@@ -91603,8 +91639,6 @@ async function handleTestSendEmail(request, env) {
     console.error("[TestEmail] Error:", error.message);
     return jsonResponse2({ error: error.message }, 500);
   }
-}
-async function handleScheduledNotifications(env) {
 }
 async function sendPushNotificationToUser(userId, message, env) {
   try {
@@ -93262,12 +93296,8 @@ var worker_entry_default = {
    */
   async scheduled(event, env, ctx) {
     console.log("[Worker] Scheduled event triggered at:", (/* @__PURE__ */ new Date()).toISOString());
-    if (event?.cron === REVIEW_CRON) {
-      ctx.waitUntil(maybeFireReview(env).then((r) => console.log("[plan-review] cron:", r)));
-      return;
-    }
-    ctx.waitUntil(handleScheduledNotifications(env));
-    ctx.waitUntil(syncAllLinks(env).catch((e) => console.warn("[Links] scheduled sync failed:", e.message)));
+    ctx.waitUntil(maybeFireReview(env).then((r) => console.log("[plan-review] manual:", r)).catch((e) => console.warn("[plan-review] manual failed:", e.message)));
+    ctx.waitUntil(syncAllLinks(env).catch((e) => console.warn("[Links] manual sync failed:", e.message)));
     ctx.waitUntil(processOverdueWeekly(env).catch((e) => console.warn("[AutoWeekly] scheduled run failed:", e.message)));
   },
   /**

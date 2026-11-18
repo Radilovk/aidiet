@@ -94,6 +94,20 @@ ok((kv.store.get('weekly_due:u_run')?.metadata?.due || 0) > realNow, 'cron: ср
 ok((kv.store.get('weekly_due:u_quiet')?.metadata?.due || 0) > realNow, 'cron: без нови данни — само нов срок, без AI');
 ok((kv.store.get('weekly_due:u_wait')?.metadata?.due || 0) < realNow, 'cron: просрочен с 1 ден — не се пипа');
 
+// Без задача по разписание: пропуснатият преглед тръгва, когато клиентът отвори приложението.
+sent.length = 0;
+await put('user_profile:u_open', { userId: 'u_open', plan: { weekPlan: { day1: {} } }, planUpdatedAt: iso(realNow - 12 * DAY), userData: {} });
+await put('game_state:u_open', { gameData: { [iso(realNow - DAY).slice(0, 10)]: { meals: {} } }, updatedAt: iso(realNow - DAY) });
+await kv.put('weekly_due:u_open', '1', { metadata: { due: realNow - 5 * DAY } });
+globalThis.__EATOLOGIX_BETA_UNLOCK = true;   // заключването „в редакция“ не е предмет на този тест
+const openRes = await quiet(() => worker.fetch(new Request('https://x/api/user/plan-version?userId=u_open'), env, ctx))();
+ok(openRes.status === 200, 'отваряне: версията на плана отговаря');
+ok(sent.some(m => m.type === 'weekly_adapt' && m.payload.userId === 'u_open'), 'отваряне: просроченият седмичен преглед тръгва');
+sent.length = 0;
+await quiet(() => worker.fetch(new Request('https://x/api/user/plan-version?userId=u_open'), env, ctx))();
+ok(!sent.some(m => m.type === 'weekly_adapt'), 'отваряне пак: не тръгва втори път (срокът е преместен)');
+delete globalThis.__EATOLOGIX_BETA_UNLOCK;
+
 sent.length = 0;
 await put('user_profile:u_lab', { userId: 'u_lab', plan: { weekPlan: { day1: {} } }, planUpdatedAt: iso(realNow - 3 * DAY), userData: { gender: 'Жена', age: 50, height: 165, weight: 70, goal: 'Отслабване' } });
 const labReq = new Request('https://x/api/enrichment', {

@@ -87,12 +87,12 @@ jobs:
           api GET "/accounts/$CF_ACCOUNT/workers/domains" | jq -r '.result[]? | "- \(.hostname) → \(.service)"' | while read -r l; do say "$l"; done
           [ "$ok" = 1 ] || exit 1
 
-      # Поща: privacy@<домейн> се препраща към личния имейл на собственика (секрет EMAIL_FORWARD_TO —
-      # адресът не е в репото). Cloudflare праща писмо за потвърждение на този адрес: препращането
-      # тръгва след клик в него. Без секрета стъпката само казва какво липсва.
+      # Поща: privacy@<домейн> се препраща към личния имейл на собственика (секретът EMAIL_FORWARD_TO,
+      # ако е зададен, иначе адресът по-долу). Cloudflare праща писмо за потвърждение на този адрес:
+      # препращането тръгва след клик в него.
       - name: Email routing (privacy@ → личен имейл)
         env:
-          FORWARD_TO: ${{ secrets.EMAIL_FORWARD_TO }}
+          FORWARD_TO: ${{ secrets.EMAIL_FORWARD_TO || 'radilov.k@gmail.com' }}
         run: |
           set -u
           api() { curl -sS -X "$1" "https://api.cloudflare.com/client/v4$2" -H "Authorization: Bearer $CF_TOKEN" -H 'Content-Type: application/json' ${3:+--data "$3"}; }

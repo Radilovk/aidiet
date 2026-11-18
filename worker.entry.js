@@ -140,7 +140,7 @@ import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUs
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
-import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview, REVIEW_CRON } from './plan-review.js';
+import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview } from './plan-review.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, addSpend, BUDGET_KEY } from './spend.js';
 
 /** Известие до админа при 50% / 100% от дневния AI таван (push в админ панела). */
@@ -8772,8 +8772,8 @@ async function reviewWeeklyDecisionWithCouncil(env, data, decision, ctx) {
 /* ─── Без да чакаме прегледа: безопасност веднага, пропуснат преглед след 3 дни ─── */
 
 const WEEKLY_DUE_PREFIX = 'weekly_due:';
-/** Най-много толкова автоматични прегледа на едно пускане на cron (цена и време). */
-const AUTO_WEEKLY_PER_RUN = 5;
+/** Най-много толкова автоматични прегледа на едно ръчно пускане на резервата (processOverdueWeekly). */
+const AUTO_WEEKLY_PER_RUN = 20;
 
 /**
  * Срокът на следващия седмичен преглед — в метаданните на ключ, за да може cron
@@ -8789,6 +8789,15 @@ async function scheduleWeeklyDue(env, userId, dueMs) {
 }
 
 /** Cron: просрочените с над 3 дни прегледи — автоматично, по наличните данни. */
+/** Пропуснат седмичен преглед за един клиент — при отваряне на приложението. 1 четене, ако не е време. */
+async function runOverdueWeeklyFor(env, userId, now = Date.now()) {
+  if (!env?.page_content || !userId) return 'none';
+  const { value, metadata } = await env.page_content.getWithMetadata(`${WEEKLY_DUE_PREFIX}${userId}`);
+  const due = Number(metadata?.due) || 0;
+  if (value == null || !due || now - due < WEEKLY_OVERDUE_GRACE_MS) return 'none';
+  return runAutoWeekly(env, userId, now, due);
+}
+
 async function processOverdueWeekly(env, now = Date.now()) {
   if (!env?.page_content) return 0;
   let started = 0;
@@ -16087,6 +16096,8 @@ async function handleGetPlanVersion(request, env) {
     }
 
     const releasedProfile = await applyWeeklyReleaseIfDue(env, profile, resolvedUserId);
+    // Пропуснатият седмичен преглед тръгва, когато клиентът отвори приложението (без задача по разписание).
+    await runOverdueWeeklyFor(env, resolvedUserId).catch(e => console.warn('[AutoWeekly] on open:', e.message));
     const planUpdatedAt = getEffectivePlanUpdatedAt(releasedProfile);
     const clientVersion = (url.searchParams.get('v') || '').trim();
     if (clientVersion && planUpdatedAt && clientVersion >= planUpdatedAt) {
@@ -18603,13 +18614,12 @@ export default {
    */
   async scheduled(event, env, ctx) {
     console.log('[Worker] Scheduled event triggered at:', new Date().toISOString());
-    // На 15 мин: само проверка за неразгледан план → пуска прегледа в Claude (без AI тук).
-    if (event?.cron === REVIEW_CRON) {
-      ctx.waitUntil(maybeFireReview(env).then(r => console.log('[plan-review] cron:', r)));
-      return;
-    }
-    ctx.waitUntil(handleScheduledNotifications(env));
-    ctx.waitUntil(syncAllLinks(env).catch(e => console.warn('[Links] scheduled sync failed:', e.message)));
+    // Няма задачи по разписание (wrangler.toml: crons = []) — всичко тръгва от събития:
+    // прегледът на плана — при постъпване и при отваряне в админа; синхронизацията с гривни — при отваряне
+    // на приложението (/api/links/sync); седмичният преглед — при отваряне (/api/user/plan-version);
+    // известията — на устройството (local-scheduler.js). Тук остава само ръчно пускане на резервите.
+    ctx.waitUntil(maybeFireReview(env).then(r => console.log('[plan-review] manual:', r)).catch(e => console.warn('[plan-review] manual failed:', e.message)));
+    ctx.waitUntil(syncAllLinks(env).catch(e => console.warn('[Links] manual sync failed:', e.message)));
     ctx.waitUntil(processOverdueWeekly(env).catch(e => console.warn('[AutoWeekly] scheduled run failed:', e.message)));
   },
 
