@@ -32,20 +32,7 @@
     <!-- Detect embedded context before first paint -->
     <script>(function(){if(new URLSearchParams(window.location.search).get('embedded')==='1')document.documentElement.setAttribute('data-embedded-tab','1');})();</script>
     <!-- Вътре в приложението навигацията е на обвивката — собствената не мига при зареждане. -->
-    <style>html[data-embedded-tab="1"] .bottom-nav{display:none!important}
-        /* Дневната цел — горна секция без кутия: голямо число, трите макроса в един ред. */
-        .goal-hero { padding: 6px 4px 18px; margin-bottom: 14px; border-bottom: 1px solid var(--ds-line, rgba(15,47,46,.07)); }
-        .goal-hero-kicker { font-size: 0.75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ds-text-soft, #5B6E6B); }
-        .goal-hero-kcal { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; color: var(--text-dark, #0F2F2E); margin-top: 2px; font-variant-numeric: tabular-nums; }
-        .goal-hero-kcal small { font-size: 1rem; font-weight: 700; color: var(--ds-text-soft, #5B6E6B); margin-left: 6px; letter-spacing: 0; }
-        .goal-hero-macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
-        .goal-macro-label { font-size: 0.8125rem; font-weight: 600; color: var(--mt); }
-        .goal-macro-value { font-size: 1.25rem; font-weight: 800; color: var(--text-dark, #0F2F2E); margin-top: 2px; font-variant-numeric: tabular-nums; }
-        .goal-macro-bar { height: 6px; border-radius: 3px; background: var(--ds-track, rgba(15,47,46,.09)); margin-top: 6px; overflow: hidden; }
-        .goal-macro-bar span { display: block; height: 100%; width: 0; border-radius: 3px; background: var(--m); transition: width .6s var(--ds-ease-emphasis, ease); }
-        .goal-macro-pct { font-size: 0.75rem; font-weight: 600; color: var(--ds-text-soft, #5B6E6B); margin-top: 4px; font-variant-numeric: tabular-nums; }
-        [data-theme="dark"] .goal-hero-kcal, [data-theme="dark"] .goal-macro-value { color: #E0F5F0; }
-    </style>
+    <style>html[data-embedded-tab="1"] .bottom-nav{display:none!important}</style>
     <!-- Hide body until content is ready; revealed by JS after localStorage render to prevent flash -->
     <style>body{opacity:0}</style>
     <style>
@@ -1228,32 +1215,47 @@
         <!-- UI Banner Zone (shown only when image is configured in admin) -->
         <div id="guidelinesBanner" style="display:none; position:relative; overflow:hidden; border-radius:20px; margin-bottom:20px; min-height:180px; background:transparent;"></div>
 
-        <!-- Дневната цел — най-горе, без контейнер (DESIGN_PRINCIPLES.md → „Структура на екрана“):
-             числото на деня и трите макроса; насоките отдолу — в разгъващи се секции. -->
-        <section id="macrosVizContainer" class="goal-hero" style="display: none;" aria-label="Дневната цел">
-            <div class="goal-hero-kicker">Дневната цел</div>
-            <div class="goal-hero-kcal"><span id="targetCalories">2000</span><small>kcal</small></div>
-            <div class="goal-hero-macros">
-                <div class="goal-macro" style="--m: var(--ds-macro-protein); --mt: var(--ds-macro-protein-text)">
-                    <div class="goal-macro-label">Белтък</div>
-                    <div class="goal-macro-value"><span id="targetProtein">120</span> г</div>
-                    <div class="goal-macro-bar"><span id="proteinBar"></span></div>
-                    <div class="goal-macro-pct" id="proteinPercentage">25%</div>
-                </div>
-                <div class="goal-macro" style="--m: var(--ds-macro-carbs); --mt: var(--ds-macro-carbs-text)">
-                    <div class="goal-macro-label">Въглехидрати</div>
-                    <div class="goal-macro-value"><span id="targetCarbs">250</span> г</div>
-                    <div class="goal-macro-bar"><span id="carbsBar"></span></div>
-                    <div class="goal-macro-pct" id="carbsPercentage">50%</div>
-                </div>
-                <div class="goal-macro" style="--m: var(--ds-macro-fats); --mt: var(--ds-macro-fats-text)">
-                    <div class="goal-macro-label">Мазнини</div>
-                    <div class="goal-macro-value"><span id="targetFats">55</span> г</div>
-                    <div class="goal-macro-bar"><span id="fatsBar"></span></div>
-                    <div class="goal-macro-pct" id="fatsPercentage">25%</div>
+        <!-- Хранителната цел — най-горе, директно на страницата (без обвивка около картата) -->
+        <div id="macrosVizContainer" class="macros-viz-container" style="display: none;">
+            <div class="macros-viz-header">
+                <div class="macros-viz-title">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Твоята Хранителна Цел</span>
                 </div>
             </div>
-        </section>
+
+            <div class="calories-display">
+                <div class="calories-label">Дневни Калории</div>
+                <div class="calories-value" id="targetCalories">2000</div>
+                <div class="calories-unit">kcal</div>
+            </div>
+
+            <div class="macros-grid">
+                <div class="macro-card protein">
+                    <div class="macro-icon">🥩</div>
+                    <div class="macro-label">Протеини</div>
+                    <div class="macro-value" id="targetProtein">120</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="proteinPercentage">25%</div>
+                </div>
+
+                <div class="macro-card carbs">
+                    <div class="macro-icon">🍞</div>
+                    <div class="macro-label">Въгле&shy;хидрати</div>
+                    <div class="macro-value" id="targetCarbs">250</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="carbsPercentage">50%</div>
+                </div>
+
+                <div class="macro-card fats">
+                    <div class="macro-icon">🥑</div>
+                    <div class="macro-label">Мазнини</div>
+                    <div class="macro-value" id="targetFats">55</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="fatsPercentage">25%</div>
+                </div>
+            </div>
+        </div>
 
         <!-- Бележката от специалиста (от гласа на плана) — само когато я има -->
         <div class="specialist-card" id="specialistCard" hidden>
@@ -1888,11 +1890,6 @@
                 if (elProteinPct) elProteinPct.textContent = proteinPercent + '%';
                 if (elCarbsPct) elCarbsPct.textContent = carbsPercent + '%';
                 if (elFatsPct) elFatsPct.textContent = fatsPercent + '%';
-                [['proteinBar', proteinPercent], ['carbsBar', carbsPercent], ['fatsBar', fatsPercent]].forEach(function (b) {
-                    var el = document.getElementById(b[0]);
-                    if (el) el.style.width = Math.min(100, b[1]) + '%';
-                });
-                if (elCalories) elCalories.textContent = Number(dailyCalories).toLocaleString('bg-BG');
 
                 if (container) {
                     container.style.display = 'block';
