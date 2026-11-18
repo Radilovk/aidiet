@@ -49,7 +49,8 @@
   "Не, временно е (болест, отпуск, натоварен период)": "No, it's temporary (illness, holiday, busy period)",
   "+0,5 л вода днес": "+0.5 L water today",
   "Добави закуска с белтък": "Add a protein snack",
-  "По-лека седмица: повече сън, по-леки тренировки": "Lighter week: more sleep, easier workouts"
+  "По-лека седмица: повече сън, по-леки тренировки": "Lighter week: more sleep, easier workouts",
+  "Дневната цел": "Daily target"
  },
  "keys": {},
  "patterns": []

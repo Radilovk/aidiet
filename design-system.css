@@ -335,6 +335,8 @@
     --ds-metric-activity: #F97316; --ds-metric-activity-text: #C2410C;
     --ds-metric-mood: #16A34A;     --ds-metric-mood-text: #15803D;
     --ds-track: rgba(15, 47, 46, 0.09);   /* неутрална ивица под лентите */
+    --ds-surface-sunken: #F6FAF8;          /* вътрешна карта в бяла карта (показател, ред) */
+    --ds-line: rgba(15, 47, 46, 0.07);     /* фина рамка/разделител */
     --ds-accent-text: #05737D;          /* акцентен текст: 5.5:1 върху бяло */
     --ds-text-soft: #5B6E6B;            /* помощен текст: 5.4:1 върху бяло */
 
@@ -448,6 +450,8 @@
     --ds-metric-activity: #FB923C; --ds-metric-activity-text: #FDBA74;
     --ds-metric-mood: #34D399;     --ds-metric-mood-text: #6EE7B7;
     --ds-track: rgba(255, 255, 255, 0.10);
+    --ds-surface-sunken: rgba(255, 255, 255, 0.035);
+    --ds-line: rgba(255, 255, 255, 0.07);
     --ds-text-soft: #9AB3AF;
     --ds-success-text: #4ADE80;
     --ds-macro-protein-text: #A5B4FC;
