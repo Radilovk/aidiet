@@ -124,6 +124,11 @@ try {
     const vers = (await api('GET', `/v1/apps/${app.id}/appStoreVersions?limit=5`)).data;
     summary('### App Store (публична версия)');
     for (const v of vers) summary(`- версия ${v.attributes.versionString}: **${v.attributes.appStoreState}**`);
+    try {
+      const subs = (await api('GET', `/v1/reviewSubmissions?filter[app]=${app.id}&limit=10`)).data;
+      if (!subs.length) summary('- заявки за ревю в App Store: **няма** (нищо не е изпращано за публикуване)');
+      for (const r of subs) summary(`- заявка за ревю в App Store: **${r.attributes.state}** (подадена ${r.attributes.submittedDate || '—'})`);
+    } catch (e) { summary(`- заявки за ревю в App Store: не можаха да се прочетат (${e.message.slice(0, 120)})`); }
     const builds = await api('GET', `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5&include=buildBetaDetail`);
     const det = Object.fromEntries((builds.included || []).filter((x) => x.type === 'buildBetaDetails').map((x) => [x.id, x.attributes]));
     summary('### TestFlight – build-ове');
