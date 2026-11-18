@@ -153,6 +153,7 @@ import { interactionsFor, applySupplementInteractions } from './drug-interaction
 import { LAB_MARKERS } from './enrichment-labs.js';
 import { documentsText, normalizeDocumentValue } from './enrichment-documents.js';
 import { reanalyze } from './analysis-reanalysis.js';
+import { handleEmailDomain, emailEnvelope } from './email-domain.js';
 import { PROVIDERS as LINK_PROVIDERS, LINK_SOURCES, enabledProviders, randomToken, authorizeUrl as linkAuthorizeUrl, exchangeCode as linkExchangeCode, pullFacts as linkPullFacts } from './device-links.js';
 import {
   readOverlayFromKv,
@@ -4552,11 +4553,12 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
+    // Подателят и връзките: biocode.online/biocode.website, докато eatologix.com не е потвърден в Resend
+    // (email-domain.js) — после сами минават на eatologix.com.
     body: JSON.stringify({
-      from: 'Eatologix <info@biocode.online>',
+      ...(await emailEnvelope(env, htmlBody)),
       to: [to],
       subject,
-      html: htmlBody,
     }),
   });
 
@@ -18471,6 +18473,8 @@ export default {
         return await handleLinksStart(request, env);
       } else if (url.pathname.startsWith('/api/links/callback/') && request.method === 'GET') {
         return await handleLinksCallback(request, env, url.pathname.split('/').pop());
+      } else if (url.pathname === '/api/system/email-domain' && request.method === 'POST') {
+        return await handleEmailDomain(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/links/sync' && request.method === 'POST') {
         return await handleLinksSync(request, env);
       } else if (url.pathname === '/api/links/disconnect' && request.method === 'POST') {

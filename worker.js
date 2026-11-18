@@ -11860,9 +11860,9 @@ async function handleAvailability(env, ctx, studio, url) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(ym)) return err("month");
   const rev = env.page_content ? await env.page_content.get(`studio:rev:${studio.id}`).catch(() => "") || "0" : "0";
   const cacheKey = new Request(`https://studio-cache.invalid/${studio.id}/${ym}/${studio.version}/${rev}`);
-  const cache = typeof caches !== "undefined" ? caches.default : null;
-  if (cache) {
-    const hit = await cache.match(cacheKey).catch(() => null);
+  const cache2 = typeof caches !== "undefined" ? caches.default : null;
+  if (cache2) {
+    const hit = await cache2.match(cacheKey).catch(() => null);
     if (hit) return new Response(hit.body, { status: 200, headers: { ...CORS, "Cache-Control": "public, max-age=30" } });
   }
   const st = studio.settings;
@@ -11880,7 +11880,7 @@ async function handleAvailability(env, ctx, studio, url) {
   const taken = [...await bookedBetween(env, studio.id, from, to), ...busy];
   const body = JSON.stringify({ month: ym, days: calendarOk ? slotsForMonth(st, ym, taken) : {}, calendarOk, at: Date.now() });
   const resp = new Response(body, { status: 200, headers: { ...CORS, "Cache-Control": "public, max-age=30" } });
-  if (cache && calendarOk) ctx.waitUntil(cache.put(cacheKey, new Response(body, { headers: { "Cache-Control": `public, max-age=${AVAIL_TTL}` } })).catch(() => {
+  if (cache2 && calendarOk) ctx.waitUntil(cache2.put(cacheKey, new Response(body, { headers: { "Cache-Control": `public, max-age=${AVAIL_TTL}` } })).catch(() => {
   }));
   return resp;
 }
@@ -76164,7 +76164,7 @@ function wrapFetchWithMiddleware(fetchFn, middleware, options, client) {
   };
 }
 function createMiddlewareContext(options, client) {
-  const cache = /* @__PURE__ */ new WeakMap();
+  const cache2 = /* @__PURE__ */ new WeakMap();
   return {
     options,
     // Resolved per chain, so changes to the client's `logLevel`/`logger`
@@ -76174,10 +76174,10 @@ function createMiddlewareContext(options, client) {
       if (options?.stream && response.ok) {
         return parseMiddlewareResponse(response, options, client);
       }
-      let parsed = cache.get(response);
+      let parsed = cache2.get(response);
       if (!parsed) {
         parsed = parseMiddlewareResponse(response, options, client);
-        cache.set(response, parsed);
+        cache2.set(response, parsed);
       }
       return parsed;
     }
@@ -78422,6 +78422,78 @@ function reanalyze(baseData, enrichedData, energy = {}, sex = "X") {
   };
 }
 
+// email-domain.js
+var EMAIL_DOMAIN = "eatologix.com";
+var EMAIL_FROM_OLD = "Eatologix <info@biocode.online>";
+var EMAIL_FROM_NEW = `Eatologix <info@${EMAIL_DOMAIN}>`;
+var NONCE_KEY = "bridge_nonce:email_domain";
+var VERIFIED_KEY = "email_domain_verified";
+var RESEND = "https://api.resend.com";
+var cache = { at: 0, verified: false };
+async function emailDomainVerified(env, now = Date.now()) {
+  if (now - cache.at < 6e5) return cache.verified;
+  let verified = false;
+  try {
+    verified = Boolean(await env.page_content.get(VERIFIED_KEY));
+  } catch (_) {
+  }
+  cache = { at: now, verified };
+  return verified;
+}
+async function emailEnvelope(env, html) {
+  if (!await emailDomainVerified(env)) return { from: EMAIL_FROM_OLD, html };
+  return { from: EMAIL_FROM_NEW, html: String(html).split("https://biocode.website").join(`https://${EMAIL_DOMAIN}`) };
+}
+async function resend(env, method, path3, body) {
+  const r = await fetch(RESEND + path3, {
+    method,
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : void 0
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(`Resend ${method} ${path3}: ${r.status} ${data?.message || data?.name || ""}`.trim());
+  return data;
+}
+async function findDomain(env) {
+  const list4 = await resend(env, "GET", "/domains");
+  return (list4?.data || []).find((d) => String(d.name).toLowerCase() === EMAIL_DOMAIN) || null;
+}
+async function handleEmailDomain(request, env, { respond, now = Date.now() }) {
+  const nonce = request.headers.get("X-Bridge-Nonce") || "";
+  const stored = env.page_content ? await env.page_content.get(NONCE_KEY) : null;
+  if (!nonce || !stored || stored !== nonce) return respond({ error: "forbidden" }, 403);
+  if (!env.RESEND_API_KEY) return respond({ error: "RESEND_API_KEY \u043B\u0438\u043F\u0441\u0432\u0430 \u0432\u044A\u0432 worker-\u0430" }, 500);
+  const { action } = await request.json().catch(() => ({}));
+  try {
+    let d = await findDomain(env);
+    if (action === "setup") {
+      if (!d) d = await resend(env, "POST", "/domains", { name: EMAIL_DOMAIN, region: "eu-west-1" });
+      const full = await resend(env, "GET", `/domains/${d.id}`);
+      return respond({ id: full.id, status: full.status, records: (full.records || []).map((x) => ({
+        record: x.record,
+        type: x.type,
+        name: x.name,
+        value: x.value,
+        priority: x.priority ?? null,
+        status: x.status
+      })) });
+    }
+    if (action === "verify") {
+      if (!d) return respond({ error: "\u0434\u043E\u043C\u0435\u0439\u043D\u044A\u0442 \u043D\u0435 \u0435 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u0430\u043D \u2014 \u043F\u044A\u0440\u0432\u043E setup" }, 400);
+      if (d.status !== "verified") await resend(env, "POST", `/domains/${d.id}/verify`).catch(() => null);
+      const full = await resend(env, "GET", `/domains/${d.id}`);
+      if (full.status === "verified") {
+        await env.page_content.put(VERIFIED_KEY, JSON.stringify({ domain: EMAIL_DOMAIN, at: new Date(now).toISOString() }));
+        cache = { at: 0, verified: false };
+      }
+      return respond({ status: full.status, records: (full.records || []).map((x) => ({ record: x.record, name: x.name, status: x.status })) });
+    }
+    return respond({ error: "action: setup | verify" }, 400);
+  } catch (e) {
+    return respond({ error: e.message }, 502);
+  }
+}
+
 // device-links.js
 var LINK_DAYS = 14;
 var DAY_MS5 = 864e5;
@@ -79998,7 +80070,7 @@ var PLAN_STEP_DEFAULT_THINKING_BUDGET = 0;
 var CATALOG_STRICT_MODE = true;
 async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
   try {
-    const cache = caches.default;
+    const cache2 = caches.default;
     const url = `https://ai-logs-cache.internal/${key}`;
     const response = new Response(JSON.stringify(data), {
       headers: {
@@ -80006,7 +80078,7 @@ async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
         "Cache-Control": `public, max-age=${ttl}`
       }
     });
-    await cache.put(url, response);
+    await cache2.put(url, response);
     return true;
   } catch (error) {
     console.error(`[Cache API] Failed to set key ${key}:`, error);
@@ -80015,9 +80087,9 @@ async function cacheSet(key, data, ttl = AI_LOG_CACHE_TTL) {
 }
 async function cacheGet(key) {
   try {
-    const cache = caches.default;
+    const cache2 = caches.default;
     const url = `https://ai-logs-cache.internal/${key}`;
-    const response = await cache.match(url);
+    const response = await cache2.match(url);
     if (!response) {
       return null;
     }
@@ -80030,9 +80102,9 @@ async function cacheGet(key) {
 }
 async function cacheDelete(key) {
   try {
-    const cache = caches.default;
+    const cache2 = caches.default;
     const url = `https://ai-logs-cache.internal/${key}`;
-    const deleted = await cache.delete(url);
+    const deleted = await cache2.delete(url);
     return deleted;
   } catch (error) {
     console.error(`[Cache API] Failed to delete key ${key}:`, error);
@@ -82321,11 +82393,12 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json"
     },
+    // Подателят и връзките: biocode.online/biocode.website, докато eatologix.com не е потвърден в Resend
+    // (email-domain.js) — после сами минават на eatologix.com.
     body: JSON.stringify({
-      from: "Eatologix <info@biocode.online>",
+      ...await emailEnvelope(env, htmlBody),
       to: [to],
-      subject,
-      html: htmlBody
+      subject
     })
   });
   if (!response.ok) {
@@ -83112,9 +83185,9 @@ async function ensureAssistantCacheFresh(env, session, card, planUpdatedAt, anal
   }
   if (estimateTokenCount(card) >= ADMIN_ASSISTANT_CACHE_MIN_TOKENS) {
     try {
-      const cache = await createGeminiCachedContent(env, session.modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
-      session.cacheId = cache.name;
-      session.cacheExpiresAt = cache.expireTime;
+      const cache2 = await createGeminiCachedContent(env, session.modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
+      session.cacheId = cache2.name;
+      session.cacheExpiresAt = cache2.expireTime;
       session.cacheEnabled = Boolean(session.cacheId);
     } catch (e) {
       console.warn("[AdminAssistant] Cache rebuild failed:", e.message);
@@ -84220,9 +84293,9 @@ async function handleAdminAssistantSession(request, env) {
     let cacheExpiresAt = null;
     if (tokenEstimate >= ADMIN_ASSISTANT_CACHE_MIN_TOKENS) {
       try {
-        const cache = await createGeminiCachedContent(env, modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
-        cacheId = cache.name;
-        cacheExpiresAt = cache.expireTime;
+        const cache2 = await createGeminiCachedContent(env, modelName, card, ADMIN_ASSISTANT_SYSTEM_INSTRUCTION);
+        cacheId = cache2.name;
+        cacheExpiresAt = cache2.expireTime;
         cacheEnabled = Boolean(cacheId);
       } catch (e) {
         console.warn("[AdminAssistant] Cache creation failed, falling back to inline context:", e.message);
@@ -92018,10 +92091,10 @@ async function handleXbodyAvailability(request, env, ctx, booking = XBODY_ACUITY
     return jsonResponse2(memo2.body, 200, cacheHeaders);
   }
   const cacheKey = new Request(`${url.origin}/__cache/xbody-availability/${booking.calendarID}/${month}`);
-  const cache = typeof caches !== "undefined" ? caches.default : null;
-  if (cache) {
+  const cache2 = typeof caches !== "undefined" ? caches.default : null;
+  if (cache2) {
     try {
-      const hit = await cache.match(cacheKey);
+      const hit = await cache2.match(cacheKey);
       if (hit) {
         const body2 = await hit.json();
         if (body2 && Date.now() - (body2.fetchedAt || 0) < XBODY_AVAIL_TTL_MS) {
@@ -92066,8 +92139,8 @@ async function handleXbodyAvailability(request, env, ctx, booking = XBODY_ACUITY
   }
   const body = { month, days, fetchedAt: Date.now() };
   xbodyAvailMemo.set(memoKey, { at: body.fetchedAt, body });
-  if (cache) {
-    const put = cache.put(cacheKey, new Response(JSON.stringify(body), {
+  if (cache2) {
+    const put = cache2.put(cacheKey, new Response(JSON.stringify(body), {
       headers: { "Content-Type": "application/json", "Cache-Control": `public, max-age=${XBODY_AVAIL_TTL_MS / 1e3}` }
     })).catch(() => {
     });
@@ -93151,6 +93224,8 @@ var worker_entry_default = {
         return await handleLinksStart(request, env);
       } else if (url.pathname.startsWith("/api/links/callback/") && request.method === "GET") {
         return await handleLinksCallback(request, env, url.pathname.split("/").pop());
+      } else if (url.pathname === "/api/system/email-domain" && request.method === "POST") {
+        return await handleEmailDomain(request, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/links/sync" && request.method === "POST") {
         return await handleLinksSync(request, env);
       } else if (url.pathname === "/api/links/disconnect" && request.method === "POST") {
