@@ -6373,12 +6373,15 @@ function weeklyAnswersText(questions, answers) {
     .join('\n');
 }
 
-async function savePendingWeeklyRelease(env, userId, clientId, release) {
+/** @param {Record<string, any>} input — новата седмица; keepPending: отложеното преизчисляване остава чакащо */
+async function savePendingWeeklyRelease(env, userId, clientId, input) {
   if (!userId) return;
+  const { keepPending = false, ...release } = input || {};
   const ttl = userId.startsWith('fb_') ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
   const profile = (await kvGetJSON(env, `user_profile:${userId}`)) || { userId };
   // Новата седмица вече е сглобена с обогатяването — чакащата промяна е приложена.
-  if (profile.enrichment?.pendingLevel) {
+  // Отложеното преизчисляване (натоварено тяло) остава чакащо за следващия преглед.
+  if (profile.enrichment?.pendingLevel && !keepPending) {
     profile.enrichment = { ...profile.enrichment, pendingLevel: 0, appliedAt: new Date().toISOString() };
   }
   profile.pendingWeekly = {
@@ -6472,6 +6475,7 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
  * корекции (разликата между текущия прием и първоначалното предписание).
  * @returns {null | { analysis: object, before: number, after: number, reason: string }}
  */
+/** @returns {null | { analysis?: any, before: number, after: number, reason: string, deferred?: boolean }} */
 function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers) {
   if (!plan?.analysis) return null;
   const before = parseFinalCalories(plan.analysis.Final_Calories);
@@ -6502,6 +6506,13 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   const after = parseFinalCalories(probe.Final_Calories);
   // Под 3% разликата е шум от закръгляне — остава досегашното.
   if (!after || Math.abs(after - before) / before < 0.03) return null;
+  // Натоварено тяло (пулс/HRV) или загуба на мускули по везната: дефицитът не се задълбочава —
+  // и чрез преизчисляването (седмица болест сваля средните крачки). Намалението се отлага,
+  // а чакащата промяна остава за следващия преглед. Нова фаза на целта не се отлага.
+  const strained = (checkinAnswers || []).some(a => (a.questionId === 'recoveryLow' || a.questionId === 'leanLoss') && String(a.value) === 'true');
+  if (after < before && strained && !phaseChanged) {
+    return { deferred: true, before, after, reason: `Новите данни показват по-нисък разход (${before} → ${after} kcal), но при натоварване на тялото намалението се отлага за следващия преглед.` };
+  }
   probe._baseCalories = intake;
   probe._goalDirection = direction;
   const why = phaseChanged && plan.analysis._goalDirection
@@ -6578,9 +6589,12 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     // изследване/документ — ниво ≥ 2): енергията се смята наново с тях, а натрупаните
     // седмични корекции се пазят върху новата основа. Иначе приемът би останал по
     // старите отговори и щеше да се „намира“ бавно, със 100–150 kcal на седмица.
-    const recal = recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers);
+    const recalResult = recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers);
+    const deferredRecal = recalResult?.deferred ? recalResult : null;
+    const recal = deferredRecal ? null : recalResult;
     const decisionPlan = recal ? { ...plan, analysis: recal.analysis } : plan;
     const decision = getWeeklyAdaptationDecision(enrichedData, decisionPlan, analytics, checkinAnswers, weeklyAdaptHistory);
+    if (deferredRecal) decision.reasoning = `${decision.reasoning} ${deferredRecal.reason}`.trim();
     if (recal) {
       decision.changeSummary = [`Калориите са преизчислени с новите данни: ${recal.before} → ${recal.after} kcal`, ...decision.changeSummary].slice(0, 4);
       decision.reasoning = `${recal.reason} ${decision.reasoning}`.trim();
@@ -6693,6 +6707,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       ...(auto ? { auto: true } : {}),
     };
     await savePendingWeeklyRelease(env, userId, clientId, {
+      ...(deferredRecal ? { keepPending: true } : {}),
       auto,
       notice,
       plan: newPlan,

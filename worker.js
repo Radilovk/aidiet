@@ -83662,11 +83662,12 @@ function weeklyAnswersText(questions, answers2) {
   const byId = new Map((questions || []).map((q) => [q.id, q.text]));
   return (answers2 || []).filter((a) => a && a.questionId && String(a.value ?? "").trim()).map((a) => `- ${byId.get(a.questionId) || a.questionId}: ${String(a.value).slice(0, 400)}${a.source === "device" ? ` (\u043E\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E${a.typed ? `; \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0432\u044A\u0432\u0435\u0434\u0435 ${a.typed}` : ""})` : ""}`).join("\n");
 }
-async function savePendingWeeklyRelease(env, userId, clientId, release) {
+async function savePendingWeeklyRelease(env, userId, clientId, input) {
   if (!userId) return;
+  const { keepPending = false, ...release } = input || {};
   const ttl = userId.startsWith("fb_") ? 365 * 24 * 60 * 60 : 90 * 24 * 60 * 60;
   const profile = await kvGetJSON(env, `user_profile:${userId}`) || { userId };
-  if (profile.enrichment?.pendingLevel) {
+  if (profile.enrichment?.pendingLevel && !keepPending) {
     profile.enrichment = { ...profile.enrichment, pendingLevel: 0, appliedAt: (/* @__PURE__ */ new Date()).toISOString() };
   }
   profile.pendingWeekly = {
@@ -83773,6 +83774,10 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   enforceCalorieGuardrails(probe, data, tdee);
   const after = parseFinalCalories(probe.Final_Calories);
   if (!after || Math.abs(after - before) / before < 0.03) return null;
+  const strained = (checkinAnswers || []).some((a) => (a.questionId === "recoveryLow" || a.questionId === "leanLoss") && String(a.value) === "true");
+  if (after < before && strained && !phaseChanged) {
+    return { deferred: true, before, after, reason: `\u041D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u043F\u043E\u043A\u0430\u0437\u0432\u0430\u0442 \u043F\u043E-\u043D\u0438\u0441\u044A\u043A \u0440\u0430\u0437\u0445\u043E\u0434 (${before} \u2192 ${after} kcal), \u043D\u043E \u043F\u0440\u0438 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0442\u044F\u043B\u043E\u0442\u043E \u043D\u0430\u043C\u0430\u043B\u0435\u043D\u0438\u0435\u0442\u043E \u0441\u0435 \u043E\u0442\u043B\u0430\u0433\u0430 \u0437\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u043F\u0440\u0435\u0433\u043B\u0435\u0434.` };
+  }
   probe._baseCalories = intake;
   probe._goalDirection = direction;
   const why = phaseChanged && plan.analysis._goalDirection ? `\u043D\u043E\u0432\u0430 \u0444\u0430\u0437\u0430 \u2014 ${goalModel.directionLabel}` : overstated ? "\u0440\u0430\u0437\u0445\u043E\u0434\u044A\u0442 \u0435 \u0441\u043C\u0435\u0442\u043D\u0430\u0442 \u043F\u0440\u0435\u0434\u043F\u0430\u0437\u043B\u0438\u0432\u043E, \u0434\u043E\u043A\u0430\u0442\u043E \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u0438" : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(", ");
@@ -83829,9 +83834,12 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     const answersText = weeklyAnswersText(payload.questions, checkinAnswers);
     const priorCouncil = enrichedData._goalCouncil || null;
     const goalCouncil = await conveneGoalCouncil(env, enrichedData, { history: weeklyAdaptHistory, answersText });
-    const recal = recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers);
+    const recalResult = recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers);
+    const deferredRecal = recalResult?.deferred ? recalResult : null;
+    const recal = deferredRecal ? null : recalResult;
     const decisionPlan = recal ? { ...plan, analysis: recal.analysis } : plan;
     const decision = getWeeklyAdaptationDecision(enrichedData, decisionPlan, analytics, checkinAnswers, weeklyAdaptHistory);
+    if (deferredRecal) decision.reasoning = `${decision.reasoning} ${deferredRecal.reason}`.trim();
     if (recal) {
       decision.changeSummary = [`\u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0430 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D\u0438 \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438: ${recal.before} \u2192 ${recal.after} kcal`, ...decision.changeSummary].slice(0, 4);
       decision.reasoning = `${recal.reason} ${decision.reasoning}`.trim();
@@ -83920,6 +83928,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       ...auto ? { auto: true } : {}
     };
     await savePendingWeeklyRelease(env, userId, clientId, {
+      ...deferredRecal ? { keepPending: true } : {},
       auto,
       notice,
       plan: newPlan,
