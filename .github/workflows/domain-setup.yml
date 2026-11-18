@@ -16,6 +16,12 @@ on:
   push:
     branches: [claude/jolly-goodall-obbojn]
     paths: ['.github/workflows/domain-setup.yml']
+  # След всяко публикуване на worker-а: довършва пощата за изпращане от eatologix.com (Resend), докато
+  # Resend не потвърди домейна — после стъпката спира веднага (1 четене от KV).
+  workflow_run:
+    workflows: ['Deploy Cloudflare Worker']
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
@@ -26,7 +32,7 @@ concurrency:
 
 jobs:
   setup:
-    if: github.event_name == 'push' || github.actor == github.repository_owner
+    if: github.event_name != 'workflow_run' && (github.event_name == 'push' || github.actor == github.repository_owner)
     runs-on: ubuntu-latest
     env:
       CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -128,3 +134,60 @@ jobs:
             if [ "$(echo "$res" | jq -r '.success')" = "true" ]; then say "- ✓ \`$to\` → личния имейл"
             else say "- ✗ Правилото: $(echo "$res" | errs)"; exit 1; fi
           fi
+
+  # Изпращане от eatologix.com: worker-ът (има ключа за Resend) регистрира домейна, тук (ключът за
+  # Cloudflare) се слагат DNS записите и се иска потвърждение. Достъпът до worker-а — еднократен код в KV.
+  resend:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DOMAIN: eatologix.com
+      KV: https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/storage/kv/namespaces/81fc0991b2764918b682f9ca170abd4b
+      WORKER: https://aidiet.radilov-k.workers.dev
+    steps:
+      - name: Resend — изпращане от eatologix.com
+        run: |
+          set -u
+          api() { curl -sS -X "$1" "https://api.cloudflare.com/client/v4$2" -H "Authorization: Bearer $CF_TOKEN" -H 'Content-Type: application/json' ${3:+--data "$3"}; }
+          say() { echo "$*" | tee -a "$GITHUB_STEP_SUMMARY"; }
+          say '### Изпращане от eatologix.com (Resend)'
+          if curl -sf -H "Authorization: Bearer $CF_TOKEN" "$KV/values/email_domain_verified" >/dev/null; then
+            say "- ✓ Домейнът вече е потвърден — писмата излизат от info@$DOMAIN"; exit 0
+          fi
+          nonce=$(openssl rand -hex 24)
+          curl -sf -X PUT -H "Authorization: Bearer $CF_TOKEN" --data "$nonce" "$KV/values/bridge_nonce:email_domain?expiration_ttl=900" >/dev/null || { say "- ✗ Кодът за достъп не е записан в KV"; exit 1; }
+          trap 'curl -s -X DELETE -H "Authorization: Bearer $CF_TOKEN" "$KV/values/bridge_nonce:email_domain" >/dev/null' EXIT
+          call() { curl -sS -X POST "$WORKER/api/system/email-domain" -H "X-Bridge-Nonce: $nonce" -H 'Content-Type: application/json' --data "{\"action\":\"$1\"}"; }
+          setup=$(call setup)
+          if [ -z "$(echo "$setup" | jq -r '.records // empty')" ]; then
+            say "- ✗ Worker-ът: $(echo "$setup" | jq -r '.error // .')"; say "  (ако пише forbidden/404 — новата версия на worker-а още не е публикувана)"; exit 1
+          fi
+          say "- Resend: домейнът е регистриран (състояние: $(echo "$setup" | jq -r .status))"
+          zid=$(api GET "/zones?name=$DOMAIN&account.id=$CF_ACCOUNT" | jq -r '.result[0].id // empty')
+          [ -n "$zid" ] || { say "- ✗ Зоната $DOMAIN не е намерена"; exit 1; }
+          add() {  # type name content [priority]
+            local type=$1 name=$2 content=$3 prio=${4:-}
+            have=$(api GET "/zones/$zid/dns_records?type=$type&name=$name" | jq -r --arg c "$content" '[.result[]? | select((.content|gsub("\"";""))==($c|gsub("\"";"")))] | length')
+            if [ "${have:-0}" -gt 0 ]; then say "- ✓ $type $name (вече има)"; return; fi
+            body=$(jq -n --arg t "$type" --arg n "$name" --arg c "$content" --arg p "$prio" '{type:$t,name:$n,content:$c,ttl:1,proxied:false} + (if $p != "" then {priority:($p|tonumber)} else {} end)')
+            res=$(api POST "/zones/$zid/dns_records" "$body")
+            if [ "$(echo "$res" | jq -r .success)" = "true" ]; then say "- ✓ $type $name добавен"; else say "- ✗ $type $name: $(echo "$res" | jq -r '[.errors[]?.message]|join("; ")')"; fi
+          }
+          echo "$setup" | jq -c '.records[]' | while read -r r; do
+            t=$(echo "$r" | jq -r .type); n=$(echo "$r" | jq -r .name); v=$(echo "$r" | jq -r .value); p=$(echo "$r" | jq -r '.priority // empty')
+            case "$n" in ""|"@") n="$DOMAIN";; *".$DOMAIN"|"$DOMAIN") ;; *) n="$n.$DOMAIN";; esac
+            add "$t" "$n" "$v" "$p"
+          done
+          # DMARC (наблюдение, без отказ) — както при biocode.online.
+          dm=$(api GET "/zones/$zid/dns_records?type=TXT&name=_dmarc.$DOMAIN" | jq -r '.result | length')
+          [ "${dm:-0}" -gt 0 ] && say "- ✓ DMARC (вече има)" || add TXT "_dmarc.$DOMAIN" "v=DMARC1; p=none;"
+          # Потвърждение: DNS се разпространява за минути.
+          for i in $(seq 1 12); do
+            sleep 30
+            st=$(call verify | jq -r '.status // "?"')
+            say "- проверка $i: $st"
+            [ "$st" = "verified" ] && { say "- ✓ Потвърдено — писмата вече излизат от info@$DOMAIN"; exit 0; }
+          done
+          say "- … Още не е потвърдено (DNS може да отнеме до час) — следващото публикуване на worker-а или ръчно пускане проверява пак."
