@@ -79938,8 +79938,10 @@ var RATE_LIMIT = {
   // studio platform: the admin's 5-digit code
   HANDOFF: { maxRequests: 10, windowSec: 600 },
   // модул → Eatologix: нова пратка
-  HANDOFF_READ: { maxRequests: 30, windowSec: 600 }
+  HANDOFF_READ: { maxRequests: 30, windowSec: 600 },
   // преглед и прибиране на пратка
+  SESSION_MOVE: { maxRequests: 20, windowSec: 600 }
+  // biocode.website → eatologix.com: пренасяне на паметта на браузъра
 };
 var KV_RATE_LIMITED = /* @__PURE__ */ new Set(["GENERATE_PLAN", "FOOD_ANALYSIS", "SOCIAL_AUTH", "FORGOT_PASSWORD", "STUDIO_VERIFY", "STUDIO_LOGIN"]);
 var memoryRateCounters = /* @__PURE__ */ new Map();
@@ -90668,6 +90670,47 @@ async function handleHandoffCreate(request, env) {
     return jsonResponse2({ error: "\u041D\u0435 \u0443\u0441\u043F\u044F\u0445\u043C\u0435 \u0434\u0430 \u043F\u043E\u0434\u0433\u043E\u0442\u0432\u0438\u043C \u043F\u0440\u0435\u0445\u0432\u044A\u0440\u043B\u044F\u043D\u0435\u0442\u043E." }, 500);
   }
 }
+var SESSION_MOVE_PREFIX = "session_move:";
+var SESSION_MOVE_TTL_SEC = 600;
+var SESSION_MOVE_MAX_BYTES = 4 * 1024 * 1024;
+var SESSION_MOVE_FROM = /^https:\/\/(www\.)?biocode\.website$/i;
+async function handleSessionMoveCreate(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    if (!SESSION_MOVE_FROM.test(request.headers.get("Origin") || "")) return jsonResponse2({ error: "forbidden" }, 403);
+    const text2 = await request.text();
+    if (text2.length > SESSION_MOVE_MAX_BYTES) return jsonResponse2({ error: "too_large" }, 413);
+    let body;
+    try {
+      body = JSON.parse(text2);
+    } catch (_) {
+      return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u0435\u043D JSON" }, 400);
+    }
+    const data = body?.data && typeof body.data === "object" && !Array.isArray(body.data) ? body.data : null;
+    const entries = data ? Object.entries(data).filter(([k, v]) => typeof k === "string" && k.length <= 200 && typeof v === "string") : [];
+    if (!entries.length) return jsonResponse2({ error: "empty" }, 400);
+    const token = newHandoffToken();
+    await kvPutJSON(env, SESSION_MOVE_PREFIX + token, { data: Object.fromEntries(entries), at: (/* @__PURE__ */ new Date()).toISOString() }, SESSION_MOVE_TTL_SEC);
+    return jsonResponse2({ success: true, token });
+  } catch (error) {
+    console.error("session move create failed:", error);
+    return jsonResponse2({ error: "failed" }, 500);
+  }
+}
+async function handleSessionMoveClaim(request, env) {
+  try {
+    if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
+    const { token } = await request.json();
+    if (!/^[A-Za-z0-9_-]{20,64}$/.test(String(token || ""))) return jsonResponse2({ error: "bad_token" }, 400);
+    const key = SESSION_MOVE_PREFIX + token;
+    const rec = await kvGetJSON(env, key);
+    if (!rec?.data) return jsonResponse2({ error: "expired" }, 404);
+    await env.page_content.delete(key);
+    return jsonResponse2({ success: true, data: rec.data });
+  } catch (error) {
+    return jsonResponse2({ error: "\u041D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0430 \u0437\u0430\u044F\u0432\u043A\u0430" }, 400);
+  }
+}
 async function handleHandoffPeek(request, env) {
   try {
     const { token } = await request.json();
@@ -93188,6 +93231,14 @@ var worker_entry_default = {
         return await gatedRun(request, env, "docs", () => handleLabExtract(request, env));
       } else if (url.pathname === "/api/admin/handoff-stats" && request.method === "GET") {
         return await handleAdminHandoffStats(request, env);
+      } else if (url.pathname === "/api/session/move" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "SESSION_MOVE");
+        if (rlErr) return rlErr;
+        return await handleSessionMoveCreate(request, env);
+      } else if (url.pathname === "/api/session/move/claim" && request.method === "POST") {
+        const rlErr = await checkRateLimit(env, request, "SESSION_MOVE");
+        if (rlErr) return rlErr;
+        return await handleSessionMoveClaim(request, env);
       } else if (url.pathname === "/api/handoff" && request.method === "POST") {
         const rlErr = await checkRateLimit(env, request, "HANDOFF");
         if (rlErr) return rlErr;

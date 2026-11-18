@@ -25,14 +25,80 @@
 // Публичният адрес на Eatologix е eatologix.com (EmoEat — emoeat.app). biocode.website е само
 // източникът на GitHub Pages: отворена там страница на приложението отива на новия адрес
 // (същият път и параметри). Другите проекти и админът остават. Само в горния прозорец.
+//
+// Браузърът пази паметта (профил, план, отметки, резултати от EmoEat) по домейн, затова при
+// препращането тя се пренася еднократно: качва се за 10 минути под случаен ключ (в хеша на
+// адреса — не стига до сървърите) и новият домейн я прибира, преди приложението да тръгне.
+// На новия домейн, който вече има профил, нищо не се пипа.
 (function () {
+    var API = 'https://aidiet.radilov-k.workers.dev/api/session/move';
+    var SKIP = /^(firebase:|ex_i18n_|uiImages:|np_enrichment_cache$|np_links_cache$|np_apk_latest$|np_access$|np_moved_at$)/;
+    var MOVED_KEY = 'np_moved_at';
+    function ls() { try { return window.localStorage; } catch (_) { return null; } }
+    function hold() {
+        try { window.stop(); } catch (_) {}
+        try { document.documentElement.style.visibility = 'hidden'; } catch (_) {}
+    }
+    function post(path, body, ms) {
+        var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+        var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, ms) : null;
+        return fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined })
+            .then(function (r) { return r.json(); })
+            .finally(function () { if (timer) clearTimeout(timer); });
+    }
     try {
-        var h = location.hostname.toLowerCase();
-        if ((h !== 'biocode.website' && h !== 'www.biocode.website') || window.top !== window) return;
+        if (window.top !== window) return;
+        var h = location.hostname.toLowerCase().replace(/^www\./, '');
+        var store = ls();
+
+        // ── Новият домейн: прибиране ────────────────────────────────────
+        var m = /[#&]np_move=([A-Za-z0-9_-]{20,64})/.exec(location.hash);
+        if (m && (h === 'eatologix.com' || h === 'emoeat.app')) {
+            var orig = /[#&]np_hash=([^&]*)/.exec(location.hash);
+            var clean = location.pathname + location.search + (orig ? '#' + decodeURIComponent(orig[1]) : '');
+            hold();
+            post('/claim', { token: m[1] }, 6000).then(function (d) {
+                // Друг профил тук — нищо не се пипа; същият или никакъв — само липсващото.
+                var here = store && store.getItem('userId');
+                if (!store || !d || !d.data || (here && here !== d.data.userId)) return;
+                Object.keys(d.data).forEach(function (k) {
+                    if (!SKIP.test(k) && store.getItem(k) == null) { try { store.setItem(k, d.data[k]); } catch (_) {} }
+                });
+            }).catch(function () {}).then(function () {
+                // Само хешът е различен — replace не презарежда; адресът се чисти и страницата тръгва наново.
+                try { history.replaceState(null, '', clean); } catch (_) {}
+                location.reload();
+            });
+            return;
+        }
+
+        // ── Старият домейн: препращане (с паметта, ако има профил) ──────
+        if (h !== 'biocode.website') return;
         var p = location.pathname;
         if (/^\/(xbody|xb-studio|xems-|studio|acuity\/|fitness\/|kids|pep|reta|aix|lqto|vaprosnik|dopamine|health\.html|admin|notifications-test|pwa-test|design_presentation|samples\/|clients\/|docs\/)/i.test(p)) return;
-        var host = /^\/emoeat[^/]*\.html$/i.test(p) ? 'https://emoeat.app' : 'https://eatologix.com';
-        location.replace(host + p + location.search + location.hash);
+        var target = (/^\/emoeat[^/]*\.html$/i.test(p) ? 'https://emoeat.app' : 'https://eatologix.com') + p + location.search;
+        var go = function (token) {
+            var hash = location.hash ? location.hash.slice(1) : '';
+            location.replace(target + (token ? '#np_move=' + token + (hash ? '&np_hash=' + encodeURIComponent(hash) : '') : (hash ? '#' + hash : '')));
+        };
+        var moved = store ? Number(store.getItem(MOVED_KEY) || 0) : 0;
+        var hasProfile = store && (store.getItem('userId') || store.getItem('dietPlan') || store.getItem('emoeat_completed'));
+        // Веднъж стига: по-късните отваряния на стария адрес само препращат.
+        if (!hasProfile || Date.now() - moved < 30 * 86400000) { go(''); return; }
+        hold();
+        var data = {};
+        var size = 0;
+        for (var i = 0; i < store.length; i++) {
+            var k = store.key(i);
+            var v = k ? store.getItem(k) : null;
+            if (!k || v == null || SKIP.test(k) || v.length > 1500000 || size + v.length > 3500000) continue;
+            data[k] = v;
+            size += v.length + k.length;
+        }
+        post('', { data: data }, 6000).then(function (d) {
+            if (d && d.token) { try { store.setItem(MOVED_KEY, String(Date.now())); } catch (_) {} }
+            go(d && d.token);
+        }).catch(function () { go(''); });
     } catch (_) {}
 })();
 /* web-only:end */

@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <script src="./i18n.js?v=20261118a"></script>
+    <script src="./i18n.js?v=20261118b"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Твоят комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти с AI анализ.">
     <meta name="color-scheme" content="light dark">
@@ -2556,7 +2556,6 @@
         .dc-cal-num small { font-size: 0.8125rem; font-weight: 600; opacity: 0.9; }
         .dc-cal-note { font-size: 0.8125rem; font-weight: 600; }
         .dc-cal-info { background: none; border: 0; min-width: 44px; min-height: 44px; margin: -14px -12px -14px 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: inherit; opacity: .8; cursor: pointer; font-size: 1rem; line-height: 1; -webkit-tap-highlight-color: transparent; }
-        .dc-cal-bonus { font-size: 0.75rem; font-weight: 600; opacity: 0.85; margin-top: 2px; }
         .dc-cal-track { position: relative; height: 6px; margin-top: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.16); overflow: hidden; }
         .dc-cal-zone { position: absolute; top: 0; bottom: 0; background: rgba(255, 255, 255, 0.32); }
         .dc-cal-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: #ffffff; transition: width var(--ds-motion-expressive) var(--ds-ease-emphasis); }
@@ -10580,14 +10579,10 @@
                 var fillPct = Math.min(100, m.eaten / scaleMax * 100);
                 var over = m.eaten > m.plan * 1.1;
                 var inZone = m.eaten >= m.plan * 0.9 && !over;
-                var calNote = m.eaten === 0 ? 'Все още нищо отбелязано'
-                    : over ? 'малко над плана'
-                    : inZone ? 'в целевата зона'
-                    : 'още има място до плана';
+                // Само „Калории“ — състоянието е в цвета на лентата, обяснението — в (i).
                 calHtml = '<div class="dc-cal' + (over ? ' is-over' : inZone ? ' is-zone' : '') + '">' +
-                    '<div class="dc-cal-row"><span class="dc-cal-note">' + calNote + '</span>' +
-                    '<button type="button" class="dc-cal-info" aria-label="Числата за деня"><i class="fas fa-circle-info" aria-hidden="true"></i></button></div>' +
-                    (m.extraBurn > 0 ? '<div class="dc-cal-bonus">Движиш се повече от обичайното — реалният дефицит за деня е по-голям</div>' : '') +
+                    '<div class="dc-cal-row"><span class="dc-cal-note">Калории</span>' +
+                    '<button type="button" class="dc-cal-info" aria-label="Калориите за деня"><i class="fas fa-circle-info" aria-hidden="true"></i></button></div>' +
                     '<div class="dc-cal-track" aria-hidden="true"><span class="dc-cal-zone" style="left:' + (0.9 / 1.3 * 100).toFixed(1) + '%;width:' + (0.2 / 1.3 * 100).toFixed(1) + '%"></span>' +
                     '<span class="dc-cal-fill" style="width:' + fillPct.toFixed(1) + '%"></span></div></div>';
             }
@@ -10615,11 +10610,16 @@
             var calInfoBtn = card.querySelector('.dc-cal-info');
             if (calInfoBtn) calInfoBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                var t = 'Изядено: ' + m.eaten + ' kcal от ' + m.plan + ' kcal по плана.';
-                if (m.plan - m.eaten > 0 && m.eaten > 0) t += '\nДо плана остават ' + (m.plan - m.eaten) + ' kcal.';
-                else if (m.eaten > m.plan) t += '\nНад плана: ' + (m.eaten - m.plan) + ' kcal.';
-                if (m.extraBurn > 0) t += '\nРазходът е бил по-голям с ~' + m.extraBurn + ' kcal — реалният дефицит за деня е по-голям.';
-                openModal('Числата за деня', t, '', null, null, null, null);
+                var over = m.eaten > m.plan * 1.1;
+                var inZone = m.eaten >= m.plan * 0.9 && !over;
+                var t = 'Лентата показва колко от калориите за деня са изядени по отметките на храненията. Светлата ивица е целевата зона — около плана (±10%).';
+                t += '\n\nИзядено: ' + m.eaten + ' kcal от ' + m.plan + ' kcal по плана.';
+                if (m.eaten === 0) t += '\nВсе още нищо не е отбелязано.';
+                else if (over) t += '\nНад плана с ' + (m.eaten - m.plan) + ' kcal.';
+                else if (inZone) t += '\nВ целевата зона.';
+                else t += '\nДо плана остават ' + (m.plan - m.eaten) + ' kcal.';
+                if (m.extraBurn > 0) t += '\n\nДнес се движиш повече от обичайното — разходът е по-голям с ~' + m.extraBurn + ' kcal, затова реалният дефицит за деня е по-голям.';
+                openModal('Калории', t, '', null, null, null, null);
             });
 
             // Звездите не се празнуват по време на деня — само при затварянето му (showDayEndModal).
@@ -11425,8 +11425,8 @@
             };
         }
 
-        // Сънят от гривна/телефон (Health Connect): ясен отговор не се пита.
-        // 7+ ч — добре, под 6 ч — не; между тях (неясно) — въпросът остава.
+        // Сънят от гривна/телефон (Health Connect или облачна връзка): с данни въпросът не се задава.
+        // 7+ ч — добър, 6–7 ч — среден (за оценката — спал), под 6 ч — лош.
         var SLEEP_GOOD_H = 7, SLEEP_SHORT_H = 6;
         function healthApi() {
             try { return window.NutriPlanHealth || (window.top && window.top.NutriPlanHealth) || null; } catch (_) { return null; }
@@ -11435,9 +11435,9 @@
             var H = healthApi();
             var h = H && typeof H.sleepFor === 'function' ? H.sleepFor(recordKey) : null;
             if (!(h > 0)) return null;
-            if (h >= SLEEP_GOOD_H) return { sleptWell: true, hours: h };
-            if (h < SLEEP_SHORT_H) return { sleptWell: false, hours: h };
-            return null;
+            if (h >= SLEEP_GOOD_H) return { sleptWell: true, level: 'good', hours: h };
+            if (h < SLEEP_SHORT_H) return { sleptWell: false, level: 'bad', hours: h };
+            return { sleptWell: true, level: 'mid', hours: h };
         }
 
         function showMorningQuestion(force, recordKey, doneCb) {
@@ -11456,7 +11456,7 @@
                 }
                 if (dev) {
                     var r0 = getRecord(recordKey);
-                    r0.morningCheck = { sleptWell: dev.sleptWell, hours: dev.hours, source: 'device', ts: new Date().toISOString() };
+                    r0.morningCheck = { sleptWell: dev.sleptWell, level: dev.level, hours: dev.hours, source: 'device', ts: new Date().toISOString() };
                     saveRecord(recordKey, r0);
                     recalcAndShowScore(recordKey);
                     gameNotifyCancel('morning_check', recordKey);
