@@ -208,6 +208,24 @@ export function crossCheck(data, derived, resolutions = {}) {
     questions.push({ id: 'steps_source', source: 'device', topic: 'Крачки', text: `Телефонът и гривната/часовникът отчитат различни крачки в едни и същи дни — ${more} показва около ${Math.round(((act.ratio > 1 ? act.ratio : 1 / act.ratio) - 1) * 100)}% повече. Кое носите по-постоянно през деня?`, options: [{ value: 'device', label: 'Гривната/часовника' }, { value: 'phone', label: 'Телефона (в джоба)' }] });
   }
 
+  // ── 5. Рязка промяна в движението: трайна ли е? ─────────────────────
+  // Последната седмица се различава рязко от предишните три (enrichment.js → stepsActivity).
+  // До отговора разходът следва медианата за 4 седмици (една седмица почти не я мести);
+  // „трайно“ → новото ниво важи от следващия преглед, „временно“ → тези дни не местят приема.
+  const shift = act?.shift;
+  if (shift && !shift.answer) {
+    // Пръв в опашката: зависи от последната седмица и мести калориите — остарява бързо.
+    const fmt = (n) => (Math.round(n / 100) * 100).toLocaleString('bg-BG');
+    const up = shift.dir === 'up';
+    questions.unshift({
+      id: `activity_shift:${shift.dir}`, source: 'device', topic: 'Активност',
+      text: `Последната седмица се движиш ${up ? 'много повече' : 'много по-малко'} от обичайното — около ${fmt(shift.recent)} крачки на ден при ${fmt(shift.prior)} преди. Това ли е новото ти обичайно ниво?`,
+      options: up
+        ? [{ value: 'lasting', label: 'Да, вече се движа така' }, { value: 'temporary', label: 'Не, временно е (отпуск, пътуване, поход)' }]
+        : [{ value: 'lasting', label: 'Да, сега се движа по-малко' }, { value: 'temporary', label: 'Не, временно е (болест, отпуск, натоварен период)' }],
+    });
+  }
+
   const confirmed = hypotheses.filter(h => h.status === 'confirmed');
   if (confirmed.some(h => h.blockedBy.length)) {
     cautions.push(`Потвърдено от IrisMap и Eatologix, но не е приложено заради медицинско правило: ${confirmed.filter(h => h.blockedBy.length).map(h => `${h.label} (${h.blockedBy.join(', ')})`).join('; ')}.`);

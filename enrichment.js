@@ -212,8 +212,26 @@ const median = (xs) => {
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 };
 
+/** Обичайните крачки — от последните 4 седмици (медиана: една необичайна седмица не мести разхода). */
+const STEPS_WINDOW_DAYS = 28;
+/** Рязка промяна: последните 7 дни срещу предишните 3 седмици, с 2000+ крачки и поне 30%. */
+const SHIFT_RECENT_DAYS = 7;
+const SHIFT_MIN_STEPS = 2000;
+const SHIFT_MIN_SHARE = 0.3;
+/** Отговорът „трайно / временно“ важи толкова дни; после медианата вече е стигнала новото ниво. */
+const SHIFT_ANSWER_DAYS = 21;
+
+/** Последният отговор на въпроса за рязката промяна в тази посока, ако е от последните 3 седмици. */
+function shiftAnswerOf(facts, dir, now) {
+  const from = now.getTime() - SHIFT_ANSWER_DAYS * DAY_MS;
+  const last = (facts || [])
+    .filter(f => f.kind === 'resolution' && f.key === `activity_shift:${dir}` && Date.parse(f.at) >= from && Date.parse(f.at) <= now.getTime())
+    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0];
+  return last ? { value: last.value, at: Date.parse(last.at) } : null;
+}
+
 /**
- * Обичайните крачки за последните 14 дни — от един източник, без дните с тренировка.
+ * Обичайните крачки за последните 4 седмици — от един източник, без дните с тренировка.
  *
  * Телефонът и гривната мерят различно (гривната брои и движения на ръката,
  * телефонът — само докато е в джоба), затова поредицата не се смесва: един
@@ -224,10 +242,17 @@ const median = (xs) => {
  * устройство) не се броят: тренировката влиза в енергията отделно, по дните
  * спорт — иначе бягането се брои два пъти. Ако дните без тренировка са под 4
  * (тренира почти всеки ден), се взимат всички.
- * @returns {{ steps: number, days: number, restDays: number, source: 'phone'|'device', overlap: number, ratio: number|null, disputed: boolean } | null}
+ *
+ * Обичайното е медианата, не средното: седмица в планината или болест не вдига
+ * и не сваля приема за следващите седмици, а трайна промяна го мести след 2–3
+ * седмици. Рязка промяна в последните 7 дни (shift) става въпрос към клиента
+ * (cross-check.js): „трайно“ → новото ниво важи веднага; „временно“ → тези дни
+ * не местят разхода (седмицата преди отговора и седмицата след него).
+ * @returns {{ steps: number, days: number, restDays: number, source: 'phone'|'device', overlap: number, ratio: number|null, disputed: boolean,
+ *   shift: null | { dir: 'up'|'down', recent: number, prior: number, answer: string|null } } | null}
  */
 export function stepsActivity(facts, now = new Date(), resolutions = {}) {
-  const from = now.getTime() - 14 * DAY_MS;
+  const from = now.getTime() - STEPS_WINDOW_DAYS * DAY_MS;
   const steps = (facts || []).filter(f => f.kind === 'steps' && f.status !== 'pending' && Date.parse(f.at) >= from);
   if (!steps.length) return null;
   const series = { phone: [], device: [] };
@@ -245,15 +270,43 @@ export function stepsActivity(facts, now = new Date(), resolutions = {}) {
     .map(f => dayOf(f.at)));
   const all = series[source];
   const rest = all.filter(p => !trained.has(p.day));
-  const use = rest.length >= 4 ? rest : all;
+  let use = rest.length >= 4 ? rest : all;
+  const values = (list) => list.map(p => p.value);
+  let typical = median(values(use));
+
+  // Рязка промяна: последната седмица срещу предишните три.
+  const cut = now.getTime() - SHIFT_RECENT_DAYS * DAY_MS;
+  const recentDays = use.filter(p => p.t >= cut);
+  const priorDays = use.filter(p => p.t < cut);
+  let shift = null;
+  if (recentDays.length >= 4 && priorDays.length >= 7) {
+    const recent = median(values(recentDays));
+    const prior = median(values(priorDays));
+    if (Math.abs(recent - prior) >= Math.max(SHIFT_MIN_STEPS, prior * SHIFT_MIN_SHARE)) {
+      const dir = /** @type {'up'|'down'} */ (recent > prior ? 'up' : 'down');
+      const answer = shiftAnswerOf(facts, dir, now);
+      shift = { dir, recent: Math.round(recent), prior: Math.round(prior), answer: answer?.value || null };
+      if (answer?.value === 'lasting') typical = recent;
+      else if (answer?.value === 'temporary') typical = prior;
+    }
+  }
+  // „Временно“ без текуща промяна (епизодът свърши): дните около отговора не местят обичайното.
+  if (!shift) {
+    const temp = ['up', 'down'].map(d => shiftAnswerOf(facts, d, now)).filter(a => a?.value === 'temporary').sort((a, b) => b.at - a.at)[0];
+    if (temp) {
+      const kept = use.filter(p => p.t < temp.at - SHIFT_RECENT_DAYS * DAY_MS || p.t > temp.at + SHIFT_RECENT_DAYS * DAY_MS);
+      if (kept.length >= 4) { use = kept; typical = median(values(kept)); }
+    }
+  }
   return {
-    steps: Math.round(use.reduce((s, p) => s + p.value, 0) / use.length),
+    steps: Math.round(typical),
     days: all.length,
     restDays: rest.length,
     source,
     overlap: ratios.length,
     ratio: ratio == null ? null : Math.round(ratio * 100) / 100,
     disputed,
+    shift,
   };
 }
 

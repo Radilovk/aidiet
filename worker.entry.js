@@ -6475,7 +6475,10 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
  * корекции (разликата между текущия прием и първоначалното предписание).
  * @returns {null | { analysis: object, before: number, after: number, reason: string }}
  */
-/** @returns {null | { analysis?: any, before: number, after: number, reason: string, deferred?: boolean }} */
+/** Намаление от преизчисляването над толкова kcal се прави на две седмици (първата — половината, поне толкова). */
+const RECAL_MAX_CUT = 250;
+
+/** @returns {null | { analysis?: any, before: number, after: number, reason: string, deferred?: boolean, staged?: boolean, target?: number }} */
 function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers) {
   if (!plan?.analysis) return null;
   const before = parseFinalCalories(plan.analysis.Final_Calories);
@@ -6513,12 +6516,36 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   if (after < before && strained && !phaseChanged) {
     return { deferred: true, before, after, reason: `Новите данни показват по-нисък разход (${before} → ${after} kcal), но при натоварване на тялото намалението се отлага за следващия преглед.` };
   }
-  probe._baseCalories = intake;
+  // Голямо намаление наведнъж (спрели тренировки, надценена активност) — на две седмици:
+  // тази седмица половината (поне RECAL_MAX_CUT kcal), остатъкът на следващия преглед (чакащата промяна остава).
+  // Основата се записва така, че натрупаните корекции да не се променят — остатъкът се
+  // намира отново от разликата между новия разход и сегашния прием. Нова фаза — без стъпки.
+  let target = after;
+  let staged = false;
+  let applied = after;
+  // Втората стъпка (първата е била до 10 дни назад) идва изцяло.
+  const secondStep = Date.now() - (Number(plan.analysis._recalStaged) || 0) < 10 * 86400000;
+  if (!phaseChanged && !secondStep && before - after > RECAL_MAX_CUT) {
+    probe.Final_Calories = before - Math.max(RECAL_MAX_CUT, Math.ceil((before - after) / 2));
+    probe.recommendedCalories = probe.Final_Calories;
+    enforceCalorieGuardrails(probe, data, tdee);
+    applied = parseFinalCalories(probe.Final_Calories) || after;
+    staged = applied > after;
+  }
+  probe._baseCalories = staged ? applied - shift : intake;
+  if (staged) probe._recalStaged = Date.now();
+  else delete probe._recalStaged;
   probe._goalDirection = direction;
   const why = phaseChanged && plan.analysis._goalDirection
     ? `нова фаза — ${goalModel.directionLabel}`
     : overstated ? 'разходът е сметнат предпазливо, докато тренировките не са потвърдени'
       : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(', ');
+  if (staged) {
+    return {
+      analysis: probe, before, after: applied, target, staged: true,
+      reason: `Приемът е преизчислен с новите данни${why ? ` (${why})` : ''}: новата цел е ${target} kcal — на две стъпки, за да е по-лесно; тази седмица ${before} → ${applied} kcal.`,
+    };
+  }
   return { analysis: probe, before, after, reason: `Приемът е преизчислен с новите данни${why ? ` (${why})` : ''}: ${before} → ${after} kcal.` };
 }
 
@@ -6595,6 +6622,13 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     const decisionPlan = recal ? { ...plan, analysis: recal.analysis } : plan;
     const decision = getWeeklyAdaptationDecision(enrichedData, decisionPlan, analytics, checkinAnswers, weeklyAdaptHistory);
     if (deferredRecal) decision.reasoning = `${decision.reasoning} ${deferredRecal.reason}`.trim();
+    // Стъпка от голямо намаление: седмичното решение не сваля още отгоре тази седмица.
+    if (recal?.staged && decision.calorieAdjust < 0) {
+      decision.calorieAdjust = 0;
+      decision.kcal = recal.after;
+      decision.changeSummary = decision.changeSummary.filter(c => !/^Калории:/.test(c));
+      decision.reasoning = `${decision.reasoning} Тази седмица приемът вече се намалява с новите данни — без допълнително намаление.`.trim();
+    }
     if (recal) {
       decision.changeSummary = [`Калориите са преизчислени с новите данни: ${recal.before} → ${recal.after} kcal`, ...decision.changeSummary].slice(0, 4);
       decision.reasoning = `${recal.reason} ${decision.reasoning}`.trim();
@@ -6707,7 +6741,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       ...(auto ? { auto: true } : {}),
     };
     await savePendingWeeklyRelease(env, userId, clientId, {
-      ...(deferredRecal ? { keepPending: true } : {}),
+      ...(deferredRecal || recal?.staged ? { keepPending: true } : {}),
       auto,
       notice,
       plan: newPlan,

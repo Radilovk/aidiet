@@ -50646,6 +50646,18 @@ function crossCheck(data, derived, resolutions = {}) {
     const more = act.ratio > 1 ? "\u0433\u0440\u0438\u0432\u043D\u0430\u0442\u0430/\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A\u044A\u0442" : "\u0442\u0435\u043B\u0435\u0444\u043E\u043D\u044A\u0442";
     questions.push({ id: "steps_source", source: "device", topic: "\u041A\u0440\u0430\u0447\u043A\u0438", text: `\u0422\u0435\u043B\u0435\u0444\u043E\u043D\u044A\u0442 \u0438 \u0433\u0440\u0438\u0432\u043D\u0430\u0442\u0430/\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A\u044A\u0442 \u043E\u0442\u0447\u0438\u0442\u0430\u0442 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0438 \u043A\u0440\u0430\u0447\u043A\u0438 \u0432 \u0435\u0434\u043D\u0438 \u0438 \u0441\u044A\u0449\u0438 \u0434\u043D\u0438 \u2014 ${more} \u043F\u043E\u043A\u0430\u0437\u0432\u0430 \u043E\u043A\u043E\u043B\u043E ${Math.round(((act.ratio > 1 ? act.ratio : 1 / act.ratio) - 1) * 100)}% \u043F\u043E\u0432\u0435\u0447\u0435. \u041A\u043E\u0435 \u043D\u043E\u0441\u0438\u0442\u0435 \u043F\u043E-\u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u043E \u043F\u0440\u0435\u0437 \u0434\u0435\u043D\u044F?`, options: [{ value: "device", label: "\u0413\u0440\u0438\u0432\u043D\u0430\u0442\u0430/\u0447\u0430\u0441\u043E\u0432\u043D\u0438\u043A\u0430" }, { value: "phone", label: "\u0422\u0435\u043B\u0435\u0444\u043E\u043D\u0430 (\u0432 \u0434\u0436\u043E\u0431\u0430)" }] });
   }
+  const shift = act?.shift;
+  if (shift && !shift.answer) {
+    const fmt7 = (n) => (Math.round(n / 100) * 100).toLocaleString("bg-BG");
+    const up = shift.dir === "up";
+    questions.unshift({
+      id: `activity_shift:${shift.dir}`,
+      source: "device",
+      topic: "\u0410\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442",
+      text: `\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0441\u0435 \u0434\u0432\u0438\u0436\u0438\u0448 ${up ? "\u043C\u043D\u043E\u0433\u043E \u043F\u043E\u0432\u0435\u0447\u0435" : "\u043C\u043D\u043E\u0433\u043E \u043F\u043E-\u043C\u0430\u043B\u043A\u043E"} \u043E\u0442 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u043E\u0442\u043E \u2014 \u043E\u043A\u043E\u043B\u043E ${fmt7(shift.recent)} \u043A\u0440\u0430\u0447\u043A\u0438 \u043D\u0430 \u0434\u0435\u043D \u043F\u0440\u0438 ${fmt7(shift.prior)} \u043F\u0440\u0435\u0434\u0438. \u0422\u043E\u0432\u0430 \u043B\u0438 \u0435 \u043D\u043E\u0432\u043E\u0442\u043E \u0442\u0438 \u043E\u0431\u0438\u0447\u0430\u0439\u043D\u043E \u043D\u0438\u0432\u043E?`,
+      options: up ? [{ value: "lasting", label: "\u0414\u0430, \u0432\u0435\u0447\u0435 \u0441\u0435 \u0434\u0432\u0438\u0436\u0430 \u0442\u0430\u043A\u0430" }, { value: "temporary", label: "\u041D\u0435, \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u0435 (\u043E\u0442\u043F\u0443\u0441\u043A, \u043F\u044A\u0442\u0443\u0432\u0430\u043D\u0435, \u043F\u043E\u0445\u043E\u0434)" }] : [{ value: "lasting", label: "\u0414\u0430, \u0441\u0435\u0433\u0430 \u0441\u0435 \u0434\u0432\u0438\u0436\u0430 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E" }, { value: "temporary", label: "\u041D\u0435, \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u0435 (\u0431\u043E\u043B\u0435\u0441\u0442, \u043E\u0442\u043F\u0443\u0441\u043A, \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0435\u043D \u043F\u0435\u0440\u0438\u043E\u0434)" }]
+    });
+  }
   const confirmed = hypotheses.filter((h) => h.status === "confirmed");
   if (confirmed.some((h) => h.blockedBy.length)) {
     cautions.push(`\u041F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u043E \u043E\u0442 IrisMap \u0438 Eatologix, \u043D\u043E \u043D\u0435 \u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u043E \u0437\u0430\u0440\u0430\u0434\u0438 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u043E: ${confirmed.filter((h) => h.blockedBy.length).map((h) => `${h.label} (${h.blockedBy.join(", ")})`).join("; ")}.`);
@@ -50878,8 +50890,18 @@ var median = (xs) => {
   const m = Math.floor(a.length / 2);
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 };
+var STEPS_WINDOW_DAYS = 28;
+var SHIFT_RECENT_DAYS = 7;
+var SHIFT_MIN_STEPS = 2e3;
+var SHIFT_MIN_SHARE = 0.3;
+var SHIFT_ANSWER_DAYS = 21;
+function shiftAnswerOf(facts2, dir, now) {
+  const from = now.getTime() - SHIFT_ANSWER_DAYS * DAY_MS3;
+  const last = (facts2 || []).filter((f) => f.kind === "resolution" && f.key === `activity_shift:${dir}` && Date.parse(f.at) >= from && Date.parse(f.at) <= now.getTime()).sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0];
+  return last ? { value: last.value, at: Date.parse(last.at) } : null;
+}
 function stepsActivity(facts2, now = /* @__PURE__ */ new Date(), resolutions = {}) {
-  const from = now.getTime() - 14 * DAY_MS3;
+  const from = now.getTime() - STEPS_WINDOW_DAYS * DAY_MS3;
   const steps = (facts2 || []).filter((f) => f.kind === "steps" && f.status !== "pending" && Date.parse(f.at) >= from);
   if (!steps.length) return null;
   const series = { phone: [], device: [] };
@@ -50895,15 +50917,46 @@ function stepsActivity(facts2, now = /* @__PURE__ */ new Date(), resolutions = {
   const trained = new Set((facts2 || []).filter((f) => f.kind === "train_check" && Number(f.value) > 0 || f.kind === "workout").map((f) => dayOf2(f.at)));
   const all = series[source];
   const rest = all.filter((p) => !trained.has(p.day));
-  const use = rest.length >= 4 ? rest : all;
+  let use = rest.length >= 4 ? rest : all;
+  const values = (list4) => list4.map((p) => p.value);
+  let typical = median(values(use));
+  const cut = now.getTime() - SHIFT_RECENT_DAYS * DAY_MS3;
+  const recentDays = use.filter((p) => p.t >= cut);
+  const priorDays = use.filter((p) => p.t < cut);
+  let shift = null;
+  if (recentDays.length >= 4 && priorDays.length >= 7) {
+    const recent2 = median(values(recentDays));
+    const prior = median(values(priorDays));
+    if (Math.abs(recent2 - prior) >= Math.max(SHIFT_MIN_STEPS, prior * SHIFT_MIN_SHARE)) {
+      const dir = (
+        /** @type {'up'|'down'} */
+        recent2 > prior ? "up" : "down"
+      );
+      const answer = shiftAnswerOf(facts2, dir, now);
+      shift = { dir, recent: Math.round(recent2), prior: Math.round(prior), answer: answer?.value || null };
+      if (answer?.value === "lasting") typical = recent2;
+      else if (answer?.value === "temporary") typical = prior;
+    }
+  }
+  if (!shift) {
+    const temp = ["up", "down"].map((d) => shiftAnswerOf(facts2, d, now)).filter((a) => a?.value === "temporary").sort((a, b) => b.at - a.at)[0];
+    if (temp) {
+      const kept = use.filter((p) => p.t < temp.at - SHIFT_RECENT_DAYS * DAY_MS3 || p.t > temp.at + SHIFT_RECENT_DAYS * DAY_MS3);
+      if (kept.length >= 4) {
+        use = kept;
+        typical = median(values(kept));
+      }
+    }
+  }
   return {
-    steps: Math.round(use.reduce((s, p) => s + p.value, 0) / use.length),
+    steps: Math.round(typical),
     days: all.length,
     restDays: rest.length,
     source,
     overlap: ratios.length,
     ratio: ratio == null ? null : Math.round(ratio * 100) / 100,
-    disputed
+    disputed,
+    shift
   };
 }
 function withoutAnsweredSteps(facts2) {
@@ -83751,6 +83804,7 @@ async function applyWeeklyReleaseIfDue(env, profile, userId) {
   }
   return updated;
 }
+var RECAL_MAX_CUT = 250;
 function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAnswers) {
   if (!plan?.analysis) return null;
   const before = parseFinalCalories(plan.analysis.Final_Calories);
@@ -83778,9 +83832,32 @@ function recalibrateWeeklyEnergy(env, enrichedData, plan, enrichment, checkinAns
   if (after < before && strained && !phaseChanged) {
     return { deferred: true, before, after, reason: `\u041D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u043F\u043E\u043A\u0430\u0437\u0432\u0430\u0442 \u043F\u043E-\u043D\u0438\u0441\u044A\u043A \u0440\u0430\u0437\u0445\u043E\u0434 (${before} \u2192 ${after} kcal), \u043D\u043E \u043F\u0440\u0438 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0432\u0430\u043D\u0435 \u043D\u0430 \u0442\u044F\u043B\u043E\u0442\u043E \u043D\u0430\u043C\u0430\u043B\u0435\u043D\u0438\u0435\u0442\u043E \u0441\u0435 \u043E\u0442\u043B\u0430\u0433\u0430 \u0437\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u043F\u0440\u0435\u0433\u043B\u0435\u0434.` };
   }
-  probe._baseCalories = intake;
+  let target = after;
+  let staged = false;
+  let applied = after;
+  const secondStep = Date.now() - (Number(plan.analysis._recalStaged) || 0) < 10 * 864e5;
+  if (!phaseChanged && !secondStep && before - after > RECAL_MAX_CUT) {
+    probe.Final_Calories = before - Math.max(RECAL_MAX_CUT, Math.ceil((before - after) / 2));
+    probe.recommendedCalories = probe.Final_Calories;
+    enforceCalorieGuardrails(probe, data, tdee);
+    applied = parseFinalCalories(probe.Final_Calories) || after;
+    staged = applied > after;
+  }
+  probe._baseCalories = staged ? applied - shift : intake;
+  if (staged) probe._recalStaged = Date.now();
+  else delete probe._recalStaged;
   probe._goalDirection = direction;
   const why = phaseChanged && plan.analysis._goalDirection ? `\u043D\u043E\u0432\u0430 \u0444\u0430\u0437\u0430 \u2014 ${goalModel.directionLabel}` : overstated ? "\u0440\u0430\u0437\u0445\u043E\u0434\u044A\u0442 \u0435 \u0441\u043C\u0435\u0442\u043D\u0430\u0442 \u043F\u0440\u0435\u0434\u043F\u0430\u0437\u043B\u0438\u0432\u043E, \u0434\u043E\u043A\u0430\u0442\u043E \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0434\u0435\u043D\u0438" : (enrichment?.lastChange?.reasons || []).slice(0, 3).join(", ");
+  if (staged) {
+    return {
+      analysis: probe,
+      before,
+      after: applied,
+      target,
+      staged: true,
+      reason: `\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438${why ? ` (${why})` : ""}: \u043D\u043E\u0432\u0430\u0442\u0430 \u0446\u0435\u043B \u0435 ${target} kcal \u2014 \u043D\u0430 \u0434\u0432\u0435 \u0441\u0442\u044A\u043F\u043A\u0438, \u0437\u0430 \u0434\u0430 \u0435 \u043F\u043E-\u043B\u0435\u0441\u043D\u043E; \u0442\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 ${before} \u2192 ${applied} kcal.`
+    };
+  }
   return { analysis: probe, before, after, reason: `\u041F\u0440\u0438\u0435\u043C\u044A\u0442 \u0435 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438${why ? ` (${why})` : ""}: ${before} \u2192 ${after} kcal.` };
 }
 async function runWeeklyAdaptation(env, payload, jobId) {
@@ -83840,6 +83917,12 @@ async function runWeeklyAdaptation(env, payload, jobId) {
     const decisionPlan = recal ? { ...plan, analysis: recal.analysis } : plan;
     const decision = getWeeklyAdaptationDecision(enrichedData, decisionPlan, analytics, checkinAnswers, weeklyAdaptHistory);
     if (deferredRecal) decision.reasoning = `${decision.reasoning} ${deferredRecal.reason}`.trim();
+    if (recal?.staged && decision.calorieAdjust < 0) {
+      decision.calorieAdjust = 0;
+      decision.kcal = recal.after;
+      decision.changeSummary = decision.changeSummary.filter((c) => !/^Калории:/.test(c));
+      decision.reasoning = `${decision.reasoning} \u0422\u0430\u0437\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043F\u0440\u0438\u0435\u043C\u044A\u0442 \u0432\u0435\u0447\u0435 \u0441\u0435 \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430 \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u2014 \u0431\u0435\u0437 \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u043E \u043D\u0430\u043C\u0430\u043B\u0435\u043D\u0438\u0435.`.trim();
+    }
     if (recal) {
       decision.changeSummary = [`\u041A\u0430\u043B\u043E\u0440\u0438\u0438\u0442\u0435 \u0441\u0430 \u043F\u0440\u0435\u0438\u0437\u0447\u0438\u0441\u043B\u0435\u043D\u0438 \u0441 \u043D\u043E\u0432\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438: ${recal.before} \u2192 ${recal.after} kcal`, ...decision.changeSummary].slice(0, 4);
       decision.reasoning = `${recal.reason} ${decision.reasoning}`.trim();
@@ -83928,7 +84011,7 @@ async function runWeeklyAdaptation(env, payload, jobId) {
       ...auto ? { auto: true } : {}
     };
     await savePendingWeeklyRelease(env, userId, clientId, {
-      ...deferredRecal ? { keepPending: true } : {},
+      ...deferredRecal || recal?.staged ? { keepPending: true } : {},
       auto,
       notice,
       plan: newPlan,

@@ -11,7 +11,7 @@
     if (global.NutriPlanQuestions) return;
 
     var SNOOZE_KEY = 'np_questions_snooze_until';
-    var SOURCE_LABEL = { airis: 'IrisMap · ирисов анализ', emoeat: 'EmoEat · емоционално хранене' };
+    var SOURCE_LABEL = { airis: 'IrisMap · ирисов анализ', emoeat: 'EmoEat · емоционално хранене', device: 'Движение · крачки' };
     var root = null;
     var queue = [];
     var lastFocus = null;
