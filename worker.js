@@ -81956,7 +81956,7 @@ var DEFAULT_EMAIL_TEMPLATE = {
   buttonText: "\u0412\u0438\u0436 \u043C\u043E\u044F \u043F\u043B\u0430\u043D \u2192",
   contactEmail: "info@biocode.online"
 };
-var PLAN_APP_BASE_URL = "https://eatologix.com";
+var PLAN_APP_BASE_URL = "https://biocode.website";
 var EMAIL_LOGO_HTML = `<img src="${PLAN_APP_BASE_URL}/brand/eatologix-email-logo.png" width="240" height="50" alt="EATOLOGIX" style="display:block;margin:0 auto;border:0;outline:none;width:240px;height:auto;">`;
 var PLAN_CLAIM_TTL_SEC = 72 * 60 * 60;
 var DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE = {
