@@ -2,7 +2,8 @@
 
 Едно репо, няколко проекта, общ плосък корен. GitHub Pages сервира корена като biocode.website — това е само
 източникът; **публичният адрес на Eatologix е eatologix.com** (EmoEat — emoeat.app), през worker-а (`app-domain.js`).
-В страниците, писмата, sitemap и canonical се пише eatologix.com, не biocode.website. **Не местим страници** — адресите се чупят.
+В страниците, sitemap и canonical се пише eatologix.com, не biocode.website. Изключение — писмата към клиенти:
+подател `info@biocode.online` и връзки от biocode.website (установена репутация, да не падат в спам; `PLAN_APP_BASE_URL`). **Не местим страници** — адресите се чупят.
 Правила за работа: `.cursorrules` и `PROJECT_NOTES.md` (промптове само в `KV/prompts/`).
 
 ## Eatologix (PWA + Android APK, `com.biocode.nutriplan`)

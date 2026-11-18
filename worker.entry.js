@@ -4091,7 +4091,11 @@ const DEFAULT_EMAIL_TEMPLATE = {
   contactEmail: 'info@biocode.online'
 };
 
-const PLAN_APP_BASE_URL = 'https://eatologix.com';
+// Писмата към клиентите — както при NutriPlan, за да не падат в спам: подател info@biocode.online
+// (Resend, DKIM/SPF/DMARC) и връзки/лого от установения домейн. eatologix.com е нов (без репутация при
+// пощенските филтри); страниците на biocode.website сами препращат към eatologix.com (i18n.js).
+// Смяна към eatologix.com — заедно с подателя, след като домейнът е потвърден в Resend и има история.
+const PLAN_APP_BASE_URL = 'https://biocode.website';
 // Логото в имейлите: PNG (пощенските програми не показват SVG), от scripts/build-brand.mjs.
 const EMAIL_LOGO_HTML = `<img src="${PLAN_APP_BASE_URL}/brand/eatologix-email-logo.png" width="240" height="50" alt="EATOLOGIX" style="display:block;margin:0 auto;border:0;outline:none;width:240px;height:auto;">`;
 const PLAN_CLAIM_TTL_SEC = 72 * 60 * 60;
