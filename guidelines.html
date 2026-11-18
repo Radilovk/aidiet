@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <script src="./i18n.js?v=20261114a"></script>
+    <script src="./i18n.js?v=20261118a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Твоите хранителни насоки и макроелементи в Eatologix.">
     <meta name="color-scheme" content="light dark">
@@ -1215,48 +1215,6 @@
         <!-- UI Banner Zone (shown only when image is configured in admin) -->
         <div id="guidelinesBanner" style="display:none; position:relative; overflow:hidden; border-radius:20px; margin-bottom:20px; min-height:180px; background:transparent;"></div>
 
-        <!-- MACROS VISUALIZATION CONTAINER (on top) -->
-        <div id="macrosVizContainer" class="macros-viz-container" style="display: none;">
-            <div class="macros-viz-header">
-                <div class="macros-viz-title">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Твоята Хранителна Цел</span>
-                </div>
-            </div>
-
-            <div class="calories-display">
-                <div class="calories-label">Дневни Калории</div>
-                <div class="calories-value" id="targetCalories">2000</div>
-                <div class="calories-unit">kcal</div>
-            </div>
-
-            <div class="macros-grid">
-                <div class="macro-card protein">
-                    <div class="macro-icon">🥩</div>
-                    <div class="macro-label">Протеини</div>
-                    <div class="macro-value" id="targetProtein">120</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="proteinPercentage">25%</div>
-                </div>
-
-                <div class="macro-card carbs">
-                    <div class="macro-icon">🍞</div>
-                    <div class="macro-label">Въгле&shy;хидрати</div>
-                    <div class="macro-value" id="targetCarbs">250</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="carbsPercentage">50%</div>
-                </div>
-
-                <div class="macro-card fats">
-                    <div class="macro-icon">🥑</div>
-                    <div class="macro-label">Мазнини</div>
-                    <div class="macro-value" id="targetFats">55</div>
-                    <div class="macro-unit">грама</div>
-                    <div class="macro-percentage" id="fatsPercentage">25%</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Бележката от специалиста (от гласа на плана) — само когато я има -->
         <div class="specialist-card" id="specialistCard" hidden>
             <div class="specialist-card-label"><i class="fas fa-user-doctor" aria-hidden="true"></i> Бележка от специалиста</div>
@@ -1334,6 +1292,58 @@
                 </div>
                 <div class="acc-content">
                     <div class="acc-content-inner" id="hacksContent"></div>
+                </div>
+            </div>
+            <div data-guide="numbers" class="acc-item">
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-chart-pie"></i> Дневната цел в числа</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner">
+        <!-- Числата на целта — второстепенни, в сгъната секция (калориите и макросите не са начало на екрана) -->
+        <div id="macrosVizContainer" class="macros-viz-container" style="display: none;">
+            <div class="macros-viz-header">
+                <div class="macros-viz-title">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Твоята Хранителна Цел</span>
+                </div>
+            </div>
+
+            <div class="calories-display">
+                <div class="calories-label">Дневни Калории</div>
+                <div class="calories-value" id="targetCalories">2000</div>
+                <div class="calories-unit">kcal</div>
+            </div>
+
+            <div class="macros-grid">
+                <div class="macro-card protein">
+                    <div class="macro-icon">🥩</div>
+                    <div class="macro-label">Протеини</div>
+                    <div class="macro-value" id="targetProtein">120</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="proteinPercentage">25%</div>
+                </div>
+
+                <div class="macro-card carbs">
+                    <div class="macro-icon">🍞</div>
+                    <div class="macro-label">Въгле&shy;хидрати</div>
+                    <div class="macro-value" id="targetCarbs">250</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="carbsPercentage">50%</div>
+                </div>
+
+                <div class="macro-card fats">
+                    <div class="macro-icon">🥑</div>
+                    <div class="macro-label">Мазнини</div>
+                    <div class="macro-value" id="targetFats">55</div>
+                    <div class="macro-unit">грама</div>
+                    <div class="macro-percentage" id="fatsPercentage">25%</div>
+                </div>
+            </div>
+        </div>
+
+                    </div>
                 </div>
             </div>
         </div>
@@ -1529,7 +1539,9 @@
                 var order = GF.guideOrder(GF.profileOf(JSON.parse(localStorage.getItem('userData') || '{}')));
                 var parent = items[0].parentNode;
                 var anchor = items[items.length - 1].nextSibling;
-                items.sort(function (a, b) { return order.indexOf(a.dataset.guide) - order.indexOf(b.dataset.guide); })
+                // Непознатите за подредбата (напр. „Дневната цел в числа“) остават най-отдолу.
+                var rank = function (el) { var i = order.indexOf(el.dataset.guide); return i < 0 ? 999 : i; };
+                items.sort(function (a, b) { return rank(a) - rank(b); })
                     .forEach(function (el) { parent.insertBefore(el, anchor); });
             } catch (_) {}
         }

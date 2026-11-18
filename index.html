@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <script src="./i18n.js?v=20261114a"></script>
+    <script src="./i18n.js?v=20261118a"></script>
     <script src="media-slot.js?v=3" defer></script>
     <script src="wording-editor.js?v=6" defer></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -2903,9 +2903,21 @@
          *
          * Returns true if data was successfully restored from either layer.
          */
+        // Планът и профилът вече не се пазят в бисквитки (~32 KB здравни данни при всяка заявка).
+        // Старите части се четат еднократно за възстановяване и се изтриват.
+        function clearLegacyCookieChunks() {
+            try {
+                ['np_p', 'np_u'].forEach(function (prefix) {
+                    const n = parseInt(getCookie(prefix + 'n') || '0') || 0;
+                    for (let i = 0; i < Math.max(n, 12); i++) document.cookie = prefix + i + '=; Max-Age=0; path=/';
+                    document.cookie = prefix + 'n=; Max-Age=0; path=/';
+                });
+            } catch (_) {}
+        }
+
         async function restoreProfileFromCookies() {
             // Nothing to do if localStorage already has the plan
-            if (localStorage.getItem('dietPlan')) return false;
+            if (localStorage.getItem('dietPlan')) { clearLegacyCookieChunks(); return false; }
             const userId = getCookie('np_uid');
             if (!userId) return false;
 
@@ -2951,6 +2963,7 @@
                         if (userB64) {
                             localStorage.setItem('userData', await decompress(userB64));
                         }
+                        clearLegacyCookieChunks();
                         console.log('[PWA] Profile restored from cookies (layer 1)');
                         if (window.NutriPlanDiagnostics) {
                             window.NutriPlanDiagnostics.ok('index', 'restore-profile-cookies', 'layer-1');
@@ -2965,6 +2978,7 @@
                 }
             }
 
+            clearLegacyCookieChunks();
             // --- Layer 2: backend API fallback ---
             try {
                 let restoreEmail = '';

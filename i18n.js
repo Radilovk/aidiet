@@ -21,6 +21,20 @@
  *      Елементи <select data-lang-picker> (или data-lang-picker="short") стават избор на език.
  *      data-i18n-skip — поддървото не се превежда (имена, въведен текст и т.н.).
  */
+// Публичният адрес на Eatologix е eatologix.com (EmoEat — emoeat.app). biocode.website е само
+// източникът на GitHub Pages: отворена там страница на приложението отива на новия адрес
+// (същият път и параметри). Другите проекти и админът остават. Само в горния прозорец.
+(function () {
+    try {
+        var h = location.hostname.toLowerCase();
+        if ((h !== 'biocode.website' && h !== 'www.biocode.website') || window.top !== window) return;
+        var p = location.pathname;
+        if (/^\/(xbody|xb-studio|xems-|studio|acuity\/|fitness\/|kids|pep|reta|aix|lqto|vaprosnik|dopamine|health\.html|admin|notifications-test|pwa-test|design_presentation|samples\/|clients\/|docs\/)/i.test(p)) return;
+        var host = /^\/emoeat[^/]*\.html$/i.test(p) ? 'https://emoeat.app' : 'https://eatologix.com';
+        location.replace(host + p + location.search + location.hash);
+    } catch (_) {}
+})();
+
 (function () {
     'use strict';
     if (window.EatologixI18n) return;

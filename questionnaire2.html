@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <script src="./i18n.js?v=20261114a"></script>
+    <script src="./i18n.js?v=20261118a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Въпросник 2.0 - Попълни детайлен въпросник за персонален здравен план. Информацията ще бъде обработена от нашия екип.">
     <meta name="color-scheme" content="light dark">
@@ -5105,12 +5105,8 @@
         // ── End UI Zone Images ─────────────────────────────────────────────────────
 
         /**
-         * Save plan + userData to cookies so the PWA can restore the profile
-         * without any backend request (cookies are shared between iOS Safari
-         * and the installed PWA, unlike localStorage).
-         *
-         * Uses the CompressionStream API (iOS 16.4+) to keep cookie count low.
-         * Falls back silently on older browsers.
+         * Записва профила на сървъра и np_uid в бисквитка — по нея инсталираното PWA (на iOS
+         * бисквитките са общи със Safari, localStorage не е) намира профила на сървъра.
          */
         async function saveProfileToCookies(userId, plan, userData, planSource, idToken, clientId) {
             const COOKIE_OPTS = `;path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax;Secure`;
@@ -5126,45 +5122,8 @@
                 body: JSON.stringify({ userId, plan, userData, planSource: planSource || '', ...(idToken ? { idToken } : {}), ...(clientId ? { clientId } : {}) })
             }).catch(e => console.warn('[PWA] Backend profile save failed:', e));
 
-            if (typeof CompressionStream === 'undefined') return;
-            try {
-                const CHUNK = 3800;
-
-                async function compress(str) {
-                    const bytes = new TextEncoder().encode(str);
-                    const cs = new CompressionStream('deflate-raw');
-                    const w = cs.writable.getWriter();
-                    w.write(bytes); w.close();
-                    const parts = [];
-                    const r = cs.readable.getReader();
-                    for (;;) {
-                        const { done, value } = await r.read();
-                        if (done) break;
-                        if (value) parts.push(value);
-                    }
-                    const out = new Uint8Array(parts.reduce((s, c) => s + c.length, 0));
-                    let off = 0;
-                    for (const p of parts) { out.set(p, off); off += p.length; }
-                    let b = '';
-                    for (let i = 0; i < out.length; i += 8192) {
-                        b += String.fromCharCode(...out.subarray(i, i + 8192));
-                    }
-                    return btoa(b);
-                }
-
-                function setChunks(prefix, b64) {
-                    const n = Math.ceil(b64.length / CHUNK);
-                    for (let i = 0; i < n; i++) {
-                        document.cookie = `${prefix}${i}=${b64.slice(i * CHUNK, (i + 1) * CHUNK)}${COOKIE_OPTS}`;
-                    }
-                    document.cookie = `${prefix}n=${n}${COOKIE_OPTS}`;
-                }
-
-                setChunks('np_p', await compress(JSON.stringify(plan)));
-                setChunks('np_u', await compress(JSON.stringify(userData)));
-            } catch (e) {
-                console.warn('[PWA] Cookie profile save failed:', e);
-            }
+            // Планът и профилът не се пазят в бисквитки: те тръгват с всяка заявка към сайта (~32 KB
+            // здравни данни). Възстановяването е през сървъра по np_uid (index.html, слой 2).
         }
     </script>
     <script src="./native-backup.js"></script>
