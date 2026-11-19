@@ -13,6 +13,10 @@ on:
         description: 'Клон/таг в Radilovk/Game'
         type: string
         default: 'main'
+      whats_new:
+        description: 'Какво е новото (вижда се в TestFlight)'
+        type: string
+        default: 'Improvements and fixes.'
       version:
         description: 'Версия (маркетингова)'
         type: string
@@ -21,11 +25,9 @@ on:
         description: 'Качи в TestFlight (иначе само проверка, че се събира)'
         type: boolean
         default: true
-  push:
-    branches: [claude/yt-kontrol-ios]
-    paths:
-      - '.github/workflows/yt-kontrol-ios.yml'
-      - 'scripts/yt-kontrol-apple.mjs'
+  # всеки месец нов build на същата версия – TestFlight build-овете изтичат след 90 дни
+  schedule:
+    - cron: '17 4 1 * *'
 
 permissions:
   contents: read
@@ -35,16 +37,17 @@ concurrency: yt-kontrol-ios
 jobs:
   ios:
     runs-on: macos-latest
-    timeout-minutes: 45
+    timeout-minutes: 80
     env:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
       APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
       APPSTORE_KEY_P8: ${{ secrets.APPSTORE_KEY_P8 }}
       BUNDLE_ID: com.biocode.ytkontrol
-      GAME_REF: ${{ inputs.game_ref || 'ccr-5a702a9a-pr94ax' }}
-      VERSION: ${{ inputs.version || '1.0.0' }}
-      UPLOAD: ${{ github.event_name == 'push' || inputs.upload }}
+      GAME_REF: ${{ inputs.game_ref || 'main' }}
+      VERSION: ${{ inputs.version || '1.0.0' }}           # пазим 1.0.0 – нова версия = ново пълно бета ревю
+      UPLOAD: ${{ github.event_name == 'schedule' || inputs.upload }}
+      WHATS_NEW: ${{ inputs.whats_new || 'Improvements and fixes.' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -144,6 +147,12 @@ jobs:
             echo "### YT Контрол е качен в App Store Connect ✓"
             echo "Версия $VERSION (build ${{ github.run_number }}). След 10–30 минути обработка се вижда в TestFlight."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Разпространение – външните групи и публичния линк
+        if: ${{ steps.upload.outcome == 'success' }}
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: node scripts/yt-kontrol-apple.mjs distribute
 
       - name: Чистене на сертификата и профила
         if: ${{ always() }}
