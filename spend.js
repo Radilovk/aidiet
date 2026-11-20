@@ -8,29 +8,24 @@
  * Таванът: KV `admin_daily_budget_usd` → променлива DAILY_AI_BUDGET_USD → 22 ($ ≈ 20 €).
  * Брояч: KV `spend:<ден>:<0-7>` — разделен на 8 ключа, защото KV приема около 1 запис в секунда
  * на ключ; при сблъсък броенето е приблизително (за предпазител е достатъчно).
- * Цените са консервативни (по-високите известни) — USD за 1M токена [вход, изход].
+ * Цените: gemini-models.js (по датата на заявката; кешираният вход — по кешираната цена).
  */
-const PRICES = {
-  'gemini-3.8-flash': [2, 10],
-  'gemini-3.6-flash': [1.5, 7.5],
-  'gemini-3.5-flash-lite': [0.3, 2.5],
-  'gemini-3.1-pro-preview': [2.5, 15],
-  'gemini-2.5-flash': [0.3, 2.5],
-};
-const DEFAULT_PRICE = [2, 10];
+import { geminiPrice } from './gemini-models.js';
+
 const SHARDS = 8;
 const TTL_SEC = 3 * 24 * 3600;
 export const BUDGET_KEY = 'admin_daily_budget_usd';
 
 const today = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
 
-/** Оценка в USD от usageMetadata на Gemini (мисленето се таксува като изход). */
-export function costUsd(model, usage) {
+/** Оценка в USD от usageMetadata на Gemini (мисленето се таксува като изход, кешираното — по-евтино). */
+export function costUsd(model, usage, now = Date.now()) {
   if (!usage) return 0;
-  const [pin, pout] = PRICES[String(model || '').replace(/^models\//, '')] || DEFAULT_PRICE;
+  const [pin, pout, pcached] = geminiPrice(model, now);
   const input = Number(usage.promptTokenCount) || 0;
+  const cached = Math.min(input, Number(usage.cachedContentTokenCount) || 0);
   const output = (Number(usage.candidatesTokenCount) || 0) + (Number(usage.thoughtsTokenCount) || 0);
-  return (input * pin + output * pout) / 1e6;
+  return ((input - cached) * pin + cached * pcached + output * pout) / 1e6;
 }
 
 let memo = { day: '', at: 0, usd: 0 };

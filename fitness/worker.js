@@ -38,7 +38,7 @@
  *   FITNESS_KV            — KV namespace (кеш на индекса, планове, rate limits)
  *   GEMINI_API_KEY        — secret, основен доставчик
  *   OPENAI_API_KEY        — secret, fallback
- *   GEMINI_MODEL          — по избор (default gemini-2.5-flash)
+ *   GEMINI_MODEL          — по избор (default gemini-3.5-flash-lite)
  *   OPENAI_MODEL          — по избор (default gpt-4o-mini)
  *   EXERCISE_DATASET_URL  — по избор, override на URL на базата
  *   MEDIA_BASE_URL        — по избор, override на CDN базата за медия
@@ -48,6 +48,7 @@
 
 import { localizeExerciseDisplayName, sanitizeBgText, sanitizePlanBulgarian } from './exercise-labels-bg.js';
 import { buildTrainingProgram, ENGINE_VERSION } from './program-engine.js';
+import { resolveGeminiModel, noThinking } from '../gemini-models.js';
 import { QUESTIONNAIRE_EQUIPMENT_MAP, EQUIPMENT_PICKER_OPTION } from './equipment-groups.js';
 import { expandApparatusIds, passesApparatusFilter } from './equipment-apparatus.js';
 import {
@@ -205,7 +206,8 @@ export {
 // Константи
 // ============================================================================
 
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+// gemini-2.5-flash се пренасочва към 3.5 Flash-Lite от 1.12.2026 (същата цена) — направо него.
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
 
 // Упражнения: bryllim/workout-guide (302 × 3 SVG кадъра) + Everkinetic стъпки — CC BY-SA 4.0,
@@ -648,20 +650,19 @@ function checkAdminSecret(request, env) {
 // ============================================================================
 
 async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true }) {
-  const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
+  const model = resolveGeminiModel(env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  // Без мислене: иначе то изяжда maxOutputTokens → отрязан JSON (Gemini 3 — ниво, 2.5 — бюджет 0).
+  const thinking = noThinking(model);
   const generationConfig = /** @type {GeminiGenerationConfig} */ ({
     temperature,
-    maxOutputTokens,
+    maxOutputTokens: maxOutputTokens + thinking.reserve,
+    thinkingConfig: thinking.thinkingConfig,
     ...(jsonMode ? {
       responseMimeType: 'application/json',
       responseSchema: PLAN_RESPONSE_SCHEMA,
     } : {}),
   });
-  // Gemini 2.5 Flash/Pro: thinking по подразбиране изяжда maxOutputTokens → отрязан JSON.
-  if (/gemini-2\.5/i.test(model)) {
-    generationConfig.thinkingConfig = { thinkingBudget: 0 };
-  }
   const body = {
     systemInstruction: { parts: [{ text: system }] },
     contents: [{ role: 'user', parts: [{ text: user }] }],
@@ -669,7 +670,7 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
   };
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
     body: JSON.stringify(body),
   });
   if (!res.ok) {

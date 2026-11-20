@@ -22,6 +22,7 @@ interface WorkerError extends Error {
 /** Gemini generationConfig */
 interface GeminiThinkingConfig {
   thinkingBudget?: number;
+  thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high';
 }
 
 interface GeminiGenerationConfig {
