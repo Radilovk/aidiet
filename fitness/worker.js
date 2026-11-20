@@ -38,7 +38,7 @@
  *   FITNESS_KV            — KV namespace (кеш на индекса, планове, rate limits)
  *   GEMINI_API_KEY        — secret, основен доставчик
  *   OPENAI_API_KEY        — secret, fallback
- *   GEMINI_MODEL          — по избор (default gemini-3.5-flash-lite)
+ *   GEMINI_MODEL          — по избор (default gemini-3.6-flash; важи и за превода/класификацията)
  *   OPENAI_MODEL          — по избор (default gpt-4o-mini)
  *   EXERCISE_DATASET_URL  — по избор, override на URL на базата
  *   MEDIA_BASE_URL        — по избор, override на CDN базата за медия
@@ -206,8 +206,10 @@ export {
 // Константи
 // ============================================================================
 
-// gemini-2.5-flash се пренасочва към 3.5 Flash-Lite от 1.12.2026 (същата цена) — направо него.
-const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
+// Планът и чатът на треньора: 3.6 Flash — програмата е сложна (схема, натоварване, безопасност),
+// а заявките са редки (GEN_DAILY_LIMIT). Преводът и класификацията на упражненията остават на
+// Flash-Lite (DEFAULT_TRANSLATE_MODEL / DEFAULT_CLASSIFY_MODEL).
+const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash';
 const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
 
 // Упражнения: bryllim/workout-guide (302 × 3 SVG кадъра) + Everkinetic стъпки — CC BY-SA 4.0,
