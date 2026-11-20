@@ -9939,10 +9939,11 @@ const AI_TASKS = {
   feedback_hints: { tier: 'lite', thinking: 'low' },
   food_choice: { tier: 'lite', thinking: 'minimal', maxTokens: 600 },
   // Съветът (алгоритъм + AI): клинична преценка — мисли повече; отговорът на възражението — по-кратко.
-  // Цената: ниско мислене; отговорът на възражението — по-евтиният модел.
+  // Цената: ниско мислене.
   goal_council: { tier: 'main', thinking: 'low', maxTokens: 700 },
   weekly_council: { tier: 'main', thinking: 'low', maxTokens: 700 },
-  council_rebuttal: { tier: 'lite', thinking: 'low', maxTokens: 500 },
+  // Отговорът на възражението е клинична преценка пред клиента — силният модел (рядка, кратка заявка).
+  council_rebuttal: { tier: 'main', thinking: 'low', maxTokens: 500 },
   health_digest: { tier: 'lite', thinking: 'minimal' },
   ai_validation: { tier: 'lite', thinking: 'low', maxTokens: 1200 },
   document_assessment: { tier: 'main', thinking: 'medium' },

@@ -26,7 +26,7 @@ id = "81fc0991b2764918b682f9ca170abd4b"
 
 # Незадължителни настройки (могат и през dashboard-а):
 # [env.production.vars]
-# GEMINI_MODEL = "gemini-3.5-flash-lite"   # по-качествено: gemini-3.6-flash (≈2.5× по-скъпо)
+# GEMINI_MODEL = "gemini-3.6-flash"   # планът и чатът; по-евтино: gemini-3.5-flash-lite
 # OPENAI_MODEL = "gpt-4o-mini"
 # GEN_DAILY_LIMIT = "3"
 # CHAT_DAILY_LIMIT = "30"
