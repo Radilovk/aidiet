@@ -3,10 +3,12 @@
  */
 import { pickInstructionsEn } from './exercise-translations.js';
 import { localizeExerciseDisplayName } from './exercise-labels-bg.js';
+import { resolveGeminiModel, noThinking } from '../gemini-models.js';
 
 export const EXERCISE_DATASET_URL = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@main/data/exercises.json';
 export const EXERCISE_TRANSLATIONS_KV_KEY = 'exercise:translations:bg';
-export const DEFAULT_TRANSLATE_MODEL = 'gemini-2.5-flash';
+// gemini-2.5-flash се пренасочва към 3.5 Flash-Lite от 1.12.2026 (същата цена) — направо него.
+export const DEFAULT_TRANSLATE_MODEL = 'gemini-3.5-flash-lite';
 export const DEFAULT_BATCH_SIZE = 50;
 /** По-малки партиди в Worker (избягва timeout / MAX_TOKENS). */
 export const WORKER_BATCH_SIZE = 15;
@@ -105,18 +107,20 @@ export async function fetchExerciseDataset(url = null) {
 }
 
 export async function callGeminiTranslate(apiKey, user, model = DEFAULT_TRANSLATE_MODEL, maxOutputTokens = 8192) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  model = resolveGeminiModel(model);
+  const thinking = noThinking(model);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: TRANSLATE_SYSTEM_PROMPT }] },
       contents: [{ role: 'user', parts: [{ text: user }] }],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens,
+        maxOutputTokens: maxOutputTokens + thinking.reserve,
         responseMimeType: 'application/json',
-        thinkingConfig: { thinkingBudget: 0 },
+        thinkingConfig: thinking.thinkingConfig,
       },
     }),
   });

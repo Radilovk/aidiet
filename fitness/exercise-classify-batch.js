@@ -14,9 +14,11 @@ import {
   clampScore,
   sanitizeFlags,
 } from './exercise-efp-rubric.js';
+import { resolveGeminiModel, noThinking } from '../gemini-models.js';
 
 export const EXERCISE_METADATA_KV_KEY = 'exercise:metadata:v1';
-export const DEFAULT_CLASSIFY_MODEL = 'gemini-2.5-flash';
+// gemini-2.5-flash се пренасочва към 3.5 Flash-Lite от 1.12.2026 (същата цена) — направо него.
+export const DEFAULT_CLASSIFY_MODEL = 'gemini-3.5-flash-lite';
 /** По 1 упражнение — пълен индивидуален преглед. */
 export const CLASSIFY_BATCH_SIZE = 1;
 export const WORKER_CLASSIFY_BATCH_SIZE = 1;
@@ -122,18 +124,20 @@ export function normalizeClassifyResult(parsed, batch) {
 }
 
 export async function callGeminiClassify(apiKey, user, model = DEFAULT_CLASSIFY_MODEL) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  model = resolveGeminiModel(model);
+  const thinking = noThinking(model);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: CLASSIFY_SYSTEM_PROMPT }] },
       contents: [{ role: 'user', parts: [{ text: user }] }],
       generationConfig: {
         temperature: 0.05,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 2048 + thinking.reserve,
         responseMimeType: 'application/json',
-        thinkingConfig: { thinkingBudget: 0 },
+        thinkingConfig: thinking.thinkingConfig,
       },
     }),
   });

@@ -142,6 +142,7 @@ import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, h
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
 import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview } from './plan-review.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, addSpend, BUDGET_KEY } from './spend.js';
+import { resolveGeminiModel } from './gemini-models.js';
 
 /** Известие до админа при 50% / 100% от дневния AI таван (push в админ панела). */
 const adminSpendNotify = (env) => async (text) => {
@@ -5481,8 +5482,8 @@ function buildClientCardFingerprint(card, updatedAt, analyticsSyncedAt) {
  * @param {string|null|undefined} modelName
  */
 function normalizeGeminiModelName(modelName) {
-  const name = String(modelName || ADMIN_ASSISTANT_DEFAULT_MODEL).trim();
-  return name.replace(/^models\//, '');
+  // Без „models/“ и със замяна на пренасочените/спрените модели (gemini-models.js).
+  return resolveGeminiModel(String(modelName || ADMIN_ASSISTANT_DEFAULT_MODEL));
 }
 
 /**
@@ -5550,10 +5551,10 @@ async function saveAssistantSession(env, session) {
 async function createGeminiCachedContent(env, modelName, cardText, systemInstruction) {
   const normalizedModel = normalizeGeminiModelName(modelName);
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/cachedContents`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
       body: JSON.stringify({
         model: `models/${normalizedModel}`,
         ttl: ADMIN_ASSISTANT_CACHE_TTL,
@@ -5583,8 +5584,8 @@ async function deleteGeminiCachedContent(env, cacheName) {
   try {
     const id = cacheName.replace('cachedContents/', '');
     await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/cachedContents/${id}?key=${env.GEMINI_API_KEY}`,
-      { method: 'DELETE' }
+      `https://generativelanguage.googleapis.com/v1beta/cachedContents/${id}`,
+      { method: 'DELETE', headers: { 'x-goog-api-key': env.GEMINI_API_KEY } }
     );
   } catch (e) {
     console.warn('[AdminAssistant] Cache delete failed:', e.message);
@@ -5962,7 +5963,8 @@ async function callGeminiAssistant(env, opts) {
       responseMimeType: 'application/json',
       responseSchema: ADMIN_ASSISTANT_RESPONSE_SCHEMA,
       temperature: 0.4,
-      thinkingConfig: { thinkingBudget: 0 },
+      // Без мислене: ниво за Gemini 3 (бюджет 0 там се отказва), бюджет 0 за 2.5.
+      thinkingConfig: geminiThinking(normalizedModel, 'minimal').thinkingConfig,
     },
   };
   if (cachedContent) {
@@ -5972,10 +5974,10 @@ async function callGeminiAssistant(env, opts) {
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${normalizedModel}:generateContent?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${normalizedModel}:generateContent`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
       body: JSON.stringify(requestBody),
     }
   );
@@ -9977,6 +9979,11 @@ const THINKING_LEVEL_BUDGET = { minimal: 0, low: 1024, medium: 4096, high: 8192 
  */
 function geminiThinking(modelName, thinking, opts = {}) {
   const pro = /pro/i.test(String(modelName || ''));
+  // Бюджет от админа при Gemini 3+: моделите там приемат ниво (thinkingLevel), затова
+  // числото става най-близкото ниво; бюджетът остава само за 2.5 и за резервния опит.
+  if (typeof thinking === 'number' && isGemini3Plus(modelName) && !opts.legacy) {
+    thinking = thinking <= 0 ? 'minimal' : thinking <= 1024 ? 'low' : thinking <= 4096 ? 'medium' : 'high';
+  }
   if (typeof thinking === 'number') {
     return { thinkingConfig: { thinkingBudget: thinking }, reserve: thinking > 0 ? thinking : 0 };
   }
@@ -9997,6 +10004,8 @@ function geminiThinking(modelName, thinking, opts = {}) {
 async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, maxTokens = null, jsonMode = false, thinkingBudget = undefined, temperature = undefined, topP = undefined, topK = undefined, responseSchema = null, systemInstruction = null) {
   // thinkingBudget: число (бюджет от админа) или ниво ('minimal'|'low'|'medium'|'high').
   // Ако API-то откаже нивото (400), втори опит със същото като бюджет.
+  // Старо име от админа (напр. gemini-2.5-flash) → наследникът му (gemini-models.js).
+  modelName = resolveGeminiModel(modelName);
   try {
     return await callGeminiOnce(false).catch((error) => {
       if (!error.thinkingLevelRejected) throw error;
@@ -10047,10 +10056,10 @@ async function callGemini(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, ma
       }
       
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
           body: JSON.stringify(requestBody)
         }
       );
@@ -10240,10 +10249,11 @@ async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelNam
 }
 
 /**
- * Gemini Vision API call (gemini-2.5-flash with inlineData)
+ * Gemini Vision API call (inlineData)
  */
 async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens, thinkingBudget = undefined) {
   // thinkingBudget: бюджет от админа или ниво от задачата (виж geminiThinking и callGemini).
+  modelName = resolveGeminiModel(modelName);
   return callOnce(false).catch((error) => {
     if (!error.thinkingLevelRejected) throw error;
     return callOnce(true);
@@ -10269,10 +10279,10 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
       };
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
           body: JSON.stringify(requestBody)
         }
       );

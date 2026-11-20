@@ -6690,6 +6690,50 @@ function buildTrainingProgram({
   };
 }
 
+// gemini-models.js
+var GEMINI_REROUTES = {
+  "gemini-2.5-flash": "gemini-3.5-flash-lite",
+  // пренасочен от 1.12.2026
+  "gemini-2.5-pro": "gemini-3.8-flash",
+  // пренасочен от 1.12.2026
+  "gemini-3.7-flash": "gemini-3.8-flash",
+  // пренасочен от 8.10.2026
+  "gemini-3.5-flash": "gemini-3.6-flash",
+  // пренасочен от 8.10.2026
+  // Спрени модели — без замяна заявката се отказва.
+  "gemini-2.0-flash": "gemini-3.5-flash-lite",
+  "gemini-2.0-flash-lite": "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite-preview": "gemini-3.5-flash-lite",
+  "gemini-3-pro-preview": "gemini-3.1-pro-preview"
+};
+function resolveGeminiModel(modelName) {
+  const name = String(modelName || "").trim().replace(/^models\//, "");
+  return GEMINI_REROUTES[name.toLowerCase()] || name;
+}
+var JAN_2027 = Date.UTC(2027, 0, 1);
+var FLASH_2026 = [0.75, 3.75, 0.075];
+var FLASH_2027 = [1.5, 7.5, 0.15];
+var PRICES = {
+  "gemini-3.5-flash-lite": [0.3, 2.5, 0.03],
+  "gemini-3.1-pro-preview": [2.5, 15, 0.25]
+  // консервативно (по-високата от известните)
+};
+var DEFAULT_PRICE = [2, 10, 0.2];
+function geminiPrice(modelName, now = Date.now()) {
+  const model = resolveGeminiModel(modelName);
+  if (model === "gemini-3.6-flash" || model === "gemini-3.8-flash") {
+    return now >= JAN_2027 ? FLASH_2027 : FLASH_2026;
+  }
+  return PRICES[model] || DEFAULT_PRICE;
+}
+function noThinking(modelName) {
+  const model = resolveGeminiModel(modelName);
+  if (/gemini-(?:[3-9]|\d{2,})(?:[.\-]|$)/i.test(model)) {
+    return { thinkingConfig: { thinkingLevel: /pro/i.test(model) ? "low" : "minimal" }, reserve: 512 };
+  }
+  return { thinkingConfig: { thinkingBudget: 0 }, reserve: 0 };
+}
+
 // fitness/plan-prompts.js
 var PLAN_SYSTEM_CORE = `\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438 S&C \u0442\u0440\u0435\u043D\u044C\u043E\u0440 \u2192 \u0441\u0435\u0434\u043C\u0438\u0447\u0435\u043D \u043F\u043B\u0430\u043D (7 \u0434\u043D\u0438) JSON.
 
@@ -6828,7 +6872,7 @@ function mergeExerciseTranslation(entry, raw, translations = {}, maxChars = 1200
 
 // fitness/exercise-translate-batch.js
 var EXERCISE_TRANSLATIONS_KV_KEY = "exercise:translations:bg";
-var DEFAULT_TRANSLATE_MODEL = "gemini-2.5-flash";
+var DEFAULT_TRANSLATE_MODEL = "gemini-3.5-flash-lite";
 var DEFAULT_BATCH_SIZE = 50;
 var WORKER_BATCH_SIZE = 15;
 var TRANSLATE_SYSTEM_PROMPT = `\u0422\u0438 \u0441\u0438 \u0435\u043A\u0441\u043F\u0435\u0440\u0442 \u043F\u043E \u0441\u043F\u043E\u0440\u0442\u043D\u0430 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0430, \u043A\u0438\u043D\u0435\u0437\u0438\u043E\u043B\u043E\u0433\u0438\u044F \u0438 \u043F\u0440\u043E\u0444\u0435\u0441\u0438\u043E\u043D\u0430\u043B\u0435\u043D \u0444\u0438\u0442\u043D\u0435\u0441 \u0442\u0440\u0435\u043D\u044C\u043E\u0440.
@@ -6912,18 +6956,20 @@ async function fetchExerciseDataset(url = null) {
   return Array.isArray(data) ? data : data.exercises || data.data || [];
 }
 async function callGeminiTranslate(apiKey, user, model = DEFAULT_TRANSLATE_MODEL, maxOutputTokens = 8192) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  model = resolveGeminiModel(model);
+  const thinking = noThinking(model);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: TRANSLATE_SYSTEM_PROMPT }] },
       contents: [{ role: "user", parts: [{ text: user }] }],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens,
+        maxOutputTokens: maxOutputTokens + thinking.reserve,
         responseMimeType: "application/json",
-        thinkingConfig: { thinkingBudget: 0 }
+        thinkingConfig: thinking.thinkingConfig
       }
     })
   });
@@ -6990,7 +7036,7 @@ function translationStats(all, existing) {
 }
 
 // fitness/exercise-classify-batch.js
-var DEFAULT_CLASSIFY_MODEL = "gemini-2.5-flash";
+var DEFAULT_CLASSIFY_MODEL = "gemini-3.5-flash-lite";
 var WORKER_CLASSIFY_BATCH_SIZE = 1;
 var CLASSIFY_SYSTEM_PROMPT = CLASSIFY_RUBRIC;
 function classifyContentHash(name, equipment, instructionsEn) {
@@ -7084,18 +7130,20 @@ function normalizeClassifyResult(parsed, batch) {
   return out;
 }
 async function callGeminiClassify(apiKey, user, model = DEFAULT_CLASSIFY_MODEL) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  model = resolveGeminiModel(model);
+  const thinking = noThinking(model);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: CLASSIFY_SYSTEM_PROMPT }] },
       contents: [{ role: "user", parts: [{ text: user }] }],
       generationConfig: {
         temperature: 0.05,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 2048 + thinking.reserve,
         responseMimeType: "application/json",
-        thinkingConfig: { thinkingBudget: 0 }
+        thinkingConfig: thinking.thinkingConfig
       }
     })
   });
@@ -9098,7 +9146,7 @@ function formatPlanHistoryEntry(entry) {
 }
 
 // fitness/worker.js
-var DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+var DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
 var DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
 var DEFAULT_MEDIA_BASE = "https://cdn.jsdelivr.net/gh/bryllim/workout-guide@aac599224bb9780305239607ef98540b7e0ce389/packages/workout-guide/assets/";
 var EXERCISE_INDEX_KV_KEY = "exidx:v4";
@@ -9412,22 +9460,21 @@ function checkAdminSecret(request, env) {
   return diff === 0;
 }
 async function callGemini(env, { system, user, temperature = 0.4, maxOutputTokens = 8192, jsonMode = true }) {
-  const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
+  const model = resolveGeminiModel(env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const thinking = noThinking(model);
   const generationConfig = (
     /** @type {GeminiGenerationConfig} */
     {
       temperature,
-      maxOutputTokens,
+      maxOutputTokens: maxOutputTokens + thinking.reserve,
+      thinkingConfig: thinking.thinkingConfig,
       ...jsonMode ? {
         responseMimeType: "application/json",
         responseSchema: PLAN_RESPONSE_SCHEMA
       } : {}
     }
   );
-  if (/gemini-2\.5/i.test(model)) {
-    generationConfig.thinkingConfig = { thinkingBudget: 0 };
-  }
   const body = {
     systemInstruction: { parts: [{ text: system }] },
     contents: [{ role: "user", parts: [{ text: user }] }],
@@ -9435,7 +9482,7 @@ async function callGemini(env, { system, user, temperature = 0.4, maxOutputToken
   };
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
     body: JSON.stringify(body)
   });
   if (!res.ok) {
@@ -51607,24 +51654,17 @@ async function useEmoeatCredit(env, holder) {
 }
 
 // spend.js
-var PRICES = {
-  "gemini-3.8-flash": [2, 10],
-  "gemini-3.6-flash": [1.5, 7.5],
-  "gemini-3.5-flash-lite": [0.3, 2.5],
-  "gemini-3.1-pro-preview": [2.5, 15],
-  "gemini-2.5-flash": [0.3, 2.5]
-};
-var DEFAULT_PRICE = [2, 10];
 var SHARDS = 8;
 var TTL_SEC = 3 * 24 * 3600;
 var BUDGET_KEY = "admin_daily_budget_usd";
 var today = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
-function costUsd(model, usage) {
+function costUsd(model, usage, now = Date.now()) {
   if (!usage) return 0;
-  const [pin, pout] = PRICES[String(model || "").replace(/^models\//, "")] || DEFAULT_PRICE;
+  const [pin, pout, pcached] = geminiPrice(model, now);
   const input = Number(usage.promptTokenCount) || 0;
+  const cached = Math.min(input, Number(usage.cachedContentTokenCount) || 0);
   const output = (Number(usage.candidatesTokenCount) || 0) + (Number(usage.thoughtsTokenCount) || 0);
-  return (input * pin + output * pout) / 1e6;
+  return ((input - cached) * pin + cached * pcached + output * pout) / 1e6;
 }
 var memo = { day: "", at: 0, usd: 0 };
 async function dailySpend(env, now = Date.now()) {
@@ -83054,8 +83094,7 @@ function buildClientCardFingerprint(card, updatedAt, analyticsSyncedAt) {
   return `${card.length}:${updatedAt || ""}:${analyticsSyncedAt || ""}`;
 }
 function normalizeGeminiModelName(modelName) {
-  const name = String(modelName || ADMIN_ASSISTANT_DEFAULT_MODEL).trim();
-  return name.replace(/^models\//, "");
+  return resolveGeminiModel(String(modelName || ADMIN_ASSISTANT_DEFAULT_MODEL));
 }
 function resolveAdminAssistantGeminiModel(config) {
   const candidates = [
@@ -83093,10 +83132,10 @@ async function saveAssistantSession(env, session) {
 async function createGeminiCachedContent(env, modelName, cardText, systemInstruction) {
   const normalizedModel = normalizeGeminiModelName(modelName);
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/cachedContents`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
       body: JSON.stringify({
         model: `models/${normalizedModel}`,
         ttl: ADMIN_ASSISTANT_CACHE_TTL,
@@ -83121,8 +83160,8 @@ async function deleteGeminiCachedContent(env, cacheName) {
   try {
     const id = cacheName.replace("cachedContents/", "");
     await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/cachedContents/${id}?key=${env.GEMINI_API_KEY}`,
-      { method: "DELETE" }
+      `https://generativelanguage.googleapis.com/v1beta/cachedContents/${id}`,
+      { method: "DELETE", headers: { "x-goog-api-key": env.GEMINI_API_KEY } }
     );
   } catch (e) {
     console.warn("[AdminAssistant] Cache delete failed:", e.message);
@@ -83428,7 +83467,8 @@ ${cardText}` }] });
       responseMimeType: "application/json",
       responseSchema: ADMIN_ASSISTANT_RESPONSE_SCHEMA,
       temperature: 0.4,
-      thinkingConfig: { thinkingBudget: 0 }
+      // Без мислене: ниво за Gemini 3 (бюджет 0 там се отказва), бюджет 0 за 2.5.
+      thinkingConfig: geminiThinking(normalizedModel, "minimal").thinkingConfig
     }
   };
   if (cachedContent) {
@@ -83437,10 +83477,10 @@ ${cardText}` }] });
     requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
   }
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${normalizedModel}:generateContent?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${normalizedModel}:generateContent`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
       body: JSON.stringify(requestBody)
     }
   );
@@ -86624,6 +86664,9 @@ var THINKING_RESERVE = { minimal: 512, low: 2048, medium: 6144, high: 12288 };
 var THINKING_LEVEL_BUDGET = { minimal: 0, low: 1024, medium: 4096, high: 8192 };
 function geminiThinking(modelName, thinking, opts = {}) {
   const pro = /pro/i.test(String(modelName || ""));
+  if (typeof thinking === "number" && isGemini3Plus(modelName) && !opts.legacy) {
+    thinking = thinking <= 0 ? "minimal" : thinking <= 1024 ? "low" : thinking <= 4096 ? "medium" : "high";
+  }
   if (typeof thinking === "number") {
     return { thinkingConfig: { thinkingBudget: thinking }, reserve: thinking > 0 ? thinking : 0 };
   }
@@ -86640,6 +86683,7 @@ function geminiThinking(modelName, thinking, opts = {}) {
   return { thinkingConfig: { thinkingBudget: budget }, reserve: budget };
 }
 async function callGemini2(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, maxTokens = null, jsonMode = false, thinkingBudget = void 0, temperature = void 0, topP = void 0, topK = void 0, responseSchema = null, systemInstruction = null) {
+  modelName = resolveGeminiModel(modelName);
   try {
     return await callGeminiOnce(false).catch((error) => {
       if (!error.thinkingLevelRejected) throw error;
@@ -86677,10 +86721,10 @@ async function callGemini2(env, prompt, modelName = DEFAULT_GEMINI_PLAN_MODEL, m
         requestBody.generationConfig = generationConfig;
       }
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
           body: JSON.stringify(requestBody)
         }
       );
@@ -86818,6 +86862,7 @@ async function callClaudeVision(env, textPrompt, base64Image, mimeType, modelNam
   });
 }
 async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelName, maxTokens, thinkingBudget = void 0) {
+  modelName = resolveGeminiModel(modelName);
   return callOnce(false).catch((error) => {
     if (!error.thinkingLevelRejected) throw error;
     return callOnce(true);
@@ -86840,10 +86885,10 @@ async function callGeminiVision(env, textPrompt, base64Image, mimeType, modelNam
         generationConfig
       };
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
           body: JSON.stringify(requestBody)
         }
       );
