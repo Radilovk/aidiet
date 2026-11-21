@@ -4,10 +4,10 @@
  *   node scripts/build-brand.mjs           → SVG файловете
  *   node scripts/build-brand.mjs --png     → + PNG иконите (нужен е Playwright/Chromium)
  *
- * Знакът (brand/nutriin-mark.json): ЕДНА линия, която рисува ябълката и вътре в нея „in“
- * (дръжката на „i“ слиза и става лявата страна, дясната страна се връща нагоре като дъгата на „n“),
- * плюс листо. Формата е на собственика (концепцията от 21.11.2026), прерисувана като централни
- * линии с една дебелина и заоблени краища — чиста и в 16 px.
+ * Знакът (brand/nutriin-mark.json): формата на собственика (концепцията от 21.11.2026) — ябълка с ЕДНА линия,
+ * която вътре изписва „in“, + листо. Реконструирана прецизно: оста е напасната с минимум гладки криви
+ * (непрекъсната кривина), „i“ и стъблото на „n“ са строго прави, дебелината е плавният профил на рисунката
+ * (по-тънка във вдлъбнатината, опашката изтънява до острие). Пълни форми: тяло + листо (със сърповидна жилка).
  * Цветът следва „Светлина · Стъкло · Спокойствие“ (DESIGN_PRINCIPLES 2а): вътре (долу вляво, при „in“)
  * — дълбок тюркоазено-зелен; навън (горе вдясно) — свежо зелено; листото е най-светлото. Без лайм и жълто.
  *
@@ -15,8 +15,8 @@
  * „nutri“ лек (350) в мастилен цвят + „in“ плътен (650) в зелено — „in“ е смислово отделено:
  * вътре, вътрешно, отвътре.
  *
- * Оптични размери на знака (една форма, различна дебелина на линията):
- *   big — пълното лого и сплаш; mid — иконите на приложението; small — фавикон, хедър, имейл.
+ * Оптични размери: основната форма (лого, икони, сплаш) и по-плътна (bodySmall/leafSmall) за 16–48 px
+ * (фавикон, малки икони), за да не изчезват тънките места.
  *
  * Старите имена (brand/eatologix-*) се пишат като копия на новите — за писмата, които вече са
  * изпратени, за старите версии на приложението и за модулите в други репа.
@@ -40,7 +40,6 @@ const PAL = {
   light: { a: '#0A6B66', b: '#14935A', c: '#22B35E', leafA: '#1FA85A', leafB: '#3CCB6E' },
   dark: { a: '#1FB8A4', b: '#2CCB82', c: '#56DE86', leafA: '#4ADE80', leafB: '#86EFAC' }
 };
-const WIDTH = { big: 92, mid: 104, small: 120 };
 
 const M = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/nutriin-mark.json'), 'utf8'));
 const MB = M.box;
@@ -49,21 +48,22 @@ const LABEL = ' role="img" aria-label="Nutriin"';
 function markDefs(id, theme = 'light') {
   const c = PAL[theme];
   return `
-    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="300" y1="1100" x2="1000" y2="420">
+    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="300" y1="1120" x2="1020" y2="420">
       <stop offset="0" stop-color="${c.a}"/><stop offset=".55" stop-color="${c.b}"/><stop offset="1" stop-color="${c.c}"/>
     </linearGradient>
-    <linearGradient id="${id}l" gradientUnits="userSpaceOnUse" x1="600" y1="460" x2="975" y2="110">
+    <linearGradient id="${id}l" gradientUnits="userSpaceOnUse" x1="600" y1="450" x2="985" y2="110">
       <stop offset="0" stop-color="${c.leafA}"/><stop offset="1" stop-color="${c.leafB}"/>
     </linearGradient>`;
 }
-function markBody(id, size = 'small') {
-  const w = WIDTH[size];
+// size: 'small' → по-плътната форма (16–48 px); иначе основната.
+function markBody(id, size = 'main') {
+  const small = size === 'small';
   return `
-    <path d="${M.stroke}" fill="none" stroke="url(#${id}s)" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="${M.leaf}" fill="none" stroke="url(#${id}l)" stroke-width="${(w * 0.7).toFixed(1)}" stroke-linejoin="round"/>`;
+    <path d="${small ? M.bodySmall : M.body}" fill="url(#${id}s)"/>
+    <path d="${small ? M.leafSmall : M.leaf}" fill="url(#${id}l)"/>`;
 }
 /** Знакът, вписан в правоъгълник (запазва пропорциите, центриран). */
-function placeMark(id, box, size = 'small') {
+function placeMark(id, box, size = 'main') {
   const k = Math.min(box.w / MB.w, box.h / MB.h);
   const tx = box.x + (box.w - MB.w * k) / 2 - MB.x * k, ty = box.y + (box.h - MB.h * k) / 2 - MB.y * k;
   return `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody(id, size)}</g>`;
@@ -88,15 +88,15 @@ const files = {};
 const put = (rel, s) => { files[rel] = s; out(rel, s); };
 put('brand/nutriin-mark.svg', svg(vbMark, markDefs('m'), markBody('m'), LABEL));
 put('brand/nutriin-mark-dark.svg', svg(vbMark, markDefs('d', 'dark'), markBody('d'), LABEL));
-put('brand/nutriin-mark-icon.svg', svg(vbMark, markDefs('n', 'dark'), markBody('n', 'mid'), LABEL));
-put('brand/nutriin-mark-big.svg', svg(vbMark, markDefs('t', 'dark'), markBody('t', 'big'), LABEL));
+put('brand/nutriin-mark-icon.svg', svg(vbMark, markDefs('n', 'dark'), markBody('n'), LABEL));
+put('brand/nutriin-mark-big.svg', svg(vbMark, markDefs('t', 'dark'), markBody('t'), LABEL));
 
 // 2) Пълно лого: знакът над надписа.
 function fullLogo(dark) {
   const wmW = 1100, scale = wmW / W_WIDTH, x0 = 50, baseline = 1060 + -W_TOP * scale;
   const markBox = { x: 50 + (wmW - 760) / 2, y: 0, w: 760, h: 836 };
   const H = Math.ceil(baseline + W_BOTTOM * scale + 10);
-  return svg(`0 0 1200 ${H}`, markDefs('f', dark ? 'dark' : 'light'), placeMark('f', markBox, 'big') + wordmark({ scale, x0, baseline, dark }), LABEL);
+  return svg(`0 0 1200 ${H}`, markDefs('f', dark ? 'dark' : 'light'), placeMark('f', markBox) + wordmark({ scale, x0, baseline, dark }), LABEL);
 }
 put('brand/nutriin-logo.svg', fullLogo(false));
 put('brand/nutriin-logo-dark.svg', fullLogo(true));
@@ -110,7 +110,7 @@ function horizontal(dark) {
   const W = Math.ceil(H_MARKW + H_GAP + W_WIDTH * H_SCALE + 10);
   const baseline = H_H * 0.5 + (-W_TOP * H_SCALE) * 0.5 - 10;
   return svg(`0 0 ${W} ${H_H}`, markDefs('h', dark ? 'dark' : 'light'),
-    placeMark('h', { x: 0, y: 0, w: H_MARKW, h: H_H }) + wordmark({ scale: H_SCALE, x0: H_MARKW + H_GAP, baseline, dark }), LABEL);
+    placeMark('h', { x: 0, y: 0, w: H_MARKW, h: H_H }, 'small') + wordmark({ scale: H_SCALE, x0: H_MARKW + H_GAP, baseline, dark }), LABEL);
 }
 put('brand/nutriin-horizontal.svg', horizontal(false));
 put('brand/nutriin-horizontal-dark.svg', horizontal(true));
@@ -137,11 +137,11 @@ function appIcon({ maskable = false, pad: padIn, square = false } = {}) {
   const body = `<rect width="${S}" height="${S}" rx="${r}" fill="${BRAND.night}"/>
     <rect width="${S}" height="${S}" rx="${r}" fill="url(#iA)"/><rect width="${S}" height="${S}" rx="${r}" fill="url(#iB)"/>
     <rect width="${S}" height="${S}" rx="${r}" fill="url(#iHi)"/>
-    <g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody('i', 'mid')}</g>`;
+    <g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody('i')}</g>`;
   return svg(`0 0 ${S} ${S}`, defs, body);
 }
 // Знакът с прозрачност (PWA икони, фавикон); фавиконът сменя палитрата по темата на системата.
-function alphaIcon(fill, size = 'mid', { adaptive = false } = {}) {
+function alphaIcon(fill, size = 'main', { adaptive = false } = {}) {
   const S = 1024, k = (S * fill) / Math.max(MB.w, MB.h);
   const tx = (S - MB.w * k) / 2 - MB.x * k, ty = (S - MB.h * k) / 2 - MB.y * k;
   const g = (id) => `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody(id, size)}</g>`;

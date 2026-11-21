@@ -78420,26 +78420,38 @@ function reanalyze(baseData, enrichedData, energy = {}, sex = "X") {
 }
 
 // email-domain.js
-var EMAIL_DOMAIN = "eatologix.com";
+var EMAIL_DOMAIN = "nutriin.app";
+var EMAIL_DOMAIN_PREV = "eatologix.com";
 var EMAIL_FROM_OLD = "Nutriin <info@biocode.online>";
 var EMAIL_FROM_NEW = `Nutriin <info@${EMAIL_DOMAIN}>`;
+var EMAIL_FROM_PREV = `Nutriin <info@${EMAIL_DOMAIN_PREV}>`;
 var NONCE_KEY = "bridge_nonce:email_domain";
 var VERIFIED_KEY = "email_domain_verified";
 var RESEND = "https://api.resend.com";
-var cache = { at: 0, verified: false };
+var cache = { at: 0, domain: "" };
 async function emailDomainVerified(env, now = Date.now()) {
-  if (now - cache.at < 6e5) return cache.verified;
-  let verified = false;
+  if (now - cache.at < 6e5) return cache.domain;
+  let domain = "";
   try {
-    verified = Boolean(await env.page_content.get(VERIFIED_KEY));
+    const raw = await env.page_content.get(VERIFIED_KEY);
+    if (raw) {
+      let d = "";
+      try {
+        d = String(JSON.parse(raw).domain || "");
+      } catch (_) {
+        d = EMAIL_DOMAIN_PREV;
+      }
+      if (d === EMAIL_DOMAIN || d === EMAIL_DOMAIN_PREV) domain = d;
+    }
   } catch (_) {
   }
-  cache = { at: now, verified };
-  return verified;
+  cache = { at: now, domain };
+  return domain;
 }
 async function emailEnvelope(env, html) {
-  if (!await emailDomainVerified(env)) return { from: EMAIL_FROM_OLD, html };
-  return { from: EMAIL_FROM_NEW, html: String(html).split("https://biocode.website").join(`https://${EMAIL_DOMAIN}`) };
+  const d = await emailDomainVerified(env);
+  if (!d) return { from: EMAIL_FROM_OLD, html };
+  return { from: d === EMAIL_DOMAIN ? EMAIL_FROM_NEW : EMAIL_FROM_PREV, html: String(html).split("https://biocode.website").join(`https://${d}`) };
 }
 async function resend(env, method, path3, body) {
   const r = await fetch(RESEND + path3, {
@@ -78481,7 +78493,7 @@ async function handleEmailDomain(request, env, { respond, now = Date.now() }) {
       const full = await resend(env, "GET", `/domains/${d.id}`);
       if (full.status === "verified") {
         await env.page_content.put(VERIFIED_KEY, JSON.stringify({ domain: EMAIL_DOMAIN, at: new Date(now).toISOString() }));
-        cache = { at: 0, verified: false };
+        cache = { at: 0, domain: "" };
       }
       return respond({ status: full.status, records: (full.records || []).map((x) => ({ record: x.record, name: x.name, status: x.status })) });
     }

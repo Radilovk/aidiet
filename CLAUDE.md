@@ -2,8 +2,9 @@
 
 Едно репо, няколко проекта, общ плосък корен. GitHub Pages сервира корена като biocode.website — това е само
 източникът; **публичният адрес на Nutriin е nutriin.app** (EmoEat — emoeat.app), през worker-а (`app-domain.js`).
-В страниците, sitemap и canonical се пише nutriin.app, не biocode.website. Изключение — писмата към клиенти:
-подател `info@biocode.online` и връзки от biocode.website (установена репутация, да не падат в спам; `PLAN_APP_BASE_URL`). **Не местим страници** — адресите се чупят.
+В страниците, sitemap и canonical се пише nutriin.app, не biocode.website. Писмата към клиенти се пишат с връзки от
+biocode.website (`PLAN_APP_BASE_URL`); при изпращане `email-domain.js` ги сменя с потвърдения домейн на пощата
+(nutriin.app, преходно eatologix.com), а без потвърден домейн остават `info@biocode.online` и biocode.website. **Не местим страници** — адресите се чупят.
 Правила за работа: `.cursorrules` и `PROJECT_NOTES.md` (промптове само в `KV/prompts/`).
 
 ## Nutriin (PWA + Android APK, `com.biocode.nutriplan`)
@@ -30,8 +31,8 @@
   `NutriPlan-v*.apk` (по тях старите версии намират обновления), ключове в localStorage.
 - Домейн nutriin.app: `app-domain.js` във worker-а (страниците от biocode.website, `/api/` същият), `APP_HOSTS` и `MAIN_HOST`
   в `wrangler.toml`. nutriin.eu → 301 към nutriin.app. eatologix.com (старото име) се обслужва, а браузърът пренася паметта
-  и препраща към nutriin.app (`i18n.js`, само ако nutriin.app отговаря). Пощата остава от eatologix.com (`email-domain.js`,
-  потвърден в Resend) с подател „Nutriin“.
+  и препраща към nutriin.app (`i18n.js`, само ако nutriin.app отговаря). Пощата: подател „Nutriin“ от info@nutriin.app, щом
+  Resend потвърди домейна (`email-domain.js`, workflow „Domain setup“); дотогава — от вече потвърдения info@eatologix.com.
 - Преводи: `i18n.js` + `i18n/<език>/common.json` и `i18n/<език>/<страница>.json` (bg е изходният език; ръчен речник
   „точен български текст → превод“, `data-i18n` за двусмислени текстове, `patterns` за текст с числа). Поддържани: bg, en, de, es, ru (руският е на кирилица — текст с ы/э/ё не се превежда).
   Каквото липсва в речника → резервен AI превод `/api/i18n/translate` (`i18n-server.js`, кеш в KV, общ за всички).
