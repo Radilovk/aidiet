@@ -46,13 +46,13 @@ const LABEL = ' role="img" aria-label="Nutriin"';
 function markDefs(id, theme = 'light') {
   const c = PAL[theme];
   return `
-    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="120" y1="480" x2="440" y2="80">
+    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="150" y1="920" x2="850" y2="60">
       <stop offset="0" stop-color="${c.a}"/><stop offset=".5" stop-color="${c.b}"/><stop offset=".8" stop-color="${c.c}"/><stop offset="1" stop-color="${c.leafB}"/>
     </linearGradient>`;
 }
 // Монолиния: дебелина 21 (V2, „+50%“); за 16–48 px — 28, за да не изчезва.
 function markBody(id, size = 'main') {
-  const sw = size === 'small' ? 28 : 21;
+  const sw = size === 'small' ? (M.width * 1.3) : M.width;
   return `<g fill="none" stroke="url(#${id}s)" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><path d="${M.stroke}"/><path d="${M.leaf}"/></g>`;
 }
 /** Знакът, вписан в правоъгълник (запазва пропорциите, центриран). */
