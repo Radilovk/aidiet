@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * Знаците на модулите — IrisMap (око) и EmoEat (личице: тъжно | усмихнато).
- * Езикът е на Eatologix: дясната половина е плътна (резултатът), лявата се разпада на
+ * Езикът е на Nutriin: дясната половина е плътна (резултатът), лявата се разпада на
  * тирета, които изтъняват към най-лявата точка (данните / тъгата, която си отива).
  *
  *   node scripts/build-module-marks.mjs          → SVG-тата
  *   node scripts/build-module-marks.mjs --png    → + PNG (favicon, иконки, споделяне; нужен е Playwright)
  *
- * EmoEat → brand/emoeat-*  (тук). IrisMap → brand/irismap-* (тук, за картата в Eatologix)
+ * EmoEat → brand/emoeat-*  (тук). IrisMap → brand/irismap-* (тук, за картата в Nutriin)
  * и, ако до това репо има ../airis1.0, → ../airis1.0/public/brand/ (mark.svg, favicon.svg, иконите).
  * Два оптични размера: big (лендинги, приложение) и small (favicon, 16–48 px — по-дебело, по-малко тирета).
  */
@@ -97,7 +97,7 @@ function emoMark(size = 'big') {
   return svg(b, GRAD.emo, 'EmoEat');
 }
 
-/** Иконка на приложение: знакът върху тъмния фон на Eatologix (iPhone — плътен квадрат; maskable — в безопасната зона). */
+/** Иконка на приложение: знакът върху тъмния фон на Nutriin (iPhone — плътен квадрат; maskable — в безопасната зона). */
 function appIcon(mark, { pad = 0.17, rounded = true } = {}) {
   const inner = mark.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
   const s = 1024, m = s * pad, z = s - 2 * m;

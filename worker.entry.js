@@ -187,7 +187,7 @@ import {
  * KEY PRINCIPLE: NO compromise on data completeness, precision, or individualization
  * 
  * TOKEN OPTIMIZATION (Jun 2026 — NPCF v1):
- * - Eatologix Context Format (context-compression.js) for plan generation steps
+ * - Nutriin Context Format (context-compression.js) for plan generation steps
  * - Step 1: lossless pipe-serialized profile + backend calcs (deduped vs notes sections)
  * - Steps 2–4: tiered profile + compact analysis/strategy/weekly-scheme blocks
  * - Step 3: one week-at-once call (7 days) — compact targets + catalog + variety rules
@@ -1347,9 +1347,9 @@ const RATE_LIMIT = {
   STUDIO_MANAGE: { maxRequests: 30, windowSec: 600 },  // studio platform: my hours, cancel, move, a code
   STUDIO_VERIFY: { maxRequests: 5, windowSec: 3600 },  // studio platform: a Viber login code
   STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 },   // studio platform: the admin's 5-digit code
-  HANDOFF: { maxRequests: 10, windowSec: 600 },        // модул → Eatologix: нова пратка
+  HANDOFF: { maxRequests: 10, windowSec: 600 },        // модул → Nutriin: нова пратка
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 },   // преглед и прибиране на пратка
-  SESSION_MOVE: { maxRequests: 20, windowSec: 600 },   // biocode.website → eatologix.com: пренасяне на паметта на браузъра
+  SESSION_MOVE: { maxRequests: 20, windowSec: 600 },   // biocode.website / nutriin.com → nutriin.app: пренасяне на паметта на браузъра
   PROTOCOL_AI: { maxRequests: 5, windowSec: 3600 },    // AI протокол без плащане (protocols.html)
 };
 
@@ -4086,7 +4086,7 @@ function escapeHtml(str) {
  */
 const DEFAULT_EMAIL_TEMPLATE = {
   subject: 'Твоят персонален хранителен план е готов! 🥗',
-  headerTitle: '🍽️ Eatologix',
+  headerTitle: '🍽️ Nutriin',
   headerSubtitle: 'Персонален хранителен план',
   greeting: 'Здравей, {name}! 👋',
   paragraph1: 'Радваме се да ти съобщим, че твоят <strong>персонален 7-дневен хранителен план</strong> е готов и вече е достъпен!',
@@ -4096,17 +4096,17 @@ const DEFAULT_EMAIL_TEMPLATE = {
 };
 
 // Писмата към клиентите — както при NutriPlan, за да не падат в спам: подател info@biocode.online
-// (Resend, DKIM/SPF/DMARC) и връзки/лого от установения домейн. eatologix.com е нов (без репутация при
-// пощенските филтри); страниците на biocode.website сами препращат към eatologix.com (i18n.js).
-// Смяна към eatologix.com — заедно с подателя, след като домейнът е потвърден в Resend и има история.
+// (Resend, DKIM/SPF/DMARC) и връзки/лого от установения домейн. nutriin.app е нов (без репутация при
+// пощенските филтри); страниците на biocode.website сами препращат към nutriin.app (i18n.js).
+// Смяна към nutriin.app — заедно с подателя, след като домейнът е потвърден в Resend и има история.
 const PLAN_APP_BASE_URL = 'https://biocode.website';
 // Логото в имейлите: PNG (пощенските програми не показват SVG), от scripts/build-brand.mjs.
-const EMAIL_LOGO_HTML = `<img src="${PLAN_APP_BASE_URL}/brand/eatologix-email-logo.png" width="240" height="50" alt="EATOLOGIX" style="display:block;margin:0 auto;border:0;outline:none;width:240px;height:auto;">`;
+const EMAIL_LOGO_HTML = `<img src="${PLAN_APP_BASE_URL}/brand/nutriin-email-logo.png" width="240" height="70" alt="Nutriin" style="display:block;margin:0 auto;border:0;outline:none;width:240px;height:auto;">`;
 const PLAN_CLAIM_TTL_SEC = 72 * 60 * 60;
 
 const DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE = {
   subject: 'Твоят хранителен план е актуализиран 🥗',
-  headerTitle: '🍽️ Eatologix',
+  headerTitle: '🍽️ Nutriin',
   headerSubtitle: 'Актуализация на план',
   greeting: 'Здравей, {name}! 👋',
   paragraph1: 'Специалистът направи промени във твоя <strong>персонален хранителен план</strong>.',
@@ -4184,8 +4184,8 @@ function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl) {
           </tr>
           <tr>
             <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
-              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Eatologix &mdash; Персонален хранителен план</p>
-              <p style="color:#999999;font-size:12px;margin:5px 0 0;">eatologix.com</p>
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutriin &mdash; Персонален хранителен план</p>
+              <p style="color:#999999;font-size:12px;margin:5px 0 0;">nutriin.app</p>
             </td>
           </tr>
         </table>
@@ -4242,7 +4242,7 @@ function buildPlanUpdatedEmailHtml(clientName, tpl, buttonUrl) {
           </tr>
           <tr>
             <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
-              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Eatologix &mdash; Персонален хранителен план</p>
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutriin &mdash; Персонален хранителен план</p>
             </td>
           </tr>
         </table>
@@ -4284,7 +4284,7 @@ function buildPasswordResetEmailHtml(oobLink, contactEmail = 'info@biocode.onlin
             <td style="padding:40px;">
               <h2 style="color:#333333;margin:0 0 20px;font-size:22px;">Заявка за нулиране на парола 🔒</h2>
               <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 20px;">
-                Получихме заявка за нулиране на паролата за вашия акаунт в Eatologix.
+                Получихме заявка за нулиране на паролата за вашия акаунт в Nutriin.
               </p>
               <p style="color:#555555;font-size:16px;line-height:1.6;margin:0 0 30px;">
                 Натиснете бутона по-долу, за да зададете нова парола. Линкът е валиден за <strong>1 час</strong>.
@@ -4306,8 +4306,8 @@ function buildPasswordResetEmailHtml(oobLink, contactEmail = 'info@biocode.onlin
           </tr>
           <tr>
             <td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eeeeee;text-align:center;">
-              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Eatologix &mdash; Персонален хранителен план</p>
-              <p style="color:#999999;font-size:12px;margin:5px 0 0;">eatologix.com</p>
+              <p style="color:#999999;font-size:13px;margin:0;">&copy; ${year} Nutriin &mdash; Персонален хранителен план</p>
+              <p style="color:#999999;font-size:12px;margin:5px 0 0;">nutriin.app</p>
             </td>
           </tr>
         </table>
@@ -4498,7 +4498,7 @@ async function handleForgotPassword(request, env) {
       await sendEmailViaSMTP(
         env,
         email,
-        RESET_SUBJECT[resetLang] || 'Нулиране на парола — Eatologix 🔒',
+        RESET_SUBJECT[resetLang] || 'Нулиране на парола — Nutriin 🔒',
         localizeEmailHtml(buildPasswordResetEmailHtml(oobLink, contactEmail), resetLang)
       );
       console.log(`[ForgotPassword] Resend email sent to ${email}`);
@@ -4556,8 +4556,8 @@ async function sendEmailViaSMTP(env, to, subject, htmlBody) {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    // Подателят и връзките: biocode.online/biocode.website, докато eatologix.com не е потвърден в Resend
-    // (email-domain.js) — после сами минават на eatologix.com.
+    // Подателят и връзките: biocode.online/biocode.website, докато nutriin.app не е потвърден в Resend
+    // (email-domain.js) — после сами минават на nutriin.app.
     body: JSON.stringify({
       ...(await emailEnvelope(env, htmlBody)),
       to: [to],
@@ -4589,7 +4589,7 @@ function notifyAdmin(env, ctx, subject, rows, extraHtml = '') {
     <h2 style="margin:0 0 12px;font-size:18px">${escapeHtml(subject)}</h2>
     <table style="border-collapse:collapse">${table}</table>${extraHtml}
     <p style="margin:20px 0 0"><a href="${ADMIN_PANEL_URL}" style="background:#03939C;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Отвори админ панела</a></p></div>`;
-  const p = sendEmailViaSMTP(env, to, `[Eatologix] ${subject}`, html).catch(e => console.warn('[notifyAdmin]', e.message));
+  const p = sendEmailViaSMTP(env, to, `[Nutriin] ${subject}`, html).catch(e => console.warn('[notifyAdmin]', e.message));
   if (ctx?.waitUntil) ctx.waitUntil(p);
   return p;
 }
@@ -5387,7 +5387,7 @@ const DEFAULT_GEMINI_PLAN_MODEL = 'gemini-3.6-flash';
 const DEFAULT_GEMINI_LITE_MODEL = 'gemini-3.5-flash-lite';
 const ADMIN_ASSISTANT_DEFAULT_MODEL = DEFAULT_GEMINI_PLAN_MODEL;
 
-const ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `Ти си Eatologix AI асистент за администратор-нутриционист.
+const ADMIN_ASSISTANT_SYSTEM_INSTRUCTION = `Ти си Nutriin AI асистент за администратор-нутриционист.
 Четеш кеширан клиентски картон (CC/NPCF). Промените се правят чрез RFC 6902 JSON Patch върху каноничния JSON.
 
 Patch root: { answers, plan, adminNotes }
@@ -6216,7 +6216,7 @@ async function verifyWeeklyRequestAuth(userId, idToken, env, request = null) {
  */
 /**
  * AI протокол без плащане (protocols.html): спира при общия
- * дневен таван на разхода (spend.js), както безплатните функции на Eatologix.
+ * дневен таван на разхода (spend.js), както безплатните функции на Nutriin.
  */
 async function freeBudgetGuard(env) {
   if (await budgetOk(env, 'free')) return null;
@@ -12871,7 +12871,7 @@ async function handleWordingSave(request, env) {
     try {
       const r = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'eatologix-worker', 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'nutriin-worker', 'Content-Type': 'application/json' },
         body: JSON.stringify({ event_type: 'wording-saved', client_payload: { id } }),
         signal: AbortSignal.timeout(6000)
       });
@@ -14227,16 +14227,16 @@ async function handleGetCalendarIcs(request, env) {
   // Read global notification config from KV (same data store as /api/notification-config)
   const defaults = {
     morningTime:  '07:00',
-    morningTitle: 'Eatologix',
+    morningTitle: 'Nutriin',
     morningBody:  'Спа ли добре тази нощ?',
     eveningActivityTime:  '20:00',
-    eveningActivityTitle: 'Eatologix',
+    eveningActivityTitle: 'Nutriin',
     eveningActivityBody:  'Колко се движи днес?',
     eveningBalanceTime:   '20:05',
-    eveningBalanceTitle:  'Eatologix',
+    eveningBalanceTitle:  'Nutriin',
     eveningBalanceBody:   'Как се чувстваше днес?',
     eveningWaterTime:     '20:10',
-    eveningWaterTitle:    'Eatologix',
+    eveningWaterTitle:    'Nutriin',
     eveningWaterBody:     'Пи ли достатъчно вода днес?',
     eveningTime:  '20:00',
   };
@@ -14249,9 +14249,9 @@ async function handleGetCalendarIcs(request, env) {
   } catch (_) {}
   // Старите текстове от запазени настройки → новите (същото като local-scheduler.js).
   const LEGACY_COPY = {
-    'AI Асистент': 'Eatologix',
-    'NutriPlan': 'Eatologix', // старото име, записано в KV преди смяната
-    'NutriDeus': 'Eatologix',
+    'AI Асистент': 'Nutriin',
+    'NutriPlan': 'Nutriin', // старото име, записано в KV преди смяната
+    'NutriDeus': 'Nutriin',
     'Ниво на активност?': 'Колко се движи днес?',
     'Емоционален баланс?': 'Как се чувстваше днес?',
     'Изпи ли поне 2 л вода?': 'Пи ли достатъчно вода днес?',
@@ -14343,17 +14343,17 @@ async function handleGetCalendarIcs(request, env) {
       const parts = String(extra.time).split(':').map(Number);
       if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return;
       events.push(makeEvent('extra_' + idx, day, parts[0], parts[1],
-        extra.title || 'Eatologix', extra.body || ''));
+        extra.title || 'Nutriin', extra.body || ''));
     });
   }
 
   const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Eatologix//AiDiet//BG',
+    'PRODID:-//Nutriin//AiDiet//BG',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:Eatologix Напомняния',
+    'X-WR-CALNAME:Nutriin Напомняния',
     'X-WR-CALDESC:Сутрешни и вечерни напомняния за твоя диетичен план',
     'REFRESH-INTERVAL;VALUE=DURATION:PT24H',
     'X-PUBLISHED-TTL:PT24H',
@@ -14596,8 +14596,8 @@ async function handlePushSend(request, env) {
     
     // Prepare push message
     const pushMessage = {
-      title: title || 'Eatologix',
-      body: body || 'Ново напомняне от Eatologix',
+      title: title || 'Nutriin',
+      body: body || 'Ново напомняне от Nutriin',
       url: url || '/plan.html',
       icon: icon || '/icon-192x192.png',
       notificationType: notificationType || 'general',
@@ -15258,14 +15258,14 @@ async function handleEnrichmentResolve(request, env) {
   }
 }
 
-/* ── Пратки от модулите (EmoEat, AIRIS) → Eatologix ─────────────────────
- * Еднопосочно: модулът оставя обобщение и получава линк; Eatologix прибира
+/* ── Пратки от модулите (EmoEat, AIRIS) → Nutriin ─────────────────────
+ * Еднопосочно: модулът оставя обобщение и получава линк; Nutriin прибира
  * пратката в профила само със съгласие. Към модулите не се връща нищо от
- * Eatologix — отговорите съдържат само това, което модулът е изпратил.
+ * Nutriin — отговорите съдържат само това, което модулът е изпратил.
  */
 
 const HANDOFF_PREFIX = 'handoff:';
-const NUTRIPLAN_SITE = 'https://eatologix.com';
+const NUTRIPLAN_SITE = 'https://nutriin.app';
 
 function newHandoffToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
@@ -15299,7 +15299,7 @@ async function rememberHandoffClaim(env, entry) {
 
 /**
  * Броячи по модул и месец — фунията на насочванията:
- * created (клик в модула) → opened (страницата в Eatologix) → plan (първи план
+ * created (клик в модула) → opened (страницата в Nutriin) → plan (първи план
  * с данните) → claimed (данните са в профила).
  */
 async function countHandoff(env, source, event) {
@@ -15313,7 +15313,7 @@ async function countHandoff(env, source, event) {
   }
 }
 
-/** POST /api/handoff — Body: пратката на модула. Отговор: { token, url } — линкът към Eatologix. */
+/** POST /api/handoff — Body: пратката на модула. Отговор: { token, url } — линкът към Nutriin. */
 async function handleHandoffCreate(request, env) {
   try {
     if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -15334,7 +15334,7 @@ async function handleHandoffCreate(request, env) {
 }
 
 /* ── Пренасяне на сесията между домейните ───────────────────────────────
- * biocode.website → eatologix.com (EmoEat → emoeat.app): браузърът пази паметта
+ * biocode.website / nutriin.com → nutriin.app (EmoEat → emoeat.app): браузърът пази паметта
  * (localStorage) по домейн, затова при пренасочването тя се качва еднократно под
  * случаен ключ за 10 минути и новият домейн я прибира веднага (i18n.js). Ключът е в
  * хеша на адреса (не стига до сървърите), прибира се веднъж и се изтрива.
@@ -15342,9 +15342,9 @@ async function handleHandoffCreate(request, env) {
 const SESSION_MOVE_PREFIX = 'session_move:';
 const SESSION_MOVE_TTL_SEC = 600;
 const SESSION_MOVE_MAX_BYTES = 4 * 1024 * 1024;
-const SESSION_MOVE_FROM = /^https:\/\/(www\.)?biocode\.website$/i;
+const SESSION_MOVE_FROM = /^https:\/\/(www\.)?(biocode\.website|nutriin\.com)$/i; // старите адреси → nutriin.app
 
-/** POST /api/session/move — Body: { data: { ключ: стойност } } от biocode.website. */
+/** POST /api/session/move — Body: { data: { ключ: стойност } } от biocode.website / nutriin.app. */
 async function handleSessionMoveCreate(request, env) {
   try {
     if (!env.page_content) return jsonResponse({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -15734,7 +15734,7 @@ async function handleEnrichmentDelete(request, env) {
 const LINK_SYNC_MIN_MS = 3 * 60 * 60 * 1000;
 const LINK_TTL = 365 * 24 * 60 * 60;
 /** Къде може да върне браузърът след вход при доставчика. */
-const LINK_RETURN_HOSTS = ['biocode.website', 'www.biocode.website', 'eatologix.com', 'www.eatologix.com', 'emoeat.app', 'www.emoeat.app', 'irismap.app', 'www.irismap.app', 'radilovk.github.io', 'localhost', '127.0.0.1'];
+const LINK_RETURN_HOSTS = ['biocode.website', 'www.biocode.website', 'nutriin.app', 'www.nutriin.app', 'nutriin.eu', 'www.nutriin.eu', 'nutriin.com', 'www.nutriin.com', 'emoeat.app', 'www.emoeat.app', 'irismap.app', 'www.irismap.app', 'radilovk.github.io', 'localhost', '127.0.0.1'];
 
 function linkRedirectUri(request, provider) {
   return `${new URL(request.url).origin}/api/links/callback/${provider}`;
@@ -15877,11 +15877,11 @@ const APP_INTENT_URL = 'intent:#Intent;action=android.intent.action.MAIN;categor
 
 function linkResultPage(ok, title, text, fromApp = false) {
   const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Eatologix</title>
+  const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nutriin</title>
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#EEFDFC;color:#032E36}
 main{max-width:360px;padding:32px 24px;text-align:center}h1{font-size:22px;margin:12px 0 8px}p{color:#335;line-height:1.5}.i{font-size:44px;color:${ok ? '#05737D' : '#B45309'}}
 a{display:inline-block;margin-top:16px;padding:12px 20px;border-radius:12px;background:#05737D;color:#fff;text-decoration:none}</style></head>
-<body><main><div class="i">${ok ? '✓' : '!'}</div><h1>${esc(title)}</h1><p>${esc(text)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : 'https://eatologix.com/index.html?app=1&tab=profile'}">Обратно в Eatologix</a></main>
+<body><main><div class="i">${ok ? '✓' : '!'}</div><h1>${esc(title)}</h1><p>${esc(text)}</p><a id="back" href="${fromApp ? APP_INTENT_URL : 'https://nutriin.app/index.html?app=1&tab=profile'}">Обратно в Nutriin</a></main>
 ${fromApp ? `<script>setTimeout(function(){location.href=${JSON.stringify(APP_INTENT_URL)};},${ok ? 600 : 2500});</script>` : ''}</body></html>`;
   return new Response(html, { status: ok ? 200 : 400, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
@@ -15892,7 +15892,7 @@ async function handleLinksCallback(request, env, provider) {
   const state = url.searchParams.get('state') || '';
   const code = url.searchParams.get('code') || '';
   const pending = state ? await kvGetJSON(env, `link_state:${state}`) : null;
-  if (!pending || pending.provider !== provider) return linkResultPage(false, 'Връзката не е завършена', 'Заявката е изтекла. Опитай отново от профила в Eatologix.');
+  if (!pending || pending.provider !== provider) return linkResultPage(false, 'Връзката не е завършена', 'Заявката е изтекла. Опитай отново от профила в Nutriin.');
   await env.page_content.delete(`link_state:${state}`).catch(() => {});
   const back = (status) => {
     if (!pending.returnTo) return null;
@@ -16448,7 +16448,7 @@ async function handleAdminSendMessage(request, env) {
     // Send notification to user by calling handlePushSend directly
     const pushPayload = {
       userId: userId,
-      title: 'Съобщение от Eatologix',
+      title: 'Съобщение от Nutriin',
       body: message,
       url: '/plan.html',
       notificationType: 'chat'
@@ -16846,8 +16846,8 @@ async function sendPushNotificationToUser(userId, message, env) {
     
     // Prepare push message
     const pushMessage = {
-      title: message.title || 'Eatologix',
-      body: message.body || 'Ново напомняне от Eatologix',
+      title: message.title || 'Nutriin',
+      body: message.body || 'Ново напомняне от Nutriin',
       url: message.url || '/plan.html',
       icon: message.icon || '/icon-192x192.png',
       notificationType: message.notificationType || 'general',
@@ -18245,7 +18245,7 @@ export default {
     
     console.log(`${request.method} ${url.pathname}`);
 
-    // Eatologix на собствен домейн (eatologix.com): страниците от сайта, /api/ продължава надолу.
+    // Nutriin на собствен домейн (nutriin.app): страниците от сайта, /api/ продължава надолу.
     const appDomainResp = await handleAppDomain(request, env);
     if (appDomainResp) return appDomainResp;
 

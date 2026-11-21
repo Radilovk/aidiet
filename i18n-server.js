@@ -1,5 +1,5 @@
 /**
- * Eatologix — резервният превод на интерфейса (POST /api/i18n/translate).
+ * Nutriin — резервният превод на интерфейса (POST /api/i18n/translate).
  *
  * Страниците са на български. Ръчният речник (i18n/<език>/*.json) превежда интерфейса;
  * каквото остане на кирилица (динамичен текст, планът, имената на храните, по-стари отговори
@@ -24,7 +24,7 @@ export function languageDirective(lang) {
   const name = languageName(lang);
   if (!name) return '';
   return `\n\nLANGUAGE: Write every text the client will read (names of meals and dishes, explanations, advice, chat replies) in ${name}. ` +
-    `Keep JSON keys, field names, codes and numbers exactly as specified above. The product name is Eatologix.`;
+    `Keep JSON keys, field names, codes and numbers exactly as specified above. The product name is Nutriin.`;
 }
 
 async function keyOf(lang, text) {
@@ -48,14 +48,14 @@ function cleanList(raw) {
 }
 
 function buildPrompt(name, list) {
-  return `You translate the interface and content of Eatologix, a nutrition app, from Bulgarian into ${name}.
+  return `You translate the interface and content of Nutriin, a nutrition app, from Bulgarian into ${name}.
 Rules:
 - Natural, short, friendly ${name}, addressing the reader informally (as the Bulgarian does with "ти"; in Russian — "ты").
 - The source is Bulgarian even where it looks like Russian; translate it fully into ${name}.
 - Keep numbers, units (g, kcal, ml, kg), emoji, punctuation at the edges, and anything inside {curly braces} unchanged.
 - Food and dish names: the usual ${name} name; a Bulgarian dish with no equivalent keeps its name in Latin letters with a short gloss only if needed.
 - Bulgarian dairy is specific: "сирене" is white brine cheese (feta-style), never generic cheese; "кашкавал" is kashkaval, a yellow semi-hard cheese; "извара" is quark / cottage cheese; "кисело мляко" is plain yogurt; "прясно мляко" is milk.
-- "Eatologix" stays as is. Do not add quotes, notes or explanations.
+- "Nutriin" stays as is. Do not add quotes, notes or explanations.
 Return ONLY a JSON array of strings with exactly ${list.length} items, in the same order.
 
 ${JSON.stringify(list)}`;

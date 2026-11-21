@@ -1,8 +1,8 @@
 /**
- * Сверка между модулите и Eatologix.
+ * Сверка между модулите и Nutriin.
  *
  * 1. Потвърждение. Ирисова находка (приоритетна система в IrisMap), която се
- *    подкрепя от независим източник в Eatologix — въпросник, изследвания,
+ *    подкрепя от независим източник в Nutriin — въпросник, изследвания,
  *    устройства, EmoEat или изричен отговор на клиента — се приема за
  *    вероятна и влиза в адаптацията на плана с безопасна промяна в менюто.
  *    Промяната не се прилага, ако противоречи на медицинско правило
@@ -10,7 +10,7 @@
  *    извеждат от ириса.
  * 2. Разминаване. Когато два източника си противоречат (ирисът сочи
  *    храносмилането, а въпросникът казва „нямам оплаквания“; IrisMap има
- *    алергия, която Eatologix не знае), се задава въпрос. Отговорът е факт
+ *    алергия, която Nutriin не знае), се задава въпрос. Отговорът е факт
  *    („resolution“) и решава спора — до отговора нищо от спорното не се
  *    прилага.
  */
@@ -19,7 +19,7 @@ import { compileProfile, normLabel } from './profile-code.js';
 import { calculateBMR, calculateActivityTDEE, kcalPerStep } from './energy.js';
 
 /**
- * Системите на IrisMap → доказателства в Eatologix и действие в менюто.
+ * Системите на IrisMap → доказателства в Nutriin и действие в менюто.
  * `codes` — клинични кодове; `text` — оплаквания в свободния текст;
  * `signals` — сигнали от устройствата; `action` — код за менюто (или null);
  * `guard` — клинични кодове, при които действието е противопоказано.
@@ -123,7 +123,7 @@ export function crossCheck(data, derived, resolutions = {}) {
     ...Object.keys(data || {}).filter(k => /^medicalConditions_/.test(k)).flatMap(k => asList(data[k])),
   ].join(' ');
 
-  // ── 1. Ирисови находки срещу данните на Eatologix ─────────────────────
+  // ── 1. Ирисови находки срещу данните на Nutriin ─────────────────────
   const iris = derived?.irisRaw;
   for (const s of (iris?.systems || []).filter(x => x.priority)) {
     const def = IRIS_SYSTEMS[s.key];
@@ -156,7 +156,7 @@ export function crossCheck(data, derived, resolutions = {}) {
     });
   }
 
-  // ── 2. Отговорите в IrisMap срещу отговорите в Eatologix ────────────────
+  // ── 2. Отговорите в IrisMap срещу отговорите в Nutriin ────────────────
   const q = derived?.irisRaw?.questionnaire;
   if (q) {
     const known = normLabel([data?.dietDislike, data?.['medicalConditions_Алергии'], data?.foodSensitivities].flat().filter(Boolean).join(' '));
@@ -167,11 +167,11 @@ export function crossCheck(data, derived, resolutions = {}) {
       const answer = resolutions[id];
       if (answer === 'yes') overrides.dietDislike = [overrides.dietDislike || data?.dietDislike, t].filter(Boolean).join(', ');
       else if (!answer) {
-        questions.push({ id, source: 'airis', topic: 'Непоносимост', text: `В IrisMap е посочена непоносимост или алергия към „${t}“, а в Eatologix я няма. Да я изключим ли от плана?`, options: [{ value: 'yes', label: 'Да, изключи я' }, { value: 'no', label: 'Не е актуално' }] });
+        questions.push({ id, source: 'airis', topic: 'Непоносимост', text: `В IrisMap е посочена непоносимост или алергия към „${t}“, а в Nutriin я няма. Да я изключим ли от плана?`, options: [{ value: 'yes', label: 'Да, изключи я' }, { value: 'no', label: 'Не е актуално' }] });
       }
     }
     if (q.medications && data?.medications !== 'Да') {
-      // Отговорът важи само докато в Eatologix е същото („Не“ или празно) — ако клиентът
+      // Отговорът важи само докато в Nutriin е същото („Не“ или празно) — ако клиентът
       // после смени профила си, въпросът се задава наново, вместо старият отговор да надделее.
       const medsId = `meds:${data?.medications === 'Не' ? 'no' : 'empty'}`;
       const answer = resolutions[medsId];
@@ -179,7 +179,7 @@ export function crossCheck(data, derived, resolutions = {}) {
         overrides.medications = 'Да';
         overrides.medicationsDetails = [data?.medicationsDetails, q.medications].filter(Boolean).join('; ');
       } else if (!answer) {
-        questions.push({ id: medsId, source: 'airis', topic: 'Лекарства', text: `В IrisMap са посочени „${q.medications.slice(0, 120)}“, а в Eatologix — че не приемаш лекарства. Приемаш ли ги в момента?`, options: [{ value: 'yes', label: 'Да, приемам ги' }, { value: 'no', label: 'Не, вече не' }] });
+        questions.push({ id: medsId, source: 'airis', topic: 'Лекарства', text: `В IrisMap са посочени „${q.medications.slice(0, 120)}“, а в Nutriin — че не приемаш лекарства. Приемаш ли ги в момента?`, options: [{ value: 'yes', label: 'Да, приемам ги' }, { value: 'no', label: 'Не, вече не' }] });
       }
     }
     const npDiet = asList(data?.dietPreference);
@@ -189,18 +189,18 @@ export function crossCheck(data, derived, resolutions = {}) {
       const answer = resolutions[id];
       if (answer === 'yes') overrides.dietPreference = [...new Set([...npDiet, npLabel])];
       else if (!answer) {
-        questions.push({ id, source: 'airis', topic: 'Режим на хранене', text: `В IrisMap е посочен ${npLabel.toLowerCase()} режим, а в Eatologix — не. Да го приложим ли в плана?`, options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Не' }] });
+        questions.push({ id, source: 'airis', topic: 'Режим на хранене', text: `В IrisMap е посочен ${npLabel.toLowerCase()} режим, а в Nutriin — не. Да го приложим ли в плана?`, options: [{ value: 'yes', label: 'Да' }, { value: 'no', label: 'Не' }] });
       }
       break;
     }
     const npKg = Number(String(data?.weight || '').replace(',', '.'));
     if (q.weight && npKg && Math.abs(q.weight - npKg) >= 4) {
-      // Вързано за теглото в Eatologix: ново тегло там → нов въпрос, не старият отговор.
+      // Вързано за теглото в Nutriin: ново тегло там → нов въпрос, не старият отговор.
       const weightId = `weight:${Math.round(npKg)}`;
       const answer = resolutions[weightId];
       if (answer === 'airis') overrides.weight = String(q.weight);
       else if (!answer) {
-        questions.push({ id: weightId, source: 'airis', topic: 'Тегло', text: `Теглото в IrisMap (${q.weight} кг) и в Eatologix (${npKg} кг) се различава. Кое е актуалното?`, options: [{ value: 'airis', label: `${q.weight} кг` }, { value: 'nutriplan', label: `${npKg} кг` }] });
+        questions.push({ id: weightId, source: 'airis', topic: 'Тегло', text: `Теглото в IrisMap (${q.weight} кг) и в Nutriin (${npKg} кг) се различава. Кое е актуалното?`, options: [{ value: 'airis', label: `${q.weight} кг` }, { value: 'nutriplan', label: `${npKg} кг` }] });
       }
     }
   }
@@ -242,7 +242,7 @@ export function crossCheck(data, derived, resolutions = {}) {
 
   const confirmed = hypotheses.filter(h => h.status === 'confirmed');
   if (confirmed.some(h => h.blockedBy.length)) {
-    cautions.push(`Потвърдено от IrisMap и Eatologix, но не е приложено заради медицинско правило: ${confirmed.filter(h => h.blockedBy.length).map(h => `${h.label} (${h.blockedBy.join(', ')})`).join('; ')}.`);
+    cautions.push(`Потвърдено от IrisMap и Nutriin, но не е приложено заради медицинско правило: ${confirmed.filter(h => h.blockedBy.length).map(h => `${h.label} (${h.blockedBy.join(', ')})`).join('; ')}.`);
   }
   return { hypotheses, questions: questions.slice(0, 6), overrides, approach: [...new Set(approach)], cautions };
 }
@@ -252,7 +252,7 @@ export function crossCheckText(cc) {
   if (!cc) return '';
   const parts = [];
   const by = (st) => cc.hypotheses.filter(h => h.status === st);
-  if (by('confirmed').length) parts.push(`потвърдено от IrisMap и Eatologix: ${by('confirmed').map(h => `${h.label} (${h.evidence.join(', ')})${h.applied ? ` → ${h.action}` : ''}`).join('; ')}`);
+  if (by('confirmed').length) parts.push(`потвърдено от IrisMap и Nutriin: ${by('confirmed').map(h => `${h.label} (${h.evidence.join(', ')})${h.applied ? ` → ${h.action}` : ''}`).join('; ')}`);
   if (by('rejected').length) parts.push(`отхвърлено от клиента: ${by('rejected').map(h => h.label).join(', ')}`);
   if (by('unconfirmed').length) parts.push(`само по ириса (без потвърждение): ${by('unconfirmed').map(h => h.label).join(', ')}`);
   if (cc.questions.length) parts.push(`неуточнени разминавания (може да попиташ клиента): ${cc.questions.map(q => q.topic).join(', ')}`);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Сверка IrisMap / EmoEat / Eatologix (cross-check.js): потвърдените находки
+ * Сверка IrisMap / EmoEat / Nutriin (cross-check.js): потвърдените находки
  * влизат в менюто, медицинските правила ги спират, разминаванията стават
  * въпроси, а отговорите — замени. Без мрежа.
  */
@@ -60,7 +60,7 @@ ok(hyp(d, 'digestive').status === 'rejected' && !question(d, 'iris:digestive') &
 d = run(base({ stressLevel: 'Средно' }), irisFacts(['nervous']));
 ok(hyp(d, 'nervous').status === 'unconfirmed' && !question(d, 'iris:nervous'), 'без противоречие и без доказателство → само контекст, без въпрос');
 
-// ── IrisMap въпросник срещу Eatologix въпросник ────────────────────────────
+// ── IrisMap въпросник срещу Nutriin въпросник ────────────────────────────
 d = run(base({ dietDislike: '' }), irisFacts(['immune'], { foodIntolerances: 'лактоза' }));
 ok(question(d, 'allergy:лактоза'), 'непоносимост само в IrisMap → въпрос');
 d = run(base({ dietDislike: '' }), [...irisFacts(['immune'], { foodIntolerances: 'лактоза' }), answer('allergy:лактоза', 'yes')]);
@@ -74,7 +74,7 @@ ok(question(d, 'weight:82')?.options.length === 2, 'тегло с разлика
 d = run(base({ weight: '82' }), [...irisFacts(['immune'], { weight: 74 }), answer('weight:82', 'airis')]);
 ok(d.weight === '74', 'избрано теглото от IrisMap');
 d = run(base({ weight: '85' }), [...irisFacts(['immune'], { weight: 74 }), answer('weight:82', 'airis')]);
-ok(d.weight === '85' && question(d, 'weight:85'), 'ново тегло в Eatologix → отговорът за старото не важи, нов въпрос');
+ok(d.weight === '85' && question(d, 'weight:85'), 'ново тегло в Nutriin → отговорът за старото не важи, нов въпрос');
 d = run(base({ dietPreference: ['Балансирана'] }), [...irisFacts(['immune'], { dietaryProfile: ['Веган'] }), answer('pattern:Веган', 'yes')]);
 ok(compileProfile(d).diet.pattern === 'vegan', 'веган режим от IrisMap, потвърден → прилага се');
 

@@ -21,7 +21,7 @@ import { readAccess, writeAccess, normalizeAccess } from './access-control.js';
 
 const API = 'https://api.stripe.com/v1/';
 const DAY_MS = 24 * 3600 * 1000;
-const ALLOWED_RETURN = /^https:\/\/(eatologix\.com|www\.eatologix\.com|biocode\.website|emoeat\.app|irismap\.app|www\.irismap\.app|radilovk\.github\.io)(\/|$)/;
+const ALLOWED_RETURN = /^https:\/\/(nutriin\.app|www\.nutriin\.app|nutriin\.eu|www\.nutriin\.eu|eatologix\.com|www\.eatologix\.com|biocode\.website|emoeat\.app|irismap\.app|www\.irismap\.app|radilovk\.github\.io)(\/|$)/;
 
 export const stripeMode = (env) => (env.BILLING_MODE === 'live' ? 'live' : 'test');
 const stripeKey = (env) => (stripeMode(env) === 'live' ? env.STRIPE_SECRET_KEY : env.STRIPE_TEST_SECRET_KEY);
@@ -99,7 +99,7 @@ export async function handleBillingCheckout(request, env, { respond }) {
       // Ваучер от IrisMap: платеното за анализа се приспада от плана (не от продължението).
       const v = !P.requiresPlan ? await readVoucher(env, b.voucher) : null;
       if (v) { meta.voucher = b.voucher; P = { ...P, price: Math.max(0.5, Math.round((P.price - v.amount) * 100) / 100), description: `С приспаднати ${Pricing.formatPrice(v.amount)} от анализа в IrisMap` }; }
-      const site = /^https:\/\/(eatologix\.com|biocode\.website)$/.test(origin) ? origin : 'https://eatologix.com';
+      const site = /^https:\/\/(nutriin\.app|eatologix\.com|biocode\.website)$/.test(origin) ? origin : 'https://nutriin.app';
       back = `${site}/pricing.html`;
     } else if (P.kind === 'iris') {
       back = okReturn(b.returnUrl);

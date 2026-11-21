@@ -13,7 +13,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Eatologix: handles gamification notification action taps without launching the WebView.
+ * Nutriin: handles gamification notification action taps without launching the WebView.
  * Queues answers in Capacitor Preferences; GameNotifier drains them on next app open.
  */
 public class GameNotificationActionReceiver extends BroadcastReceiver {

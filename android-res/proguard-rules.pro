@@ -1,4 +1,4 @@
-# Eatologix ProGuard / R8 rules
+# Nutriin ProGuard / R8 rules
 
 # ── Capacitor core ────────────────────────────────────────────────────────────
 -keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }
@@ -21,13 +21,13 @@
 -keep class com.capacitorjs.plugins.** { *; }
 -keep class ee.forgr.capacitor.** { *; }
 
-# ── Eatologix notification action receiver (patched into local-notifications plugin) ─
+# ── Nutriin notification action receiver (patched into local-notifications plugin) ─
 -keep class com.capacitorjs.plugins.localnotifications.GameNotificationActionReceiver { *; }
 
-# ── Eatologix print / PDF plugin ─────────────────────────────────────────────
+# ── Nutriin print / PDF plugin ─────────────────────────────────────────────
 -keep class com.biocode.nutriplan.NutriPrintPlugin { *; }
 
-# ── Eatologix step counter plugin (крачкомер) ────────────────────────────────
+# ── Nutriin step counter plugin (крачкомер) ────────────────────────────────
 -keep class com.biocode.nutriplan.NutriStepsPlugin { *; }
 -keep class com.biocode.nutriplan.NutriStepsReceiver { *; }
 -keep class com.biocode.nutriplan.NutriStepsRecording { *; }

@@ -1,9 +1,9 @@
 {
  "_comment": "plan-pending.html — ръчен превод. Точен български текст → превод; каквото липсва — резервният AI превод. [Turkish: автоматичен превод, gemini-3.6-flash]",
  "strings": {
-  "Твоят персонален план се подготвя от специалист — Eatologix": "Kişisel planın bir uzman tarafından hazırlanıyor — Eatologix",
+  "Твоят персонален план се подготвя от специалист — Nutriin": "Kişisel planın bir uzman tarafından hazırlanıyor — Nutriin",
   "Твоят план се подготвя": "Planın hazırlanıyor",
-  "Eatologix — начало": "Eatologix — Ana Sayfa",
+  "Nutriin — начало": "Nutriin — Ana Sayfa",
   "Смени темата": "Temayı değiştir",
   "Получихме отговорите ти": "Yanıtlarını aldık",
   "Специалист преглежда плана. Ще получиш имейл, когато е готов.": "Bir uzman planını inceliyor. Hazır olduğunda bir e-posta alacaksın.",

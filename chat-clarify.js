@@ -32,7 +32,7 @@ const ALLERGY_RELATED = { лактоза: /мляко|млечн|сирене|к
 const stem = (s) => String(s || '').toLowerCase().replace(/[^a-zа-я0-9]/gi, '').slice(0, 5);
 
 function matches(q, text) {
-  // „weight:80“, „meds:no“ — въпросът е вързан за стойността в Eatologix; темата е частта преди „:“.
+  // „weight:80“, „meds:no“ — въпросът е вързан за стойността в Nutriin; темата е частта преди „:“.
   const topic = TOPIC_WORDS[q.id] ? q.id : q.id.split(':')[0];
   if (TOPIC_WORDS[topic]) {
     if (TOPIC_WORDS[topic].test(text)) return true;

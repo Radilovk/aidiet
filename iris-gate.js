@@ -2,7 +2,7 @@
  * IrisMap — достъп до Gemini само с „билет за анализ“ (вместо отвореното прокси airis-ai).
  *
  * Модел (docs/FINANCIAL_POLICY.md): анализът е платен — 6,99 € (Stripe → кредит на устройството) или
- * включен в плана на Eatologix (1 на 4 седмици: пропуск от профила → кредит на устройството).
+ * включен в плана на Nutriin (1 на 4 седмици: пропуск от профила → кредит на устройството).
  * Безплатният анализ (1 на 7 дни на устройство) остава само докато плащането не е в реален режим
  * (BILLING_MODE ≠ live) и само за нетестери — за да не спре IrisMap преди Stripe.
  *
@@ -10,7 +10,7 @@
  *   402 { error: 'payment', price } / 429 / 503 с причина. Провален платен анализ (под 13 използвани
  *   заявки) дава нов билет без нов кредит.
  * GET  /api/iris/status?deviceId=&tester= → { credit, payRequired, price }
- * POST /api/iris/pass { userId, idToken } (Eatologix, план) → { url, code } — пропуск за 1 анализ.
+ * POST /api/iris/pass { userId, idToken } (Nutriin, план) → { url, code } — пропуск за 1 анализ.
  * POST /api/iris/redeem { pass, deviceId } (IrisMap) → кредит на устройството.
  * POST /api/iris/gemini/v1beta/models/<модел>:generateContent   (заглавие X-Iris-Ticket)
  *   → препраща към Gemini с ключа на сървъра; всяка заявка изяжда 1 от билета (24 на анализ —
@@ -48,7 +48,7 @@ function rand(n = 24) {
 const PRICE = () => Pricing.PRODUCTS.iris_analysis.price;
 /** Плаща ли се анализът: в реален режим — за всички; в тестов — само за тестерите. */
 const payRequired = (env, tester) => env.BILLING_MODE === 'live' || tester === true || tester === 'true' || tester === '1';
-const payMessage = () => `Анализът е ${Pricing.formatPrice(PRICE())} — или включен в плана на Eatologix.`;
+const payMessage = () => `Анализът е ${Pricing.formatPrice(PRICE())} — или включен в плана на Nutriin.`;
 
 async function readJSON(env, key) { return JSON.parse((await env.page_content.get(key)) || 'null'); }
 /** Провален ли е анализът с този билет (използвани под 13 заявки). */
@@ -113,14 +113,14 @@ export async function handleIrisStatus(url, env, { respond }) {
 }
 
 /**
- * POST /api/iris/pass { userId, idToken } — от профила в Eatologix: човек с активен план получава
+ * POST /api/iris/pass { userId, idToken } — от профила в Nutriin: човек с активен план получава
  * пропуск за един анализ (1 на 4 седмици; 12 седмици → 3, пак по един на 4 седмици).
  * checkOwner(userId, idToken, env, request) → Response | null (Firebase, от worker-а).
  */
 export async function handleIrisPass(request, env, { respond, checkOwner, now = Date.now() }) {
   const body = await request.json().catch(() => ({}));
   const userId = String(body.userId || '');
-  if (!userId.startsWith('fb_')) return respond({ error: 'account', message: 'Влез в акаунта си в Eatologix.' }, 401);
+  if (!userId.startsWith('fb_')) return respond({ error: 'account', message: 'Влез в акаунта си в Nutriin.' }, 401);
   const ownerErr = await checkOwner(userId, body.idToken, env, request);
   if (ownerErr) return ownerErr;
   const access = normalizeAccess(await readAccess(env, userId), now);
@@ -150,7 +150,7 @@ export async function handleIrisRedeem(request, env, { respond, now = Date.now()
   if (!/^[a-z0-9]{24}$/.test(String(pass || '')) || !okDevice(deviceId)) return respond({ error: 'bad_request' }, 400);
   const key = `iris_pass:${pass}`;
   const p = await readJSON(env, key);
-  if (!p || p.used || p.exp < now) return respond({ error: 'expired', message: 'Пропускът е изтекъл или вече е използван. Отвори IrisMap отново от профила си в Eatologix.' }, 410);
+  if (!p || p.used || p.exp < now) return respond({ error: 'expired', message: 'Пропускът е изтекъл или вече е използван. Отвори IrisMap отново от профила си в Nutriin.' }, 410);
   await env.page_content.put(key, JSON.stringify({ ...p, used: now, deviceId }), { expirationTtl: 2 * 3600 });
   await addUsage(env, p.userId, 'iris', now, p.window);
   await env.page_content.put(`iris_plan_last:${p.userId}`, String(now), { expirationTtl: 400 * 86400 });

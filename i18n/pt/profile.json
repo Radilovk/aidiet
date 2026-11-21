@@ -1,9 +1,9 @@
 {
  "_comment": "profile.html — ръчен превод. Точен български текст → превод; каквото липсва — резервният AI превод. [Portuguese (Brazilian): автоматичен превод, gemini-3.6-flash]",
  "strings": {
-  "Управлявай твоя профил и преглеждай твоя персонализиран хранителен план в Eatologix.": "Gerencie seu perfil e veja seu plano alimentar personalizado no Eatologix.",
+  "Управлявай твоя профил и преглеждай твоя персонализиран хранителен план в Nutriin.": "Gerencie seu perfil e veja seu plano alimentar personalizado no Nutriin.",
   "Моят Профил": "Meu Perfil",
-  "Инсталирай Eatologix": "Instalar o Eatologix",
+  "Инсталирай Nutriin": "Instalar o Nutriin",
   "Добави приложението към началния екран": "Adicionar o app à tela inicial",
   "Инсталирай": "Instalar",
   "По-късно": "Mais tarde",

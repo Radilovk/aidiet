@@ -1,7 +1,7 @@
 {
  "_comment": "guidelines.html — ръчен превод. Точен български текст → превод; каквото липсва — резервният AI превод. [Polish: автоматичен превод, gemini-3.6-flash]",
  "strings": {
-  "Твоите хранителни насоки и макроелементи в Eatologix.": "Twoje wskazówki żywieniowe i makroskładniki w Eatologix.",
+  "Твоите хранителни насоки и макроелементи в Nutriin.": "Twoje wskazówki żywieniowe i makroskładniki w Nutriin.",
   "Насоки": "Wskazówki",
   "Твоята Хранителна Цел": "Twój cel żywieniowy",
   "Дневни Калории": "Dzienne kalorie",

@@ -28,10 +28,10 @@ const KEY = process.argv.includes('--no-ai') ? '' : process.env.GEMINI_API_KEY;
 
 const CFG = REPO === 'airis'
   ? { photos: 'public/brand/photos', src: 'brand/photos/', i18n: 'public/i18n', register: 'formal',
-      product: 'IrisMap, an iris-analysis app (part of the Eatologix platform)',
+      product: 'IrisMap, an iris-analysis app (part of the Nutriin platform)',
       route: (r) => (/irismap|airis/i.test(r.site + r.page) ? 'index.html' : null) }
   : { photos: 'brand/photos', src: 'brand/photos/', i18n: 'i18n', register: 'informal',
-      product: 'Eatologix, a personal nutrition plan app (with the modules EmoEat — emotional eating, and IrisMap — iris analysis)',
+      product: 'Nutriin, a personal nutrition plan app (with the modules EmoEat — emotional eating, and IrisMap — iris analysis)',
       route: (r) => {
         if (/irismap|airis/i.test(r.site)) return null;
         const p = String(r.page || '/').replace(/^\/aidiet/, '');
@@ -101,7 +101,7 @@ async function translate(lang, items) {
   try {
     const out = await gemini([{ text: `You are a professional localizer of ${CFG.product}. Translate each Bulgarian text into ${NAMES[lang]}.
 Rules: natural, idiomatic marketing/UI ${NAMES[lang]} as a native copywriter would write it — never word-for-word, keep the meaning and every concrete fact. ${reg}
-Keep numbers, units, emoji, product names (Eatologix, EmoEat, IrisMap) unchanged. Where "previous" is given, it is the earlier version of the same place and its translation — keep terminology consistent with it.
+Keep numbers, units, emoji, product names (Nutriin, EmoEat, IrisMap) unchanged. Where "previous" is given, it is the earlier version of the same place and its translation — keep terminology consistent with it.
 Return ONLY a JSON array of exactly ${items.length} strings, same order.
 
 ${JSON.stringify(items.map((x) => (x.prev ? { bg: x.bg, previous: x.prev } : { bg: x.bg })))}` }]);

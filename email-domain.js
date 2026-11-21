@@ -1,35 +1,48 @@
 /**
- * Пощата на eatologix.com (Resend) — настройва се без ръчна работа в Resend.
+ * Пощата на Nutriin (Resend) — настройва се без ръчна работа в Resend.
  *
  * Ключът за Resend е само в worker-а (RESEND_API_KEY), а за DNS — само в GitHub (CLOUDFLARE_API_TOKEN).
  * Мостът: workflow-ът „Domain setup“ записва еднократен код в KV (има ключа за Cloudflare — само той може)
  * и вика POST /api/system/email-domain с този код. Worker-ът регистрира домейна в Resend и връща DNS
  * записите; workflow-ът ги слага в Cloudflare и вика „verify“. Щом Resend потвърди домейна, писмата
- * сами минават на info@eatologix.com и връзките в тях — на eatologix.com (sendEmailViaSMTP).
- * Дотогава остава доказаното: info@biocode.online и връзки от biocode.website (да не падат в спам).
+ * сами минават на info@nutriin.app и връзките в тях — на nutriin.app (sendEmailViaSMTP).
+ *
+ * Преходът от eatologix.com: флагът в KV пази кой домейн е потвърден. Докато nutriin.app не е потвърден,
+ * писмата продължават от вече потвърдения info@eatologix.com (с подател „Nutriin“; eatologix.com препраща
+ * към nutriin.app). Без потвърден домейн — доказаното: info@biocode.online и връзки от biocode.website.
  */
-export const EMAIL_DOMAIN = 'eatologix.com';
-export const EMAIL_FROM_OLD = 'Eatologix <info@biocode.online>';
-export const EMAIL_FROM_NEW = `Eatologix <info@${EMAIL_DOMAIN}>`;
+export const EMAIL_DOMAIN = 'nutriin.app';
+export const EMAIL_DOMAIN_PREV = 'eatologix.com';
+export const EMAIL_FROM_OLD = 'Nutriin <info@biocode.online>';
+export const EMAIL_FROM_NEW = `Nutriin <info@${EMAIL_DOMAIN}>`;
+export const EMAIL_FROM_PREV = `Nutriin <info@${EMAIL_DOMAIN_PREV}>`;
 const NONCE_KEY = 'bridge_nonce:email_domain';
 const VERIFIED_KEY = 'email_domain_verified';
 const RESEND = 'https://api.resend.com';
 
-let cache = { at: 0, verified: false };
+let cache = { at: 0, domain: '' };
 
-/** Потвърден ли е домейнът в Resend (кеш 10 мин в инстанцията — 1 четене от KV). */
+/** Кой домейн е потвърден в Resend за изпращане ('' — никой); кеш 10 мин в инстанцията — 1 четене от KV. */
 export async function emailDomainVerified(env, now = Date.now()) {
-  if (now - cache.at < 600000) return cache.verified;
-  let verified = false;
-  try { verified = Boolean(await env.page_content.get(VERIFIED_KEY)); } catch (_) {}
-  cache = { at: now, verified };
-  return verified;
+  if (now - cache.at < 600000) return cache.domain;
+  let domain = '';
+  try {
+    const raw = await env.page_content.get(VERIFIED_KEY);
+    if (raw) {
+      let d = '';
+      try { d = String(JSON.parse(raw).domain || ''); } catch (_) { d = EMAIL_DOMAIN_PREV; }
+      if (d === EMAIL_DOMAIN || d === EMAIL_DOMAIN_PREV) domain = d;
+    }
+  } catch (_) {}
+  cache = { at: now, domain };
+  return domain;
 }
 
-/** Подателят и html-ът на писмото — според това дали eatologix.com е потвърден за изпращане. */
+/** Подателят и html-ът на писмото — според това кой домейн е потвърден за изпращане. */
 export async function emailEnvelope(env, html) {
-  if (!(await emailDomainVerified(env))) return { from: EMAIL_FROM_OLD, html };
-  return { from: EMAIL_FROM_NEW, html: String(html).split('https://biocode.website').join(`https://${EMAIL_DOMAIN}`) };
+  const d = await emailDomainVerified(env);
+  if (!d) return { from: EMAIL_FROM_OLD, html };
+  return { from: d === EMAIL_DOMAIN ? EMAIL_FROM_NEW : EMAIL_FROM_PREV, html: String(html).split('https://biocode.website').join(`https://${d}`) };
 }
 
 async function resend(env, method, path, body) {
@@ -70,7 +83,7 @@ export async function handleEmailDomain(request, env, { respond, now = Date.now(
       const full = await resend(env, 'GET', `/domains/${d.id}`);
       if (full.status === 'verified') {
         await env.page_content.put(VERIFIED_KEY, JSON.stringify({ domain: EMAIL_DOMAIN, at: new Date(now).toISOString() }));
-        cache = { at: 0, verified: false };
+        cache = { at: 0, domain: '' };
       }
       return respond({ status: full.status, records: (full.records || []).map((x) => ({ record: x.record, name: x.name, status: x.status })) });
     }

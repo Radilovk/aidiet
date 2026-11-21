@@ -1,8 +1,8 @@
 {
   "packageId": "com.biocode.nutriplan",
-  "host": "eatologix.com",
-  "name": "Eatologix - Интелигентна Хранителна Платформа",
-  "launcherName": "Eatologix",
+  "host": "nutriin.app",
+  "name": "Nutriin - Интелигентна Хранителна Платформа",
+  "launcherName": "Nutriin",
   "display": "standalone",
   "orientation": "portrait",
   "themeColor": "#EDF5F0",
@@ -13,9 +13,9 @@
   "navigationDividerColorDark": "#1A3232",
   "backgroundColor": "#032E36",
   "startUrl": "/",
-  "iconUrl": "https://eatologix.com/icon-512x512.png",
-  "maskableIconUrl": "https://eatologix.com/icon-512x512.png",
-  "monochromeIconUrl": "https://eatologix.com/icon-192x192.png",
+  "iconUrl": "https://nutriin.app/icon-512x512.png",
+  "maskableIconUrl": "https://nutriin.app/icon-512x512.png",
+  "monochromeIconUrl": "https://nutriin.app/icon-192x192.png",
   "alphaCode": "1",
   "appVersion": "1.0.0",
   "versionCode": 1,
@@ -30,23 +30,23 @@
       "name": "Моят план",
       "shortName": "План",
       "url": "/plan.html",
-      "chosenIconUrl": "https://eatologix.com/icon-192x192.png"
+      "chosenIconUrl": "https://nutriin.app/icon-192x192.png"
     },
     {
       "name": "Профил",
       "shortName": "Профил",
       "url": "/profile.html",
-      "chosenIconUrl": "https://eatologix.com/icon-192x192.png"
+      "chosenIconUrl": "https://nutriin.app/icon-192x192.png"
     },
     {
       "name": "Въпросник",
       "shortName": "Въпросник",
       "url": "/questionnaire2.html",
-      "chosenIconUrl": "https://eatologix.com/icon-192x192.png"
+      "chosenIconUrl": "https://nutriin.app/icon-192x192.png"
     }
   ],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://eatologix.com/manifest.json",
+  "webManifestUrl": "https://nutriin.app/manifest.json",
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "minSdkVersion": 21,

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Сменя видимото име NutriPlan → Eatologix. Може да се пуска многократно.
+ * Сменя видимото име NutriPlan → Nutriin. Може да се пуска многократно.
  * НЕ пипа: идентификатори (window.NutriPlan*, NutriPlanX), com.biocode.nutriplan, имената на APK
  * файловете (NutriPlan-v*.apk, NutriPlan.apk — по тях старите версии намират обновления),
  * CI артефакта NutriPlan-APK, ключа за подписване и маркерите на patch-овете.
@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 
-const NEW = 'Eatologix';
+const NEW = 'Nutriin';
 const SKIP = [
   /^docs\/archive\//, /^worker\.js$/, /NUTRIPLAN_FULL_TEXT_EXPORT/, /^android-res\/patch-/,
   /^\.github\/workflows\/(generate|studio-app-android)\.yml$/, /^workflows\/generator\.yml$/,

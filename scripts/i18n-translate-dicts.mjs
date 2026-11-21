@@ -5,7 +5,7 @@
  * от английския речник. Преведеното вече не се пипа — пуска се многократно, довършва само липсващото.
  *
  *   node scripts/i18n-translate-dicts.mjs --lang fr [--dir i18n] [--ref en] [--model gemini-3.6-flash]
- *        [--product "Eatologix, a nutrition app"] [--register informal|formal]
+ *        [--product "Nutriin, a nutrition app"] [--register informal|formal]
  *        [--keys path/to/keys.json --out name]   (отделен списък с български текстове → <dir>/<lang>/<name>.json)
  */
 import fs from 'node:fs';
@@ -16,7 +16,7 @@ const LANG = arg('lang');
 const DIR = arg('dir', 'i18n');
 const REF = arg('ref', 'en');
 const MODEL = arg('model', 'gemini-3.6-flash');
-const PRODUCT = arg('product', 'Eatologix, a nutrition app (with the modules EmoEat — emotional eating, and IrisMap — iris analysis)');
+const PRODUCT = arg('product', 'Nutriin, a nutrition app (with the modules EmoEat — emotional eating, and IrisMap — iris analysis)');
 const REGISTER = arg('register', 'informal');
 const KEYS = arg('keys'), OUT = arg('out');
 const KEY = process.env.GEMINI_API_KEY;
@@ -35,7 +35,7 @@ function prompt(srcName, list) {
 Rules:
 - Natural, idiomatic, concise ${name} as a native app would use it — never word-for-word. Health and nutrition terms as a ${name}-speaking doctor or dietitian would write them.
 - ${reg}
-- Keep unchanged: numbers, units (g, kcal, ml, kg, cm), emoji, punctuation at the edges, placeholders like $1 $2 and {name}, HTML entities, product names (Eatologix, EmoEat, IrisMap, BIOCODE).
+- Keep unchanged: numbers, units (g, kcal, ml, kg, cm), emoji, punctuation at the edges, placeholders like $1 $2 and {name}, HTML entities, product names (Nutriin, EmoEat, IrisMap, BIOCODE).
 - Short UI labels stay short (buttons, tabs, chips). Bulgarian gendered forms like "уморен/а" → the natural neutral or inclusive ${name} form.
 - Food names: the usual ${name} name; a Bulgarian dish with no equivalent keeps its name in Latin letters.
 - Translate fully into ${name}; do not leave any ${srcName} words. Do not add quotes, notes or explanations.
