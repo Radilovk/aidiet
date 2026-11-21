@@ -371,3 +371,74 @@ html[data-ui="glass"][data-theme="dark"] .nav-btn.lp-btn {
     color: #03201F;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 0 0.5px rgba(0, 0, 0, 0.4), 0 14px 32px -12px rgba(25, 214, 210, 0.55);
 }
+
+/* ==========================================================================
+   Модулите: същият материал, своят цвят в светлината
+   EmoEat (emoeat.html, <html data-module="emoeat">) — виолетово, в един тон
+   ========================================================================== */
+html[data-ui="glass"][data-module="emoeat"] {
+    --ag-bg: #F3F1F8;
+    --ag-accent: #6D28D9;                               /* 7:1 върху бяло */
+    --ag-fill: linear-gradient(155deg, #7C3AED 0%, #5B21B6 100%);
+    --ds-fill: #6D28D9;
+    --ds-fill-strong: #5B21B6;
+    --ag-a: #C4B5FD; --ag-b: #F0ABFC; --ag-c: #A5B4FC;
+    --ag-a-o: 0.50;  --ag-b-o: 0.30;  --ag-c-o: 0.32;
+    --primary: #6D28D9;
+    --primary-hover: #5B21B6;
+    --primary-light: #EDE9FE;
+    --primary-dark: #5B21B6;
+    --glass-border: rgba(109, 40, 217, 0.10);
+    --card-bg: var(--ag-surface);
+    --shadow: inset 0 1px 0 var(--ag-hi), 0 1px 2px rgba(30, 20, 60, 0.04), 0 14px 34px -18px rgba(60, 30, 120, 0.30);
+}
+html[data-ui="glass"][data-module="emoeat"][data-theme="dark"] {
+    --ag-bg: #0A0812;
+    --ag-accent: #C4B5FD;
+    --ag-surface: rgba(28, 22, 44, 0.70);
+    --ag-surface-solid: #18132A;
+    --ag-chrome: rgba(34, 26, 54, 0.55);
+    --ag-chrome-solid: #18132A;
+    --ag-fill: linear-gradient(155deg, #7C3AED 0%, #5B21B6 100%);
+    --ds-fill: #6D28D9;
+    --ds-fill-strong: #5B21B6;
+    --ag-a: #6D28D9; --ag-b: #A21CAF; --ag-c: #3730A3;
+    --ag-a-o: 0.60;  --ag-b-o: 0.34;  --ag-c-o: 0.42;
+    --primary: #C4B5FD;
+    --primary-hover: #A78BFA;
+    --primary-light: rgba(155, 92, 246, 0.18);
+    --primary-dark: #DDD6FE;
+    --text-dark: #F1EEFA;
+    --text-gray: #B4ABC8;
+    --text-light: #B4ABC8;
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --shadow: inset 0 1px 0 var(--ag-hi), 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 16px 36px -18px rgba(0, 0, 0, 0.7);
+}
+/* светлината не сменя оттенъка по часа — EmoEat остава виолетов */
+html[data-ui="glass"][data-module="emoeat"][data-daypart] .ag-aura i { transition: none; }
+html[data-ui="glass"][data-module="emoeat"] .site-nav {
+    background: color-mix(in srgb, var(--ag-bg) 55%, transparent);
+    border-bottom: 1px solid var(--ag-edge);
+    box-shadow: none;
+}
+html[data-ui="glass"][data-module="emoeat"] .feature-card,
+html[data-ui="glass"][data-module="emoeat"] .option-card,
+html[data-ui="glass"][data-module="emoeat"] .texture-card,
+html[data-ui="glass"][data-module="emoeat"] .app-header {
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    border: 1px solid var(--ag-edge);
+}
+html[data-ui="glass"][data-module="emoeat"][data-theme="dark"] .feature-icon.purple { background: var(--primary-light); }
+html[data-ui="glass"][data-module="emoeat"] .btn-next,
+html[data-ui="glass"][data-module="emoeat"] .header-icon,
+html[data-ui="glass"][data-module="emoeat"] .app-header .icon { background: var(--ag-fill); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 14px 30px -14px rgba(91, 33, 182, 0.7); }
+html[data-ui="glass"][data-module="emoeat"] .nav-footer,
+html[data-ui="glass"][data-module="emoeat"][data-theme="dark"] .nav-footer {
+    background: color-mix(in srgb, var(--ag-bg) 55%, transparent);
+    -webkit-backdrop-filter: var(--ag-blur-strong);
+    backdrop-filter: var(--ag-blur-strong);
+    border-top: 1px solid var(--ag-edge);
+    box-shadow: none;
+}
