@@ -21,14 +21,14 @@
     color-scheme: light;
 }
 :root[data-theme="dark"] {
-    --bg: #0B1213;
+    --bg: color-mix(in srgb, var(--acc) 7%, #05090A);   /* дълбоко, с оттенък на модула (ambient-glass) */
     --ink: #EEF5F4;
     --muted: #9DB0AF;
     --line: rgba(238, 245, 244, .10);
     --glass: rgba(30, 40, 42, .52);
     --glass-strong: rgba(36, 48, 50, .72);
     --edge: rgba(255, 255, 255, .09);
-    --shadow: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 28px 60px -26px rgba(0, 0, 0, .75);
+    --shadow: 0 1px 0 rgba(255, 255, 255, .08) inset, 0 0 0 .5px rgba(0, 0, 0, .5), 0 28px 60px -26px rgba(0, 0, 0, .75);
     --acc-text: color-mix(in srgb, var(--acc) 55%, #fff);
     --aurora-1: color-mix(in srgb, var(--acc) 34%, transparent);
     --aurora-2: color-mix(in srgb, var(--acc-2) 18%, transparent);

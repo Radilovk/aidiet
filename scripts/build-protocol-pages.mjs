@@ -19,7 +19,7 @@ import { PROTOCOL_STATES, STATE_ICONS, statePageUrl } from '../protocol-states.j
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = 'https://eatologix.com';
-const CSS_V = '20261114c';
+const CSS_V = '20261121a';
 
 /** Статични страници с общия футър (вмъква се между маркерите). */
 const SITE_FOOTER_PAGES = ['index.html', 'features.html', 'pricing.html', 'help.html', 'delete-account.html', 'privacy-policy.html', 'terms.html']; // emoeat-landing.html има собствен футър (самостоятелен сайт emoeat.app)

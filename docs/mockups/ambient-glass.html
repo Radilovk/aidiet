@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Макет: дълбок фон + стъкло</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,-apple-system,"Segoe UI",Roboto,sans-serif;background:#222;display:flex;gap:28px;padding:28px;align-items:flex-start}
+.cap{color:#ddd;font:600 15px/1.3 system-ui;margin-bottom:10px}
+.phone{width:390px;height:844px;border-radius:38px;overflow:hidden;position:relative;isolation:isolate}
+
+/* ---------- ТЪМНА ---------- */
+.dark{--bg:#06110F;--ink:#EAF6F2;--soft:#9DB5AF;--glass:rgba(255,255,255,.055);--glass-hi:rgba(255,255,255,.12);--line:rgba(255,255,255,.08);--accent:#3FE0D0;--lime:#B6F34A;background:var(--bg);color:var(--ink)}
+.light{--bg:#EEF4F1;--ink:#0E2A27;--soft:#56706B;--glass:rgba(255,255,255,.62);--glass-hi:rgba(255,255,255,.9);--line:rgba(14,42,39,.07);--accent:#05737D;--lime:#B6F34A;background:var(--bg);color:var(--ink)}
+
+/* Дълбокият фон: светлина зад всичко (ambient light / mesh) */
+.aura{position:absolute;inset:0;z-index:-1;overflow:hidden}
+.aura i{position:absolute;border-radius:50%;filter:blur(70px)}
+.dark .aura .a{width:360px;height:360px;left:-120px;top:-90px;background:#0A8C96;opacity:.55}
+.dark .aura .b{width:300px;height:300px;right:-130px;top:260px;background:#0E9F5B;opacity:.38}
+.dark .aura .c{width:260px;height:260px;left:-60px;bottom:-40px;background:#0B5F86;opacity:.35}
+.light .aura .a{width:360px;height:360px;left:-120px;top:-90px;background:#5FD6D0;opacity:.45}
+.light .aura .b{width:300px;height:300px;right:-130px;top:280px;background:#7EE3A6;opacity:.35}
+.light .aura .c{width:260px;height:260px;left:-60px;bottom:-40px;background:#8CC8E8;opacity:.30}
+
+.glass{background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);
+  border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--glass-hi),0 10px 30px -18px rgba(0,0,0,.45)}
+
+.top{display:flex;align-items:center;justify-content:space-between;padding:54px 16px 10px}
+.round{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:20px;color:var(--ink)}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.01em}
+.wrap{padding:6px 14px}
+
+/* Главната карта: цветът идва от светлината отзад, не от боя */
+.hero{border-radius:26px;padding:18px;position:relative;overflow:hidden}
+.dark .hero{background:linear-gradient(160deg,rgba(10,140,150,.42),rgba(8,90,80,.30));border-color:rgba(120,240,230,.16)}
+.light .hero{background:linear-gradient(160deg,#086A74,#0A6F5C);color:#fff;border-color:transparent;box-shadow:0 18px 40px -20px rgba(5,100,100,.55),inset 0 1px 0 rgba(255,255,255,.18)}
+.hero::before{content:"";position:absolute;width:240px;height:240px;left:-80px;top:-120px;border-radius:50%;background:radial-gradient(circle,rgba(150,255,245,.22),transparent 70%)}
+.kick{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.75;display:flex;justify-content:space-between}
+.kick b{text-transform:none;letter-spacing:0;font-size:14px;opacity:1}
+.hero h2{font-size:24px;font-weight:800;margin:6px 0 16px;letter-spacing:-.01em}
+.strip{display:flex;gap:5px}
+.strip span{flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.16)}
+.strip span.done{background:var(--lime);box-shadow:0 0 12px rgba(182,243,74,.45)}
+.strip span.next{box-shadow:0 0 0 1.5px rgba(255,255,255,.8)}
+.ico{display:flex;gap:5px;margin:9px 0 18px;font-size:15px;opacity:.85}.ico span{flex:1;text-align:center}
+.cal{display:flex;justify-content:space-between;font-size:14px;font-weight:600;opacity:.9}
+.track{height:6px;border-radius:3px;background:rgba(255,255,255,.14);margin-top:8px;position:relative}
+.track i{position:absolute;left:69%;width:15%;top:0;bottom:0;background:rgba(255,255,255,.35);border-radius:3px}
+
+.meal{border-radius:22px;padding:16px 16px 16px 18px;margin-top:12px;display:flex;align-items:center;gap:14px}
+.meal div{flex:1}
+.meal small{display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.meal b{font-size:18px;line-height:1.3;font-weight:700}
+.chk{width:44px;height:44px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--accent) 55%,transparent);display:grid;place-items:center;color:var(--accent);font-size:18px;flex-shrink:0}
+
+.nav{position:absolute;left:14px;right:14px;bottom:22px;height:66px;border-radius:33px;display:flex;align-items:center;justify-content:space-around;padding:0 6px}
+.nav span{font-size:11.5px;font-weight:600;color:var(--soft);display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 14px;border-radius:24px}
+.nav span em{font-style:normal;font-size:19px}
+.nav span.on{color:var(--ink);background:rgba(255,255,255,.10)}
+.light .nav span.on{background:rgba(5,115,125,.10);color:#05737D}
+.dark .nav span.on em{color:var(--lime)}
+</style></head><body>
+
+<div><p class="cap">Сега (твоята снимка)</p><img src="before.jpg" style="width:390px;border-radius:38px;display:block"></div>
+
+<script>
+const screen = (cls) => `
+<div class="phone ${cls}"><div class="aura"><i class="a"></i><i class="b"></i><i class="c"></i></div>
+ <div class="top"><span class="round glass">‹</span><h1>Събота</h1><span class="round glass">›</span></div>
+ <div class="wrap">
+  <section class="hero glass">
+   <div class="kick"><span>Днес · 1 от 6</span><b>Напредък ›</b></div>
+   <h2>Следва: Обяд</h2>
+   <div class="strip"><span class="done"></span><span class="next"></span><span></span><span></span><span></span><span></span></div>
+   <div class="ico"><span>☀</span><span>🍴</span><span>🍎</span><span>🍲</span><span>🍪</span><span>☾</span></div>
+   <div class="cal"><span>Калории</span><span>ⓘ</span></div><div class="track"><i></i></div>
+  </section>
+  <article class="meal glass"><div><small>Обяд</small><b>Телешки стек със зелен фасул и киноа</b></div><span class="chk">✓</span></article>
+  <article class="meal glass"><div><small>Следобедна закуска</small><b>Кисело мляко без лактоза с банан</b></div><span class="chk">✓</span></article>
+  <article class="meal glass"><div><small>Вечеря</small><b>Пилешко бон филе на скара с кисело зеле</b></div><span class="chk">✓</span></article>
+ </div>
+ <nav class="nav glass"><span class="on"><em>🍴</em>Моят план</span><span><em>◎</em>Насоки</span><span><em>▤</em>Напредък</span><span><em>●</em>Профил</span></nav>
+</div>`;
+document.body.insertAdjacentHTML('beforeend','<div><p class="cap">Предложение — тъмна</p>'+screen('dark')+'</div><div><p class="cap">Предложение — светла</p>'+screen('light')+'</div>');
+</script>
+</body></html>

@@ -1,0 +1,444 @@
+/* ==========================================================================
+   Пробен вид „Светлина · Стъкло · Спокойствие“ — само при html[data-ui="glass"]
+   (включва се с ?ui=glass, изключва се с ?ui=classic; виж ambient-glass.js).
+
+   Три слоя, всеки със своя роля:
+     1. Фон      — дълбок, със светлина отзад; светлината следва часа и напредъка на деня.
+     2. Съдържание — матово стъкло, почти плътно: текстът се чете като върху плътна карта.
+     3. Управление — прозрачно стъкло, което плава: горната лента, долната навигация.
+   Цветът живее в светлината, не в боята. Един тон (тюркоаз) — без преливане към жълто;
+   лаймът е само за „изпълнено“.
+   ========================================================================== */
+
+/* ---------- Токени ---------- */
+html[data-ui="glass"] {
+    --ag-bg: #EEF4F2;
+    --ag-ink: #0E2A27;
+    --ag-ink-soft: #4E6B66;
+    --ag-accent: #05737D;              /* етикети, отметки — 5.4:1 върху белите карти */
+    --ag-surface: rgba(255, 255, 255, 0.76);
+    --ag-surface-solid: #FFFFFF;
+    --ag-edge: rgba(14, 42, 39, 0.07);
+    --ag-hi: rgba(255, 255, 255, 0.95);
+    --ag-chrome: rgba(255, 255, 255, 0.62);
+    --ag-chrome-solid: #FFFFFF;
+    --ag-shadow: 0 1px 2px rgba(14, 42, 39, 0.04), 0 12px 32px -18px rgba(14, 60, 55, 0.28);
+    --ag-blur: blur(24px) saturate(160%);
+    --ag-blur-strong: blur(28px) saturate(180%);
+    --ag-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* Плътният тюркоаз: един тон, двата края ≥ 5:1 с бяло */
+    --ag-fill: linear-gradient(155deg, #086C77 0%, #065862 100%);
+    /* Светлината (светла тема, ден) */
+    --ag-a: #6FD8D2; --ag-b: #93E6B6; --ag-c: #A7D3EE;
+    --ag-a-o: 0.42;  --ag-b-o: 0.30;  --ag-c-o: 0.30;
+
+    --ds-fill-grad: var(--ag-fill);
+    --bg-color: var(--ag-bg);
+    --ds-bg-primary: var(--ag-bg);
+}
+html[data-ui="glass"][data-daypart="morning"] { --ag-a: #7EE0DA; --ag-b: #A6EBC2; --ag-c: #BFE0F2; }
+html[data-ui="glass"][data-daypart="evening"],
+html[data-ui="glass"][data-daypart="night"]   { --ag-a: #78CFD8; --ag-b: #9CC3EE; --ag-c: #B8B4EC; }
+
+html[data-ui="glass"][data-theme="dark"] {
+    --ag-bg: #050F0E;
+    --ag-ink: #EAF6F2;
+    --ag-ink-soft: #9DB5AF;
+    --ag-accent: #3FDCCF;
+    --ag-surface: rgba(16, 34, 33, 0.70);
+    --ag-surface-solid: #0F1F1E;
+    --ag-edge: rgba(255, 255, 255, 0.075);
+    --ag-hi: rgba(255, 255, 255, 0.10);
+    --ag-chrome: rgba(22, 38, 37, 0.55);
+    --ag-chrome-solid: #10201F;
+    --ag-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 14px 34px -18px rgba(0, 0, 0, 0.7);
+    --ag-a: #0A8C96; --ag-b: #0E9F5B; --ag-c: #0B5F86;
+    --ag-a-o: 0.75;  --ag-b-o: 0.48;  --ag-c-o: 0.50;
+}
+html[data-ui="glass"][data-theme="dark"][data-daypart="morning"] { --ag-a: #12A3A8; --ag-b: #23B07A; --ag-c: #2D7FA8; }
+html[data-ui="glass"][data-theme="dark"][data-daypart="evening"] { --ag-a: #0A7C8A; --ag-b: #155E9C; --ag-c: #3B3F9E; --ag-b-o: 0.46; --ag-c-o: 0.40; }
+html[data-ui="glass"][data-theme="dark"][data-daypart="night"]   { --ag-a: #0A5E6A; --ag-b: #0D3F70; --ag-c: #23285E; --ag-a-o: 0.60; --ag-b-o: 0.40; --ag-c-o: 0.36; }
+
+/* ---------- 1. Фон: светлина отзад ---------- */
+html[data-ui="glass"] { background: var(--ag-bg) !important; }
+html[data-ui="glass"] body { background: transparent !important; }   /* иначе тялото покрива светлината */
+html[data-ui="glass"] body { color: var(--ag-ink); }
+html[data-ui="glass"] .ds-mesh-bg,
+html[data-ui="glass"] .ambient-mesh,
+html[data-ui="glass"] .blob-bg,
+html[data-ui="glass"] .mesh-overlay { display: none !important; }
+
+.ag-aura { display: none; }
+html[data-ui="glass"] .ag-aura {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    /* напредъкът на деня леко усилва светлината (0 → 1) */
+    opacity: calc(0.82 + 0.18 * var(--ag-lift, 0));
+    transition: opacity 1.2s ease;
+}
+html[data-ui="glass"] .ag-aura i {
+    position: absolute;
+    border-radius: 50%;
+    will-change: transform;
+    transition: background 2s ease;
+}
+/* радиални преливания вместо filter: blur — същата мекота, без цената за телефона */
+html[data-ui="glass"] .ag-aura .ag-a {
+    width: 130vmax; height: 130vmax; left: -65vmax; top: -70vmax;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--ag-a) calc(var(--ag-a-o) * 100%), transparent), transparent);
+    animation: agDriftA 38s ease-in-out infinite alternate;
+}
+html[data-ui="glass"] .ag-aura .ag-b {
+    width: 110vmax; height: 110vmax; right: -70vmax; top: 18vh;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--ag-b) calc(var(--ag-b-o) * 100%), transparent), transparent);
+    animation: agDriftB 46s ease-in-out infinite alternate;
+}
+html[data-ui="glass"] .ag-aura .ag-c {
+    width: 110vmax; height: 110vmax; left: -55vmax; bottom: -75vmax;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--ag-c) calc(var(--ag-c-o) * 100%), transparent), transparent);
+    animation: agDriftC 52s ease-in-out infinite alternate;
+}
+@keyframes agDriftA { to { transform: translate3d(6vw, 4vh, 0) scale(1.06); } }
+@keyframes agDriftB { to { transform: translate3d(-8vw, 6vh, 0) scale(1.04); } }
+@keyframes agDriftC { to { transform: translate3d(7vw, -5vh, 0) scale(1.08); } }
+
+/* ---------- Общ материал ---------- */
+html[data-ui="glass"] .ag-glass {
+    background: var(--ag-surface);
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    border: 1px solid var(--ag-edge);
+    box-shadow: inset 0 1px 0 var(--ag-hi), var(--ag-shadow);
+}
+
+/* ---------- 3. Управление: горната лента на деня (plan.html) ---------- */
+html[data-ui="glass"] .day-banner,
+html[data-ui="glass"][data-theme="dark"] .day-banner { background: transparent; }
+html[data-ui="glass"] .day-banner::before { display: none; }
+html[data-ui="glass"] .day-banner-label { color: var(--ag-ink); text-shadow: none; letter-spacing: -0.01em; font-size: 1.375rem; }
+html[data-ui="glass"] .day-time-icon svg { stroke: var(--ag-accent); opacity: 1; }
+html[data-ui="glass"] .day-banner-arrow {
+    width: 44px; height: 44px; margin: 10px 16px;
+    color: var(--ag-ink);
+    background: var(--ag-chrome);
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    border: 1px solid var(--ag-edge);
+    box-shadow: inset 0 1px 0 var(--ag-hi), var(--ag-shadow);
+    transition: transform 0.45s var(--ag-spring), background-color 0.2s ease;
+}
+html[data-ui="glass"] .day-banner-arrow:hover { background: var(--ag-chrome); transform: none; }
+html[data-ui="glass"] .day-banner-arrow:active { transform: scale(0.9); transition-duration: 0.1s; }
+
+/* ---------- Главната карта: картата на деня ---------- */
+html[data-ui="glass"] #dailyScoreCard.day-card {
+    background: var(--ag-fill);
+    border: 1px solid transparent;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 18px 40px -22px rgba(5, 90, 95, 0.65);
+    border-radius: 26px;
+}
+html[data-ui="glass"][data-theme="dark"] #dailyScoreCard.day-card {
+    background: linear-gradient(155deg, rgba(14, 132, 142, 0.52) 0%, rgba(8, 86, 92, 0.42) 100%);
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    border-color: rgba(140, 240, 232, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.45), 0 18px 44px -20px rgba(0, 0, 0, 0.75);
+}
+/* лаймовото сияние в ъгъла (то даваше калния жълтеникав тон) → хладна светлина отгоре вляво */
+html[data-ui="glass"] #dailyScoreCard.day-card::after {
+    left: -70px; right: auto; top: -110px;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(150, 255, 245, 0.10), transparent 70%);
+}
+html[data-ui="glass"][data-theme="dark"] #dailyScoreCard.day-card::after { background: radial-gradient(circle, rgba(150, 255, 245, 0.16), transparent 70%); }
+html[data-ui="glass"] #dailyScoreCard.day-card--empty {
+    background: var(--ag-surface); color: var(--ag-ink);
+    border: 1px dashed var(--ag-edge); box-shadow: none;
+}
+html[data-ui="glass"] .dc-kicker { opacity: 0.94; }
+html[data-ui="glass"] .dc-seg--done .dc-seg-bar { box-shadow: 0 0 10px rgba(182, 243, 74, 0.45); }
+
+/* ---------- 2. Съдържание: картите на храненията ---------- */
+html[data-ui="glass"] .meal-card,
+html[data-ui="glass"][data-theme="dark"] .meal-card {
+    background: var(--ag-surface);
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    border: 1px solid var(--ag-edge);
+    border-radius: 22px;
+    box-shadow: inset 0 1px 0 var(--ag-hi), var(--ag-shadow);
+    padding: 16px 16px 16px 18px;
+    margin-bottom: 12px;
+    transition: transform 0.5s var(--ag-spring), background-color 0.3s ease, opacity 0.3s ease;
+}
+html[data-ui="glass"] .meal-card::before { display: none; }        /* цветната ивица отляво — стар похват */
+html[data-ui="glass"] .meal-card:hover,
+html[data-ui="glass"][data-theme="dark"] .meal-card:hover { transform: none; box-shadow: inset 0 1px 0 var(--ag-hi), var(--ag-shadow); }
+html[data-ui="glass"] .meal-card:active { transform: scale(0.985); transition-duration: 0.12s; }
+
+/* Други карти и банери на страницата — същият материал */
+html[data-ui="glass"] .my-foods-banner,
+html[data-ui="glass"][data-theme="dark"] .my-foods-banner {
+    background: var(--ag-surface);
+    color: var(--ag-ink);
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    border: 1px solid var(--ag-edge);
+    box-shadow: inset 0 1px 0 var(--ag-hi), var(--ag-shadow);
+}
+html[data-ui="glass"] .my-foods-banner .my-foods-icon { color: var(--ag-accent); }
+
+/* Плаващите бутони: тъмен ръб + отблясък, малко над плаващата навигация */
+html[data-ui="glass"][data-embedded-tab="1"] .fab-chat,
+html[data-ui="glass"][data-embedded-tab="1"] .fab-food { bottom: calc(92px + var(--ag-safe-b, 0px)) !important; }   /* app.js слага 16px с !important */
+html[data-ui="glass"] .fab-food,
+html[data-ui="glass"] .fab-chat {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 0 0.5px rgba(0, 0, 0, 0.35), 0 12px 28px -10px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Вградените раздели стигат под плаващата навигация — място отдолу */
+html[data-ui="glass"][data-embedded-tab="1"] body { padding-bottom: calc(108px + var(--ag-safe-b, 0px)) !important; }
+
+/* ---------- 3. Управление: долната навигация (обвивката index.html) ---------- */
+html[data-ui="glass"] body.spa-mode,
+html[data-ui="glass"] .spa-shell,
+html[data-ui="glass"] .spa-tab-stack { background: transparent; }
+html[data-ui="glass"] .spa-tab-stack { bottom: 0; }
+html[data-ui="glass"] .spa-tab-view { background: transparent; }
+html[data-ui="glass"] .spa-bottom-nav,
+html[data-ui="glass"][data-theme="dark"] .spa-bottom-nav {
+    left: 12px; right: 12px;
+    bottom: calc(10px + var(--safe-area-inset-bottom, 0px));
+    height: 64px;
+    padding: 0 6px;
+    border-radius: 32px;
+    background: var(--ag-chrome);
+    -webkit-backdrop-filter: var(--ag-blur-strong);
+    backdrop-filter: var(--ag-blur-strong);
+    border: 1px solid var(--ag-edge);
+    box-shadow: inset 0 1px 0 var(--ag-hi), 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 16px 36px -14px rgba(0, 0, 0, 0.45);
+}
+html[data-ui="glass"] .spa-bottom-nav .bottom-nav-item { color: var(--ag-ink-soft); font-size: 11px; }
+html[data-ui="glass"] .spa-bottom-nav .bottom-nav-item.active { color: var(--ag-accent); }
+html[data-ui="glass"][data-theme="dark"] .spa-bottom-nav .bottom-nav-item.active { color: var(--ag-ink); }
+html[data-ui="glass"][data-theme="dark"] .spa-bottom-nav .bottom-nav-item.active i { color: #B6F34A; }
+html[data-ui="glass"] .spa-nav-pill { top: 6px; height: 50px; border-radius: 25px; background: rgba(5, 115, 125, 0.10); transition: transform 0.5s var(--ag-spring), width 0.5s var(--ag-spring), opacity 0.2s; }
+html[data-ui="glass"][data-theme="dark"] .spa-nav-pill { background: rgba(255, 255, 255, 0.09); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+@media (min-width: 900px) {
+    html[data-ui="glass"] .spa-bottom-nav { width: min(436px, calc(100% - 24px)); }
+    html[data-ui="glass"] body.spa-mode { background: var(--ag-bg); }
+}
+
+/* ---------- Достъпност и слаби устройства ----------
+   „Намали прозрачността“, „Повишен контраст“ и слаби телефони: плътни повърхности, без замъгляване. */
+html[data-ui="glass"][data-ui-lite] { --ag-surface: var(--ag-surface-solid); --ag-chrome: var(--ag-chrome-solid); --ag-blur: none; --ag-blur-strong: none; }
+html[data-ui="glass"][data-ui-lite][data-theme="dark"] #dailyScoreCard.day-card { background: linear-gradient(155deg, #0C5F67 0%, #08474D 100%); }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    html[data-ui="glass"] { --ag-surface: var(--ag-surface-solid); --ag-chrome: var(--ag-chrome-solid); --ag-blur: none; --ag-blur-strong: none; }
+    html[data-ui="glass"][data-theme="dark"] #dailyScoreCard.day-card { background: linear-gradient(155deg, #0C5F67 0%, #08474D 100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    html[data-ui="glass"] .ag-aura i { animation: none; }
+    html[data-ui="glass"] .meal-card,
+    html[data-ui="glass"] .day-banner-arrow { transition: none; }
+}
+html[data-ui="glass"][data-ui-lite] .ag-aura i { animation: none; }
+
+/* ==========================================================================
+   Навсякъде в приложението и лендингите
+   ========================================================================== */
+
+/* Самостоятелните страници (извън обвивката): същата плаваща навигация */
+html[data-ui="glass"]:not([data-embedded-tab="1"]) .bottom-nav:not(.spa-bottom-nav),
+html[data-ui="glass"][data-theme="dark"]:not([data-embedded-tab="1"]) .bottom-nav:not(.spa-bottom-nav) {
+    left: 12px; right: 12px;
+    bottom: calc(10px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    height: 64px;
+    padding: 0 6px;
+    border-radius: 32px;
+    background: var(--ag-chrome);
+    -webkit-backdrop-filter: var(--ag-blur-strong);
+    backdrop-filter: var(--ag-blur-strong);
+    border: 1px solid var(--ag-edge);
+    box-shadow: inset 0 1px 0 var(--ag-hi), 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 16px 36px -14px rgba(0, 0, 0, 0.45);
+}
+html[data-ui="glass"] .bottom-nav:not(.spa-bottom-nav) .bottom-nav-item { color: var(--ag-ink-soft); font-size: 11px; border-radius: 24px; }
+html[data-ui="glass"] .bottom-nav:not(.spa-bottom-nav) .bottom-nav-item.active { color: var(--ag-accent); background: rgba(5, 115, 125, 0.10); }
+html[data-ui="glass"][data-theme="dark"] .bottom-nav:not(.spa-bottom-nav) .bottom-nav-item.active { color: var(--ag-ink); background: rgba(255, 255, 255, 0.09); }
+html[data-ui="glass"][data-theme="dark"] .bottom-nav:not(.spa-bottom-nav) .bottom-nav-item.active i { color: #B6F34A; }
+
+/* Горните ленти: прозрачно стъкло, без цветна линия */
+html[data-ui="glass"] header.analysis-header,
+html[data-ui="glass"][data-theme="dark"] header.analysis-header,
+html[data-ui="glass"] .progress-container,
+html[data-ui="glass"] .fp-bar {
+    background: color-mix(in srgb, var(--ag-bg) 55%, transparent);
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    border-bottom: 1px solid var(--ag-edge);
+    box-shadow: none;
+}
+html[data-ui="glass"] header.analysis-header::after,
+html[data-ui="glass"] header.analysis-header::before { display: none; }
+
+/* Долни ленти с действие (храни, въпросник) */
+html[data-ui="glass"] .fp-submit-wrap {
+    background: var(--ag-chrome);
+    -webkit-backdrop-filter: var(--ag-blur-strong);
+    backdrop-filter: var(--ag-blur-strong);
+    border-top: 1px solid var(--ag-edge);
+}
+
+/* Цветните ивици вляво на картите — стар похват; цветът остава в иконата и нивото */
+html[data-ui="glass"] .problem-card,
+html[data-ui="glass"][data-theme="dark"] .problem-card { border-left-width: 1px; border-left-color: var(--ag-edge); }
+html[data-ui="glass"] .problem-card::before { display: none; }
+
+/* Сиво-сините карти от тъмната тема → матово стъкло в тона на фона */
+html[data-ui="glass"][data-theme="dark"] .problem-card {
+    background: var(--ag-surface);
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    box-shadow: inset 0 1px 0 var(--ag-hi), var(--ag-shadow);
+}
+
+/* Плътни цветни ленти през целия екран → светлината отзад ги замества */
+html[data-ui="glass"] .fp-header {
+    background: transparent;
+    color: var(--ag-ink);
+}
+html[data-ui="glass"] .fp-header .fp-back-btn {
+    color: var(--ag-ink);
+    background: var(--ag-chrome);
+    border: 1px solid var(--ag-edge);
+    box-shadow: inset 0 1px 0 var(--ag-hi);
+}
+html[data-ui="glass"] .stats-bar {
+    background: var(--ag-surface);
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    border-top: 1px solid var(--ag-edge);
+    border-bottom: 1px solid var(--ag-edge);
+    color: var(--ag-ink);
+}
+html[data-ui="glass"] .stats-bar * { color: inherit; }
+html[data-ui="glass"] .page-hero { background: transparent; }
+
+/* ---------- Лендингът (index.html) ---------- */
+html[data-ui="glass"] .lp { --lp-surface: var(--ag-surface); --lp-surface-2: transparent; --lp-line: var(--ag-edge); }
+html[data-ui="glass"] .lp-tile,
+html[data-ui="glass"] .lp-program {
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    box-shadow: inset 0 1px 0 var(--ag-hi), var(--ag-shadow);
+}
+html[data-ui="glass"] .lp-tile.is-in:hover,
+html[data-ui="glass"] .lp-program:hover { box-shadow: inset 0 1px 0 var(--ag-hi), 0 30px 60px -34px rgba(0, 0, 0, 0.45); }
+html[data-ui="glass"] .lp-final-inner {
+    background:
+        radial-gradient(70% 90% at 50% 0%, rgba(25, 214, 210, 0.30) 0%, transparent 70%),
+        linear-gradient(160deg, rgba(8, 40, 40, 0.92) 0%, rgba(5, 22, 22, 0.94) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 30px 60px -30px rgba(0, 0, 0, 0.6);
+}
+html[data-ui="glass"] .lp-step::before { background: var(--ag-bg); }
+
+/* Цветни ленти по горния ръб на картите (дъга / градиент) — шум; картата се отделя с ръба и отблясъка */
+html[data-ui="glass"] .macros-viz-container::before,
+html[data-ui="glass"] .profile-header::before,
+html[data-ui="glass"] .form-section::before { display: none; }
+
+/* ---------- Листове и прозорци: почти плътни, тъмен ръб + отблясък ----------
+   Без backdrop-filter тук: слоят отзад (overlay) вече размазва страницата, а вложено
+   замъгляване в Chrome не вижда страницата под родителя — листът би станал прозрачен. */
+html[data-ui="glass"] .modal-card,
+html[data-ui="glass"][data-theme="dark"] .modal-card,
+html[data-ui="glass"] .game-modal,
+html[data-ui="glass"] .welcome-modal-card,
+html[data-ui="glass"] .strategy-modal-card,
+html[data-ui="glass"] .ds-modal {
+    background: color-mix(in srgb, var(--ag-surface-solid) 96%, transparent);
+    border: 1px solid var(--ag-edge);
+    box-shadow: inset 0 1px 0 var(--ag-hi), 0 0 0 0.5px rgba(0, 0, 0, 0.25), 0 30px 70px -20px rgba(0, 0, 0, 0.6);
+}
+
+/* Главният бутон на лендинга в тъмна тема: един светъл тюркоаз (без преливане към лайм) */
+html[data-ui="glass"][data-theme="dark"] .nav-btn.lp-btn {
+    background: linear-gradient(160deg, #3FE6DE 0%, #14BDB7 100%);
+    color: #03201F;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 0 0.5px rgba(0, 0, 0, 0.4), 0 14px 32px -12px rgba(25, 214, 210, 0.55);
+}
+
+/* ==========================================================================
+   Модулите: същият материал, своят цвят в светлината
+   EmoEat (emoeat.html, <html data-module="emoeat">) — виолетово, в един тон
+   ========================================================================== */
+html[data-ui="glass"][data-module="emoeat"] {
+    --ag-bg: #F3F1F8;
+    --ag-accent: #6D28D9;                               /* 7:1 върху бяло */
+    --ag-fill: linear-gradient(155deg, #7C3AED 0%, #5B21B6 100%);
+    --ds-fill: #6D28D9;
+    --ds-fill-strong: #5B21B6;
+    --ag-a: #C4B5FD; --ag-b: #F0ABFC; --ag-c: #A5B4FC;
+    --ag-a-o: 0.50;  --ag-b-o: 0.30;  --ag-c-o: 0.32;
+    --primary: #6D28D9;
+    --primary-hover: #5B21B6;
+    --primary-light: #EDE9FE;
+    --primary-dark: #5B21B6;
+    --glass-border: rgba(109, 40, 217, 0.10);
+    --card-bg: var(--ag-surface);
+    --shadow: inset 0 1px 0 var(--ag-hi), 0 1px 2px rgba(30, 20, 60, 0.04), 0 14px 34px -18px rgba(60, 30, 120, 0.30);
+}
+html[data-ui="glass"][data-module="emoeat"][data-theme="dark"] {
+    --ag-bg: #0A0812;
+    --ag-accent: #C4B5FD;
+    --ag-surface: rgba(28, 22, 44, 0.70);
+    --ag-surface-solid: #18132A;
+    --ag-chrome: rgba(34, 26, 54, 0.55);
+    --ag-chrome-solid: #18132A;
+    --ag-fill: linear-gradient(155deg, #7C3AED 0%, #5B21B6 100%);
+    --ds-fill: #6D28D9;
+    --ds-fill-strong: #5B21B6;
+    --ag-a: #6D28D9; --ag-b: #A21CAF; --ag-c: #3730A3;
+    --ag-a-o: 0.60;  --ag-b-o: 0.34;  --ag-c-o: 0.42;
+    --primary: #C4B5FD;
+    --primary-hover: #A78BFA;
+    --primary-light: rgba(155, 92, 246, 0.18);
+    --primary-dark: #DDD6FE;
+    --text-dark: #F1EEFA;
+    --text-gray: #B4ABC8;
+    --text-light: #B4ABC8;
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --shadow: inset 0 1px 0 var(--ag-hi), 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 16px 36px -18px rgba(0, 0, 0, 0.7);
+}
+/* светлината не сменя оттенъка по часа — EmoEat остава виолетов */
+html[data-ui="glass"][data-module="emoeat"][data-daypart] .ag-aura i { transition: none; }
+html[data-ui="glass"][data-module="emoeat"] .site-nav {
+    background: color-mix(in srgb, var(--ag-bg) 55%, transparent);
+    border-bottom: 1px solid var(--ag-edge);
+    box-shadow: none;
+}
+html[data-ui="glass"][data-module="emoeat"] .feature-card,
+html[data-ui="glass"][data-module="emoeat"] .option-card,
+html[data-ui="glass"][data-module="emoeat"] .texture-card,
+html[data-ui="glass"][data-module="emoeat"] .app-header {
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    border: 1px solid var(--ag-edge);
+}
+html[data-ui="glass"][data-module="emoeat"][data-theme="dark"] .feature-icon.purple { background: var(--primary-light); }
+html[data-ui="glass"][data-module="emoeat"] .btn-next,
+html[data-ui="glass"][data-module="emoeat"] .header-icon,
+html[data-ui="glass"][data-module="emoeat"] .app-header .icon { background: var(--ag-fill); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 14px 30px -14px rgba(91, 33, 182, 0.7); }
+html[data-ui="glass"][data-module="emoeat"] .nav-footer,
+html[data-ui="glass"][data-module="emoeat"][data-theme="dark"] .nav-footer {
+    background: color-mix(in srgb, var(--ag-bg) 55%, transparent);
+    -webkit-backdrop-filter: var(--ag-blur-strong);
+    backdrop-filter: var(--ag-blur-strong);
+    border-top: 1px solid var(--ag-edge);
+    box-shadow: none;
+}
