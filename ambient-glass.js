@@ -1,13 +1,12 @@
 /*
- * Пробен вид „Светлина · Стъкло · Спокойствие“ (ambient-glass.css).
- * Включва се само по избор: ?ui=glass (помни се), изключва се с ?ui=classic.
- * Без флага файлът не прави нищо — останалите потребители виждат сегашния вид.
+ * Визуалният език „Светлина · Стъкло · Спокойствие“ (ambient-glass.css) — по подразбиране навсякъде.
+ * Старият вид остава достъпен за сравнение: ?ui=classic (помни се), обратно — ?ui=glass.
+ * ?ui=glass-lite — без замъгляване (както на слабите телефони).
  *
- * Какво прави, когато е включен:
  *  - html[data-ui="glass"] + стиловете (през document.write, за да няма мигане на стария вид);
  *  - html[data-daypart] — светлината на фона следва часа (сутрин / ден / вечер / нощ);
  *  - --ag-lift (0…1) — колко от деня е изпълнен; светлината леко се усилва (тиха обратна връзка);
- *  - html[data-ui-lite] — слаби устройства и „намали прозрачността“: без замъгляване;
+ *  - html[data-ui-lite] — слаби устройства: без замъгляване;
  *  - в обвивката (index.html) подава долния безопасен отстъп на вградените раздели.
  */
 (function () {
@@ -17,15 +16,15 @@
     var q = null;
     try { q = new URLSearchParams(location.search).get('ui'); } catch (e) {}
     try {
-        if (q === 'glass' || q === 'glass-lite') localStorage.setItem(KEY, q);
-        else if (q === 'classic') localStorage.removeItem(KEY);
+        if (q === 'classic' || q === 'glass-lite') localStorage.setItem(KEY, q);
+        else if (q === 'glass') localStorage.removeItem(KEY);
     } catch (e) {}
     var mode = null;
     try { mode = localStorage.getItem(KEY); } catch (e) {}
-    if (mode !== 'glass' && mode !== 'glass-lite') return;
+    if (mode === 'classic') return;
 
     d.setAttribute('data-ui', 'glass');
-    document.write('<link rel="stylesheet" href="./ambient-glass.css?v=1" id="ambientGlassCss">');
+    document.write('<link rel="stylesheet" href="./ambient-glass.css?v=2" id="ambientGlassCss">');
 
     var mem = navigator.deviceMemory || 8;
     var cores = navigator.hardwareConcurrency || 8;

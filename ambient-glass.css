@@ -24,6 +24,7 @@ html[data-ui="glass"] {
     --ag-chrome-solid: #FFFFFF;
     --ag-shadow: 0 1px 2px rgba(14, 42, 39, 0.04), 0 12px 32px -18px rgba(14, 60, 55, 0.28);
     --ag-blur: blur(24px) saturate(160%);
+    --ag-blur-strong: blur(28px) saturate(180%);
     --ag-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     /* Плътният тюркоаз: един тон, двата края ≥ 5:1 с бяло */
     --ag-fill: linear-gradient(155deg, #086C77 0%, #065862 100%);
@@ -216,8 +217,8 @@ html[data-ui="glass"][data-theme="dark"] .spa-bottom-nav {
     padding: 0 6px;
     border-radius: 32px;
     background: var(--ag-chrome);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
-    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: var(--ag-blur-strong);
+    backdrop-filter: var(--ag-blur-strong);
     border: 1px solid var(--ag-edge);
     box-shadow: inset 0 1px 0 var(--ag-hi), 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 16px 36px -14px rgba(0, 0, 0, 0.45);
 }
@@ -234,14 +235,10 @@ html[data-ui="glass"][data-theme="dark"] .spa-nav-pill { background: rgba(255, 2
 
 /* ---------- Достъпност и слаби устройства ----------
    „Намали прозрачността“, „Повишен контраст“ и слаби телефони: плътни повърхности, без замъгляване. */
-html[data-ui="glass"][data-ui-lite] { --ag-surface: var(--ag-surface-solid); --ag-chrome: var(--ag-chrome-solid); }
-html[data-ui="glass"][data-ui-lite] *,
-html[data-ui="glass"][data-ui-lite] *::before { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html[data-ui="glass"][data-ui-lite] { --ag-surface: var(--ag-surface-solid); --ag-chrome: var(--ag-chrome-solid); --ag-blur: none; --ag-blur-strong: none; }
 html[data-ui="glass"][data-ui-lite][data-theme="dark"] #dailyScoreCard.day-card { background: linear-gradient(155deg, #0C5F67 0%, #08474D 100%); }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-    html[data-ui="glass"] { --ag-surface: var(--ag-surface-solid); --ag-chrome: var(--ag-chrome-solid); }
-    html[data-ui="glass"] *,
-    html[data-ui="glass"] *::before { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+    html[data-ui="glass"] { --ag-surface: var(--ag-surface-solid); --ag-chrome: var(--ag-chrome-solid); --ag-blur: none; --ag-blur-strong: none; }
     html[data-ui="glass"][data-theme="dark"] #dailyScoreCard.day-card { background: linear-gradient(155deg, #0C5F67 0%, #08474D 100%); }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -250,3 +247,127 @@ html[data-ui="glass"][data-ui-lite][data-theme="dark"] #dailyScoreCard.day-card 
     html[data-ui="glass"] .day-banner-arrow { transition: none; }
 }
 html[data-ui="glass"][data-ui-lite] .ag-aura i { animation: none; }
+
+/* ==========================================================================
+   Навсякъде в приложението и лендингите
+   ========================================================================== */
+
+/* Самостоятелните страници (извън обвивката): същата плаваща навигация */
+html[data-ui="glass"]:not([data-embedded-tab="1"]) .bottom-nav:not(.spa-bottom-nav),
+html[data-ui="glass"][data-theme="dark"]:not([data-embedded-tab="1"]) .bottom-nav:not(.spa-bottom-nav) {
+    left: 12px; right: 12px;
+    bottom: calc(10px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    height: 64px;
+    padding: 0 6px;
+    border-radius: 32px;
+    background: var(--ag-chrome);
+    -webkit-backdrop-filter: var(--ag-blur-strong);
+    backdrop-filter: var(--ag-blur-strong);
+    border: 1px solid var(--ag-edge);
+    box-shadow: inset 0 1px 0 var(--ag-hi), 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 16px 36px -14px rgba(0, 0, 0, 0.45);
+}
+html[data-ui="glass"] .bottom-nav:not(.spa-bottom-nav) .bottom-nav-item { color: var(--ag-ink-soft); font-size: 11px; border-radius: 24px; }
+html[data-ui="glass"] .bottom-nav:not(.spa-bottom-nav) .bottom-nav-item.active { color: var(--ag-accent); background: rgba(5, 115, 125, 0.10); }
+html[data-ui="glass"][data-theme="dark"] .bottom-nav:not(.spa-bottom-nav) .bottom-nav-item.active { color: var(--ag-ink); background: rgba(255, 255, 255, 0.09); }
+html[data-ui="glass"][data-theme="dark"] .bottom-nav:not(.spa-bottom-nav) .bottom-nav-item.active i { color: #B6F34A; }
+
+/* Горните ленти: прозрачно стъкло, без цветна линия */
+html[data-ui="glass"] header.analysis-header,
+html[data-ui="glass"][data-theme="dark"] header.analysis-header,
+html[data-ui="glass"] .progress-container,
+html[data-ui="glass"] .fp-bar {
+    background: color-mix(in srgb, var(--ag-bg) 55%, transparent);
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    border-bottom: 1px solid var(--ag-edge);
+    box-shadow: none;
+}
+html[data-ui="glass"] header.analysis-header::after,
+html[data-ui="glass"] header.analysis-header::before { display: none; }
+
+/* Долни ленти с действие (храни, въпросник) */
+html[data-ui="glass"] .fp-submit-wrap {
+    background: var(--ag-chrome);
+    -webkit-backdrop-filter: var(--ag-blur-strong);
+    backdrop-filter: var(--ag-blur-strong);
+    border-top: 1px solid var(--ag-edge);
+}
+
+/* Цветните ивици вляво на картите — стар похват; цветът остава в иконата и нивото */
+html[data-ui="glass"] .problem-card,
+html[data-ui="glass"][data-theme="dark"] .problem-card { border-left-width: 1px; border-left-color: var(--ag-edge); }
+html[data-ui="glass"] .problem-card::before { display: none; }
+
+/* Сиво-сините карти от тъмната тема → матово стъкло в тона на фона */
+html[data-ui="glass"][data-theme="dark"] .problem-card {
+    background: var(--ag-surface);
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    box-shadow: inset 0 1px 0 var(--ag-hi), var(--ag-shadow);
+}
+
+/* Плътни цветни ленти през целия екран → светлината отзад ги замества */
+html[data-ui="glass"] .fp-header {
+    background: transparent;
+    color: var(--ag-ink);
+}
+html[data-ui="glass"] .fp-header .fp-back-btn {
+    color: var(--ag-ink);
+    background: var(--ag-chrome);
+    border: 1px solid var(--ag-edge);
+    box-shadow: inset 0 1px 0 var(--ag-hi);
+}
+html[data-ui="glass"] .stats-bar {
+    background: var(--ag-surface);
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    border-top: 1px solid var(--ag-edge);
+    border-bottom: 1px solid var(--ag-edge);
+    color: var(--ag-ink);
+}
+html[data-ui="glass"] .stats-bar * { color: inherit; }
+html[data-ui="glass"] .page-hero { background: transparent; }
+
+/* ---------- Лендингът (index.html) ---------- */
+html[data-ui="glass"] .lp { --lp-surface: var(--ag-surface); --lp-surface-2: transparent; --lp-line: var(--ag-edge); }
+html[data-ui="glass"] .lp-tile,
+html[data-ui="glass"] .lp-program {
+    -webkit-backdrop-filter: var(--ag-blur);
+    backdrop-filter: var(--ag-blur);
+    box-shadow: inset 0 1px 0 var(--ag-hi), var(--ag-shadow);
+}
+html[data-ui="glass"] .lp-tile.is-in:hover,
+html[data-ui="glass"] .lp-program:hover { box-shadow: inset 0 1px 0 var(--ag-hi), 0 30px 60px -34px rgba(0, 0, 0, 0.45); }
+html[data-ui="glass"] .lp-final-inner {
+    background:
+        radial-gradient(70% 90% at 50% 0%, rgba(25, 214, 210, 0.30) 0%, transparent 70%),
+        linear-gradient(160deg, rgba(8, 40, 40, 0.92) 0%, rgba(5, 22, 22, 0.94) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 30px 60px -30px rgba(0, 0, 0, 0.6);
+}
+html[data-ui="glass"] .lp-step::before { background: var(--ag-bg); }
+
+/* Цветни ленти по горния ръб на картите (дъга / градиент) — шум; картата се отделя с ръба и отблясъка */
+html[data-ui="glass"] .macros-viz-container::before,
+html[data-ui="glass"] .profile-header::before,
+html[data-ui="glass"] .form-section::before { display: none; }
+
+/* ---------- Листове и прозорци: почти плътни, тъмен ръб + отблясък ----------
+   Без backdrop-filter тук: слоят отзад (overlay) вече размазва страницата, а вложено
+   замъгляване в Chrome не вижда страницата под родителя — листът би станал прозрачен. */
+html[data-ui="glass"] .modal-card,
+html[data-ui="glass"][data-theme="dark"] .modal-card,
+html[data-ui="glass"] .game-modal,
+html[data-ui="glass"] .welcome-modal-card,
+html[data-ui="glass"] .strategy-modal-card,
+html[data-ui="glass"] .ds-modal {
+    background: color-mix(in srgb, var(--ag-surface-solid) 96%, transparent);
+    border: 1px solid var(--ag-edge);
+    box-shadow: inset 0 1px 0 var(--ag-hi), 0 0 0 0.5px rgba(0, 0, 0, 0.25), 0 30px 70px -20px rgba(0, 0, 0, 0.6);
+}
+
+/* Главният бутон на лендинга в тъмна тема: един светъл тюркоаз (без преливане към лайм) */
+html[data-ui="glass"][data-theme="dark"] .nav-btn.lp-btn {
+    background: linear-gradient(160deg, #3FE6DE 0%, #14BDB7 100%);
+    color: #03201F;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 0 0.5px rgba(0, 0, 0, 0.4), 0 14px 32px -12px rgba(25, 214, 210, 0.55);
+}

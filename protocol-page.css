@@ -657,7 +657,8 @@ main.wrap { padding-bottom: 56px; }
 [data-theme="dark"] .brand-word { background-image: url('brand/eatologix-wordmark-dark.svg'); }
 
 /* ── Стъкло и слоеве (същият език като XB-Studio и лендингите на модулите) ──
- * Само за протоколите: <html class="ui-glass"> (задава се от генератора). Помощ и правните страници не се пипат.
+ * <html class="ui-glass">: протоколите (от генератора), цени, помощ, правните текстове и изтриването на профил.
+ * Същият език като приложението (ambient-glass.css): дълбок фон, светлина отзад, тъмен ръб + отблясък.
  * Тъмното е на слоеве, не плоско черно; картите са матирано стъкло върху светещ фон. */
 :root.ui-glass {
     --glass: rgba(255, 255, 255, .62);
@@ -666,13 +667,13 @@ main.wrap { padding-bottom: 56px; }
     --aurora-2: rgba(94, 234, 212, .14);
 }
 :root.ui-glass[data-theme="dark"] {
-    --bg: #0B1213;
-    --bg-2: #101A1B;
+    --bg: #061110;
+    --bg-2: #0B1817;
     --card: #162123;
     --glass: rgba(30, 40, 42, .52);
     --edge: rgba(255, 255, 255, .09);
     --line: rgba(238, 245, 244, .10);
-    --shadow: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 28px 60px -26px rgba(0, 0, 0, .75);
+    --shadow: 0 1px 0 rgba(255, 255, 255, .08) inset, 0 0 0 .5px rgba(0, 0, 0, .5), 0 28px 60px -26px rgba(0, 0, 0, .75);
     --aurora-1: color-mix(in srgb, var(--acc) 34%, transparent);
     --aurora-2: rgba(94, 234, 212, .12);
 }

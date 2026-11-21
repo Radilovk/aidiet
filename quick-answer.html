@@ -5,20 +5,20 @@
     <script src="./i18n.js?v=20261118b"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Eatologix • Бърз отговор</title>
-    <meta name="theme-color" content="#0b1120">
+    <meta name="theme-color" content="#050F0E">
     <style>
         :root {
-            --bg-1: #04111b;
-            --bg-2: #0b1f2a;
-            --card: rgba(9, 24, 36, 0.86);
-            --card-border: rgba(95, 230, 227, 0.18);
+            --bg-1: #050F0E;
+            --bg-2: #071514;
+            --card: rgba(16, 34, 33, 0.72);
+            --card-border: rgba(255, 255, 255, 0.08);
             --text: #ecfeff;
-            --muted: #94a3b8;
+            --muted: #9DB5AF;
             --teal: #19d6d2;
             --teal-strong: #04b7bd;
             --amber: #fbbf24;
             --rose: #fb7185;
-            --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+            --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 24px 70px rgba(0, 0, 0, 0.5);
             --radius: 28px;
         }
         * { box-sizing: border-box; }
@@ -37,9 +37,9 @@
         }
         .glow {
             background:
-                radial-gradient(circle at 15% 20%, rgba(25,214,210,0.18), transparent 30%),
-                radial-gradient(circle at 85% 18%, rgba(251,191,36,0.18), transparent 28%),
-                radial-gradient(circle at 50% 85%, rgba(4,183,189,0.18), transparent 34%);
+                radial-gradient(circle at 15% 20%, rgba(10,140,150,0.34), transparent 42%),
+                radial-gradient(circle at 88% 40%, rgba(14,159,91,0.20), transparent 38%),
+                radial-gradient(circle at 30% 92%, rgba(11,95,134,0.26), transparent 42%); /* същата светлина като в приложението — без кехлибар */
             filter: blur(12px);
         }
         .shell {
@@ -57,7 +57,8 @@
             border: 1px solid var(--card-border);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
-            backdrop-filter: blur(18px);
+            backdrop-filter: blur(24px) saturate(160%);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
             padding: 22px 18px 18px;
             opacity: 1;
             transform: none;
