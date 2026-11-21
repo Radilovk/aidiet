@@ -4,8 +4,8 @@
  *   node scripts/build-brand.mjs           → SVG файловете
  *   node scripts/build-brand.mjs --png     → + PNG иконите (нужен е Playwright/Chromium)
  *
- * Знакът (brand/nutriin-mark.json): SVG-то на собственика (ябълка с една линия, която вътре изписва „in“, + листо),
- * само преоцветено — слоевете му са обединени под един градиент.
+ * Знакът (brand/nutriin-mark.json): монолинията на собственика (V2) — ябълка в една линия, която вътре изписва „in“,
+ * + листо; чертеж с криви, рисува се като щрих с еднаква дебелина и заоблени краища.
  * Цветът следва „Светлина · Стъкло · Спокойствие“ (DESIGN_PRINCIPLES 2а): вътре (долу вляво, при „in“)
  * — дълбок тюркоазено-зелен; навън (горе вдясно) — свежо зелено; листото е най-светлото. Без лайм и жълто.
  *
@@ -46,15 +46,14 @@ const LABEL = ' role="img" aria-label="Nutriin"';
 function markDefs(id, theme = 'light') {
   const c = PAL[theme];
   return `
-    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="200" y1="980" x2="930" y2="120">
+    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="120" y1="480" x2="440" y2="80">
       <stop offset="0" stop-color="${c.a}"/><stop offset=".5" stop-color="${c.b}"/><stop offset=".8" stop-color="${c.c}"/><stop offset="1" stop-color="${c.leafB}"/>
     </linearGradient>`;
 }
-// Слоевете на SVG-то са съседни ивици — един градиент + контур в същия цвят затваря шевовете.
-// size: 'small' → по-дебел контур (16–48 px), за да не изчезват тънките места.
+// Монолиния: дебелина 21 (V2, „+50%“); за 16–48 px — 28, за да не изчезва.
 function markBody(id, size = 'main') {
-  const sw = size === 'small' ? 14 : 3.5;
-  return `<g fill="url(#${id}s)" stroke="url(#${id}s)" stroke-width="${sw}" stroke-linejoin="round">${M.paths.map((d) => `<path d="${d}"/>`).join('')}</g>`;
+  const sw = size === 'small' ? 28 : 21;
+  return `<g fill="none" stroke="url(#${id}s)" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><path d="${M.stroke}"/><path d="${M.leaf}"/></g>`;
 }
 /** Знакът, вписан в правоъгълник (запазва пропорциите, центриран). */
 function placeMark(id, box, size = 'main') {
