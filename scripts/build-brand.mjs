@@ -4,10 +4,8 @@
  *   node scripts/build-brand.mjs           → SVG файловете
  *   node scripts/build-brand.mjs --png     → + PNG иконите (нужен е Playwright/Chromium)
  *
- * Знакът (brand/nutriin-mark.json): формата на собственика (концепцията от 21.11.2026) — ябълка с ЕДНА линия,
- * която вътре изписва „in“, + листо. Реконструирана прецизно: оста е напасната с минимум гладки криви
- * (непрекъсната кривина), „i“ и стъблото на „n“ са строго прави, дебелината е плавният профил на рисунката
- * (по-тънка във вдлъбнатината, опашката изтънява до острие). Пълни форми: тяло + листо (със сърповидна жилка).
+ * Знакът (brand/nutriin-mark.json): SVG-то на собственика (ябълка с една линия, която вътре изписва „in“, + листо),
+ * само преоцветено — слоевете му са обединени под един градиент.
  * Цветът следва „Светлина · Стъкло · Спокойствие“ (DESIGN_PRINCIPLES 2а): вътре (долу вляво, при „in“)
  * — дълбок тюркоазено-зелен; навън (горе вдясно) — свежо зелено; листото е най-светлото. Без лайм и жълто.
  *
@@ -48,19 +46,15 @@ const LABEL = ' role="img" aria-label="Nutriin"';
 function markDefs(id, theme = 'light') {
   const c = PAL[theme];
   return `
-    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="300" y1="1120" x2="1020" y2="420">
-      <stop offset="0" stop-color="${c.a}"/><stop offset=".55" stop-color="${c.b}"/><stop offset="1" stop-color="${c.c}"/>
-    </linearGradient>
-    <linearGradient id="${id}l" gradientUnits="userSpaceOnUse" x1="600" y1="450" x2="985" y2="110">
-      <stop offset="0" stop-color="${c.leafA}"/><stop offset="1" stop-color="${c.leafB}"/>
+    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="200" y1="980" x2="930" y2="120">
+      <stop offset="0" stop-color="${c.a}"/><stop offset=".5" stop-color="${c.b}"/><stop offset=".8" stop-color="${c.c}"/><stop offset="1" stop-color="${c.leafB}"/>
     </linearGradient>`;
 }
-// size: 'small' → по-плътната форма (16–48 px); иначе основната.
+// Слоевете на SVG-то са съседни ивици — един градиент + контур в същия цвят затваря шевовете.
+// size: 'small' → по-дебел контур (16–48 px), за да не изчезват тънките места.
 function markBody(id, size = 'main') {
-  const small = size === 'small';
-  return `
-    <path d="${small ? M.bodySmall : M.body}" fill="url(#${id}s)"/>
-    <path d="${small ? M.leafSmall : M.leaf}" fill="url(#${id}l)"/>`;
+  const sw = size === 'small' ? 14 : 3.5;
+  return `<g fill="url(#${id}s)" stroke="url(#${id}s)" stroke-width="${sw}" stroke-linejoin="round">${M.paths.map((d) => `<path d="${d}"/>`).join('')}</g>`;
 }
 /** Знакът, вписан в правоъгълник (запазва пропорциите, центриран). */
 function placeMark(id, box, size = 'main') {
