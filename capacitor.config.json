@@ -1,6 +1,6 @@
 {
   "appId": "com.biocode.nutriplan",
-  "appName": "Eatologix",
+  "appName": "Nutriin",
   "webDir": "capacitor-shell",
   "server": {
     "androidScheme": "https",

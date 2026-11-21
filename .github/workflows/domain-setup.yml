@@ -1,4 +1,4 @@
-name: Domain setup (eatologix.com)
+name: Domain setup (nutriin.app)
 
 # Свързва собствения домейн на Eatologix с worker-а „aidiet“ (app-domain.js):
 #  1. зоната в Cloudflare (създава се, ако я няма) → DNS сървърите за регистратора (Namecheap);
@@ -12,7 +12,7 @@ on:
       domain:
         description: 'Домейнът'
         required: false
-        default: 'eatologix.com'
+        default: 'nutriin.app'
   push:
     branches: [claude/jolly-goodall-obbojn]
     paths: ['.github/workflows/domain-setup.yml']
@@ -37,7 +37,7 @@ jobs:
     env:
       CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      DOMAIN: ${{ inputs.domain || 'eatologix.com' }}
+      DOMAIN: ${{ inputs.domain || 'nutriin.app' }}
       SERVICE: aidiet
     steps:
       - name: Zone + worker custom domains

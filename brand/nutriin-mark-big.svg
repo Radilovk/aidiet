@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="100 70 1010 1110" role="img" aria-label="Nutriin"><defs>
+    <linearGradient id="ts" gradientUnits="userSpaceOnUse" x1="300" y1="1100" x2="1000" y2="420">
+      <stop offset="0" stop-color="#1FB8A4"/><stop offset=".55" stop-color="#2CCB82"/><stop offset="1" stop-color="#56DE86"/>
+    </linearGradient>
+    <linearGradient id="tl" gradientUnits="userSpaceOnUse" x1="600" y1="460" x2="975" y2="110">
+      <stop offset="0" stop-color="#4ADE80"/><stop offset="1" stop-color="#86EFAC"/>
+    </linearGradient></defs>
+    <path d="M390,668 L390,1000 C390,1062 330,1074 296,1022 C220,910 150,820 150,700 C150,520 262,440 360,440 C452,440 522,492 600,522 C680,492 770,452 862,455 C982,460 1060,560 1060,662 C1060,800 990,962 905,982 C840,994 782,902 700,790 C660,736 632,712 600,712 C546,712 520,760 520,820 L520,1050 C520,1110 470,1126 425,1116" fill="none" stroke="url(#ts)" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M598,462 C606,262 776,124 975,110 C946,300 786,430 598,462 Z" fill="none" stroke="url(#tl)" stroke-width="64.4" stroke-linejoin="round"/></svg>

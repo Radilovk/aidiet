@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Тюркоазената гама (Tailwind teal) → гамата на логото EATOLOGIX (циан-тюркоаз, тъмен край #034E5C).
+ * Тюркоазената гама (Tailwind teal) → гамата на логото NUTRIIN (циан-тюркоаз, тъмен край #034E5C).
  * Само файловете на приложението (не xbody/studio/fitness/emoeat). Може да се пуска многократно.
  */
 import fs from 'node:fs';

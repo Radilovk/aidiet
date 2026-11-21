@@ -104,12 +104,12 @@ check('устройства: импорт от файл', () => {
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
-check('модули → Eatologix (пратки)', () => {
+check('модули → Nutriin (пратки)', () => {
   const r = run('node', ['scripts/test-handoff.mjs']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });
 
-check('сверка IrisMap / EmoEat / Eatologix', () => {
+check('сверка IrisMap / EmoEat / Nutriin', () => {
   const r = run('node', ['scripts/test-crosscheck.mjs']);
   return r.status === 0 ? null : (r.stderr || r.stdout).slice(-800);
 });

@@ -1,5 +1,5 @@
 /**
- * Eatologix — преводи на интерфейса.
+ * Nutriin — преводи на интерфейса.
  *
  * Страниците са писани на български. Модулът превежда видимия текст, без да пипа HTML-а:
  *  1. Речник (ръчен, с предимство): i18n/<език>/common.json + i18n/<език>/<страница>.json
@@ -22,9 +22,10 @@
  *      data-i18n-skip — поддървото не се превежда (имена, въведен текст и т.н.).
  */
 /* web-only:start — препращането е само за сайта; сглобяването на APK го маха (build-apk.yml) */
-// Публичният адрес на Eatologix е eatologix.com (EmoEat — emoeat.app). biocode.website е само
-// източникът на GitHub Pages: отворена там страница на приложението отива на новия адрес
-// (същият път и параметри). Другите проекти и админът остават. Само в горния прозорец.
+// Публичният адрес на Nutriin е nutriin.app (EmoEat — emoeat.app). biocode.website е само
+// източникът на GitHub Pages, а nutriin.app е предишното име: отворена там страница на приложението
+// отива на новия адрес (същият път и параметри). Другите проекти и админът остават. Само в горния прозорец.
+// Преди препращането се проверява, че новият адрес отговаря (DNS) — иначе страницата остава, където е.
 //
 // Браузърът пази паметта (профил, план, отметки, резултати от EmoEat) по домейн, затова при
 // препращането тя се пренася еднократно: качва се за 10 минути под случаен ключ (в хеша на
@@ -53,7 +54,7 @@
 
         // ── Новият домейн: прибиране ────────────────────────────────────
         var m = /[#&]np_move=([A-Za-z0-9_-]{20,64})/.exec(location.hash);
-        if (m && (h === 'eatologix.com' || h === 'emoeat.app')) {
+        if (m && (h === 'nutriin.app' || h === 'nutriin.com' || h === 'emoeat.app')) {
             var orig = /[#&]np_hash=([^&]*)/.exec(location.hash);
             var clean = location.pathname + location.search + (orig ? '#' + decodeURIComponent(orig[1]) : '');
             hold();
@@ -72,33 +73,43 @@
             return;
         }
 
-        // ── Старият домейн: препращане (с паметта, ако има профил) ──────
-        if (h !== 'biocode.website') return;
+        // ── Старите домейни: препращане (с паметта, ако има профил) ──────
+        if (h !== 'biocode.website' && h !== 'nutriin.app') return;
         var p = location.pathname;
         if (/^\/(xbody|xb-studio|xems-|studio|acuity\/|fitness\/|kids|pep|reta|aix|lqto|vaprosnik|dopamine|health\.html|admin|notifications-test|pwa-test|design_presentation|samples\/|clients\/|docs\/)/i.test(p)) return;
-        var target = (/^\/emoeat[^/]*\.html$/i.test(p) ? 'https://emoeat.app' : 'https://eatologix.com') + p + location.search;
-        var go = function (token) {
-            var hash = location.hash ? location.hash.slice(1) : '';
-            location.replace(target + (token ? '#np_move=' + token + (hash ? '&np_hash=' + encodeURIComponent(hash) : '') : (hash ? '#' + hash : '')));
+        var emo = /^\/emoeat[^/]*\.html$/i.test(p);
+        var target = (emo ? 'https://emoeat.app' : 'https://nutriin.app') + p + location.search;
+        // Новият адрес отговаря ли? (без отговор за 3,5 s — страницата остава; DNS още не е готов)
+        var start = function () {
+            var go = function (token) {
+                var hash = location.hash ? location.hash.slice(1) : '';
+                location.replace(target + (token ? '#np_move=' + token + (hash ? '&np_hash=' + encodeURIComponent(hash) : '') : (hash ? '#' + hash : '')));
+            };
+            var moved = store ? Number(store.getItem(MOVED_KEY) || 0) : 0;
+            var hasProfile = store && (store.getItem('userId') || store.getItem('dietPlan') || store.getItem('emoeat_completed'));
+            // Веднъж стига: по-късните отваряния на стария адрес само препращат.
+            if (!hasProfile || Date.now() - moved < 30 * 86400000) { go(''); return; }
+            hold();
+            var data = {};
+            var size = 0;
+            for (var i = 0; i < store.length; i++) {
+                var k = store.key(i);
+                var v = k ? store.getItem(k) : null;
+                if (!k || v == null || SKIP.test(k) || v.length > 1500000 || size + v.length > 3500000) continue;
+                data[k] = v;
+                size += v.length + k.length;
+            }
+            post('', { data: data }, 6000).then(function (d) {
+                if (d && d.token) { try { store.setItem(MOVED_KEY, String(Date.now())); } catch (_) {} }
+                go(d && d.token);
+            }).catch(function () { go(''); });
         };
-        var moved = store ? Number(store.getItem(MOVED_KEY) || 0) : 0;
-        var hasProfile = store && (store.getItem('userId') || store.getItem('dietPlan') || store.getItem('emoeat_completed'));
-        // Веднъж стига: по-късните отваряния на стария адрес само препращат.
-        if (!hasProfile || Date.now() - moved < 30 * 86400000) { go(''); return; }
-        hold();
-        var data = {};
-        var size = 0;
-        for (var i = 0; i < store.length; i++) {
-            var k = store.key(i);
-            var v = k ? store.getItem(k) : null;
-            if (!k || v == null || SKIP.test(k) || v.length > 1500000 || size + v.length > 3500000) continue;
-            data[k] = v;
-            size += v.length + k.length;
-        }
-        post('', { data: data }, 6000).then(function (d) {
-            if (d && d.token) { try { store.setItem(MOVED_KEY, String(Date.now())); } catch (_) {} }
-            go(d && d.token);
-        }).catch(function () { go(''); });
+        if (emo) { start(); return; }
+        var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+        var t = ctrl ? setTimeout(function () { ctrl.abort(); }, 3500) : null;
+        fetch('https://nutriin.app/favicon.svg?probe=' + Date.now(), { mode: 'no-cors', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+            .then(function () { if (t) clearTimeout(t); start(); })
+            .catch(function () { if (t) clearTimeout(t); });
     } catch (_) {}
 })();
 /* web-only:end */

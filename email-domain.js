@@ -1,5 +1,7 @@
 /**
  * Пощата на eatologix.com (Resend) — настройва се без ръчна работа в Resend.
+ * (Марката е Nutriin; изпращането остава от домейна, който Resend вече познава — eatologix.com. Преминаването
+ *  на nutriin.app е отделна стъпка: EMAIL_DOMAIN + нов флаг в KV, след като зоната е активна.)
  *
  * Ключът за Resend е само в worker-а (RESEND_API_KEY), а за DNS — само в GitHub (CLOUDFLARE_API_TOKEN).
  * Мостът: workflow-ът „Domain setup“ записва еднократен код в KV (има ключа за Cloudflare — само той може)
@@ -9,8 +11,8 @@
  * Дотогава остава доказаното: info@biocode.online и връзки от biocode.website (да не падат в спам).
  */
 export const EMAIL_DOMAIN = 'eatologix.com';
-export const EMAIL_FROM_OLD = 'Eatologix <info@biocode.online>';
-export const EMAIL_FROM_NEW = `Eatologix <info@${EMAIL_DOMAIN}>`;
+export const EMAIL_FROM_OLD = 'Nutriin <info@biocode.online>';
+export const EMAIL_FROM_NEW = `Nutriin <info@${EMAIL_DOMAIN}>`;
 const NONCE_KEY = 'bridge_nonce:email_domain';
 const VERIFIED_KEY = 'email_domain_verified';
 const RESEND = 'https://api.resend.com';

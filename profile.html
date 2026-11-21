@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <script src="./i18n.js?v=20261118b"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Управлявай твоя профил и преглеждай твоя персонализиран хранителен план в Eatologix.">
+    <meta name="description" content="Управлявай твоя профил и преглеждай твоя персонализиран хранителен план в Nutriin.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#EDF5F0" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Eatologix">
-    <link rel="canonical" href="https://eatologix.com/profile.html">
+    <meta name="apple-mobile-web-app-title" content="Nutriin">
+    <link rel="canonical" href="https://nutriin.app/profile.html">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" sizes="48x48" href="brand/favicon-48.png">
     <link rel="manifest" href="./manifest.json">
@@ -2079,10 +2079,10 @@
     <!-- PWA Install Banner -->
     <div class="install-banner" id="installBanner">
         <div class="install-banner-icon" id="installBannerIcon">
-            <img src="brand/eatologix-mark.svg" alt="" style="width:70%;height:70%;object-fit:contain">
+            <img src="brand/nutriin-mark.svg" alt="" style="width:70%;height:70%;object-fit:contain">
         </div>
         <div class="install-banner-content">
-            <div class="install-banner-title" id="installBannerTitle">Инсталирай Eatologix</div>
+            <div class="install-banner-title" id="installBannerTitle">Инсталирай Nutriin</div>
             <div class="install-banner-text" id="installBannerText">Добави приложението към началния екран</div>
             <div class="install-banner-browser" id="installBannerBrowser" style="display: none;">
                 <i class="fas fa-info-circle"></i>
@@ -2105,9 +2105,9 @@
     <div id="ios-banner" class="ios-prompt" style="display:none;">
         <button onclick="dismissIosBanner()" class="ios-close">✕</button>
         <div class="ios-header">
-            <img src="./icon-192x192.png" class="ios-icon" alt="Eatologix Icon">
+            <img src="./icon-192x192.png" class="ios-icon" alt="Nutriin Icon">
             <div class="ios-title-group">
-                <h4>Инсталирай Eatologix</h4>
+                <h4>Инсталирай Nutriin</h4>
                 <p>Добави на екрана за бърз достъп и известия</p>
             </div>
         </div>
@@ -5197,7 +5197,7 @@
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай Eatologix..."');
+                        alert('За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай Nutriin..."');
                     };
                 }
                 installBanner.classList.add('show');
@@ -5351,7 +5351,7 @@
                 message = `💻 Как да инсталирам в ${browserName}?\n\n` +
                          '1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n' +
                          '2. Кликни върху нея и избери "Инсталирай"\n' +
-                         '3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай Eatologix..."\n\n' +
+                         '3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай Nutriin..."\n\n' +
                          'След инсталация приложението ще се отвори в отделен прозорец.';
             } else {
                 message = '💻 Инсталация на приложението\n\n' +
@@ -5577,7 +5577,7 @@
                                 console.log('%cTo install this app:', 'font-weight: bold');
                                 console.log('  1. Look for the install icon (⊕ or ⬇) in the address bar on the right side');
                                 console.log('  2. Click the icon to install the app');
-                                console.log('  3. Or open Chrome menu (⋮) → "Install Eatologix..."');
+                                console.log('  3. Or open Chrome menu (⋮) → "Install Nutriin..."');
                                 console.log('');
                                 console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
                                 console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #03939C');

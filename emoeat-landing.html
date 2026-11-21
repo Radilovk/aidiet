@@ -174,14 +174,14 @@
         </section>
     </main>
 
-    <!-- Собствен футър на EmoEat (самостоятелен сайт emoeat.app, модул на платформата Eatologix) -->
+    <!-- Собствен футър на EmoEat (самостоятелен сайт emoeat.app, модул на платформата Nutriin) -->
     <footer class="sf emo-foot" role="contentinfo">
         <div class="sf-wrap">
             <div class="sf-top">
                 <div class="sf-brand">
                     <a class="sf-logo" href="emoeat-landing.html" data-emo-home><span class="sf-mark"><img src="brand/emoeat-mark.svg" alt="" width="30" height="30"></span><span class="emo-word emo-word--foot" data-i18n-skip>Emo<b>Eat</b></span></a>
                     <p class="sf-tag">Кога храната поема чувствата.</p>
-                    <p class="sf-about">Кратък тест за емоционално хранене и план за седмицата. Модул на платформата Eatologix — работи и самостоятелно.</p>
+                    <p class="sf-about">Кратък тест за емоционално хранене и план за седмицата. Модул на платформата Nutriin — работи и самостоятелно.</p>
                     <label class="emo-lang-foot">Език <select data-lang-picker aria-label="Език / Language"></select></label>
                 </div>
                 <nav class="sf-cols" aria-label="Карта на сайта">
@@ -197,7 +197,7 @@
                     <div>
                         <h2 class="sf-h">Платформата</h2>
                         <ul>
-                            <li><a href="https://eatologix.com/?stay=1">Eatologix<small>личен хранителен план</small></a></li>
+                            <li><a href="https://nutriin.app/?stay=1">Nutriin<small>личен хранителен план</small></a></li>
                             <li><a href="https://irismap.app/">IrisMap<small>ирисов анализ</small></a></li>
                         </ul>
                     </div>
@@ -205,7 +205,7 @@
                         <h2 class="sf-h">Помощ</h2>
                         <ul>
                             <li><a href="help.html">Въпроси и отговори</a></li>
-                            <li><a href="https://eatologix.com/?stay=1#contact">Контакт</a></li>
+                            <li><a href="https://nutriin.app/?stay=1#contact">Контакт</a></li>
                         </ul>
                     </div>
                     <div>
@@ -218,7 +218,7 @@
                 </nav>
             </div>
             <div class="sf-bottom">
-                <p>© 2026 EmoEat · emoeat.app · част от Eatologix</p>
+                <p>© 2026 EmoEat · emoeat.app · част от Nutriin</p>
                 <p>Не е медицинска диагноза. При хранително разстройство потърси специалист.</p>
             </div>
         </div>
@@ -242,9 +242,9 @@
     if (!access.paywall) { el.textContent = 'Тестът и личният анализ са безплатни.'; return; }
     var prod = billing.prices && billing.prices.products && billing.prices.products.emoeat_analysis;
     if (billing.ready && billing.mode === 'live' && prod && prod.price) {
-      el.textContent = 'Тестът е безплатен. Личният анализ с плана за седмицата — ' + eur(prod.price) + ' еднократно или включен в плана на Eatologix.';
+      el.textContent = 'Тестът е безплатен. Личният анализ с плана за седмицата — ' + eur(prod.price) + ' еднократно или включен в плана на Nutriin.';
     } else {
-      el.textContent = 'Тестът е безплатен. Личният анализ с плана за седмицата е включен в плана на Eatologix.';
+      el.textContent = 'Тестът е безплатен. Личният анализ с плана за седмицата е включен в плана на Nutriin.';
     }
   }).catch(function () { /* остава „Тестът е безплатен.“ — вярно винаги */ });
 })();

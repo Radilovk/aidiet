@@ -1,4 +1,4 @@
-# Cloudflare KV Keys для Eatologix
+# Cloudflare KV Keys для Nutriin
 
 Това са начални стойности за KV ключовете, използвани от admin панела и worker-а.
 

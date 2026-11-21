@@ -1,7 +1,7 @@
 {
  "_comment": "analysis.html — ръчен превод. Точен български текст → превод; каквото липсва — резервният AI превод. [Polish: автоматичен превод, gemini-3.6-flash]",
  "strings": {
-  "Здравен анализ и детайлни препоръки от Eatologix за твоя хранителен режим.": "Analiza zdrowotna i szczegółowe zalecenia od Eatologix dla Twojej diety.",
+  "Здравен анализ и детайлни препоръки от Nutriin за твоя хранителен режим.": "Analiza zdrowotna i szczegółowe zalecenia od Nutriin dla Twojej diety.",
   "Здравен Анализ": "Analiza Zdrowotna",
   "Назад": "Wstecz",
   "Подготвяме анализа": "Przygotowujemy analizę",

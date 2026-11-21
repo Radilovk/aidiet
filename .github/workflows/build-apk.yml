@@ -153,8 +153,8 @@ jobs:
             --exclude 'admin.html' \
             --exclude 'admin-*' \
             --exclude 'pricing.html' \
-            --exclude 'brand/wordmark-glyphs.json' \
-            --exclude 'brand/concept-eatologix.png' \
+            --exclude 'brand/nutriin-wordmark-glyphs.json' \
+            --exclude 'brand/nutriin-mark.json' \
             --exclude 'plan-response-schemas.js' \
             --exclude 'json-patch.js' \
             --exclude 'food-nutrition.js' \
@@ -182,7 +182,7 @@ jobs:
             --exclude 'loading.gif' \
             --exclude 'log1' \
             --exclude 'workererrors'
-          # Само за сайта: препращането biocode.website → eatologix.com (i18n.js, между web-only маркерите).
+          # Само за сайта: препращането biocode.website → nutriin.app (i18n.js, между web-only маркерите).
           # В приложението не трябва код, който пренасочва към друг домейн — проверките за сигурност го отчитат.
           python3 - <<'PY_WEBONLY'
           import re
@@ -213,13 +213,13 @@ jobs:
           echo "is_prod=${IS_PROD}" >> "$GITHUB_OUTPUT"
           ICON_SRC="icon-512x512.png"
           if [ ! -f "$ICON_SRC" ]; then ICON_SRC="icon-512.png"; fi
-          # EATOLOGIX: знакът без фон (scripts/build-brand.mjs) — за адаптивната икона, сплаша и известията.
+          # NUTRIIN: знакът без фон (scripts/build-brand.mjs) — за адаптивната икона, сплаша и известията.
           MARK_SRC="brand/mark-512.png"
           if [ ! -f "$MARK_SRC" ]; then MARK_SRC="$ICON_SRC"; fi
 
           npx cap add android
 
-          # Replace default Capacitor icons with the EATOLOGIX icon
+          # Replace default Capacitor icons with the NUTRIIN icon
           if ! command -v convert &>/dev/null; then
             echo "ImageMagick 'convert' not found – installing…" && { sudo apt-get update -q && sudo apt-get install -y imagemagick; }
           fi
@@ -346,7 +346,7 @@ jobs:
                   strings_file.parent.mkdir(parents=True, exist_ok=True)
                   strings_file.write_text(
                       '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-                      '    <string name="app_name">Eatologix</string>\n'
+                      '    <string name="app_name">Nutriin</string>\n'
                       + entry + '\n</resources>\n'
                   )
               print("strings.xml: server_client_id injected for Google Sign-In.")
@@ -542,7 +542,7 @@ jobs:
           retention-days: 30
           path: release/*.apk
 
-      # Марката в готовия APK: името под иконата и иконите/сплашът от знака EATOLOGIX (scripts/build-brand.mjs).
+      # Марката в готовия APK: името под иконата и иконите/сплашът от знака NUTRIIN (scripts/build-brand.mjs).
       - name: Brand check (име, икони, сплаш)
         if: success()
         run: |
@@ -559,9 +559,9 @@ jobs:
             echo "### Марка в APK"
             echo "- Име: \`${LABEL:-?}\`"
             echo "- Икона (адаптивен преден слой): $N_FG файла; сплаш: $N_SPLASH; икона за известия: $N_STAT"
-            echo "- Сплашът е знакът EATOLOGIX: покритие $SPL (знакът: $MARK — трябва да са близки)"
+            echo "- Сплашът е знакът NUTRIIN: покритие $SPL (знакът: $MARK — трябва да са близки)"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "$LABEL" | grep -q "Eatologix" || { echo "::error::Името в APK не е Eatologix: $LABEL"; exit 1; }
+          echo "$LABEL" | grep -q "Nutriin" || { echo "::error::Името в APK не е Nutriin: $LABEL"; exit 1; }
 
       - name: Build summary
         if: always()
@@ -632,7 +632,7 @@ jobs:
           APK_NAME="NutriPlan-v${V_NAME}.apk"
           APK_LATEST="NutriPlan.apk"
           # Името, което вижда клиентът при сваляне от сайта; NutriPlan-v* остава за обновяванията на старите версии.
-          APK_EAT="Eatologix-v${V_NAME}.apk"
+          APK_EAT="Nutriin-v${V_NAME}.apk"
           cp "$APK_FILE" "$APK_NAME"
           cp "$APK_FILE" "$APK_LATEST"
           cp "$APK_FILE" "$APK_EAT"
@@ -644,7 +644,7 @@ jobs:
               --repo "${{ github.repository }}" \
               --target "${{ github.sha }}" \
               --latest \
-              --title "Eatologix v${V_NAME} (${TAG})" \
+              --title "Nutriin v${V_NAME} (${TAG})" \
               --notes "Автоматичен билд — версия ${V_NAME} (build ${V_CODE})."; then
               break
             fi

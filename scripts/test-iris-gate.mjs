@@ -131,7 +131,7 @@ await check('платен кредит → билет; провален плат
 });
 const owner = async (uid, token) => (token === 'ok' ? null : new Response('{}', { status: 401 }));
 const pass = async (body, now = T) => { const r = await handleIrisPass(post(body), env, { respond, checkOwner: owner, now }); return { status: r.status, d: await r.json() }; };
-await check('пропуск от Eatologix: само с акаунт, валиден токен и активен план', async () => {
+await check('пропуск от Nutriin: само с акаунт, валиден токен и активен план', async () => {
   assert.equal((await pass({ userId: 'guest_1', idToken: 'ok' })).status, 401);
   assert.equal((await pass({ userId: 'fb_irisplan1', idToken: 'bad' })).status, 401);
   assert.equal((await pass({ userId: 'fb_irisplan1', idToken: 'ok' })).d.error, 'no_plan');

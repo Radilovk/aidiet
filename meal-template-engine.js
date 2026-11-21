@@ -1,5 +1,5 @@
 /**
- * Meal template engine — connects library meal-templates to Eatologix slots.
+ * Meal template engine — connects library meal-templates to Nutriin slots.
  * Foundation for deterministic Slot Assembler (no AI product pick).
  */
 
@@ -13,7 +13,7 @@ import {
 } from './nutrition-library-bridge.js';
 import { MEAL_TYPE_TIMING } from './food-catalog-data.js';
 
-/** Map Eatologix slot label → library template + timing. */
+/** Map Nutriin slot label → library template + timing. */
 export function resolveSlotTemplate(slotLabel) {
   const tpl = getMealTemplateForSlot(slotLabel);
   const timing = MEAL_TYPE_TIMING[slotLabel] || 'main';
@@ -92,7 +92,7 @@ export function getMealDistribution(mealsPerDay = 5) {
   return templates['5_meals'] || [0.2, 0.25, 0.2, 0.15, 0.2];
 }
 
-/** All slot templates aligned to Eatologix Хранене 1–5. */
+/** All slot templates aligned to Nutriin Хранене 1–5. */
 export function getAllSlotTemplates() {
   return Object.keys(MEAL_TYPE_TIMING).map(slotLabel => ({
     slotLabel,

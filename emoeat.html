@@ -19,7 +19,7 @@
     <meta property="og:url" content="https://emoeat.app/emoeat.html">
     <meta property="og:title" content="EmoEat — емоционално хранене">
     <meta property="og:description" content="Кратък тест за емоционално хранене — кога храната поема чувствата и какво да правиш тази седмица.">
-    <meta property="og:image" content="https://eatologix.com/brand/emoeat-og.png">
+    <meta property="og:image" content="https://nutriin.app/brand/emoeat-og.png">
     <meta property="og:locale" content="bg_BG">
 
     <link rel="canonical" href="https://emoeat.app/emoeat.html">
@@ -1465,8 +1465,8 @@
         <a href="#" onclick="event.preventDefault(); closeSiteNav(); restartQuestionnaire();"><i class="fas fa-redo"></i> Нов анализ</a>
 
         <div class="site-nav-menu-divider"></div>
-        <div class="site-nav-section-label">Eatologix</div>
-        <a href="index.html?stay=1"><i class="fas fa-apple-alt"></i> Към Eatologix</a>
+        <div class="site-nav-section-label">Nutriin</div>
+        <a href="index.html?stay=1"><i class="fas fa-apple-alt"></i> Към Nutriin</a>
         <a href="features.html"><i class="fas fa-star"></i> Всички възможности</a>
         <a href="pricing.html"><i class="fas fa-tag"></i> Цени</a>
         <a href="https://irismap.app/?from=emoeat" target="_blank" rel="noopener"><i class="fas fa-eye"></i> IrisMap — ирисов анализ</a>
@@ -3023,7 +3023,7 @@
         // обобщението (модел, двигатели, модели, телесни сигнали, нуждата),
         // не отделните отговори.
         const EMOEAT_LINK_KEY = 'emoeat_linked_at';
-        // Отворен от Eatologix (профила или таба в приложението): тестът е част от профила —
+        // Отворен от Nutriin (профила или таба в приложението): тестът е част от профила —
         // резултатът влиза в плана сам, а пътят назад е към профила, не към лендинга.
         const FROM_PLAN = new URLSearchParams(location.search).get('from') === 'nutriplan' || window.top !== window;
 
@@ -3076,20 +3076,20 @@
             }
         }
 
-        // „Към Eatologix“ в менюто — към профила, когато има план.
+        // „Към Nutriin“ в менюто — към профила, когато има план.
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('a[href="index.html?stay=1"]').forEach(a => { a.href = nutriPlanBackUrl(); });
         });
 
-        // ── Към Eatologix за посетител без план ─────────────────────────
+        // ── Към Nutriin за посетител без план ─────────────────────────
         // EmoEat води към плана и му предава само обобщението на профила
         // (през пратка на сървъра, със съгласие на следващия екран). Обратно
-        // към EmoEat не идват данни от Eatologix.
+        // към EmoEat не идват данни от Nutriin.
         function planInviteHtml() {
             return `
                 <section class="rx-plan-link rx-in" id="rxPlanLink">
                     <div class="rx-plan-link-title"><i class="fas fa-utensils"></i> Хранителен план, съобразен с профила ти</div>
-                    <p class="rx-plan-link-text">Eatologix ще отчете модела ти още от първия ден: кога и защо се появява гладът, какво помага вместо забрани, как да са подредени храненията. Обобщението на профила (без отделните отговори) отива с теб.</p>
+                    <p class="rx-plan-link-text">Nutriin ще отчете модела ти още от първия ден: кога и защо се появява гладът, какво помага вместо забрани, как да са подредени храненията. Обобщението на профила (без отделните отговори) отива с теб.</p>
                     <button type="button" class="rx-btn" id="rxPlanInviteBtn" onclick="continueToNutriPlan()"><i class="fas fa-arrow-right"></i> Създай моя план</button>
                     <div class="rx-plan-link-status" id="rxPlanLinkStatus" role="status"></div>
                 </section>`;
@@ -3116,7 +3116,7 @@
         }
 
         // Личният анализ е платен, когато стената за достъп е включена: 2,99 € еднократно (кредит
-        // за устройството/акаунта) или включен в плана на Eatologix. Сървърът решава (402 = заключено).
+        // за устройството/акаунта) или включен в плана на Nutriin. Сървърът решава (402 = заключено).
         let emoLocked = false;
         let emoBilling = null;   // { ready, mode, price }
         function emoDevice() {
@@ -3150,13 +3150,13 @@
             if (!b.ready) {
                 return `<div class="rx-unlock rx-in">
                     <div class="rx-unlock-title"><i class="fas fa-lock"></i> Личният анализ</div>
-                    <p>Показваме основния план за твоя модел. Личният анализ и планът за седмицата са включени в плана на Eatologix.</p>
+                    <p>Показваме основния план за твоя модел. Личният анализ и планът за седмицата са включени в плана на Nutriin.</p>
                     <a class="rx-btn" href="pricing.html" target="_top">Виж плановете</a>
                 </div>`;
             }
             return `<div class="rx-unlock rx-in">
                 <div class="rx-unlock-title"><i class="fas fa-lock"></i> Личният анализ — ${priceText(b.price)}</div>
-                <p>Кръгът ти, трите действия за седмицата и SOS стъпките — написани по твоите отговори. Еднократно, без абонамент. В плана на Eatologix е включен.</p>
+                <p>Кръгът ти, трите действия за седмицата и SOS стъпките — написани по твоите отговори. Еднократно, без абонамент. В плана на Nutriin е включен.</p>
                 <label class="rx-unlock-consent"><input type="checkbox" id="emoConsent"> <span>Съгласен съм анализът да се направи веднага след плащането и разбирам, че за цифрово съдържание губя правото на отказ от 14 дни.</span></label>
                 <button type="button" class="rx-btn" id="emoBuyBtn" onclick="buyEmoAnalysis()">Отключи за ${priceText(b.price)}</button>
                 ${b.mode === 'test' ? '<p class="rx-unlock-note">Тестов режим: карта 4242 4242 4242 4242, без истинско таксуване.</p>' : ''}

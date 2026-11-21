@@ -1,9 +1,9 @@
 {
  "_comment": "plan-pending.html — ръчен превод. Точен български текст → превод; каквото липсва — резервният AI превод. [French: автоматичен превод, gemini-3.6-flash]",
  "strings": {
-  "Твоят персонален план се подготвя от специалист — Eatologix": "Ton programme personnalisé est en cours de préparation par un spécialiste — Eatologix",
+  "Твоят персонален план се подготвя от специалист — Nutriin": "Ton programme personnalisé est en cours de préparation par un spécialiste — Nutriin",
   "Твоят план се подготвя": "Ton programme est en cours de préparation",
-  "Eatologix — начало": "Eatologix — Accueil",
+  "Nutriin — начало": "Nutriin — Accueil",
   "Смени темата": "Changer de thème",
   "Получихме отговорите ти": "Nous avons bien reçu tes réponses",
   "Специалист преглежда плана. Ще получиш имейл, когато е готов.": "Un spécialiste examine ton programme. Tu recevras un e-mail lorsqu'il sera prêt.",

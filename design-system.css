@@ -1,5 +1,5 @@
 /**
- * Eatologix Design System 2026
+ * Nutriin Design System 2026
  * ===========================
  * Unified design system for consistent, modern, accessible UI
  * 
@@ -23,7 +23,7 @@
    CSS CUSTOM PROPERTIES (TOKENS)
    =========================== */
 :root {
-    /* === EATOLOGIX — марката (от логото): тъмен тюркоаз → циан | зелено → лайм === */
+    /* === NUTRIIN — марката (от логото): тъмен тюркоаз → циан | зелено → лайм === */
     --brand-ink: #034E5C;
     --brand-teal: #03909C;
     --brand-cyan: #00E0DC;
@@ -31,11 +31,12 @@
     --brand-green: #10CC50;
     --brand-lime: #A0F500;
     --brand-green-text: #0A8F3A;  /* зелено, четимо като текст на светъл фон */
-    --brand-accent: #07CF61;      /* акцент: светла тема — зеленото от G; тъмна — лаймът (свети) */
-    --brand-gradient: linear-gradient(120deg, #03909C 0%, #08C2B4 38%, #10CC50 72%, #7FE21A 100%);
-    --brand-gradient-soft: linear-gradient(120deg, rgba(0,224,220,.14) 0%, rgba(16,204,80,.12) 60%, rgba(160,245,0,.10) 100%);
-    --brand-logo: url('brand/eatologix-horizontal.svg');
-    --brand-logo-full: url('brand/eatologix-logo.svg');
+    --brand-accent: #12935A;      /* акцент: зеленото на „in“ (светла тема); тъмна — лаймът (свети) */
+    /* Nutriin: тон по тон, от вътрешното (тюркоазено-зелено) към светлината (свежо зелено) — без лайм. */
+    --brand-gradient: linear-gradient(120deg, #0A6B66 0%, #14935A 55%, #22B35E 100%);
+    --brand-gradient-soft: linear-gradient(120deg, rgba(10,140,150,.14) 0%, rgba(20,147,90,.12) 60%, rgba(34,179,94,.10) 100%);
+    --brand-logo: url('brand/nutriin-horizontal.svg');
+    --brand-logo-full: url('brand/nutriin-logo.svg');
 
     /* === COLORS - Primary Palette (по логото, циан-тюркоаз) === */
     --ds-primary-50: #EEFDFC;
@@ -385,8 +386,8 @@
    DARK THEME (Glassmorphism + Glow)
    =========================== */
 [data-theme="dark"] {
-    --brand-logo: url('brand/eatologix-horizontal-dark.svg');
-    --brand-logo-full: url('brand/eatologix-logo-dark.svg');
+    --brand-logo: url('brand/nutriin-horizontal-dark.svg');
+    --brand-logo-full: url('brand/nutriin-logo-dark.svg');
     --brand-green-text: #4ADE80;
     --brand-accent: #A0F500;
     --ds-bg-primary: #0F2B2B;
@@ -1931,12 +1932,12 @@ nav.bottom-nav .bottom-nav-item:focus-visible {
 
 
 /* ===========================
-   EATOLOGIX — логото като елемент
-   <span class="ex-logo" role="img" aria-label="Eatologix"></span>  (хоризонтално, следва темата)
+   NUTRIIN — логото като елемент
+   <span class="ex-logo" role="img" aria-label="Nutriin"></span>  (хоризонтално, следва темата)
    <span class="ex-mark"></span>                                         (само знакът)
    =========================== */
-.ex-logo { display: inline-block; height: 28px; aspect-ratio: 4369 / 896; background: var(--brand-logo) left center / contain no-repeat; vertical-align: middle; }
-.ex-mark { display: inline-block; width: 28px; height: 28px; background: url('brand/eatologix-mark.svg') center / contain no-repeat; vertical-align: middle; }
+.ex-logo { display: inline-block; height: 28px; aspect-ratio: 3421 / 1000; background: var(--brand-logo) left center / contain no-repeat; vertical-align: middle; }
+.ex-mark { display: inline-block; width: 28px; height: 28px; background: url('brand/nutriin-mark.svg') center / contain no-repeat; vertical-align: middle; }
 .ex-gradient-text { background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 /* Тънка лента с логото най-горе (въпросник, чакане на плана). */

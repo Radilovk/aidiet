@@ -1,5 +1,5 @@
 /**
- * Eatologix — cross-device notification & PWA compatibility (APK + PWA + Web).
+ * Nutriin — cross-device notification & PWA compatibility (APK + PWA + Web).
  * Loaded after platform.js; exposes NutriPlanCompat.
  */
 (function (global) {
@@ -117,7 +117,7 @@
 
     function getBatteryOptimizationHints(oem) {
         oem = oem || getAndroidOem();
-        var app = 'Eatologix';
+        var app = 'Nutriin';
         var common = [
             'Изключи ограничения за батерията за ' + app + ' (Unrestricted / Без ограничения).',
             'Разреши автостарт и фонова работа, ако системата пита.'

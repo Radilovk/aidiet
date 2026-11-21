@@ -1,5 +1,5 @@
-// Service Worker for Eatologix PWA
-// Configure base path - use '/' for a custom domain (eatologix.com, served from GitHub Pages) or '/aidiet' for GitHub Pages
+// Service Worker for Nutriin PWA
+// Configure base path - use '/' for a custom domain (nutriin.app, served from GitHub Pages) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
 const CACHE_NAME = 'nutriplan-v81'; // v81: визуалният език „Светлина · Стъкло · Спокойствие“ (ambient-glass)
@@ -17,8 +17,8 @@ if (IS_NATIVE_APP_ORIGIN) {
 }
 const DEFAULT_ICON = `${BASE_PATH}/icon-192x192.png`;
 const DEFAULT_BADGE = `${BASE_PATH}/icon-192x192.png`;
-const DEFAULT_TITLE = 'Eatologix';
-const DEFAULT_BODY = 'Ново напомняне от Eatologix';
+const DEFAULT_TITLE = 'Nutriin';
+const DEFAULT_BODY = 'Ново напомняне от Nutriin';
 const STATIC_CACHE = [
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/questionnaire2.html`,
@@ -38,11 +38,11 @@ const STATIC_CACHE = [
   `${BASE_PATH}/icon-512x512.svg`,
   `${BASE_PATH}/manifest.json`,
   `${BASE_PATH}/i18n.js`,
-  `${BASE_PATH}/brand/eatologix-mark.svg`,
-  `${BASE_PATH}/brand/eatologix-mark-tech.svg`,
-  `${BASE_PATH}/brand/eatologix-horizontal.svg`,
-  `${BASE_PATH}/brand/eatologix-horizontal-dark.svg`,
-  `${BASE_PATH}/brand/eatologix-wordmark-dark.svg`,
+  `${BASE_PATH}/brand/nutriin-mark.svg`,
+  `${BASE_PATH}/brand/nutriin-mark-big.svg`,
+  `${BASE_PATH}/brand/nutriin-horizontal.svg`,
+  `${BASE_PATH}/brand/nutriin-horizontal-dark.svg`,
+  `${BASE_PATH}/brand/nutriin-wordmark-dark.svg`,
   `${BASE_PATH}/local-scheduler.js`,
   `${BASE_PATH}/notification-launch.js`,
   `${BASE_PATH}/platform.js`,
@@ -192,7 +192,7 @@ self.addEventListener('activate', (event) => {
         }),
       );
 
-      // Премахни всички /fitness/ записи от Eatologix кеша (остатък от стари SW версии)
+      // Премахни всички /fitness/ записи от Nutriin кеша (остатък от стари SW версии)
       const cache = await caches.open(CACHE_NAME);
       const keys = await cache.keys();
       await Promise.all(
@@ -224,7 +224,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // FitPlan AI (/fitness/) има собствен service worker и кеш — не прехващаме.
-  // Иначе stale-while-revalidate от Eatologix SW връща остарели CSS/HTML при refresh.
+  // Иначе stale-while-revalidate от Nutriin SW връща остарели CSS/HTML при refresh.
   if (url.pathname.startsWith('/fitness/') || url.pathname === '/fitness') {
     return;
   }
