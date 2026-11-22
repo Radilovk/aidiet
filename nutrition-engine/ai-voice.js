@@ -212,7 +212,7 @@ export function normalizePlanVoice(raw, ctx, rejected = []) {
   const specialistNote = cleanLine(raw.specialistNote, 700);
   if (!ok(welcome)) reject('welcome', raw.welcome, 1200);
   if (!ok(specialistNote)) reject('specialistNote', raw.specialistNote, 700);
-  for (const key of ['psychology', 'habits']) {
+  for (const key of ['psychology', 'habits', 'activity']) {
     for (const item of Array.isArray(raw[key]) ? raw[key] : []) {
       if (!ok(cleanLine(item, 320))) reject(key, item, 320);
     }
@@ -224,6 +224,7 @@ export function normalizePlanVoice(raw, ctx, rejected = []) {
     specialistNote: ok(specialistNote) ? specialistNote : '',
     psychology: cleanList(raw.psychology, ok, { min: 3, max: 6 }),
     habits: cleanList(raw.habits, ok, { min: 3, max: 6 }),
+    activity: cleanList(raw.activity, ok, { min: 2, max: 4 }),
     mealNotes: {},
   };
   for (const n of Array.isArray(raw.mealNotes) ? raw.mealNotes : []) {
@@ -271,16 +272,16 @@ export function voiceRepairPrompt(rejected, ctx = {}) {
 export function mergeVoiceRepair(voice, raw, ctx) {
   const items = Array.isArray(raw?.items) ? raw.items : [];
   if (!items.length) return voice;
-  const draft = { psychology: [], habits: [], mealNotes: [], portrait: voice?.portrait, tone: voice?.tone };
+  const draft = { psychology: [], habits: [], activity: [], mealNotes: [], portrait: voice?.portrait, tone: voice?.tone };
   for (const it of items) {
     const field = String(it?.field || '');
     const text = String(it?.text || '');
     if (field === 'welcome' || field === 'specialistNote') draft[field] = text;
-    else if (field === 'psychology' || field === 'habits') draft[field].push(text);
+    else if (field === 'psychology' || field === 'habits' || field === 'activity') draft[field].push(text);
     else if (field.startsWith('mealNotes:')) draft.mealNotes.push({ dishId: field.slice(10), note: text });
   }
   // Списъците минават проверката поотделно (minimum 3 важи само за целия списък).
-  const fixed = normalizePlanVoice({ ...draft, psychology: [...(voice?.psychology || []), ...draft.psychology], habits: [...(voice?.habits || []), ...draft.habits] }, ctx);
+  const fixed = normalizePlanVoice({ ...draft, psychology: [...(voice?.psychology || []), ...draft.psychology], habits: [...(voice?.habits || []), ...draft.habits], activity: [...(voice?.activity || []), ...draft.activity] }, ctx);
   if (!fixed) return voice;
   if (!voice) return fixed;
   const out = { ...voice, mealNotes: { ...voice.mealNotes } };
@@ -288,6 +289,7 @@ export function mergeVoiceRepair(voice, raw, ctx) {
   if (!out.specialistNote && fixed.specialistNote) out.specialistNote = fixed.specialistNote;
   if (fixed.psychology.length > out.psychology.length) out.psychology = fixed.psychology;
   if (fixed.habits.length > out.habits.length) out.habits = fixed.habits;
+  if (fixed.activity.length > (out.activity || []).length) out.activity = fixed.activity;
   for (const [id, note] of Object.entries(fixed.mealNotes)) if (!out.mealNotes[id]) out.mealNotes[id] = note;
   return out;
 }
@@ -299,6 +301,7 @@ export function voiceSummary(voice) {
     voice.welcome ? 'писмо' : '',
     voice.psychology.length ? `психология ×${voice.psychology.length}` : '',
     voice.habits.length ? `навици ×${voice.habits.length}` : '',
+    voice.activity?.length ? `движение ×${voice.activity.length}` : '',
     Object.keys(voice.mealNotes).length ? `бележки ×${Object.keys(voice.mealNotes).length}` : '',
     `обръщение „${voice.tone.address}“`,
   ].filter(Boolean).join(', ');
@@ -320,6 +323,8 @@ export function applyPlanVoice(plan, voice) {
     s.psychologicalSupport = [...voice.psychology];
   }
   if (voice.habits.length) plan.personalHabits = [...voice.habits];
+  // Личните съвети за движение — най-отгоре в „Движение и активност“ (activity-guide.js).
+  if (voice.activity?.length) plan.personalActivity = [...voice.activity];
   for (let d = 1; d <= 7; d++) {
     for (const m of plan.weekPlan?.[`day${d}`]?.meals || []) {
       const note = m?.dishId && voice.mealNotes[m.dishId];

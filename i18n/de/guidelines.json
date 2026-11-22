@@ -42,7 +42,21 @@
   "Добавка": "Ergänzung",
   "Позволено рядко и забранено": "Selten erlaubt und verboten",
   "За твоето ежедневие": "Für deinen Alltag",
-  "Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.": "Der neue Plan mit deinen Änderungen wartet auf die Freigabe durch eine Fachkraft. Die Empfehlungen unten gelten für deinen aktuellen Plan."
+  "Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.": "Der neue Plan mit deinen Änderungen wartet auf die Freigabe durch eine Fachkraft. Die Empfehlungen unten gelten für deinen aktuellen Plan.",
+  "Движение и активност": "Bewegung und Aktivität",
+  "За теб": "Für dich",
+  "Защо и какво": "Warum und was",
+  "Седмицата ти сега": "Deine Woche jetzt",
+  "Как да започнеш": "So fängst du an",
+  "Как да тренираш правилно": "Richtig trainieren",
+  "Движение през деня": "Bewegung im Alltag",
+  "Храна и движение": "Essen und Bewegung",
+  "На какво да внимаваш": "Worauf du achten solltest",
+  "крачки на ден": "Schritte pro Tag",
+  "силови тренировки седмично": "Krafttrainings pro Woche",
+  "мин умерено движение седмично": "Min. moderate Bewegung pro Woche",
+  "дни упражнения за баланс": "Tage Gleichgewichtsübungen",
+  "Натоварването съгласувай с лекуващия лекар — насоките тук са рамката.": "Stimme die Belastung mit deinem Arzt ab — diese Hinweise sind der Rahmen."
  },
  "keys": {},
  "patterns": []

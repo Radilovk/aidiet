@@ -336,6 +336,17 @@
         }
 
         /* --- Ръководство за храните: нива, замени, ситуации --- */
+        .ag-targets { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; margin-bottom: 6px; }
+        .ag-target { display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: 16px; background: var(--ds-surface-sunken); border: 1px solid var(--ds-line); }
+        .ag-target i { color: var(--primary-red); font-size: 0.9375rem; margin-bottom: 4px; }
+        .ag-target-val { font-size: 1.125rem; font-weight: 700; color: var(--text-dark); font-variant-numeric: tabular-nums; line-height: 1.2; }
+        .ag-target-lbl { font-size: 0.75rem; color: var(--ds-text-soft); line-height: 1.35; }
+        .ag-clear { margin: 10px 0 0; }
+        .ag-clear i { color: var(--primary-red); margin-right: 4px; }
+        .ag-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+        .ag-list li { position: relative; padding-left: 18px; font-size: 0.9375rem; line-height: 1.5; color: var(--text-dark); }
+        .ag-list li::before { content: ''; position: absolute; left: 2px; top: 0.6em; width: 6px; height: 6px; border-radius: 50%; background: var(--primary-red); opacity: .75; }
+        .ag-list--safety li::before { background: var(--ds-warning-text, #B45309); }
         .fg-sub {
             margin: 18px 0 8px;
             font-size: 0.8125rem;
@@ -1209,6 +1220,7 @@
     <script src="./supplement-shop.js"></script>
     <script src="./goal-model.js"></script>
     <script src="./goal-focus.js"></script>
+    <script src="./activity-guide.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script type="module" src="./auth-guard.js"></script>
@@ -1335,6 +1347,16 @@
                 </div>
                 <div class="acc-content">
                     <div class="acc-content-inner" id="hacksContent"></div>
+                </div>
+            </div>
+
+            <div data-guide="activity" class="acc-item" id="activityGuideItem" hidden>
+                <div class="acc-header" onclick="toggleAccordion(this)">
+                    <span><i class="fas fa-person-walking"></i> Движение и активност</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="acc-content">
+                    <div class="acc-content-inner" id="activityGuide"></div>
                 </div>
             </div>
         </div>
@@ -1553,6 +1575,28 @@
         }
 
         /** Секция без съдържание от плана не се показва — без шаблонен текст на мястото ѝ. */
+        /** Движение и активност (activity-guide.js): целите на седмицата + насоките по теми. */
+        function renderActivityGuide(dietPlan) {
+            const box = document.getElementById('activityGuide');
+            const item = document.getElementById('activityGuideItem');
+            const AG = window.NutriPlanActivityGuide;
+            if (!box || !item || !AG) return;
+            let ud = {};
+            try { ud = JSON.parse(localStorage.getItem('userData') || '{}') || {}; } catch (_) {}
+            const g = AG.build(ud, dietPlan);
+            const e = escapeHtml;
+            let html = '<div class="ag-targets">' + g.targets.map(t =>
+                '<div class="ag-target"><i class="fas ' + t.icon + '" aria-hidden="true"></i>' +
+                '<span class="ag-target-val">' + e(t.value) + '</span><span class="ag-target-lbl">' + e(t.label) + '</span></div>').join('') + '</div>';
+            if (g.clearance) html += '<p class="fg-note ag-clear"><i class="fas fa-user-doctor" aria-hidden="true"></i> Натоварването съгласувай с лекуващия лекар — насоките тук са рамката.</p>';
+            g.sections.forEach(s => {
+                html += '<div class="fg-sub">' + e(s.title) + '</div><ul class="ag-list' + (s.key === 'safety' ? ' ag-list--safety' : '') + '">' +
+                    s.items.map(t => '<li>' + e(t) + '</li>').join('') + '</ul>';
+            });
+            box.innerHTML = html;
+            item.hidden = false;
+        }
+
         function hideGuide(el) {
             const item = el.closest('.acc-item');
             if (item) item.hidden = true;
@@ -1812,6 +1856,8 @@
                         hideGuide(hacksContent);
                     }
                 }
+
+                renderActivityGuide(dietPlan);
 
                 return true;
             } catch (error) {

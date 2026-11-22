@@ -42,7 +42,21 @@
   "Добавка": "Takviye",
   "Позволено рядко и забранено": "Nadiren İzin Verilenler ve Yasaklar",
   "За твоето ежедневие": "Günlük Yaşamın İçin",
-  "Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.": "Değişikliklerine göre hazırlanan yeni plan uzmanın onayını bekliyor. Aşağıdaki rehber mevcut planın içindir."
+  "Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.": "Değişikliklerine göre hazırlanan yeni plan uzmanın onayını bekliyor. Aşağıdaki rehber mevcut planın içindir.",
+  "Движение и активност": "Hareket ve aktivite",
+  "За теб": "Senin için",
+  "Защо и какво": "Neden ve ne",
+  "Седмицата ти сега": "Şimdiki haftan",
+  "Как да започнеш": "Nasıl başlarsın",
+  "Как да тренираш правилно": "Doğru antrenman",
+  "Движение през деня": "Gün içinde hareket",
+  "Храна и движение": "Beslenme ve hareket",
+  "На какво да внимаваш": "Nelere dikkat etmelisin",
+  "крачки на ден": "günlük adım",
+  "силови тренировки седмично": "haftalık kuvvet antrenmanı",
+  "мин умерено движение седмично": "haftalık orta düzey hareket (dk)",
+  "дни упражнения за баланс": "gün denge egzersizi",
+  "Натоварването съгласувай с лекуващия лекар — насоките тук са рамката.": "Yüklenmeyi doktorunla netleştir — buradaki öneriler çerçevedir."
  },
  "keys": {},
  "patterns": []
