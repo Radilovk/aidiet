@@ -65,15 +65,16 @@ function placeMark(id, box, size = 'main') {
 
 const GL = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/nutriin-wordmark-glyphs.json'), 'utf8'));
 // Надписът в единиците на шрифта: базова линия y=0, горе до точката на „i“ / „t“ (≈ −740).
-const W_TOP = -760, W_BOTTOM = 14;
+const W_TOP = -820, W_BOTTOM = 14;
 // Позиции: nutri | ı (по-широко след „i“, за да не се слеят двете стъбла) | n; над ı — листото от знака (плътно).
 const X_I = GL.nutri.width + GL.kernIi, X_N = X_I + GL.i.width + GL.kernIn;
 const W_WIDTH = X_N + GL.n.width;
 function leafDot() {
-  // Кръгло листо (мек връх горе, заоблена основа), наклон 18°, центрирано над стъблото на ı — „точката“ на i.
-  const cx = X_I + (GL.i.stem[0] + GL.i.stem[1]) / 2, cy = -GL.xHeight - 62 - 88;
-  const d = 'M0,-100 C34,-78 66,-40 66,6 C66,56 36,90 0,90 C-36,90 -66,56 -66,6 C-66,-40 -34,-78 0,-100Z';
-  return `<path transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(18)" d="${d}"/>`;
+  // Листо-леща (заострено в двата края), основата е точно над стъблото на ı, върхът — нагоре-надясно (45°).
+  // Един плътен цвят — този на „in“.
+  const cx = X_I + (GL.i.stem[0] + GL.i.stem[1]) / 2 - 8, cy = -GL.xHeight - 58;
+  const d = 'M0,0 C64,-92 244,-108 350,0 C246,88 80,78 0,0Z';
+  return `<path transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(-47)" d="${d}"/>`;
 }
 function wordmark({ scale, x0, baseline, dark }) {
   const ink = dark ? BRAND.inkDark : BRAND.ink, green = dark ? BRAND.greenDark : BRAND.green;
