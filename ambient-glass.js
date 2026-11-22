@@ -24,7 +24,7 @@
     if (mode === 'classic') return;
 
     d.setAttribute('data-ui', 'glass');
-    document.write('<link rel="stylesheet" href="./ambient-glass.css?v=2" id="ambientGlassCss">');
+    document.write('<link rel="stylesheet" href="./ambient-glass.css?v=3" id="ambientGlassCss">');
 
     var mem = navigator.deviceMemory || 8;
     var cores = navigator.hardwareConcurrency || 8;
