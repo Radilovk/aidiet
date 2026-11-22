@@ -3422,29 +3422,49 @@
             }
         }
 
+        /* Знакът Nutriin (brand/nutriin-mark.json): тяло + листо, evenodd. */
+        const DIAG_MARK = {"box":{"x":181,"y":177,"w":872,"h":869},"fill":["M293.2,403.4 C272.2,420.7 254.8,442.5 240.2,465.3 C148.8,608.1 198.7,781.4 292.1,909.0 C324.4,953.1 363.2,993.1 412.5,1017.8 C438.0,1030.6 470.4,1041.0 499.0,1033.1 C539.4,1021.9 536.0,984.6 536.0,951.1 C536.0,873.8 536.0,796.4 536.0,719.1 C536.0,690.6 546.1,635.2 507.5,628.5 C476.7,623.1 465.7,652.1 465.0,676.8 C463.0,746.6 465.0,816.9 465.0,886.8 C465.0,904.6 466.3,923.0 465.0,940.8 C464.3,948.7 465.0,957.2 456.3,960.6 C447.0,964.2 434.9,956.7 427.3,952.2 C403.5,938.2 384.7,915.1 367.8,893.7 C302.9,811.7 247.8,712.3 256.5,604.2 C265.3,495.3 367.8,379.4 484.9,406.7 C540.2,419.7 573.1,470.1 630.2,466.1 C669.4,463.4 698.0,433.7 731.9,417.6 C786.5,391.6 849.6,400.0 896.2,438.5 C912.7,452.1 926.8,468.4 938.3,486.3 C1012.7,602.3 971.8,727.6 904.3,834.8 C886.6,862.9 866.3,889.7 844.0,914.4 C834.2,925.2 822.3,940.0 808.1,945.2 C780.8,955.3 763.2,917.3 750.7,899.2 C729.1,868.0 705.4,838.1 682.7,807.7 C667.3,787.0 652.9,764.6 635.8,745.4 C620.0,727.7 593.5,714.1 572.0,731.8 C553.2,747.3 558.0,777.7 558.0,799.2 C558.0,856.6 558.0,913.9 558.0,971.2 C558.0,993.6 556.9,1025.4 584.3,1032.7 C603.2,1037.7 620.7,1024.4 626.0,1006.7 C629.6,994.9 628.1,981.2 628.2,969.0 C628.4,947.0 628.5,925.0 628.7,903.0 C628.7,891.8 628.1,880.3 628.9,869.1 C629.1,867.1 628.0,858.1 631.4,858.1 C634.7,858.2 639.2,866.8 641.0,869.0 C650.1,880.5 658.6,892.5 667.4,904.2 C685.8,928.7 704.2,953.2 722.6,977.8 C747.0,1010.3 770.5,1041.9 816.2,1022.8 C863.3,1003.1 908.0,946.6 937.9,906.6 C1025.4,789.4 1076.9,640.8 1017.2,498.9 C1007.6,476.1 995.6,454.6 980.5,435.0 C961.4,410.4 937.8,388.6 910.8,373.0 C850.2,337.9 779.7,339.6 717.2,368.2 C690.0,380.7 647.6,416.8 619.1,411.8 C603.2,409.0 590.6,397.7 577.7,388.9 C562.0,378.2 544.8,368.0 527.0,361.1 C447.0,330.0 358.0,349.5 293.2,403.4Z","M828.1,193.5 C818.1,182.2 778.9,188.1 765.2,190.4 C702.3,200.9 649.0,241.3 621.0,298.7 C612.1,317.2 606.6,337.8 609.3,358.4 C610.2,365.3 611.3,375.0 616.9,379.9 C623.8,385.9 631.6,383.4 639.3,380.3 C654.5,374.2 667.4,362.5 682.8,356.1 C704.8,346.9 729.2,343.3 750.9,333.2 C787.1,316.4 813.4,284.2 824.8,246.3 C828.6,233.5 838.0,204.8 828.1,193.5Z","M786.7,235.6 C790.6,241.8 777.4,261.6 773.6,266.9 C751.9,297.5 720.1,306.9 687.3,321.0 C675.5,326.1 664.9,332.1 654.7,340.0 C652.4,341.8 639.0,354.6 636.9,352.1 C635.3,350.2 638.1,344.1 638.7,342.2 C642.0,331.4 648.0,321.5 653.7,311.9 C674.9,276.6 708.4,251.3 747.6,239.1 C754.0,237.1 782.5,229.0 786.7,235.6Z"]};
+
+        function diagMarkSvg(cls, paint) {
+            const b = DIAG_MARK.box;
+            const paths = DIAG_MARK.fill.map((d, i) =>
+                '<path d="' + d + '" fill="' + (paint ? (i === 0 ? 'url(#dgBody)' : 'url(#dgLeaf)') : 'currentColor') + '"/>').join('');
+            const defs = paint
+                ? '<defs><linearGradient id="dgBody" gradientUnits="userSpaceOnUse" x1="260" y1="1040" x2="980" y2="300">' +
+                  '<stop offset="0" class="dg-s1"/><stop offset=".55" class="dg-s2"/><stop offset="1" class="dg-s3"/></linearGradient>' +
+                  '<linearGradient id="dgLeaf" gradientUnits="userSpaceOnUse" x1="600" y1="440" x2="900" y2="180">' +
+                  '<stop offset="0" class="dg-l1"/><stop offset="1" class="dg-l2"/></linearGradient></defs>'
+                : '';
+            return '<svg class="' + cls + '" viewBox="' + b.x + ' ' + b.y + ' ' + b.w + ' ' + b.h + '" aria-hidden="true">' +
+                defs + '<g fill-rule="evenodd">' + paths + '</g></svg>';
+        }
+
         function renderDiagnosticLoading(isResume = false) {
             container.innerHTML = `
-                <div class="diagnostic-loader" aria-live="polite" aria-busy="true">
-                    <div class="diagnostic-bg diagnostic-bg-one"></div>
-                    <div class="diagnostic-bg diagnostic-bg-two"></div>
+                <div class="diagnostic-loader" id="diagnosticLoader" aria-live="polite" aria-busy="true" style="--p:0">
                     <div class="diagnostic-top">
                         <div class="diagnostic-orb-wrap">
+                            <div class="diagnostic-glow" aria-hidden="true"></div>
                             <div class="diagnostic-orb" id="diagnosticOrb">
-                                <div class="ai-hex-loader"></div>
+                                ${diagMarkSvg('dg-mark dg-mark-base', false)}
+                                <div class="dg-fill">${diagMarkSvg('dg-mark', true)}</div>
+                                <div class="dg-level" aria-hidden="true"></div>
                             </div>
                         </div>
                         <div class="diagnostic-kicker">Изготвяне на плана</div>
                         <h2 class="q-text" id="loadingTitle">Изчисляваме нуждите ти...</h2>
                         <p class="diagnostic-subtitle" id="loadingSubtitle">${isResume ? 'Продължаваме анализа от активна сесия' : 'Обработваме въведените данни'}</p>
-                        <div id="progressPercentage" class="diagnostic-percent">0%</div>
-                        <div class="diagnostic-progress-track">
-                            <div id="aiProgressBar" class="diagnostic-progress-fill"></div>
+                        <div class="diagnostic-meter">
+                            <div class="diagnostic-progress-track">
+                                <div id="aiProgressBar" class="diagnostic-progress-fill"></div>
+                            </div>
+                            <div id="progressPercentage" class="diagnostic-percent">0%</div>
                         </div>
-                        <div class="diagnostic-step-row" aria-hidden="true">
-                            <span class="diagnostic-step-dot active"></span>
-                            <span class="diagnostic-step-dot"></span>
-                            <span class="diagnostic-step-dot"></span>
-                            <span class="diagnostic-step-dot"></span>
+                        <div class="diagnostic-step-row">
+                            <span class="diagnostic-step-dot active"><i></i>Нужди</span>
+                            <span class="diagnostic-step-dot"><i></i>Здраве</span>
+                            <span class="diagnostic-step-dot"><i></i>Хранения</span>
+                            <span class="diagnostic-step-dot"><i></i>Седмица</span>
                         </div>
                         <p id="safeCloseMsg" class="diagnostic-safe">
                             <i class="fas fa-shield-alt"></i> Може да затворите приложението — планът продължава да се изготвя
@@ -3455,258 +3475,160 @@
                     </div>
                 </div>
                 <style>
-                    body.diagnostic-lock {
-                        overflow: hidden;
-                        overscroll-behavior: none;
-                        touch-action: none;
-                    }
+                    body.diagnostic-lock { overflow: hidden; overscroll-behavior: none; touch-action: none; }
                     body.diagnostic-lock .progress-container,
                     body.diagnostic-lock .footer-glass,
                     body.diagnostic-lock .btn-prev,
-                    body.diagnostic-lock .btn-next {
-                        display: none !important;
-                    }
+                    body.diagnostic-lock .btn-next { display: none !important; }
                     body.diagnostic-lock .question-wrapper {
-                        padding: calc(10px + var(--safe-area-inset-top)) calc(14px + var(--safe-area-inset-right)) calc(10px + var(--safe-area-inset-bottom)) calc(14px + var(--safe-area-inset-left));
+                        padding: calc(10px + var(--safe-area-inset-top)) calc(16px + var(--safe-area-inset-right)) calc(10px + var(--safe-area-inset-bottom)) calc(16px + var(--safe-area-inset-left));
                         overflow: hidden;
                     }
+                    /* Хиро без кутия: светлината на фона (ambient-glass) стига до ръба. */
                     .diagnostic-loader {
+                        --dg-ink: var(--ag-ink, var(--text-dark));
+                        --dg-soft: var(--ag-ink-soft, var(--text-gray));
+                        --dg-tint: #0B8A86;
+                        --dg-done: var(--ds-green-text, #2F7D12);
                         position: relative;
                         width: 100%;
+                        max-width: 520px;
                         height: calc(100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom) - 20px);
-                        display: grid;
-                        grid-template-rows: minmax(0, .98fr) minmax(180px, .82fr);
-                        gap: clamp(10px, 2.4dvh, 18px);
-                        max-width: 560px;
                         margin: 0 auto;
-                        padding: clamp(10px, 2dvh, 18px);
-                        border-radius: 34px;
-                        background:
-                            radial-gradient(circle at 18% 8%, rgba(25,214,210,.18), transparent 34%),
-                            radial-gradient(circle at 88% 16%, rgba(59,130,246,.12), transparent 32%),
-                            var(--bg-color);
-                        border: 1px solid rgba(3,147,156,.10);
-                        box-shadow: 0 12px 40px rgba(3,147,156,.10);
-                        animation: diagnosticFadeIn .35s ease-out both;
-                        overflow: hidden;
-                        isolation: isolate;
-                    }
-                    [data-theme="dark"] .diagnostic-loader {
-                        background:
-                            radial-gradient(circle at 18% 8%, rgba(25,214,210,.13), transparent 34%),
-                            radial-gradient(circle at 88% 16%, rgba(96,165,250,.10), transparent 32%),
-                            var(--bg-color);
-                        border-color: rgba(25,214,210,.14);
-                        box-shadow: 0 12px 40px rgba(0,0,0,.30);
-                    }
-                    .diagnostic-bg {
-                        position: absolute;
-                        pointer-events: none;
-                        border-radius: 999px;
-                        filter: blur(2px);
-                        opacity: .7;
-                        z-index: -1;
-                    }
-                    .diagnostic-bg-one {
-                        width: 180px;
-                        height: 180px;
-                        left: -78px;
-                        top: 12%;
-                        background: radial-gradient(circle, rgba(25,214,210,.30), transparent 68%);
-                        animation: diagnosticFloat 8s ease-in-out infinite;
-                    }
-                    .diagnostic-bg-two {
-                        width: 210px;
-                        height: 210px;
-                        right: -92px;
-                        bottom: -44px;
-                        background: radial-gradient(circle, rgba(251,191,36,.18), transparent 70%);
-                        animation: diagnosticFloat 9s ease-in-out infinite reverse;
-                    }
-                    .diagnostic-top {
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        text-align: center;
-                        min-height: 0;
-                        padding: 0 clamp(2px, 1vw, 8px);
-                    }
-                    .diagnostic-orb-wrap {
-                        position: relative;
-                        width: clamp(104px, 28vw, 132px);
-                        height: clamp(104px, 28vw, 132px);
-                        margin: 0 auto clamp(12px, 2dvh, 18px);
                         display: grid;
-                        place-items: center;
+                        grid-template-rows: minmax(0, 1fr) minmax(170px, .72fr);
+                        gap: clamp(12px, 2.4dvh, 20px);
+                        animation: diagnosticFadeIn .5s var(--ag-spring, ease-out) both;
+                        color: var(--dg-ink);
                     }
-                    .diagnostic-orb {
-                        position: relative;
-                        z-index: 2;
-                        width: clamp(74px, 20vw, 92px);
-                        height: clamp(74px, 20vw, 92px);
-                        border-radius: 30px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        color: var(--primary-red);
-                        background: linear-gradient(160deg, rgba(255,255,255,.95), rgba(240,253,250,.70));
-                        border: 1px solid rgba(3,147,156,.16);
-                        box-shadow: 0 18px 38px rgba(3,147,156,.20), inset 0 1px 0 rgba(255,255,255,.9);
-                        animation: diagnosticPulse 1.9s ease-in-out infinite;
-                        transition: color .45s ease, box-shadow .45s ease, background .45s ease, transform .45s ease, border-color .45s ease;
-                    }
-                    [data-theme="dark"] .diagnostic-orb {
-                        background: linear-gradient(160deg, rgba(20,55,55,.95), rgba(8,28,30,.86));
-                        box-shadow: 0 18px 42px rgba(0,0,0,.38), 0 0 26px rgba(25,214,210,.16), inset 0 1px 0 rgba(255,255,255,.08);
-                    }
-                    .diagnostic-orb.amber { color:#d97706; border-color:rgba(245,158,11,.34); box-shadow:0 18px 38px rgba(245,158,11,.18), inset 0 1px 0 rgba(255,255,255,.68); }
-                    .diagnostic-orb.critical { color:#dc2626; border-color:rgba(220,38,38,.32); box-shadow:0 18px 38px rgba(220,38,38,.18), inset 0 1px 0 rgba(255,255,255,.62); }
-                    .diagnostic-orb.success { color:var(--primary-red); border-color:rgba(3,147,156,.30); box-shadow:0 20px 44px rgba(3,147,156,.26), 0 0 24px rgba(25,214,210,.22); transform:scale(1.03); }
-                    .diagnostic-kicker {
-                        align-self: center;
-                        margin-bottom: 8px;
-                        padding: 7px 12px;
-                        border-radius: 999px;
-                        color: var(--primary-red);
-                        background: rgba(3,147,156,.10);
-                        border: 1px solid rgba(3,147,156,.14);
-                        font-size: clamp(.72rem, 2.8vw, .82rem);
-                        font-weight: 900;
-                        letter-spacing: .08em;
-                        text-transform: uppercase;
-                    }
-                    [data-theme="dark"] .diagnostic-kicker { background: rgba(25,214,210,.10); border-color: rgba(25,214,210,.18); }
-                    .diagnostic-subtitle { color: var(--text-gray); margin: 6px 0 12px; font-size: clamp(.86rem, 3.4vw, .98rem); line-height: 1.4; }
-                    .diagnostic-percent { color: var(--text-dark); font-size: clamp(1.15rem, 5.4vw, 1.55rem); font-weight: 950; letter-spacing: -.03em; margin-bottom: 8px; }
-                    .diagnostic-progress-track { width: 100%; height: 15px; background: rgba(15,47,46,.10); border-radius: 99px; overflow: hidden; box-shadow: inset 0 2px 7px rgba(0,0,0,.13), 0 1px 0 rgba(255,255,255,.62); }
-                    [data-theme="dark"] .diagnostic-progress-track { background: rgba(224,245,240,.10); box-shadow: inset 0 2px 7px rgba(0,0,0,.32); }
-                    .diagnostic-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg,#03939C,#19D6D2,#9BF2EE); box-shadow: 0 0 18px rgba(3,147,156,.28); transition: width .35s linear, background .45s ease, box-shadow .45s ease; position: relative; overflow: hidden; }
-                    .diagnostic-progress-fill::after { content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent); animation:diagnosticShine 1.45s infinite; }
-                    .diagnostic-progress-fill.amber { background:linear-gradient(90deg,#d97706,#fbbf24,#fde68a); box-shadow:0 0 20px rgba(245,158,11,.42); }
-                    .diagnostic-progress-fill.critical { background:linear-gradient(90deg,#dc2626,#fb7185,#fecdd3); box-shadow:0 0 22px rgba(220,38,38,.42); }
-                    .diagnostic-progress-fill.success { background:linear-gradient(90deg,#03939C,#19D6D2,#9BF2EE); box-shadow:0 0 26px rgba(3,147,156,.48); }
-                    .diagnostic-step-row { display:flex; justify-content:center; gap:7px; margin-top:12px; }
-                    .diagnostic-step-dot { width:7px; height:7px; border-radius:999px; background:rgba(3,147,156,.22); transition:width .3s ease, background .3s ease, box-shadow .3s ease; }
-                    .diagnostic-step-dot.active { width:22px; background:var(--primary-red); box-shadow:0 0 12px rgba(3,147,156,.34); }
-                    .diagnostic-safe { color:#03939C; margin-top:12px; font-size:.82rem; font-weight:800; opacity:0; transition:opacity .35s ease; }
-                    [data-theme="dark"] .diagnostic-safe { color:#5fe6e3; }
-                    .diagnostic-terminal-wrap { min-height: 0; display:flex; align-items:stretch; }
+                    [data-theme="dark"] .diagnostic-loader { --dg-tint: #3FD2C3; --dg-done: #8FE07A; }
+                    .diagnostic-top { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; min-height: 0; }
+
+                    /* Знакът се изпълва отвътре — нивото следва напредъка (--p). */
+                    .diagnostic-orb-wrap { position: relative; width: clamp(128px, 36vw, 168px); aspect-ratio: 1; margin: 0 auto clamp(14px, 2.4dvh, 22px); display: grid; place-items: center; }
+                    .diagnostic-glow { position: absolute; inset: -18%; border-radius: 50%; pointer-events: none;
+                        background: radial-gradient(closest-side, rgba(19,145,95,.26), rgba(10,107,102,.12) 55%, transparent 100%);
+                        animation: dgBreathe 5.5s ease-in-out infinite; }
+                    [data-theme="dark"] .diagnostic-glow { background: radial-gradient(closest-side, rgba(44,203,130,.24), rgba(31,184,164,.10) 55%, transparent 100%); }
+                    .diagnostic-orb { position: relative; width: 78%; aspect-ratio: 872 / 869; color: var(--dg-ink); }
+                    .dg-mark { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+                    .dg-mark-base { opacity: .10; }
+                    [data-theme="dark"] .dg-mark-base { opacity: .14; }
+                    .dg-fill { position: absolute; inset: 0; clip-path: inset(calc((1 - var(--p)) * 100%) 0 0 0); transition: clip-path .6s ease-out; }
+                    .dg-s1 { stop-color: #0A6B66; } .dg-s2 { stop-color: #13915F; } .dg-s3 { stop-color: #1FA866; }
+                    .dg-l1 { stop-color: #4DB848; } .dg-l2 { stop-color: #8CCB3A; }
+                    [data-theme="dark"] .dg-s1 { stop-color: #1FB8A4; } [data-theme="dark"] .dg-s2 { stop-color: #2CCB82; } [data-theme="dark"] .dg-s3 { stop-color: #4ED987; }
+                    [data-theme="dark"] .dg-l1 { stop-color: #7EDB5A; } [data-theme="dark"] .dg-l2 { stop-color: #B5E86A; }
+                    /* Линията на светлината, която се издига вътре в знака. */
+                    .dg-level { position: absolute; left: 8%; right: 8%; height: 2px; bottom: calc(var(--p) * 100%); border-radius: 2px;
+                        background: linear-gradient(90deg, transparent, rgba(255,255,255,.95), transparent);
+                        box-shadow: 0 0 14px 3px rgba(78,217,135,.55); opacity: .9; transition: bottom .6s ease-out, opacity .4s ease;
+                        animation: dgShimmer 2.8s ease-in-out infinite; }
+                    .diagnostic-loader.is-done .dg-level { opacity: 0; }
+                    .diagnostic-loader.is-done .diagnostic-orb { animation: dgDone .9s var(--ag-spring, ease-out) both; }
+
+                    .diagnostic-kicker { margin-bottom: 6px; color: var(--dg-tint); font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+                    .diagnostic-top .q-text { margin: 0; font-size: clamp(1.3rem, 5.6vw, 1.6rem); font-weight: 700; letter-spacing: -.01em; line-height: 1.25; color: var(--dg-ink); }
+                    .diagnostic-subtitle { color: var(--dg-soft); margin: 6px 0 16px; font-size: .94rem; line-height: 1.45; min-height: 1.45em; }
+
+                    .diagnostic-meter { width: min(100%, 320px); display: flex; align-items: center; gap: 12px; }
+                    .diagnostic-progress-track { flex: 1; height: 6px; border-radius: 99px; overflow: hidden; background: var(--ds-track, rgba(15,47,46,.09)); }
+                    .diagnostic-progress-fill { position: relative; height: 100%; width: 0%; border-radius: inherit; overflow: hidden;
+                        background: linear-gradient(90deg, #0A6B66, #13915F 60%, #1FA866); transition: width .4s linear; }
+                    [data-theme="dark"] .diagnostic-progress-fill { background: linear-gradient(90deg, #1FB8A4, #2CCB82 60%, #4ED987); }
+                    .diagnostic-progress-fill::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+                        background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: diagnosticShine 2.4s ease-in-out infinite; }
+                    .diagnostic-percent { min-width: 3.2em; text-align: right; color: var(--dg-ink); font-size: .95rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+                    /* Четирите етапа — думи, не точки; завършеното е отметка, текущото диша. */
+                    .diagnostic-step-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 16px; margin-top: 14px; }
+                    .diagnostic-step-dot { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 600; color: var(--dg-soft); opacity: .6; transition: opacity .4s ease, color .4s ease; }
+                    .diagnostic-step-dot i { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid currentColor; display: grid; place-items: center; font-style: normal; transition: background .4s ease, border-color .4s ease; }
+                    .diagnostic-step-dot.active { opacity: 1; color: var(--dg-done); }
+                    .diagnostic-step-dot.active i { background: currentColor; }
+                    .diagnostic-step-dot.active i::after { content: ''; width: 6px; height: 3.5px; margin-top: -2px; border: solid #fff; border-width: 0 0 1.6px 1.6px; transform: rotate(-45deg); }
+                    [data-theme="dark"] .diagnostic-step-dot.active i::after { border-color: #062018; }
+                    .diagnostic-step-dot.active:not(:has(+ .active)) { color: var(--dg-tint); }
+                    .diagnostic-step-dot.active:not(:has(+ .active)) i { background: transparent; animation: dgPulse 1.8s ease-in-out infinite; }
+                    .diagnostic-step-dot.active:not(:has(+ .active)) i::after { width: 6px; height: 6px; margin: 0; border: 0; border-radius: 50%; background: currentColor; transform: none; }
+                    .diagnostic-loader.is-done .diagnostic-step-dot { color: var(--dg-done); opacity: 1; }
+                    .diagnostic-loader.is-done .diagnostic-step-dot i { background: currentColor; animation: none; }
+
+                    .diagnostic-safe { color: var(--dg-soft); margin: 14px 0 0; font-size: .8rem; font-weight: 600; opacity: 0; transition: opacity .4s ease; }
+                    .diagnostic-safe i { color: var(--dg-tint); margin-right: 4px; }
+
+                    /* Дневникът — една стъклена карта; редовете са без цветни ивици. */
+                    .diagnostic-terminal-wrap { min-height: 0; display: flex; }
                     .diagnostic-terminal {
-                        position: relative;
-                        width:100%;
-                        height:100%;
-                        min-height: 210px;
-                        max-height: 42dvh;
-                        overflow-y: auto;
-                        overflow-x: hidden;
-                        padding: 12px;
-                        border: 1px solid rgba(3,147,156,.13);
-                        border-radius: 24px;
-                        background: var(--card-bg);
-                        box-shadow: 0 4px 18px rgba(3,147,156,.08), inset 0 1px 0 rgba(255,255,255,.40);
-                        display:flex;
-                        flex-direction:column;
-                        justify-content:flex-start;
-                        gap: 8px;
-                        scrollbar-width: thin;
-                        scrollbar-color: rgba(3,147,156,.28) transparent;
+                        width: 100%; height: 100%; min-height: 0; max-height: 40dvh; overflow: hidden;
+                        padding: 6px 16px; border-radius: 24px;
+                        background: var(--ag-surface, var(--card-bg));
+                        -webkit-backdrop-filter: var(--ag-blur, none); backdrop-filter: var(--ag-blur, none);
+                        border: 1px solid var(--ag-edge, var(--ds-line, rgba(15,47,46,.07)));
+                        box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 10px 30px rgba(6,40,38,.08);
+                        display: flex; flex-direction: column; justify-content: flex-end;
+                        -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 34%); mask-image: linear-gradient(to bottom, transparent 0, #000 34%);
                     }
-                    .diagnostic-terminal::-webkit-scrollbar { width: 4px; }
-                    .diagnostic-terminal::-webkit-scrollbar-track { background: transparent; }
-                    .diagnostic-terminal::-webkit-scrollbar-thumb { background: rgba(3,147,156,.28); border-radius: 99px; }
-                    [data-theme="dark"] .diagnostic-terminal {
-                        background: var(--card-bg);
-                        border-color: var(--glass-border);
-                        box-shadow: 0 4px 18px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.04);
-                    }
-                    [data-theme="dark"] .diagnostic-terminal::-webkit-scrollbar-thumb { background: rgba(25,214,210,.28); }
-                    .diagnostic-log-entry {
-                        position: relative;
-                        opacity: 0;
-                        transform: translateY(10px);
-                        padding: 11px 13px;
-                        border-radius: 14px;
-                        background: rgba(3,147,156,.06);
-                        border-left: 3px solid rgba(3,147,156,.45);
-                        transition: opacity .45s ease, transform .45s ease, background .35s ease, border-color .35s ease;
-                    }
-                    .diagnostic-log-entry.visible { opacity: 1; transform: translateY(0); }
-                    .diagnostic-log-entry.latest {
-                        background: rgba(3,147,156,.12);
-                        border-left-color: var(--primary-red);
-                        box-shadow: 0 2px 10px rgba(3,147,156,.10);
-                    }
+                    [data-theme="dark"] .diagnostic-terminal { box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 30px rgba(0,0,0,.25); }
+                    .diagnostic-log-entry { position: relative; display: grid; grid-template-columns: 18px 1fr; column-gap: 12px; padding: 11px 0;
+                        opacity: 0; transform: translateY(12px); transition: opacity .5s ease, transform .5s var(--ag-spring, ease-out); }
+                    .diagnostic-log-entry + .diagnostic-log-entry { border-top: 1px solid var(--ds-line, rgba(15,47,46,.07)); }
+                    .diagnostic-log-entry::before { content: ''; grid-row: 1 / span 2; width: 16px; height: 16px; margin-top: 1px; border-radius: 50%; box-sizing: border-box;
+                        border: 1.8px solid var(--dg-tint); border-right-color: transparent; animation: dgSpin .9s linear infinite; }
+                    .diagnostic-log-entry.past::before { animation: none; border: 0; background: var(--dg-done);
+                        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm3.6 5.2L7 9.8 4.6 7.4 3.5 8.5 7 12l5.7-5.7z'/%3E%3C/svg%3E") center / contain no-repeat;
+                                mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm3.6 5.2L7 9.8 4.6 7.4 3.5 8.5 7 12l5.7-5.7z'/%3E%3C/svg%3E") center / contain no-repeat; }
+                    .diagnostic-log-entry.visible { opacity: 1; transform: none; }
                     .diagnostic-log-entry.past { opacity: .62; }
-                    .diagnostic-log-entry.amber { background: rgba(245,158,11,.08); border-left-color: #d97706; }
-                    .diagnostic-log-entry.amber.latest { background: rgba(245,158,11,.14); }
-                    .diagnostic-log-entry.critical { background: rgba(220,38,38,.07); border-left-color: #dc2626; }
-                    .diagnostic-log-entry.critical.latest { background: rgba(220,38,38,.12); }
-                    .diagnostic-log-entry.success { background: rgba(3,147,156,.08); border-left-color: #03939C; }
-                    .diagnostic-log-entry.success.latest { background: rgba(3,147,156,.15); }
-                    [data-theme="dark"] .diagnostic-log-entry { background: rgba(25,214,210,.06); }
-                    [data-theme="dark"] .diagnostic-log-entry.latest { background: rgba(25,214,210,.12); }
-                    [data-theme="dark"] .diagnostic-log-entry.amber { background: rgba(245,158,11,.10); }
-                    [data-theme="dark"] .diagnostic-log-entry.critical { background: rgba(248,113,113,.10); }
-                    .diagnostic-log-meta {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        margin-bottom: 5px;
-                    }
-                    .diagnostic-log-time {
-                        font-size: .68rem;
-                        font-weight: 700;
-                        color: var(--text-gray);
-                        font-variant-numeric: tabular-nums;
-                        letter-spacing: .02em;
-                    }
-                    .diagnostic-log-tag {
-                        font-size: .68rem;
-                        font-weight: 900;
-                        letter-spacing: .06em;
-                        text-transform: uppercase;
-                        color: var(--primary-red);
-                        padding: 2px 7px;
-                        border-radius: 6px;
-                        background: rgba(3,147,156,.10);
-                    }
-                    .diagnostic-log-entry.amber .diagnostic-log-tag { color: #b45309; background: rgba(245,158,11,.14); }
-                    .diagnostic-log-entry.critical .diagnostic-log-tag { color: #b91c1c; background: rgba(220,38,38,.12); }
-                    .diagnostic-log-entry.success .diagnostic-log-tag { color: #05737d; background: rgba(3,147,156,.14); }
-                    .diagnostic-log-text {
-                        font-size: clamp(.82rem, 3.2vw, .94rem);
-                        line-height: 1.5;
-                        font-weight: 600;
-                        color: var(--text-dark);
-                    }
-                    [data-theme="dark"] .diagnostic-log-text { color: var(--text-dark); }
-                    .ai-hex-loader{width:54px;aspect-ratio:1.154;color:currentColor;display:grid;animation:aiHex0 6s infinite linear;filter:drop-shadow(0 8px 16px rgba(3,147,156,.20));}
-                    .ai-hex-loader::before,.ai-hex-loader::after{content:"";grid-area:1/1;}
-                    .ai-hex-loader::before{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);background:conic-gradient(from -30deg,#0000 60deg,currentColor 0);}
-                    .ai-hex-loader::after{background:conic-gradient(from -30deg,currentColor 60deg,#0000 0);animation:aiHex1 .5s infinite alternate;}
-                    @keyframes aiHex0{0%,16.66%{transform:rotate(0deg)}16.67%,33.33%{transform:rotate(60deg)}33.34%,50%{transform:rotate(120deg)}50.1%,66.66%{transform:rotate(180deg)}66.67%,83.33%{transform:rotate(240deg)}83.34%,100%{transform:rotate(300deg)}}
-                    @keyframes aiHex1{100%{transform:translateY(-18px)}}
-                    @keyframes diagnosticPulse{50%{transform:scale(1.055) rotate(1deg)}}
-                    @keyframes diagnosticFloat{50%{transform:translate3d(14px,-12px,0) scale(1.06)}}
-                    @keyframes diagnosticShine{100%{transform:translateX(100%)}}
-                    @keyframes diagnosticFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-                    @keyframes diagnosticExit{to{opacity:0; transform:scale(1.04)}}
+                    .diagnostic-log-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+                    .diagnostic-log-meta .diagnostic-log-tag { order: -1; }
+                    .diagnostic-log-tag { font-size: .75rem; font-weight: 700; letter-spacing: .02em; color: var(--dg-tint); }
+                    .diagnostic-log-entry.past .diagnostic-log-tag { color: var(--dg-soft); }
+                    .diagnostic-log-time { margin-left: auto; font-size: .75rem; color: var(--dg-soft); font-variant-numeric: tabular-nums; }
+                    .diagnostic-log-text { font-size: .9rem; line-height: 1.45; font-weight: 500; color: var(--dg-ink); }
+
+                    @keyframes dgBreathe { 0%,100% { transform: scale(.94); opacity: .75; } 50% { transform: scale(1.06); opacity: 1; } }
+                    @keyframes dgShimmer { 0%,100% { transform: scaleX(.82); } 50% { transform: scaleX(1); } }
+                    @keyframes dgPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(11,138,134,.35); } 50% { box-shadow: 0 0 0 5px rgba(11,138,134,0); } }
+                    @keyframes dgSpin { to { transform: rotate(360deg); } }
+                    @keyframes dgDone { 0% { transform: scale(1); } 45% { transform: scale(1.08); } 100% { transform: scale(1); } }
+                    @keyframes diagnosticShine { 100% { transform: translateX(100%); } }
+                    @keyframes diagnosticFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+                    @keyframes diagnosticExit { to { opacity: 0; transform: scale(1.04); } }
                     @media (max-height: 680px) {
-                        body.diagnostic-lock .question-wrapper { padding-top: calc(6px + var(--safe-area-inset-top)); padding-bottom: calc(6px + var(--safe-area-inset-bottom)); }
-                        .diagnostic-loader { height: calc(100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom) - 12px); gap: 7px; padding: 8px; border-radius: 26px; grid-template-rows: minmax(0, .95fr) minmax(150px, .72fr); }
-                        .diagnostic-orb-wrap { width: 88px; height: 88px; margin-bottom: 8px; }
-                        .diagnostic-orb { width: 64px; height: 64px; border-radius: 22px; }
-                        .ai-hex-loader { width: 42px; }
-                        .diagnostic-kicker { padding: 5px 9px; margin-bottom: 5px; }
-                        .diagnostic-subtitle { margin-bottom: 8px; }
-                        .diagnostic-terminal { min-height: 0; max-height: 36dvh; padding: 8px; border-radius: 18px; }
-                        .diagnostic-log-entry { padding: 9px 11px; border-radius: 12px; }
-                        .diagnostic-log-text { font-size: clamp(.78rem, 3vw, .88rem); }
+                        .diagnostic-loader { height: calc(100dvh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom) - 12px); gap: 8px; grid-template-rows: minmax(0, 1fr) minmax(140px, .62fr); }
+                        .diagnostic-orb-wrap { width: 96px; margin-bottom: 8px; }
+                        .diagnostic-subtitle { margin-bottom: 10px; }
+                        .diagnostic-step-row { margin-top: 10px; }
                         .diagnostic-safe { margin-top: 8px; }
+                        .diagnostic-log-entry { padding: 8px 0; }
+                    }
+                    @media (prefers-reduced-motion: reduce) {
+                        .diagnostic-loader, .diagnostic-loader *, .diagnostic-loader *::before, .diagnostic-loader *::after { animation: none !important; transition: none !important; }
+                        .diagnostic-log-entry { opacity: 1; transform: none; }
                     }
                 </style>
             `;
             document.body.classList.add('diagnostic-lock');
+            // Нивото в знака следва лентата — колкото и места да я движат.
+            const bar = document.getElementById('aiProgressBar');
+            const loader = document.getElementById('diagnosticLoader');
+            // Екранът стига точно до долния ръб (под горната лента), без да се реже последният ред.
+            const fit = () => {
+                const el = document.getElementById('diagnosticLoader');
+                if (!el) { window.removeEventListener('resize', fit); return; }
+                const top = el.getBoundingClientRect().top;
+                const sb = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom')) || 0;
+                el.style.height = Math.max(420, window.innerHeight - top - sb - 14) + 'px';
+            };
+            if (loader) { fit(); window.addEventListener('resize', fit); }
+            if (bar && loader) {
+                new MutationObserver(() => {
+                    const p = Math.max(0, Math.min(100, parseFloat(bar.style.width) || 0));
+                    loader.style.setProperty('--p', (p / 100).toFixed(3));
+                    loader.classList.toggle('is-done', p >= 100);
+                }).observe(bar, { attributes: true, attributeFilter: ['style'] });
+            }
         }
         
         function formatDiagnosticElapsed(ms) {

@@ -897,7 +897,8 @@
   "📱 Инсталирай в Firefox": "📱 Install in Firefox",
   "Натисни менюто (⋮) и избери \"Инсталирай\"": "Tap the menu (⋮) and choose \"Install\"",
   "📱 Добави към начален екран": "📱 Add to Home screen",
-  "Отвори менюто на браузъра и избери \"Добави към начален екран\"": "Open the browser menu and choose \"Add to Home screen\""
+  "Отвори менюто на браузъра и избери \"Добави към начален екран\"": "Open the browser menu and choose \"Add to Home screen\"",
+  "Нужди": "Needs"
  },
  "keys": {},
  "patterns": [
