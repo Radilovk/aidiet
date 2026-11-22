@@ -76,21 +76,26 @@ const W_TOP_DOT = -745;              // с кръглата точка (знак
 // Позиции: nutri | ı (по-широко след „i“, за да не се слеят двете стъбла) | n; над ı — листото от знака (плътно).
 const X_I1 = GL.nutr.width, X_I = X_I1 + GL.i1.width + GL.kernIi, X_N = X_I + GL.i.width + GL.kernIn;
 // Точките на „ii“: обща горна линия (−677), размерът следва плътността на стъблото (шрифтът: 350 → r 53, 650 → r 79).
-const DOT_TOP = -653, R1 = 58, R2 = 58;   // еднакви точки, различен цвят
+const DOT_TOP = -653, R1 = 58, R2 = 62;   // обща горна линия; светлозелената е с ~7% по-голяма, за да изглежда равна на тъмната
 const stemC = (x, st) => x + (st[0] + st[1]) / 2;
 const W_WIDTH = X_N + GL.n.width;
 function leafDot() {
   // Листо-леща (заострено в двата края), основата е точно над стъблото на ı, върхът — нагоре-надясно (45°).
-  // Един плътен цвят — този на „in“.
+  // Цветът на листото на ябълката (wordDefs) — същата рима като в знака: тялото дълбоко, листото светло.
   const cx = X_I + (GL.i.stem[0] + GL.i.stem[1]) / 2 - 8, cy = -GL.xHeight - 58;
   const d = 'M0,0 C64,-92 244,-108 350,0 C246,88 80,78 0,0Z';
   return `<path transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(-47)" d="${d}"/>`;
 }
 // leaf: точката на второто „i“ е листо (само надписът сам); иначе — кръгла, с горна линия като първата.
-function wordmark({ scale, x0, baseline, dark, leaf = false }) {
+// Светлото зелено на листото — за точката/листото над „ı“ в „in“ (градиентът на листото в знака, по диагонала нагоре-надясно).
+function wordDefs(gid, dark) {
+  const c = PAL[dark ? 'dark' : 'light'];
+  return `<linearGradient id="${gid}" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${c.leafA}"/><stop offset="1" stop-color="${c.leafB}"/></linearGradient>`;
+}
+function wordmark({ scale, x0, baseline, dark, leaf = false, gid = 'wl' }) {
   const ink = dark ? BRAND.inkDark : BRAND.ink, green = dark ? BRAND.greenDark : BRAND.green;
   const dot1 = `<circle cx="${stemC(X_I1, GL.i1.stem).toFixed(1)}" cy="${DOT_TOP + R1}" r="${R1}"/>`;
-  const dot2 = leaf ? leafDot() : `<circle cx="${stemC(X_I, GL.i.stem).toFixed(1)}" cy="${DOT_TOP + R2}" r="${R2}"/>`;
+  const dot2 = `<g fill="url(#${gid})">` + (leaf ? leafDot() : `<circle cx="${stemC(X_I, GL.i.stem).toFixed(1)}" cy="${DOT_TOP + R2}" r="${R2}"/>`) + '</g>';
   return `<g transform="translate(${x0},${baseline}) scale(${scale})"><g fill="${ink}"><path d="${GL.nutr.d}"/>` +
     `<g transform="translate(${X_I1},0)"><path d="${GL.i1.d}"/></g>${dot1}</g>` +
     `<g fill="${green}"><g transform="translate(${X_I},0)"><path d="${GL.i.d}"/></g><g transform="translate(${X_N},0)"><path d="${GL.n.d}"/></g>${dot2}</g></g>`;
@@ -113,7 +118,7 @@ function fullLogo(dark) {
   const wmW = 1100, scale = wmW / W_WIDTH, x0 = 50, baseline = 1060 + -W_TOP_DOT * scale;
   const markBox = { x: 50 + (wmW - 760) / 2, y: 0, w: 760, h: 836 };
   const H = Math.ceil(baseline + W_BOTTOM * scale + 10);
-  return svg(`0 0 1200 ${H}`, markDefs('f', dark ? 'dark' : 'light'), placeMark('f', markBox) + wordmark({ scale, x0, baseline, dark }), LABEL);
+  return svg(`0 0 1200 ${H}`, markDefs('f', dark ? 'dark' : 'light') + wordDefs('fw', dark), placeMark('f', markBox) + wordmark({ scale, x0, baseline, dark, gid: 'fw' }), LABEL);
 }
 put('brand/nutriin-logo.svg', fullLogo(false));
 put('brand/nutriin-logo-dark.svg', fullLogo(true));
@@ -126,8 +131,8 @@ export const HORIZONTAL_RATIO = (H_MARKW + H_GAP + W_WIDTH * H_SCALE + 10) / H_H
 function horizontal(dark) {
   const W = Math.ceil(H_MARKW + H_GAP + W_WIDTH * H_SCALE + 10);
   const baseline = H_H * 0.5 + (-W_TOP_DOT * H_SCALE) * 0.5 - 10;
-  return svg(`0 0 ${W} ${H_H}`, markDefs('h', dark ? 'dark' : 'light'),
-    placeMark('h', { x: 0, y: 0, w: H_MARKW, h: H_H }, 'small') + wordmark({ scale: H_SCALE, x0: H_MARKW + H_GAP, baseline, dark }), LABEL);
+  return svg(`0 0 ${W} ${H_H}`, markDefs('h', dark ? 'dark' : 'light') + wordDefs('hw', dark),
+    placeMark('h', { x: 0, y: 0, w: H_MARKW, h: H_H }, 'small') + wordmark({ scale: H_SCALE, x0: H_MARKW + H_GAP, baseline, dark, gid: 'hw' }), LABEL);
 }
 put('brand/nutriin-horizontal.svg', horizontal(false));
 put('brand/nutriin-horizontal-dark.svg', horizontal(true));
@@ -135,7 +140,7 @@ put('brand/nutriin-horizontal-dark.svg', horizontal(true));
 // 3б) Само надписът.
 function wordOnly(dark) {
   const pad = 20, h = -W_TOP + W_BOTTOM;
-  return svg(`0 0 ${Math.ceil(W_WIDTH + 2 * pad)} ${h + 2 * pad}`, '', wordmark({ scale: 1, x0: pad, baseline: -W_TOP + pad, dark, leaf: true }), LABEL);
+  return svg(`0 0 ${Math.ceil(W_WIDTH + 2 * pad)} ${h + 2 * pad}`, wordDefs('ww', dark), wordmark({ scale: 1, x0: pad, baseline: -W_TOP + pad, dark, leaf: true, gid: 'ww' }), LABEL);
 }
 export const WORDMARK_RATIO = (W_WIDTH + 40) / (-W_TOP + W_BOTTOM + 40);
 put('brand/nutriin-wordmark.svg', wordOnly(false));
