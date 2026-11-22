@@ -162,8 +162,6 @@
   "EmoEat — емоционално хранене": "EmoEat — alimentație emoțională",
   "IrisMap — ирисов анализ": "IrisMap — analiza irisului",
   "Подновява се всяка седмица": "Se reînnoiește în fiecare săptămână",
-  "Не поредната интернет диета.": "Nu încă o dietă de pe internet.",
-  "Система, съобразена изцяло с твоето тяло.": "Un sistem adaptat în întregime corpului tău.",
   "Твой личен AI консултант": "Consultantul tău personal AI",
   "Хранене, медицина, спорт и психология. Зад всичко стои екип от специалисти.": "Nutriție, medicină, sport și psihologie. În spatele tuturor stă o echipă de specialiști.",
   "Емоционално хранене: откъде идва гладът за определени храни. Резултатът влиза направо в плана ти.": "Mâncatul emoțional: de unde vine pofta pentru anumite alimente. Rezultatul intră direct în planul tău.",
@@ -186,11 +184,14 @@
   "Замислена жена яде сладолед на кухненска маса": "O femeie pe gânduri mănâncă înghețată la masa din bucătărie",
   "Промяната започва отвътре.": "Schimbarea începe din interior.",
   "Храната е в основата на": "Mâncarea stă la baza",
-  "твоят": "tău",
   "Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад всичко това стои екип от лекари и диетолози. Резултатът — ще е твой.": "Noi creăm un plan cu adevărat personalizat: ce, cât și când să mănânci, în funcție de corpul, sănătatea și obiectivul tău. În spatele tuturor acestora stă o echipă de medici și dieteticieni. Rezultatul — va fi al tău.",
-  "Постоянно ще адаптираме всичко към теб.": "Vom adapta în permanență totul la tine.",
   "Конкретни психологически насоки, хранителни добавки и активности": "Recomandări psihologice concrete, suplimente alimentare și activități",
-  "Препоръки, съобразени с теб и с целта ти.": "Recomandări adaptate ție și obiectivului tău."
+  "Препоръки, съобразени с теб и с целта ти.": "Recomandări adaptate ție și obiectivului tău.",
+  "твоя": "succesului",
+  "успех.": "tău.",
+  "Няма универсални диети.": "Nu există diete universale.",
+  "Нашият подход е съобразен изцяло с теб.": "Abordarea noastră este adaptată în întregime ție.",
+  "Постоянно ще адаптираме всичко към теб": "Vom adapta constant totul la tine"
  },
  "keys": {
   "day.mock.0": "L",
