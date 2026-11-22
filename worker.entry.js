@@ -4329,7 +4329,7 @@ function buildPasswordResetEmailHtml(oobLink, contactEmail = 'info@biocode.onlin
  * @param {object} env
  * @returns {Promise<string>} access token
  */
-async function getFirebaseAdminToken(env) {
+async function getFirebaseAdminToken(env, scope = 'https://www.googleapis.com/auth/identitytoolkit') {
   const raw = env.FIREBASE_SERVICE_ACCOUNT;
   if (!raw) throw new Error('FIREBASE_SERVICE_ACCOUNT не е конфигуриран.');
 
@@ -4372,7 +4372,7 @@ async function getFirebaseAdminToken(env) {
     aud:   'https://oauth2.googleapis.com/token',
     iat:   now,
     exp:   now + 3600,
-    scope: 'https://www.googleapis.com/auth/identitytoolkit',
+    scope,
   });
 
   const sigInput = new TextEncoder().encode(`${header}.${payload}`);
@@ -18607,6 +18607,8 @@ export default {
         return await handleLinksStart(request, env);
       } else if (url.pathname.startsWith('/api/links/callback/') && request.method === 'GET') {
         return await handleLinksCallback(request, env, url.pathname.split('/').pop());
+      } else if (url.pathname === '/api/system/auth-domains' && request.method === 'POST') {
+        return await handleAuthDomains(request, env);
       } else if (url.pathname === '/api/system/email-domain' && request.method === 'POST') {
         return await handleEmailDomain(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/links/sync' && request.method === 'POST') {
@@ -18830,3 +18832,37 @@ export default {
     }
   }
 };
+
+
+/* ── Разрешените домейни за входа с Google (Firebase Auth) ─────────────────────
+ * POST /api/system/auth-domains { add: [домейни] } + X-Bridge-Nonce (еднократен код в KV,
+ * записан от workflow-а „Domain setup“ — само той има ключа за Cloudflare). Добавя домейните
+ * към Authorized domains с ключа на услугата (FIREBASE_SERVICE_ACCOUNT); не маха нищо.
+ */
+async function handleAuthDomains(request, env) {
+  const nonce = request.headers.get('X-Bridge-Nonce') || '';
+  const stored = env.page_content ? await env.page_content.get('bridge_nonce:auth_domains') : null;
+  if (!nonce || !stored || stored !== nonce) return jsonResponse({ error: 'forbidden' }, 403);
+  try {
+    const { add } = await request.json().catch(() => ({}));
+    const want = (Array.isArray(add) ? add : []).map((d) => String(d).toLowerCase().trim()).filter((d) => /^[a-z0-9.-]+\.[a-z]{2,}$/.test(d));
+    const token = await getFirebaseAdminToken(env, 'https://www.googleapis.com/auth/cloud-platform');
+    const project = encodeURIComponent(env.FIREBASE_PROJECT_ID);
+    const url = `https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/config`;
+    const cur = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const cfg = await cur.json().catch(() => ({}));
+    if (!cur.ok) return jsonResponse({ error: `config ${cur.status}: ${cfg?.error?.message || ''}` }, 502);
+    const have = cfg.authorizedDomains || [];
+    const next = [...new Set([...have, ...want])];
+    if (next.length === have.length) return jsonResponse({ success: true, authorizedDomains: have, changed: false });
+    const up = await fetch(`${url}?updateMask=authorizedDomains`, {
+      method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ authorizedDomains: next }),
+    });
+    const out = await up.json().catch(() => ({}));
+    if (!up.ok) return jsonResponse({ error: `update ${up.status}: ${out?.error?.message || ''}` }, 502);
+    return jsonResponse({ success: true, authorizedDomains: out.authorizedDomains || next, changed: true });
+  } catch (e) {
+    return jsonResponse({ error: e.message }, 500);
+  }
+}
