@@ -46,14 +46,15 @@ const LABEL = ' role="img" aria-label="Nutriin"';
 function markDefs(id, theme = 'light') {
   const c = PAL[theme];
   return `
-    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="150" y1="920" x2="850" y2="60">
+    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="260" y1="1040" x2="1000" y2="190">
       <stop offset="0" stop-color="${c.a}"/><stop offset=".5" stop-color="${c.b}"/><stop offset=".8" stop-color="${c.c}"/><stop offset="1" stop-color="${c.leafB}"/>
     </linearGradient>`;
 }
 // Монолиния: дебелина 21 (V2, „+50%“); за 16–48 px — 28, за да не изчезва.
 function markBody(id, size = 'main') {
-  const sw = size === 'small' ? (M.width * 1.3) : M.width;
-  return `<g fill="none" stroke="url(#${id}s)" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><path d="${M.stroke}"/><path d="${M.leaf}"/></g>`;
+  // Пълни форми (evenodd); за 16–48 px — тънък контур в същия цвят, за да не изчезват тънките места.
+  const st = size === 'small' ? ` stroke="url(#${id}s)" stroke-width="12" stroke-linejoin="round"` : '';
+  return `<g fill="url(#${id}s)" fill-rule="evenodd"${st}><path d="${M.fill.join(' ')}"/></g>`;
 }
 /** Знакът, вписан в правоъгълник (запазва пропорциите, центриран). */
 function placeMark(id, box, size = 'main') {
