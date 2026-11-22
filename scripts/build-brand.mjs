@@ -35,8 +35,10 @@ export const BRAND = {
 };
 // Знакът: тон по тон, по диагонала от вътрешното (долу вляво) към светлината (горе вдясно).
 const PAL = {
-  light: { a: '#0A6B66', b: '#14935A', c: '#22B35E', leafA: '#1FA85A', leafB: '#3CCB6E' },
-  dark: { a: '#1FB8A4', b: '#2CCB82', c: '#56DE86', leafA: '#4ADE80', leafB: '#86EFAC' }
+  // Ябълката: от дълбокия тюркоаз вътре (при „in“) към зеленото навън. Листото — отделен, по-свеж
+  // жълтеникаво-зелен тон (младо листо): единственият топъл нюанс в знака, който го оживява.
+  light: { a: '#0A6B66', b: '#13915F', c: '#1FA866', leafA: '#4DB848', leafB: '#8CCB3A' },
+  dark: { a: '#1FB8A4', b: '#2CCB82', c: '#4ED987', leafA: '#7EDB5A', leafB: '#B5E86A' }
 };
 
 const M = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/nutriin-mark.json'), 'utf8'));
@@ -46,15 +48,19 @@ const LABEL = ' role="img" aria-label="Nutriin"';
 function markDefs(id, theme = 'light') {
   const c = PAL[theme];
   return `
-    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="260" y1="1040" x2="1000" y2="190">
-      <stop offset="0" stop-color="${c.a}"/><stop offset=".5" stop-color="${c.b}"/><stop offset=".8" stop-color="${c.c}"/><stop offset="1" stop-color="${c.leafB}"/>
+    <linearGradient id="${id}s" gradientUnits="userSpaceOnUse" x1="260" y1="1040" x2="980" y2="300">
+      <stop offset="0" stop-color="${c.a}"/><stop offset=".55" stop-color="${c.b}"/><stop offset="1" stop-color="${c.c}"/>
+    </linearGradient>
+    <linearGradient id="${id}l" gradientUnits="userSpaceOnUse" x1="600" y1="440" x2="900" y2="180">
+      <stop offset="0" stop-color="${c.leafA}"/><stop offset="1" stop-color="${c.leafB}"/>
     </linearGradient>`;
 }
-// Монолиния: дебелина 21 (V2, „+50%“); за 16–48 px — 28, за да не изчезва.
+// Пълни форми (evenodd): тялото (M.fill[0]) и листото (останалите контури) със свой цвят.
+// За 16–48 px — тънък контур в същия цвят, за да не изчезват тънките места.
 function markBody(id, size = 'main') {
-  // Пълни форми (evenodd); за 16–48 px — тънък контур в същия цвят, за да не изчезват тънките места.
-  const st = size === 'small' ? ` stroke="url(#${id}s)" stroke-width="12" stroke-linejoin="round"` : '';
-  return `<g fill="url(#${id}s)" fill-rule="evenodd"${st}><path d="${M.fill.join(' ')}"/></g>`;
+  const st = (g) => (size === 'small' ? ` stroke="url(#${id}${g})" stroke-width="12" stroke-linejoin="round"` : '');
+  return `<g fill-rule="evenodd"><path d="${M.fill[0]}" fill="url(#${id}s)"${st('s')}/>` +
+    `<path d="${M.fill.slice(1).join(' ')}" fill="url(#${id}l)"${st('l')}/></g>`;
 }
 /** Знакът, вписан в правоъгълник (запазва пропорциите, центриран). */
 function placeMark(id, box, size = 'main') {
@@ -151,22 +157,12 @@ function appIcon({ maskable = false, pad: padIn, square = false } = {}) {
     <g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody('i')}</g>`;
   return svg(`0 0 ${S} ${S}`, defs, body);
 }
-// Android: плътен фон в цвета на марката до самите ръбове + бял знак. Huawei/EMUI, Xiaomi и др. слагат
-// иконата върху своя плочка с цвета от краищата ѝ — при еднакъв цвят до ръба плочката и иконата са едно цяло.
-// Адаптивната икона: фон ANDROID_BG (colors.xml) + бял знак (mark-white-512.png) в безопасната зона.
-export const ANDROID_BG = '#0F7F5C';
-function androidIcon(fill = 0.6) {
-  const S = 1024, k = (S * fill) / Math.max(MB.w, MB.h);
-  const tx = (S - MB.w * k) / 2 - MB.x * k, ty = (S - MB.h * k) / 2 - MB.y * k;
-  // Един плътен цвят (без преливане): плочката на производителя взима цвета от ръба и трябва да съвпада навсякъде.
-  return svg(`0 0 ${S} ${S}`, '', `<rect width="${S}" height="${S}" fill="${ANDROID_BG}"/>` +
-    `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})"><path d="${M.fill.join(' ')}" fill="#fff" fill-rule="evenodd"/></g>`);
-}
-function whiteMark() {
-  return svg(`${MB.x} ${MB.y} ${MB.w} ${MB.h}`, '', `<path d="${M.fill.join(' ')}" fill="#fff" fill-rule="evenodd"/>`);
-}
-put('brand/nutriin-icon-android.svg', androidIcon());
-put('brand/nutriin-mark-white.svg', whiteMark());
+// Android (както при NutriPlan): старата икона е знакът с прозрачност (PNG с алфа канал) — Huawei/EMUI, Xiaomi и др.
+// я слагат върху своята светла плочка, а цветният знак стои чисто. Адаптивната: светъл фон ANDROID_BG (colors.xml)
+// + цветният знак (mark-color-512.png) в безопасната зона.
+export const ANDROID_BG = '#F2FAF6';
+put('brand/nutriin-icon-android.svg', alphaIcon(0.84));
+put('brand/nutriin-mark-color.svg', svg(vbMark, markDefs('c'), markBody('c'), LABEL));
 
 // Знакът с прозрачност (PWA икони, фавикон); фавиконът сменя палитрата по темата на системата.
 function alphaIcon(fill, size = 'main', { adaptive = false } = {}) {
@@ -214,7 +210,7 @@ if (process.argv.includes('--png')) {
   }
   await shot('brand/nutriin-icon-ios.svg', 180, 'brand/apple-touch-icon.png');
   await shot('brand/nutriin-icon-android.svg', 512, 'brand/icon-launcher-512.png');  // Android, старата (не адаптивна) икона — плътна до ръба
-  await shot('brand/nutriin-mark-white.svg', 512, 'brand/mark-white-512.png');     // Android, предният слой на адаптивната икона
+  await shot('brand/nutriin-mark-color.svg', 512, 'brand/mark-color-512.png');     // Android, предният слой на адаптивната икона
   await shot('brand/nutriin-icon.svg', 512, 'brand/icon-solid-512.png');
   for (const size of [32, 48, 192]) await shotSvg(favPng, size, size, `brand/favicon-${size}.png`);
   await shot('brand/nutriin-icon-maskable.svg', 512, 'brand/icon-maskable-512.png');

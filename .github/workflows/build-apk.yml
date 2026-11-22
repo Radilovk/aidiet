@@ -223,8 +223,8 @@ jobs:
           if ! command -v convert &>/dev/null; then
             echo "ImageMagick 'convert' not found – installing…" && { sudo apt-get update -q && sudo apt-get install -y imagemagick; }
           fi
-          # Старите (не адаптивни) икони: плътен фон в цвета на марката до ръба + бял знак (brand/icon-launcher-512.png).
-          # Huawei/EMUI и др. слагат иконата върху своя плочка с цвета от ръба ѝ — еднакъв цвят = едно цяло.
+          # Старите (не адаптивни) икони: цветният знак с прозрачност (brand/icon-launcher-512.png, PNG с алфа канал) —
+          # Huawei/EMUI и др. го слагат върху своята светла плочка (както беше при NutriPlan).
           LAUNCHER_SRC="brand/icon-launcher-512.png"
           if [ ! -f "$LAUNCHER_SRC" ]; then LAUNCHER_SRC="$ICON_SRC"; fi
           for entry in "48 mdpi" "72 hdpi" "96 xhdpi" "144 xxhdpi" "192 xxxhdpi"; do
@@ -241,7 +241,7 @@ jobs:
             ICON_DIR="android/app/src/main/res/mipmap-${DPI}"
             # Безопасната зона е кръг 66dp от 108dp; знакът (бял) е 56% от платното, за да не се реже от кръга.
             SAFE=$((SIZE * 56 / 100))
-            FG_SRC="brand/mark-white-512.png"; [ -f "$FG_SRC" ] || FG_SRC="$MARK_SRC"
+            FG_SRC="brand/mark-color-512.png"; [ -f "$FG_SRC" ] || FG_SRC="$MARK_SRC"
             convert -size "${SIZE}x${SIZE}" xc:none \
               \( "$FG_SRC" -resize "${SAFE}x${SAFE}" \) \
               -gravity center -composite "${ICON_DIR}/ic_launcher_foreground.png"
@@ -251,7 +251,7 @@ jobs:
           from pathlib import Path
           import re
           colors_file = Path("android/app/src/main/res/values/colors.xml")
-          bg_color = '#0F7F5C'   # ANDROID_BG в scripts/build-brand.mjs
+          bg_color = '#F2FAF6'   # ANDROID_BG в scripts/build-brand.mjs
           entry_line = f'    <color name="ic_launcher_background">{bg_color}</color>'
           if colors_file.exists():
               content = colors_file.read_text()
