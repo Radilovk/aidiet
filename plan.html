@@ -529,10 +529,6 @@
             margin-top: 3px;
         }
 
-        /* Снимката на ястието — само в прозореца на храненето. */
-        .modal-hero-img { display: block; width: calc(100% + 0px); aspect-ratio: 16 / 10; object-fit: cover; border-radius: 18px; margin: 4px 0 14px;
-            background: var(--ds-surface-sunken, rgba(15,47,46,.05)); }
-        .modal-hero-img[hidden] { display: none; }
         .meal-info {
             flex: 1;
             min-width: 0;
@@ -4538,7 +4534,6 @@
         <div class="modal-card">
                 <div class="modal-drag-handle"></div>
             <button type="button" class="modal-close" onclick="closeModal()" aria-label="Затвори"><i class="fas fa-times" aria-hidden="true"></i></button>
-            <img class="modal-hero-img" id="mHeroImg" alt="" hidden decoding="async">
             <h3 class="modal-title" id="mTitle">Заглавие</h3>
             <div class="modal-weight-badge" id="mWeightBadge" style="display:none;">
                 <span class="modal-weight-icon"><i class="fas fa-weight-hanging"></i></span>
@@ -6693,37 +6688,6 @@
             } catch (_) {}
         })();
 
-        // Снимките на ястията (data/engine/dish-images.json, scripts/dish-images.mjs): само в прозореца на
-        // храненето — картите на основния екран остават чисти. Ястие без снимка се отваря както досега.
-        var _dishImages = null;
-        (function loadDishImages() {
-            try {
-                fetch('data/engine/dish-images.json', { cache: 'no-cache' })
-                    .then(function(r) { return r.ok ? r.json() : null; })
-                    .then(function(doc) {
-                        _dishImages = (doc && doc.images) || {};
-                    })
-                    .catch(function() {});
-            } catch (_) {}
-        })();
-
-        function dishImageSrc(dishId) {
-            var img = dishId && _dishImages && _dishImages[dishId];
-            if (!img || !img.src) return '';
-            return /\.webp$/.test(img.src) ? img.src : img.src + '-480.webp';
-        }
-
-        function showMealHeroImage(meal) {
-            var el = document.getElementById('mHeroImg');
-            if (!el) return;
-            var src = meal ? dishImageSrc(meal.dishId) : '';
-            el.hidden = !src;
-            if (src) {
-                el.onerror = function() { el.hidden = true; };
-                el.src = src;
-            } else el.removeAttribute('src');
-        }
-
         function mealRecipeText(meal) {
             // Рецептата по стъпки се показва отделно (showMealRecipeSteps).
             if (Array.isArray(meal.recipeSteps) && meal.recipeSteps.length) return '';
@@ -6862,7 +6826,6 @@
                     meal.calories || null
                 );
                 showMealRecipeSteps(meal);
-                showMealHeroImage(meal);
                 showMealPersonalNote(meal.personalNote || '');
                 showMealSwapAction(swap, meal);
             };
@@ -6904,7 +6867,6 @@
             var staleSwap = document.getElementById('mSwapAction');
             if (staleSwap) staleSwap.remove();
             showMealPersonalNote('');
-            showMealHeroImage(null);
             // Strip dessert name from title to avoid duplication with the mDessert section below
             let displayTitle = title;
             if (dessert && dessert.name) {
