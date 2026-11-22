@@ -385,7 +385,7 @@ jobs:
           cat > android/app/src/main/res/values/nutriplan_splash_colors.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <color name="backgroundColor">#04181C</color>
+              <color name="backgroundColor">#050F0E</color>
           </resources>
           EOF
           cat > android/app/src/main/res/drawable/splash.xml <<'EOF'
@@ -393,7 +393,7 @@ jobs:
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
               <item>
                   <shape android:shape="rectangle">
-                      <solid android:color="#04181C" />
+                      <solid android:color="#050F0E" />
                   </shape>
               </item>
               <item>
@@ -408,7 +408,7 @@ jobs:
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
               <item>
                   <shape android:shape="rectangle">
-                      <solid android:color="#04181C" />
+                      <solid android:color="#050F0E" />
                   </shape>
               </item>
               <item>
