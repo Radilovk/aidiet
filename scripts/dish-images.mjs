@@ -114,18 +114,19 @@ async function candidatesFor(id) {
   return keyed;
 }
 
-async function renderSheet(rows, file, cols = 6) {
+async function renderSheet(rows, file, cols = 6, cw = 166) {
+  const ch = Math.round(cw * 0.75);
   // Playwright е глобален в средата (require го намира от всяка папка).
   const { chromium } = createRequire(import.meta.url)('playwright');
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const html = `<html><body style="margin:0;padding:12px;font:13px system-ui;background:#f4f6f5;width:${cols * 170 + 24}px">` +
+  const html = `<html><body style="margin:0;padding:12px;font:13px system-ui;background:#f4f6f5;width:${cols * (cw + 4) + 24}px">` +
     rows.map(r => `<div style="margin:0 0 14px"><div style="font-weight:700;margin:0 0 6px">${esc(r.title)}</div>` +
-      `<div style="display:grid;grid-template-columns:repeat(${cols},166px);gap:4px">` +
-      r.items.map(c => `<div style="position:relative"><img src="${esc(c.preview)}" style="width:166px;height:124px;object-fit:cover;border-radius:6px;display:block">` +
+      `<div style="display:grid;grid-template-columns:repeat(${cols},${cw}px);gap:4px">` +
+      r.items.map(c => `<div style="position:relative"><img src="${esc(c.preview)}" style="width:${cw}px;height:${ch}px;object-fit:cover;border-radius:6px;display:block">` +
         `<b style="position:absolute;left:4px;top:4px;background:#000c;color:#fff;padding:1px 5px;border-radius:4px">${esc(c.key)}</b></div>`).join('') +
       '</div></div>').join('') + '</body></html>';
   const b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: cols * 170 + 24, height: 600 } });
+  const p = await b.newPage({ viewport: { width: cols * (cw + 4) + 24, height: 600 } });
   await p.setContent(html, { waitUntil: 'networkidle', timeout: 60000 }).catch(() => {});
   await p.screenshot({ path: file, fullPage: true });
   await b.close();
@@ -154,6 +155,15 @@ async function cmdSearch(args) {
   }
   const file = path.join(CACHE, `sheet-${ids[0]}.png`);
   await renderSheet(rows, file);
+  console.log(`Лист: ${file}`);
+}
+
+/** Едър изглед на избрани кандидати: view <id> <ключ…> */
+async function cmdView(args) {
+  const [id, ...keys] = args;
+  const cands = JSON.parse(fs.readFileSync(path.join(CACHE, 'candidates', `${id}.json`), 'utf8')).filter(c => !keys.length || keys.includes(c.key));
+  const file = path.join(CACHE, `view-${id}.png`);
+  await renderSheet([{ title: id, items: cands }], file, Math.min(3, cands.length), 330);
   console.log(`Лист: ${file}`);
 }
 
@@ -314,6 +324,6 @@ async function cmdReview(args) {
 }
 
 const [cmd, ...args] = process.argv.slice(2);
-const run = { status: cmdStatus, search: cmdSearch, pick: cmdPick, skip: cmdSkip, review: cmdReview, auto: cmdAuto, collect: cmdCollect, load: cmdLoad }[cmd];
+const run = { status: cmdStatus, search: cmdSearch, pick: cmdPick, skip: cmdSkip, review: cmdReview, auto: cmdAuto, collect: cmdCollect, load: cmdLoad, view: cmdView }[cmd];
 if (!run) { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('*/')[0]); process.exit(1); }
 Promise.resolve(run(args)).catch(e => { console.error(e.message); process.exit(1); });

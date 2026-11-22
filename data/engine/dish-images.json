@@ -1,11 +1,32 @@
 {
   "about": "Снимките на ястията (scripts/dish-images.mjs, docs/DISH_IMAGES.md): images — id → { src: brand/dishes/<id>.webp (16:10, 720×450, за прозореца на храненето), source, page, author, picked }; skipped — ястия без сигурна снимка (по-добре без снимка, отколкото с неточна). Ястие без снимка се отваря без нея.",
   "images": {
+    "m_beef_skewers": {
+      "src": "brand/dishes/m_beef_skewers.webp",
+      "source": "pixabay",
+      "page": "https://pixabay.com/photos/barbecue-food-beef-grilled-grid-5002645/",
+      "author": "DesignDrawArtes",
+      "picked": "2026-11-22"
+    },
+    "m_beef_steak": {
+      "src": "brand/dishes/m_beef_steak.webp",
+      "source": "pixabay",
+      "page": "https://pixabay.com/photos/steak-meat-beef-steak-food-beef-3640560/",
+      "author": "RitaE",
+      "picked": "2026-11-22"
+    },
     "m_beef_stew": {
       "src": "brand/dishes/m_beef_stew.webp",
       "source": "foodiesfeed",
       "page": "https://www.foodiesfeed.com/free-food-photo/hearty-beef-stew-with-vegetables-jMmIOw",
       "author": "Foodiesfeed",
+      "picked": "2026-11-22"
+    },
+    "m_bolognese": {
+      "src": "brand/dishes/m_bolognese.webp",
+      "source": "pixabay",
+      "page": "https://pixabay.com/photos/spaghetti-bolognese-parmesan-meal-787048/",
+      "author": "RitaE",
       "picked": "2026-11-22"
     },
     "m_chicken_curry": {
@@ -22,13 +43,72 @@
       "author": "Foodiesfeed",
       "picked": "2026-11-22"
     },
+    "m_chicken_soup": {
+      "src": "brand/dishes/m_chicken_soup.webp",
+      "source": "pixabay",
+      "page": "https://pixabay.com/photos/soup-chicken-soup-meal-food-dish-562163/",
+      "author": "kalhh",
+      "picked": "2026-11-22"
+    },
+    "m_chicken_thigh_oven": {
+      "src": "brand/dishes/m_chicken_thigh_oven.webp",
+      "source": "pixabay",
+      "page": "https://pixabay.com/photos/roasted-chicken-thighs-potatoes-1005314/",
+      "author": "pixel1",
+      "picked": "2026-11-22"
+    },
     "m_chicken_wrap": {
       "src": "brand/dishes/m_chicken_wrap.webp",
       "source": "foodiesfeed",
       "page": "https://www.foodiesfeed.com/free-food-photo/chicken-avocado-wraps",
       "author": "Foodiesfeed",
       "picked": "2026-11-22"
+    },
+    "m_fish_grill": {
+      "src": "brand/dishes/m_fish_grill.webp",
+      "source": "pixabay",
+      "page": "https://pixabay.com/photos/grill-restaurant-food-grilled-4709068/",
+      "author": "Kallis_4seconds",
+      "picked": "2026-11-22"
+    },
+    "m_fish_oven": {
+      "src": "brand/dishes/m_fish_oven.webp",
+      "source": "pixabay",
+      "page": "https://pixabay.com/photos/salmon-food-meal-fish-nourishment-2222554/",
+      "author": "mygraphx",
+      "picked": "2026-11-22"
+    },
+    "m_meatballs": {
+      "src": "brand/dishes/m_meatballs.webp",
+      "source": "pixabay",
+      "page": "https://pixabay.com/photos/sea-palm-trees-sand-bar-sun-4337685/",
+      "author": "rungalexander",
+      "picked": "2026-11-22"
+    },
+    "m_sarmi": {
+      "src": "brand/dishes/m_sarmi.webp",
+      "source": "pixabay",
+      "page": "https://pixabay.com/photos/herb-cabbage-wrap-white-cabbage-2805224/",
+      "author": "ulleo",
+      "picked": "2026-11-22"
     }
   },
-  "skipped": {}
+  "skipped": {
+    "m_chicken_bulgur": "няма снимка без излишни продукти",
+    "m_chicken_grill": "няма снимка без излишни продукти",
+    "m_chicken_mushrooms": "няма снимка без излишни продукти",
+    "m_chicken_rice": "няма снимка без излишни продукти",
+    "m_chicken_skewers": "няма снимка без излишни продукти",
+    "m_chicken_stew": "няма снимка без излишни продукти",
+    "m_fish_plakia": "няма снимка без излишни продукти",
+    "m_guvech_beef": "няма снимка без излишни продукти",
+    "m_kavarma": "няма снимка без излишни продукти",
+    "m_lamb_oven": "няма снимка без излишни продукти",
+    "m_moussaka": "няма снимка без излишни продукти",
+    "m_pork_cabbage": "няма снимка без излишни продукти",
+    "m_pork_rice": "няма снимка без излишни продукти",
+    "m_pork_steak": "няма снимка без излишни продукти",
+    "m_stuffed_peppers_meat": "няма снимка без излишни продукти",
+    "m_turkey_veg": "няма снимка без излишни продукти"
+  }
 }
