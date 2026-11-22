@@ -143,7 +143,7 @@ export function foodByCatalogName(name) {
  * @property {Array<[string, number]>} fixed
  * @property {string[]} sides
  * @property {string[]|null} seasonsOnly
- * @property {string|null} cuisine     „bg“ — българската кухня (region.js: по-рядко извън дома ѝ)
+ * @property {string|null} cuisine     „bg“ — българската кухня; asia | latam | india | mideast — далечни кухни (region.js)
  * @property {string|null} requires
  * @property {boolean} fruitPaired
  * @property {boolean} fruitAlone    плод без белтък/мазнина — не и при инсулинова резистентност

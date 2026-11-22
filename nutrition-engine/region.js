@@ -44,5 +44,21 @@ export function seasonFor(date = new Date(), climate = 'north') {
   return NORTH_SEASONS[month];
 }
 
-/** С толкова точки по-малко е ястие от българската кухня извън дома ѝ: идва около 4 пъти по-рядко (test:region). */
-export const FOREIGN_CUISINE_PENALTY = { main: 2, breakfast: 1.5, snack: 1, late: 1 };
+/** С толкова точки по-малко е ястие от българската кухня извън дома ѝ: идва много по-рядко, но не изчезва (test:region). */
+export const FOREIGN_CUISINE_PENALTY = { main: 0.5, breakfast: 0.4, snack: 0.3, late: 0.3 };
+
+/**
+ * Далечните кухни (азиатска, латиноамериканска, индийска, близкоизточна) у дома на българската кухня:
+ * идват по-рядко — разнообразие, без да изместват познатото. Европейските и средиземноморските са без етикет.
+ */
+export const DISTANT_CUISINES = new Set(['asia', 'latam', 'india', 'mideast']);
+export const DISTANT_CUISINE_PENALTY = { main: 2, breakfast: 1.5, snack: 1, late: 1 };
+/** У дома ѝ българската кухня има лек превес — разширеният каталог не я измества (test:region). */
+export const HOME_CUISINE_BONUS = { main: 0.75, breakfast: 0.5, snack: 0.25, late: 0.25 };
+
+/** Наказанието за ястие според кухнята му и мястото на клиента. */
+export function cuisinePenalty(region, dish, kind) {
+  if (!dish?.cuisine) return 0;
+  if (dish.cuisine === 'bg') return region.localCuisine ? -(HOME_CUISINE_BONUS[kind] || 0) : FOREIGN_CUISINE_PENALTY[kind] || 0;
+  return region.localCuisine && DISTANT_CUISINES.has(dish.cuisine) ? DISTANT_CUISINE_PENALTY[kind] || 0 : 0;
+}

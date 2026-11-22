@@ -45,9 +45,13 @@ function plan(profile, extra, seed, date) {
 }
 const dishIds = res => Object.values(res.weekPlan).flatMap(d => d.meals).map(m => m.dishId).filter(Boolean);
 const bgCount = res => dishIds(res).filter(id => DISHES_BY_ID.get(id)?.cuisine === 'bg').length;
+const DISTANT = new Set(['asia', 'latam', 'india', 'mideast']);
+const distantCount = res => dishIds(res).filter(id => DISTANT.has(DISHES_BY_ID.get(id)?.cuisine)).length;
 
 let home = 0;
 let abroad = 0;
+let distantHome = 0;
+let distantAbroad = 0;
 let mealsAbroad = 0;
 for (const profile of PROFILES) {
   for (const seed of ['a', 'b', 'c']) {
@@ -55,6 +59,8 @@ for (const profile of PROFILES) {
     const de = plan(profile, { lang: 'de', country: 'DE' }, `${profile.id}:${seed}`, jul);
     home += bgCount(bg);
     abroad += bgCount(de);
+    distantHome += distantCount(bg);
+    distantAbroad += distantCount(de);
     mealsAbroad += dishIds(de).length;
     const kcalOff = Object.values(de.weekPlan).filter(d => d.energy && Math.abs(d.dailyTotals.calories - d.energy.kcal) > d.energy.kcal * 0.1
       && d.meals.every(m => m.type !== 'Свободно хранене'));
@@ -64,6 +70,10 @@ for (const profile of PROFILES) {
 console.log(`Българска кухня: у дома ${home}, в Германия ${abroad} (от ${mealsAbroad} хранения)`);
 ok(abroad < home * 0.6, `извън дома ѝ българските ястия са по-редки (${abroad} < 60% от ${home})`);
 ok(abroad > 0, 'и не изчезват');
+console.log(`Далечни кухни: у дома ${distantHome}, в Германия ${distantAbroad}`);
+ok(distantHome < distantAbroad, `у дома далечните кухни са по-редки (${distantHome} < ${distantAbroad})`);
+ok(distantHome > 0, 'и пак ги има — за разнообразие');
+ok(home >= 30, `у дома българската кухня не е изместена от разширения каталог (${home})`);
 
 // Сезонът: юли в Австралия е зима — няма само-летни ястия (таратор, шопска).
 {

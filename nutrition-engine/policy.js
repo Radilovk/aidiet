@@ -10,7 +10,7 @@ import {
 } from './knowledge.js';
 import { normalizeFoodKey } from '../food-utils.js';
 import { resolveFoodChoice, restrictedGroupsOf } from './food-choice.js';
-import { regionOf, seasonFor, FOREIGN_CUISINE_PENALTY } from './region.js';
+import { regionOf, seasonFor, cuisinePenalty } from './region.js';
 
 /** @typedef {ReturnType<typeof import('../profile-code.js').compileProfile>} Profile */
 
@@ -217,8 +217,8 @@ export function buildFoodPolicy(profile, options = {}) {
     patternDef: PATTERNS[pattern],
     season,
     region,
-    /** Ястие от българската кухня за клиент извън дома ѝ — по-рядко, не забранено. */
-    dishPenalty: (dish, kind) => (!region.localCuisine && dish.cuisine === 'bg' ? FOREIGN_CUISINE_PENALTY[kind] || 0 : 0),
+    /** Българската кухня извън дома ѝ и далечните кухни у дома ѝ — по-рядко, не забранено (region.js). */
+    dishPenalty: (dish, kind) => cuisinePenalty(region, dish, kind),
     rules: rules.map(r => ({ code: r.code, label: r.label, basis: r.basis })),
     allowed,
     preference,
