@@ -70,7 +70,7 @@ const W_TOP_DOT = -745;              // с кръглата точка (знак
 // Позиции: nutri | ı (по-широко след „i“, за да не се слеят двете стъбла) | n; над ı — листото от знака (плътно).
 const X_I1 = GL.nutr.width, X_I = X_I1 + GL.i1.width + GL.kernIi, X_N = X_I + GL.i.width + GL.kernIn;
 // Точките на „ii“: обща горна линия (−677), размерът следва плътността на стъблото (шрифтът: 350 → r 53, 650 → r 79).
-const DOT_TOP = -677, R1 = 53, R2 = 79;
+const DOT_TOP = -677, R1 = 66, R2 = 66;   // еднакви точки, различен цвят
 const stemC = (x, st) => x + (st[0] + st[1]) / 2;
 const W_WIDTH = X_N + GL.n.width;
 function leafDot() {
