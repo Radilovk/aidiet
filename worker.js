@@ -32849,7 +32849,7 @@ var clinical_default = {
 
 // data/engine/dishes.json
 var dishes_default = {
-  about: '\u042F\u0441\u0442\u0438\u044F \u043A\u0430\u0442\u043E \u0440\u0435\u0446\u0435\u043F\u0442\u0443\u0440\u043D\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430: \u0432\u0441\u044F\u043A\u0430 \u0447\u0430\u0441\u0442 \u0435 \u043E\u0431\u043C\u0435\u043D\u043D\u0430 \u0433\u0440\u0443\u043F\u0430 \u0441 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 \u0438 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D \u0432 \u043F\u043E\u0440\u0446\u0438\u0438. \u0413\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u0438 \u2014 \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435, \u043A\u043E\u0438\u0442\u043E \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430\u0442\u0430 \u0441\u0445\u0435\u043C\u0430 \u0434\u0430\u0432\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E. \u0427\u0430\u0441\u0442\u0438 \u0441 \u043C\u0438\u043D\u0438\u043C\u0443\u043C 0 \u043E\u0442\u043F\u0430\u0434\u0430\u0442, \u043A\u043E\u0433\u0430\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u043D\u044F\u043C\u0430 \u0442\u0430\u043A\u0430\u0432\u0430 \u043F\u043E\u0440\u0446\u0438\u044F \u0438\u043B\u0438 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0435 \u0438\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0430 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. fixed \u0441\u0430 \u0432\u043A\u0443\u0441\u043E\u0432\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0438 \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u043E\u0438\u0442\u043E \u043D\u0435 \u0441\u0435 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430\u0442 \u0438 \u043E\u0442\u043F\u0430\u0434\u0430\u0442, \u0430\u043A\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0433\u0438 \u0438\u0437\u043A\u043B\u044E\u0447\u0432\u0430. cuisine: "bg" \u2014 \u044F\u0441\u0442\u0438\u0435 \u043E\u0442 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0430\u0442\u0430 \u043A\u0443\u0445\u043D\u044F: \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442 \u0438\u0437\u0432\u044A\u043D \u0411\u0430\u043B\u043A\u0430\u043D\u0438\u0442\u0435, \u043A\u043E\u0439\u0442\u043E \u043D\u0435 \u043F\u0438\u0448\u0435 \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438, \u0438\u0434\u0432\u0430 \u043F\u043E-\u0440\u044F\u0434\u043A\u043E (nutrition-engine/region.js).',
+  about: '\u042F\u0441\u0442\u0438\u044F \u043A\u0430\u0442\u043E \u0440\u0435\u0446\u0435\u043F\u0442\u0443\u0440\u043D\u0430 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430: \u0432\u0441\u044F\u043A\u0430 \u0447\u0430\u0441\u0442 \u0435 \u043E\u0431\u043C\u0435\u043D\u043D\u0430 \u0433\u0440\u0443\u043F\u0430 \u0441 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438 \u0445\u0440\u0430\u043D\u0438 \u0438 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D \u0432 \u043F\u043E\u0440\u0446\u0438\u0438. \u0413\u0440\u0430\u043C\u0430\u0436\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u0438 \u2014 \u0438\u0434\u0432\u0430\u0442 \u043E\u0442 \u043F\u043E\u0440\u0446\u0438\u0438\u0442\u0435, \u043A\u043E\u0438\u0442\u043E \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0430\u0442\u0430 \u0441\u0445\u0435\u043C\u0430 \u0434\u0430\u0432\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E. \u0427\u0430\u0441\u0442\u0438 \u0441 \u043C\u0438\u043D\u0438\u043C\u0443\u043C 0 \u043E\u0442\u043F\u0430\u0434\u0430\u0442, \u043A\u043E\u0433\u0430\u0442\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u043D\u044F\u043C\u0430 \u0442\u0430\u043A\u0430\u0432\u0430 \u043F\u043E\u0440\u0446\u0438\u044F \u0438\u043B\u0438 \u0445\u0440\u0430\u043D\u0430\u0442\u0430 \u0435 \u0438\u0437\u043A\u043B\u044E\u0447\u0435\u043D\u0430 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. fixed \u0441\u0430 \u0432\u043A\u0443\u0441\u043E\u0432\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0438 \u0432 \u0433\u0440\u0430\u043C\u043E\u0432\u0435, \u043A\u043E\u0438\u0442\u043E \u043D\u0435 \u0441\u0435 \u043C\u0430\u0449\u0430\u0431\u0438\u0440\u0430\u0442 \u0438 \u043E\u0442\u043F\u0430\u0434\u0430\u0442, \u0430\u043A\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0433\u0438 \u0438\u0437\u043A\u043B\u044E\u0447\u0432\u0430. cuisine: "bg" \u2014 \u044F\u0441\u0442\u0438\u0435 \u043E\u0442 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0430\u0442\u0430 \u043A\u0443\u0445\u043D\u044F: \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442 \u0438\u0437\u0432\u044A\u043D \u0411\u0430\u043B\u043A\u0430\u043D\u0438\u0442\u0435, \u043A\u043E\u0439\u0442\u043E \u043D\u0435 \u043F\u0438\u0448\u0435 \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438, \u0438\u0434\u0432\u0430 \u043F\u043E-\u0440\u044F\u0434\u043A\u043E (nutrition-engine/region.js). cuisine: "asia", "latam", "india", "mideast" \u2014 \u0434\u0430\u043B\u0435\u0447\u043D\u0438 \u043A\u0443\u0445\u043D\u0438: \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442 \u0443 \u0434\u043E\u043C\u0430 \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0430\u0442\u0430 \u043A\u0443\u0445\u043D\u044F \u0438\u0434\u0432\u0430\u0442 \u043F\u043E-\u0440\u044F\u0434\u043A\u043E.',
   seasons: {
     veg_tomato: [
       "summer",
@@ -41527,6 +41527,8710 @@ var dishes_default = {
         ]
       ],
       sides: []
+    },
+    {
+      id: "m_chicken_teriyaki",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0438\u043B\u0435 \u0442\u0435\u0440\u0438\u044F\u043A\u0438",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043F\u0438\u043B\u0435\u0442\u043E \u0432 \u0442\u0438\u0433\u0430\u043D\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441, \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B\u0430 \u0438 \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u043E\u0441\u0442\u0430\u0432\u0438 \u0441\u043E\u0441\u044A\u0442 \u0434\u0430 \u0441\u0435 \u0441\u0433\u044A\u0441\u0442\u0438. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430 \u0438 \u0437\u0430\u0434\u0443\u0448\u0435\u043D\u0438\u0442\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_thigh",
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_rice",
+            "eng_buckwheat"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_broccoli"
+            ],
+            [
+              "veg_pepper",
+              "veg_carrot"
+            ],
+            [
+              "veg_green_beans"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_soy",
+          15
+        ],
+        [
+          "cond_ginger",
+          3
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "asia"
+    },
+    {
+      id: "m_chicken_fajitas",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0444\u0430\u0445\u0438\u0442\u0430\u0441",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u043B\u0435\u043D\u0442\u0438\u0442\u0435 \u043F\u0438\u043B\u0435\u0448\u043A\u043E \u0441 \u0447\u0443\u0448\u043A\u0438\u0442\u0435 \u0438 \u043B\u0443\u043A\u0430 \u0438 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u0438 \u0441 \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0432 \u0437\u0430\u0442\u043E\u043F\u043B\u0435\u043D\u0438\u0442\u0435 \u0442\u043E\u0440\u0442\u0438\u043B\u0438 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_tortilla"
+          ],
+          range: [
+            1,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_onion"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "fat_oil",
+          5
+        ],
+        [
+          "dairy_yogurt",
+          30
+        ],
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "m_chicken_shawarma_bowl",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0430 \u0448\u0430\u0443\u0440\u043C\u0430 \u0432 \u043A\u0443\u043F\u0430",
+      prep: "\u041C\u0430\u0440\u0438\u043D\u043E\u0432\u0430\u0439 \u043F\u0438\u043B\u0435\u0442\u043E \u0432 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0447\u0435\u0441\u044A\u043D, \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u043A\u0443\u0440\u043A\u0443\u043C\u0430 \u0438 \u0433\u043E \u0438\u0437\u043F\u0435\u0447\u0438. \u041D\u0430\u0440\u0435\u0434\u0438 \u0432 \u043A\u0443\u043F\u0430 \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441 \u0442\u0430\u0445\u0430\u043D \u0438 \u043B\u0438\u043C\u043E\u043D.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_thigh",
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bulgur",
+            "eng_couscous",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ],
+            [
+              "veg_lettuce",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_tahini"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "dairy_yogurt",
+          40
+        ],
+        [
+          "veg_garlic",
+          5
+        ],
+        [
+          "cond_turmeric",
+          2
+        ],
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "mideast"
+    },
+    {
+      id: "m_chicken_tomato_basil_pasta",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435, \u0434\u043E\u043C\u0430\u0442\u0438 \u0438 \u0431\u043E\u0441\u0438\u043B\u0435\u043A",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043F\u0438\u043B\u0435\u0442\u043E, \u0434\u043E\u0431\u0430\u0432\u0438 \u0447\u0435\u0440\u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0438 \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u0437\u0430\u0434\u0443\u0448\u0438 5 \u043C\u0438\u043D\u0443\u0442\u0438. \u0421\u043C\u0435\u0441\u0438 \u0441 \u043F\u0430\u0441\u0442\u0430\u0442\u0430, \u043F\u0440\u0435\u0441\u043D\u0438\u044F \u0431\u043E\u0441\u0438\u043B\u0435\u043A \u0438 \u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D\u0430.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_pasta",
+            "eng_lentil_pasta"
+          ],
+          range: [
+            1.5,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cherry_tomato",
+              "veg_spinach"
+            ],
+            [
+              "veg_cherry_tomato",
+              "veg_zucchini"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_parmesan"
+          ],
+          range: [
+            0,
+            0.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_chicken_lemon_herb",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0438\u043B\u0435 \u0441 \u043B\u0438\u043C\u043E\u043D \u0438 \u0431\u0438\u043B\u043A\u0438 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430",
+      prep: "\u041F\u043E\u0434\u0440\u0435\u0434\u0438 \u043F\u0438\u043B\u0435\u0442\u043E \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0432 \u0442\u0430\u0432\u0430, \u043F\u043E\u043B\u0435\u0439 \u0441\u044A\u0441 \u0437\u0435\u0445\u0442\u0438\u043D \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0440\u043E\u0437\u043C\u0430\u0440\u0438\u043D \u0438 \u043C\u0430\u0449\u0435\u0440\u043A\u0430 \u0438 \u043F\u0435\u0447\u0438 35 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_thigh",
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            6.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_sweet_potato"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_zucchini",
+              "veg_pepper"
+            ],
+            [
+              "veg_carrot",
+              "veg_onion"
+            ],
+            [
+              "veg_cauliflower"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          15
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
+    },
+    {
+      id: "m_chicken_cacciatore",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0438\u043B\u0435 \u043A\u0430\u0447\u0438\u0430\u0442\u043E\u0440\u0435",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043F\u0438\u043B\u0435\u0442\u043E, \u0434\u043E\u0431\u0430\u0432\u0438 \u043B\u0443\u043A\u0430, \u0447\u0443\u0448\u043A\u0438\u0442\u0435, \u0433\u044A\u0431\u0438\u0442\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0438 \u0437\u0430\u0434\u0443\u0448\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A 25 \u043C\u0438\u043D\u0443\u0442\u0438 \u0441 \u0440\u0438\u0433\u0430\u043D \u0438 \u0440\u043E\u0437\u043C\u0430\u0440\u0438\u043D.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_thigh",
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_mushrooms"
+            ],
+            [
+              "veg_tomato",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_pasta",
+            "eng_potato",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "cond_tomato_paste",
+          20
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
+    },
+    {
+      id: "m_chicken_tikka",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0438\u043B\u0435 \u0442\u0438\u043A\u0430",
+      prep: "\u041C\u0430\u0440\u0438\u043D\u043E\u0432\u0430\u0439 \u043F\u0438\u043B\u0435\u0442\u043E \u0432 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043A\u0443\u0440\u043A\u0443\u043C\u0430, \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B \u0438 \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0433\u043E \u0438\u0437\u043F\u0435\u0447\u0438. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u043B\u0438\u043C\u043E\u043D.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast",
+            "pro_chicken_thigh"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_rice",
+            "eng_quinoa"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cauliflower"
+            ],
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_green_beans"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "dairy_yogurt",
+          50
+        ],
+        [
+          "cond_turmeric",
+          2
+        ],
+        [
+          "cond_ginger",
+          3
+        ],
+        [
+          "veg_garlic",
+          5
+        ],
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "india"
+    },
+    {
+      id: "m_chicken_satay",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u0438 \u0441\u0430\u0442\u0430\u0439 \u0441 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D \u0441\u043E\u0441",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u0448\u0438\u0448\u0447\u0435\u0442\u0430\u0442\u0430 \u043E\u0442 \u043F\u0438\u043B\u0435\u0448\u043A\u043E. \u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E\u0442\u043E \u043C\u0430\u0441\u043B\u043E \u0441\u044A\u0441 \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441, \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u0442\u043E\u043F\u043B\u0430 \u0432\u043E\u0434\u0430 \u0437\u0430 \u0441\u043E\u0441\u0430 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_rice"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber",
+              "veg_carrot"
+            ],
+            [
+              "veg_broccoli"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_peanut_butter"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_soy",
+          10
+        ],
+        [
+          "cond_ginger",
+          3
+        ],
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "asia"
+    },
+    {
+      id: "m_chicken_greek_tzatziki",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0438\u043B\u0435\u0448\u043A\u043E \u0441 \u0446\u0430\u0446\u0438\u043A\u0438",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u043F\u0438\u043B\u0435\u0448\u043A\u043E\u0442\u043E \u0441 \u0440\u0438\u0433\u0430\u043D \u0438 \u043B\u0438\u043C\u043E\u043D. \u041D\u0430\u043F\u0440\u0430\u0432\u0438 \u0446\u0430\u0446\u0438\u043A\u0438 \u043E\u0442 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E, \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430\u0442\u0430, \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u043A\u043E\u043F\u044A\u0440\u0430 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast",
+            "pro_chicken_thigh"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_greek",
+            "dairy_yogurt",
+            "dairy_yogurt_lf"
+          ],
+          range: [
+            0.5,
+            0.75
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_bulgur",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            5
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_zucchini"
+            ],
+            [
+              "veg_green_beans"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_cucumber",
+          30
+        ],
+        [
+          "veg_garlic",
+          3
+        ],
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
+    },
+    {
+      id: "m_turkey_meatballs_tomato",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0443\u0435\u0448\u043A\u0438 \u043A\u044E\u0444\u0442\u0435\u043D\u0446\u0430 \u0432 \u0434\u043E\u043C\u0430\u0442\u0435\u043D \u0441\u043E\u0441",
+      prep: "\u041E\u0444\u043E\u0440\u043C\u0438 \u043A\u044E\u0444\u0442\u0435\u043D\u0446\u0430 \u043E\u0442 \u043F\u0443\u0435\u0448\u043A\u043E\u0442\u043E \u0441 \u043B\u0443\u043A \u0438 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438, \u0437\u0430\u043F\u0435\u0447\u0438 \u0433\u0438 \u0438 \u0433\u0438 \u0437\u0430\u0434\u0443\u0448\u0438 \u0432 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u0438\u044F \u0441\u043E\u0441 15 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_turkey"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_pasta",
+            "eng_rice",
+            "eng_potato",
+            "eng_bulgur"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato"
+            ],
+            [
+              "veg_tomato",
+              "veg_zucchini"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
+    },
+    {
+      id: "m_turkey_chili",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u0427\u0438\u043B\u0438 \u0441 \u043F\u0443\u0435\u0448\u043A\u043E \u0438 \u0431\u043E\u0431",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043F\u0443\u0435\u0448\u043A\u043E\u0442\u043E \u0441 \u043B\u0443\u043A\u0430 \u0438 \u0447\u0443\u0448\u043A\u0438\u0442\u0435, \u0434\u043E\u0431\u0430\u0432\u0438 \u0431\u043E\u0431\u0430, \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0438 \u043A\u0438\u043C\u0438\u043E\u043D\u0430 \u0438 \u0432\u0430\u0440\u0438 \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_turkey"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "LEG",
+          options: [
+            "leg_black_beans",
+            "leg_white_beans"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_rice"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "cond_tomato_paste",
+          20
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad",
+        "yogurt"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "m_chicken_paella",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0430\u0435\u043B\u044F \u0441 \u043F\u0438\u043B\u0435",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043F\u0438\u043B\u0435\u0442\u043E, \u0434\u043E\u0431\u0430\u0432\u0438 \u0447\u0443\u0448\u043A\u0438\u0442\u0435, \u043B\u0443\u043A\u0430, \u043E\u0440\u0438\u0437\u0430 \u0438 \u043A\u0443\u0440\u043A\u0443\u043C\u0430\u0442\u0430, \u0437\u0430\u043B\u0435\u0439 \u0441 \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 \u0431\u0435\u0437 \u0431\u044A\u0440\u043A\u0430\u043D\u0435 18 \u043C\u0438\u043D\u0443\u0442\u0438. \u0414\u043E\u0431\u0430\u0432\u0438 \u0433\u0440\u0430\u0445\u0430 \u0432 \u043A\u0440\u0430\u044F.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_thigh",
+            "pro_chicken_breast"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            1.5,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "leg_peas",
+          40
+        ],
+        [
+          "cond_turmeric",
+          2
+        ],
+        [
+          "fruit_lemon",
+          20
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_chicken_quinoa_avocado",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u043F\u0438\u043B\u0435, \u043A\u0438\u043D\u043E\u0430 \u0438 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u043F\u0438\u043B\u0435\u0442\u043E \u0438 \u0433\u043E \u043D\u0430\u0440\u0435\u0436\u0438. \u0421\u043C\u0435\u0441\u0438 \u0441 \u043E\u0445\u043B\u0430\u0434\u0435\u043D\u0430\u0442\u0430 \u043A\u0438\u043D\u043E\u0430, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u0437\u0435\u0445\u0442\u0438\u043D.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_chicken_breast"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_quinoa"
+          ],
+          range: [
+            1,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cherry_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_arugula",
+              "veg_pepper"
+            ],
+            [
+              "veg_spinach",
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "bread"
+      ]
+    },
+    {
+      id: "m_turkey_patty_salad",
+      meals: [
+        "main"
+      ],
+      category: "poultry",
+      name: "\u041F\u0443\u0435\u0448\u043A\u043E \u043A\u044E\u0444\u0442\u0435 \u0441 \u0433\u043E\u043B\u044F\u043C\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+      prep: "\u041E\u0444\u043E\u0440\u043C\u0438 \u043A\u044E\u0444\u0442\u0435\u0442\u0430 \u043E\u0442 \u043F\u0443\u0435\u0448\u043A\u043E \u0441 \u043B\u0443\u043A, \u0447\u0435\u0441\u044A\u043D \u0438 \u043C\u0430\u0433\u0434\u0430\u043D\u043E\u0437 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0433\u043E\u043B\u044F\u043C\u0430 \u0441\u0430\u043B\u0430\u0442\u0430 \u0438 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430 \u043F\u043E \u0438\u0437\u0431\u043E\u0440.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_turkey"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_lettuce",
+              "veg_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ],
+            [
+              "veg_arugula",
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_sweet_potato",
+            "eng_potato",
+            "eng_bread_whole"
+          ],
+          range: [
+            0,
+            5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          25
+        ],
+        [
+          "veg_garlic",
+          3
+        ],
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
+      sides: [
+        "bread"
+      ]
+    },
+    {
+      id: "m_chili_con_carne",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u0427\u0438\u043B\u0438 \u043A\u043E\u043D \u043A\u0430\u0440\u043D\u0435",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043A\u0430\u0439\u043C\u0430\u0442\u0430 \u0441 \u043B\u0443\u043A\u0430 \u0438 \u0447\u0443\u0448\u043A\u0438\u0442\u0435, \u0434\u043E\u0431\u0430\u0432\u0438 \u0431\u043E\u0431\u0430, \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435, \u043A\u0438\u043C\u0438\u043E\u043D\u0430 \u0438 \u0447\u0435\u0440\u0432\u0435\u043D\u0438\u044F \u043F\u0438\u043F\u0435\u0440 \u0438 \u0432\u0430\u0440\u0438 \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_ground_meat",
+            "pro_beef_lean"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "LEG",
+          options: [
+            "leg_black_beans",
+            "leg_white_beans"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "cond_tomato_paste",
+          20
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad",
+        "yogurt"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "m_beef_broccoli",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u0422\u0435\u043B\u0435\u0448\u043A\u043E \u0441 \u0431\u0440\u043E\u043A\u043E\u043B\u0438 \u043F\u043E \u0430\u0437\u0438\u0430\u0442\u0441\u043A\u0438",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u0442\u044A\u043D\u043A\u0438\u0442\u0435 \u043B\u0435\u043D\u0442\u0438 \u0442\u0435\u043B\u0435\u0448\u043A\u043E \u0432 \u0441\u0438\u043B\u043D\u043E \u0437\u0430\u0433\u0440\u044F\u0442 \u0442\u0438\u0433\u0430\u043D, \u0434\u043E\u0431\u0430\u0432\u0438 \u0431\u0440\u043E\u043A\u043E\u043B\u0438\u0442\u0435, \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441, \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B\u0430 \u0438 \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 3 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_beef_lean"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_broccoli"
+            ],
+            [
+              "veg_broccoli",
+              "veg_pepper"
+            ],
+            [
+              "veg_green_beans",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_rice",
+            "eng_buckwheat"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_soy",
+          15
+        ],
+        [
+          "cond_ginger",
+          3
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "asia"
+    },
+    {
+      id: "m_beef_tacos",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u0422\u0430\u043A\u043E \u0441 \u0442\u0435\u043B\u0435\u0448\u043A\u043E",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043A\u0430\u0439\u043C\u0430\u0442\u0430 \u0441 \u043B\u0443\u043A\u0430, \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440. \u041D\u0430\u043F\u044A\u043B\u043D\u0438 \u0437\u0430\u0442\u043E\u043F\u043B\u0435\u043D\u0438\u0442\u0435 \u0442\u043E\u0440\u0442\u0438\u043B\u0438 \u0441 \u043C\u0435\u0441\u043E\u0442\u043E, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_ground_meat",
+            "pro_beef_lean"
+          ],
+          range: [
+            2.5,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_tortilla"
+          ],
+          range: [
+            1,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_lettuce",
+              "veg_tomato"
+            ],
+            [
+              "veg_cabbage",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "dairy_yogurt",
+          30
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "m_goulash",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u0413\u0443\u043B\u0430\u0448",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u0442\u0435\u043B\u0435\u0448\u043A\u043E\u0442\u043E \u0441 \u043C\u043D\u043E\u0433\u043E \u043B\u0443\u043A, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u043A\u0438\u043C\u0438\u043E\u043D, \u0434\u043E\u0431\u0430\u0432\u0438 \u0447\u0443\u0448\u043A\u0438\u0442\u0435 \u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438\u0442\u0435 \u0438 \u0432\u0430\u0440\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A \u0434\u043E \u043E\u043C\u0435\u043A\u0432\u0430\u043D\u0435.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_beef_lean",
+            "pro_beef"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            0,
+            5
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_carrot"
+            ],
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          60
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad"
+      ]
+    },
+    {
+      id: "m_kofta_tahini",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u041A\u043E\u0444\u0442\u0430 \u0441 \u0442\u0430\u0445\u0430\u043D",
+      prep: "\u041E\u043C\u0435\u0441\u0438 \u043A\u0430\u0439\u043C\u0430\u0442\u0430 \u0441 \u043B\u0443\u043A, \u043C\u0430\u0433\u0434\u0430\u043D\u043E\u0437 \u0438 \u043A\u0438\u043C\u0438\u043E\u043D, \u043E\u0444\u043E\u0440\u043C\u0438 \u043F\u0440\u043E\u0434\u044A\u043B\u0433\u043E\u0432\u0430\u0442\u0438 \u043A\u044E\u0444\u0442\u0435\u0442\u0430 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u0441\u043E\u0441 \u043E\u0442 \u0442\u0430\u0445\u0430\u043D.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_ground_meat",
+            "pro_lamb"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bulgur",
+            "eng_couscous",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_eggplant"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_tahini"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "salad",
+        "yogurt"
+      ],
+      cuisine: "mideast"
+    },
+    {
+      id: "m_lasagna",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u041B\u0430\u0437\u0430\u043D\u044F \u0441 \u043A\u0430\u0439\u043C\u0430",
+      prep: "\u041D\u0430\u0440\u0435\u0434\u0438 \u043D\u0430 \u043F\u043B\u0430\u0441\u0442\u043E\u0432\u0435 \u043A\u043E\u0440\u0438 \u0437\u0430 \u043B\u0430\u0437\u0430\u043D\u044F, \u0434\u043E\u043C\u0430\u0442\u0435\u043D \u0441\u043E\u0441 \u0441 \u043A\u0430\u0439\u043C\u0430 \u0438 \u0440\u0438\u043A\u043E\u0442\u0430, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D \u0438 \u043F\u0435\u0447\u0438 35 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_ground_meat",
+            "pro_beef_lean"
+          ],
+          range: [
+            2.5,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_pasta"
+          ],
+          range: [
+            1.5,
+            5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_ricotta",
+            "dairy_mozzarella"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_carrot"
+            ],
+            [
+              "veg_tomato",
+              "veg_spinach"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "cond_tomato_paste",
+          20
+        ],
+        [
+          "dairy_parmesan",
+          10
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_pork_souvlaki",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441\u0443\u0432\u043B\u0430\u043A\u0438",
+      prep: "\u041C\u0430\u0440\u0438\u043D\u043E\u0432\u0430\u0439 \u043A\u0443\u0431\u0447\u0435\u0442\u0430\u0442\u0430 \u0441\u0432\u0438\u043D\u0441\u043A\u043E \u0432 \u0437\u0435\u0445\u0442\u0438\u043D, \u043B\u0438\u043C\u043E\u043D, \u0447\u0435\u0441\u044A\u043D \u0438 \u0440\u0438\u0433\u0430\u043D, \u043D\u0430\u043D\u0438\u0436 \u0433\u0438 \u043D\u0430 \u0448\u0438\u0448\u0447\u0435\u0442\u0430 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0446\u0430\u0446\u0438\u043A\u0438 \u0438 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_pork_lean"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_bread_whole",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            5
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_pepper",
+              "veg_onion"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          15
+        ],
+        [
+          "veg_garlic",
+          5
+        ],
+        [
+          "dairy_yogurt",
+          40
+        ],
+        [
+          "veg_cucumber",
+          30
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_pork_ginger_stirfry",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u0421\u0432\u0438\u043D\u0441\u043A\u043E \u0441 \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043B\u0435\u043D\u0442\u0438\u0442\u0435 \u0441\u0432\u0438\u043D\u0441\u043A\u043E, \u0434\u043E\u0431\u0430\u0432\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435, \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B\u0430, \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441 \u0438 \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 4 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_pork_lean"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ],
+            [
+              "veg_pepper",
+              "veg_broccoli"
+            ],
+            [
+              "veg_green_beans",
+              "veg_mushrooms"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_rice",
+            "eng_buckwheat"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_soy",
+          15
+        ],
+        [
+          "cond_ginger",
+          5
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "asia"
+    },
+    {
+      id: "m_lamb_chickpea_stew",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u0410\u0433\u043D\u0435\u0448\u043A\u043E \u0441 \u043D\u0430\u0445\u0443\u0442 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u0430\u0433\u043D\u0435\u0448\u043A\u043E\u0442\u043E \u0441 \u043B\u0443\u043A\u0430, \u043A\u0438\u043C\u0438\u043E\u043D\u0430, \u043A\u0443\u0440\u043A\u0443\u043C\u0430\u0442\u0430 \u0438 \u043A\u0430\u043D\u0435\u043B\u0430\u0442\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0445\u0443\u0442\u0430, \u043C\u043E\u0440\u043A\u043E\u0432\u0438\u0442\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0438 \u0432\u0430\u0440\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A \u0434\u043E \u043E\u043C\u0435\u043A\u0432\u0430\u043D\u0435.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_lamb",
+            "pro_beef_lean"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "LEG",
+          options: [
+            "leg_chickpeas"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_tomato"
+            ],
+            [
+              "veg_pumpkin",
+              "veg_tomato"
+            ],
+            [
+              "veg_zucchini",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_couscous",
+            "eng_bulgur"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ],
+        [
+          "cond_turmeric",
+          2
+        ],
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: [
+        "salad",
+        "yogurt"
+      ],
+      cuisine: "mideast"
+    },
+    {
+      id: "m_burrito_bowl",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u0411\u0443\u0440\u0438\u0442\u043E \u0431\u043E\u0443\u043B \u0441 \u0442\u0435\u043B\u0435\u0448\u043A\u043E",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043A\u0430\u0439\u043C\u0430\u0442\u0430 \u0441 \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440. \u041D\u0430\u0440\u0435\u0434\u0438 \u0432 \u043A\u0443\u043F\u0430 \u0441 \u043E\u0440\u0438\u0437\u0430, \u0431\u043E\u0431\u0430, \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0438 \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_ground_meat",
+            "pro_beef_lean"
+          ],
+          range: [
+            2.5,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_rice"
+          ],
+          range: [
+            0,
+            5
+          ],
+          with: true
+        },
+        {
+          group: "LEG",
+          options: [
+            "leg_black_beans"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_lettuce"
+            ],
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "salad",
+        "yogurt"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "m_beef_stroganoff",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u0422\u0435\u043B\u0435\u0448\u043A\u043E \u0441\u0442\u0440\u043E\u0433\u0430\u043D\u043E\u0432",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043B\u0435\u043D\u0442\u0438\u0442\u0435 \u0442\u0435\u043B\u0435\u0448\u043A\u043E, \u0437\u0430\u0434\u0443\u0448\u0438 \u0433\u044A\u0431\u0438\u0442\u0435 \u0438 \u043B\u0443\u043A\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438 \u0433\u043E\u0440\u0447\u0438\u0446\u0430 \u043D\u0430 \u0441\u043B\u0430\u0431 \u043E\u0433\u044A\u043D \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_beef_lean"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_mushrooms"
+            ],
+            [
+              "veg_mushrooms",
+              "veg_onion"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_buckwheat",
+            "eng_pasta",
+            "eng_rice"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "dairy_yogurt",
+          60
+        ],
+        [
+          "cond_mustard",
+          10
+        ],
+        [
+          "veg_onion",
+          30
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_beef_veg_soup",
+      meals: [
+        "main"
+      ],
+      category: "red",
+      name: "\u0422\u0435\u043B\u0435\u0448\u043A\u0430 \u0441\u0443\u043F\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0421\u0432\u0430\u0440\u0438 \u0442\u0435\u043B\u0435\u0448\u043A\u043E\u0442\u043E \u0434\u043E \u043E\u043C\u0435\u043A\u0432\u0430\u043D\u0435, \u0434\u043E\u0431\u0430\u0432\u0438 \u043A\u0430\u0440\u0442\u043E\u0444\u0438\u0442\u0435, \u043C\u043E\u0440\u043A\u043E\u0432\u0438\u0442\u0435, \u0446\u0435\u043B\u0438\u043D\u0430\u0442\u0430 \u0438 \u043B\u0443\u043A\u0430 \u0438 \u0432\u0430\u0440\u0438 \u043E\u0449\u0435 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_beef_lean",
+            "pro_beef"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_celery"
+            ],
+            [
+              "veg_carrot",
+              "veg_pepper"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad"
+      ]
+    },
+    {
+      id: "m_fish_tacos",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u0422\u0430\u043A\u043E \u0441 \u0440\u0438\u0431\u0430",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u0431\u044F\u043B\u0430\u0442\u0430 \u0440\u0438\u0431\u0430 \u0441 \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u043B\u0438\u043C\u043E\u043D \u0438 \u044F \u0440\u0430\u0437\u0434\u0435\u043B\u0438 \u043D\u0430 \u043F\u0430\u0440\u0447\u0435\u0442\u0430. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0432 \u0442\u043E\u0440\u0442\u0438\u043B\u0438\u0442\u0435 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u0442\u043E, \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E \u0438 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043B\u0438\u043C\u043E\u043D.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_hake",
+            "pro_cod",
+            "pro_tilapia",
+            "pro_fish"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_tortilla"
+          ],
+          range: [
+            1,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ],
+            [
+              "veg_lettuce",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ],
+        [
+          "dairy_yogurt",
+          30
+        ],
+        [
+          "fat_oil",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "m_salmon_teriyaki",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u0421\u044C\u043E\u043C\u0433\u0430 \u0442\u0435\u0440\u0438\u044F\u043A\u0438",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u0441\u044C\u043E\u043C\u0433\u0430\u0442\u0430 \u0438 \u044F \u0433\u043B\u0430\u0437\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 \u0441\u043E\u0435\u0432 \u0441\u043E\u0441, \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B \u0438 \u0447\u0435\u0441\u044A\u043D. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430 \u0438 \u0437\u0430\u0434\u0443\u0448\u0435\u043D\u0438\u0442\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_salmon",
+            "pro_trout"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_rice",
+            "eng_quinoa"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_broccoli"
+            ],
+            [
+              "veg_green_beans"
+            ],
+            [
+              "veg_asparagus"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_almonds",
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_soy",
+          15
+        ],
+        [
+          "cond_ginger",
+          3
+        ],
+        [
+          "veg_garlic",
+          3
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "asia"
+    },
+    {
+      id: "m_fish_curry",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u0420\u0438\u0431\u043D\u043E \u043A\u044A\u0440\u0438",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0441 \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B\u0430, \u043A\u0443\u0440\u043A\u0443\u043C\u0430\u0442\u0430 \u0438 \u0447\u0435\u0441\u044A\u043D\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u0441\u0432\u0430\u0440\u0438 \u0432 \u0441\u043E\u0441\u0430 \u0431\u044F\u043B\u0430\u0442\u0430 \u0440\u0438\u0431\u0430 8 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_hake",
+            "pro_cod",
+            "pro_tilapia",
+            "pro_fish"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach",
+              "veg_tomato"
+            ],
+            [
+              "veg_cauliflower",
+              "veg_tomato"
+            ],
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "cond_ginger",
+          5
+        ],
+        [
+          "cond_turmeric",
+          2
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "india"
+    },
+    {
+      id: "m_nicoise",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u041D\u0438\u0441\u043E\u0430\u0437",
+      prep: "\u041F\u043E\u0434\u0440\u0435\u0434\u0438 \u0432\u0430\u0440\u0435\u043D\u0438\u0442\u0435 \u043A\u0430\u0440\u0442\u043E\u0444\u0438, \u0437\u0435\u043B\u0435\u043D\u0438\u044F \u0444\u0430\u0441\u0443\u043B, \u044F\u0439\u0446\u0430\u0442\u0430, \u0440\u0438\u0431\u0430\u0442\u0430 \u0442\u043E\u043D, \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0438 \u043C\u0430\u0441\u043B\u0438\u043D\u0438\u0442\u0435 \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441 \u0434\u0440\u0435\u0441\u0438\u043D\u0433 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0433\u043E\u0440\u0447\u0438\u0446\u0430 \u0438 \u043E\u0446\u0435\u0442.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_tuna"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            0,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_green_beans",
+              "veg_tomato",
+              "veg_lettuce"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_olives"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_mustard",
+          5
+        ],
+        [
+          "cond_vinegar",
+          5
+        ]
+      ],
+      sides: [
+        "bread"
+      ]
+    },
+    {
+      id: "m_shrimp_paella",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u041F\u0430\u0435\u043B\u044F \u0441\u044A\u0441 \u0441\u043A\u0430\u0440\u0438\u0434\u0438",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0438 \u0447\u0443\u0448\u043A\u0438\u0442\u0435, \u0434\u043E\u0431\u0430\u0432\u0438 \u043E\u0440\u0438\u0437\u0430 \u0438 \u043A\u0443\u0440\u043A\u0443\u043C\u0430\u0442\u0430, \u0437\u0430\u043B\u0435\u0439 \u0441 \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438. \u0421\u043B\u043E\u0436\u0438 \u0441\u043A\u0430\u0440\u0438\u0434\u0438\u0442\u0435 \u0438 \u0433\u0440\u0430\u0445\u0430 \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 5 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_shrimp"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice"
+          ],
+          range: [
+            1.5,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "leg_peas",
+          40
+        ],
+        [
+          "cond_turmeric",
+          2
+        ],
+        [
+          "fruit_lemon",
+          20
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_fish_mediterranean",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u0420\u0438\u0431\u0430 \u043F\u043E \u0441\u0440\u0435\u0434\u0438\u0437\u0435\u043C\u043D\u043E\u043C\u043E\u0440\u0441\u043A\u0438",
+      prep: "\u041D\u0430\u0440\u0435\u0434\u0438 \u0440\u0438\u0431\u0430\u0442\u0430 \u0432 \u0442\u0430\u0432\u0430 \u0432\u044A\u0440\u0445\u0443 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435, \u043B\u0443\u043A\u0430 \u0438 \u043C\u0430\u0441\u043B\u0438\u043D\u0438\u0442\u0435, \u043F\u043E\u043B\u0435\u0439 \u0441\u044A\u0441 \u0437\u0435\u0445\u0442\u0438\u043D \u0438 \u043B\u0438\u043C\u043E\u043D, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0440\u0438\u0433\u0430\u043D \u0438 \u043F\u0435\u0447\u0438 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_sea_bass",
+            "pro_cod",
+            "pro_hake",
+            "pro_fish"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_onion"
+            ],
+            [
+              "veg_cherry_tomato",
+              "veg_zucchini"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_couscous",
+            "eng_bulgur"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_olives"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ],
+        [
+          "veg_garlic",
+          3
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
+    },
+    {
+      id: "m_salmon_spinach_pasta",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441\u044A\u0441 \u0441\u044C\u043E\u043C\u0433\u0430 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u0441\u044C\u043E\u043C\u0433\u0430\u0442\u0430 \u043D\u0430 \u043F\u0430\u0440\u0447\u0435\u0442\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u0441\u043F\u0430\u043D\u0430\u043A\u0430 \u0438 \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u0441\u043C\u0435\u0441\u0438 \u0441 \u043F\u0430\u0441\u0442\u0430\u0442\u0430, \u043B\u0438\u043C\u043E\u043D\u043E\u0432\u0430\u0442\u0430 \u043A\u043E\u0440\u0430 \u0438 \u043C\u0430\u043B\u043A\u043E \u043E\u0442 \u0432\u043E\u0434\u0430\u0442\u0430 \u043D\u0430 \u043F\u0430\u0441\u0442\u0430\u0442\u0430.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_salmon"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_pasta",
+            "eng_lentil_pasta"
+          ],
+          range: [
+            1.5,
+            6
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_spinach",
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_almonds",
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_garlic",
+          5
+        ],
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_fish_patties",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u0420\u0438\u0431\u043D\u0438 \u043A\u044E\u0444\u0442\u0435\u043D\u0446\u0430",
+      prep: "\u0421\u043C\u0435\u043B\u0438 \u0431\u044F\u043B\u0430\u0442\u0430 \u0440\u0438\u0431\u0430 \u0441 \u043B\u0443\u043A, \u044F\u0439\u0446\u0435 \u0438 \u043A\u043E\u043F\u044A\u0440, \u043E\u0444\u043E\u0440\u043C\u0438 \u043A\u044E\u0444\u0442\u0435\u043D\u0446\u0430 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430 \u0438 \u0441\u0430\u043B\u0430\u0442\u0430.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_hake",
+            "pro_cod",
+            "pro_fish"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_sweet_potato",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            5
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ],
+            [
+              "veg_cucumber",
+              "veg_tomato"
+            ],
+            [
+              "veg_green_beans"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "pro_eggs",
+          30
+        ],
+        [
+          "fruit_lemon",
+          15
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_sardines_oven",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u0421\u0430\u0440\u0434\u0438\u043D\u0438 \u043D\u0430 \u0444\u0443\u0440\u043D\u0430 \u0441 \u043A\u0430\u0440\u0442\u043E\u0444\u0438",
+      prep: "\u041D\u0430\u0440\u0435\u0434\u0438 \u0441\u0430\u0440\u0434\u0438\u043D\u0438\u0442\u0435 \u0432\u044A\u0440\u0445\u0443 \u0442\u044A\u043D\u043A\u043E \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438\u0442\u0435 \u043A\u0430\u0440\u0442\u043E\u0444\u0438 \u0438 \u043B\u0443\u043A\u0430, \u043F\u043E\u043B\u0435\u0439 \u0441\u044A\u0441 \u0437\u0435\u0445\u0442\u0438\u043D \u0438 \u043B\u0438\u043C\u043E\u043D \u0438 \u043F\u0435\u0447\u0438 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_sardines",
+            "pro_mackerel"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_onion",
+              "veg_tomato"
+            ],
+            [
+              "veg_pepper",
+              "veg_onion"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "salad",
+        "bread"
+      ]
+    },
+    {
+      id: "m_tuna_poke",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u041F\u043E\u043A\u0435 \u0431\u043E\u0443\u043B \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+      prep: "\u041D\u0430\u0440\u0435\u0434\u0438 \u0432 \u043A\u0443\u043F\u0430 \u043E\u0440\u0438\u0437\u0430, \u0440\u0438\u0431\u0430\u0442\u0430 \u0442\u043E\u043D, \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430\u0442\u0430, \u043C\u043E\u0440\u043A\u043E\u0432\u0438\u0442\u0435 \u0438 \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441\u044A\u0441 \u0441\u043E\u0435\u0432 \u0441\u043E\u0441 \u0441 \u043B\u0438\u043C\u043E\u043D \u0438 \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_tuna",
+            "pro_salmon"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown",
+            "eng_quinoa"
+          ],
+          range: [
+            1,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber",
+              "veg_carrot"
+            ],
+            [
+              "veg_cabbage",
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_almonds",
+            "fat_olives"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_soy",
+          10
+        ],
+        [
+          "cond_ginger",
+          2
+        ],
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
+      sides: [],
+      cuisine: "asia"
+    },
+    {
+      id: "m_shrimp_ginger",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u0421\u043A\u0430\u0440\u0438\u0434\u0438 \u0441 \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B \u0438 \u043A\u0443\u0440\u043A\u0443\u043C\u0430",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430, \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u0447\u0443\u0448\u043A\u0438\u0442\u0435 \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u0441\u0432\u0430\u0440\u0438 \u0441\u043A\u0430\u0440\u0438\u0434\u0438\u0442\u0435 \u0432 \u0441\u043E\u0441\u0430 4 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_shrimp"
+          ],
+          range: [
+            2.5,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_zucchini"
+            ],
+            [
+              "veg_spinach",
+              "veg_tomato"
+            ],
+            [
+              "veg_broccoli"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "veg_garlic",
+          5
+        ],
+        [
+          "cond_ginger",
+          3
+        ],
+        [
+          "cond_turmeric",
+          1
+        ],
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "asia"
+    },
+    {
+      id: "m_trout_almonds",
+      meals: [
+        "main"
+      ],
+      category: "fish",
+      name: "\u041F\u044A\u0441\u0442\u044A\u0440\u0432\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u043F\u044A\u0441\u0442\u044A\u0440\u0432\u0430\u0442\u0430 \u0432 \u0442\u0438\u0433\u0430\u043D, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0437\u0430\u043F\u0435\u0447\u0435\u043D\u0438\u0442\u0435 \u0431\u0430\u0434\u0435\u043C\u0438 \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 \u0437\u0430\u0434\u0443\u0448\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_trout",
+            "pro_salmon"
+          ],
+          range: [
+            3,
+            6
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_potato",
+            "eng_rice_brown",
+            "eng_quinoa"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_green_beans"
+            ],
+            [
+              "veg_broccoli"
+            ],
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_asparagus"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_almonds"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_dal",
+      meals: [
+        "main"
+      ],
+      category: "legume",
+      name: "\u0414\u0430\u043B \u043E\u0442 \u0447\u0435\u0440\u0432\u0435\u043D\u0430 \u043B\u0435\u0449\u0430",
+      prep: "\u0421\u0432\u0430\u0440\u0438 \u043B\u0435\u0449\u0430\u0442\u0430 \u0441 \u043B\u0443\u043A\u0430, \u0447\u0435\u0441\u044A\u043D\u0430, \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B\u0430, \u043A\u0443\u0440\u043A\u0443\u043C\u0430\u0442\u0430 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0434\u043E \u0433\u044A\u0441\u0442\u0430 \u043A\u0430\u0448\u0430. \u0414\u043E\u0432\u044A\u0440\u0448\u0438 \u0441 \u043A\u0438\u043C\u0438\u043E\u043D, \u0437\u0430\u043F\u0435\u0447\u0435\u043D \u0432 \u043C\u0430\u0437\u043D\u0438\u043D\u0430\u0442\u0430.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_lentils"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_spinach"
+            ],
+            [
+              "veg_tomato",
+              "veg_carrot"
+            ],
+            [
+              "veg_pumpkin"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_tofu",
+            "dairy_cottage"
+          ],
+          range: [
+            0,
+            1.5
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_olives"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "veg_garlic",
+          5
+        ],
+        [
+          "cond_ginger",
+          3
+        ],
+        [
+          "cond_turmeric",
+          2
+        ]
+      ],
+      sides: [
+        "salad",
+        "yogurt"
+      ],
+      cuisine: "india"
+    },
+    {
+      id: "m_chana_masala",
+      meals: [
+        "main"
+      ],
+      category: "legume",
+      name: "\u041D\u0430\u0445\u0443\u0442 \u043C\u0430\u0441\u0430\u043B\u0430",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0441 \u0447\u0435\u0441\u044A\u043D\u0430, \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B\u0430 \u0438 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438\u0442\u0435, \u0434\u043E\u0431\u0430\u0432\u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0438 \u043D\u0430\u0445\u0443\u0442\u0430 \u0438 \u0432\u0430\u0440\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u043E\u0440\u0438\u0437 \u0438 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_chickpeas"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato"
+            ],
+            [
+              "veg_tomato",
+              "veg_spinach"
+            ],
+            [
+              "veg_tomato",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_tofu",
+            "dairy_cottage"
+          ],
+          range: [
+            0,
+            1.5
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_olives"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "veg_garlic",
+          5
+        ],
+        [
+          "cond_ginger",
+          3
+        ],
+        [
+          "cond_turmeric",
+          2
+        ]
+      ],
+      sides: [
+        "salad",
+        "yogurt"
+      ],
+      cuisine: "india"
+    },
+    {
+      id: "m_black_bean_bowl",
+      meals: [
+        "main"
+      ],
+      category: "legume",
+      name: "\u0411\u043E\u0443\u043B \u0441 \u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
+      prep: "\u0417\u0430\u0442\u043E\u043F\u043B\u0438 \u0447\u0435\u0440\u043D\u0438\u044F \u0431\u043E\u0431 \u0441 \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0447\u0435\u0441\u044A\u043D. \u041D\u0430\u0440\u0435\u0434\u0438 \u0432 \u043A\u0443\u043F\u0430 \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430, \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435, \u0447\u0443\u0448\u043A\u0438\u0442\u0435 \u0438 \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441 \u043B\u0438\u043C\u043E\u043D.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_black_beans"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_quinoa",
+            "eng_rice"
+          ],
+          range: [
+            0,
+            5
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_pepper"
+            ],
+            [
+              "veg_lettuce",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "pro_tofu",
+            "pro_eggs"
+          ],
+          range: [
+            0,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ],
+        [
+          "veg_garlic",
+          3
+        ]
+      ],
+      sides: [
+        "salad",
+        "yogurt"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "m_baked_falafel",
+      meals: [
+        "main"
+      ],
+      category: "legume",
+      name: "\u041F\u0435\u0447\u0435\u043D\u0438 \u0444\u0430\u043B\u0430\u0444\u0435\u043B\u0438",
+      prep: "\u041F\u0430\u0441\u0438\u0440\u0430\u0439 \u043D\u0430\u0445\u0443\u0442\u0430 \u0441 \u043B\u0443\u043A\u0430, \u0447\u0435\u0441\u044A\u043D\u0430, \u043C\u0430\u0433\u0434\u0430\u043D\u043E\u0437\u0430 \u0438 \u043A\u0438\u043C\u0438\u043E\u043D\u0430, \u043E\u0444\u043E\u0440\u043C\u0438 \u0442\u043E\u043F\u0447\u0435\u0442\u0430 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0432 \u0447\u0438\u043D\u0438\u044F \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u0441\u043E\u0441 \u043E\u0442 \u0442\u0430\u0445\u0430\u043D.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_chickpeas"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bulgur",
+            "eng_bread_whole",
+            "eng_couscous"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cucumber"
+            ],
+            [
+              "veg_lettuce",
+              "veg_tomato"
+            ],
+            [
+              "veg_cabbage",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_tahini"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_tofu",
+            "dairy_cottage"
+          ],
+          range: [
+            0,
+            1.5
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "veg_garlic",
+          5
+        ],
+        [
+          "cond_lemon_juice",
+          10
+        ],
+        [
+          "fat_oil",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "mideast"
+    },
+    {
+      id: "m_minestrone",
+      meals: [
+        "main"
+      ],
+      category: "legume",
+      name: "\u041C\u0438\u043D\u0435\u0441\u0442\u0440\u043E\u043D\u0435",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430, \u043C\u043E\u0440\u043A\u043E\u0432\u0438\u0442\u0435 \u0438 \u0446\u0435\u043B\u0438\u043D\u0430\u0442\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435, \u0431\u043E\u0431\u0430 \u0438 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438\u0442\u0435, \u0437\u0430\u043B\u0435\u0439 \u0441 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 20 \u043C\u0438\u043D\u0443\u0442\u0438. \u0421\u043B\u043E\u0436\u0438 \u043F\u0430\u0441\u0442\u0430\u0442\u0430 \u0437\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 8 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_white_beans",
+            "leg_chickpeas"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_celery",
+              "veg_zucchini"
+            ],
+            [
+              "veg_carrot",
+              "veg_green_beans",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_pasta"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_parmesan"
+          ],
+          range: [
+            0,
+            0.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_olives"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad"
+      ]
+    },
+    {
+      id: "m_lentil_roast_salad",
+      meals: [
+        "main"
+      ],
+      category: "legume",
+      name: "\u0421\u0430\u043B\u0430\u0442\u0430 \u0441 \u043B\u0435\u0449\u0430 \u0438 \u043F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435, \u0441\u043C\u0435\u0441\u0438 \u0433\u0438 \u0441\u044A\u0441 \u0441\u0432\u0430\u0440\u0435\u043D\u0430\u0442\u0430 \u043B\u0435\u0449\u0430, \u0440\u0443\u043A\u043E\u043B\u0430 \u0438 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441 \u0434\u0440\u0435\u0441\u0438\u043D\u0433 \u043E\u0442 \u0437\u0435\u0445\u0442\u0438\u043D, \u0433\u043E\u0440\u0447\u0438\u0446\u0430 \u0438 \u043B\u0438\u043C\u043E\u043D.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_lentils"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pumpkin",
+              "veg_arugula"
+            ],
+            [
+              "veg_beet",
+              "veg_arugula"
+            ],
+            [
+              "veg_pepper",
+              "veg_zucchini"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "dairy_mozzarella",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_pumpkin_seeds"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_mustard",
+          5
+        ],
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "bread"
+      ]
+    },
+    {
+      id: "m_bean_tacos",
+      meals: [
+        "main"
+      ],
+      category: "legume",
+      name: "\u0422\u0430\u043A\u043E \u0441 \u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431",
+      prep: "\u041D\u0430\u043C\u0430\u0447\u043A\u0430\u0439 \u0447\u0435\u0440\u043D\u0438\u044F \u0431\u043E\u0431 \u0441 \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0447\u0435\u0441\u044A\u043D, \u0441\u043B\u043E\u0436\u0438 \u0433\u043E \u0432 \u0437\u0430\u0442\u043E\u043F\u043B\u0435\u043D\u0438\u0442\u0435 \u0442\u043E\u0440\u0442\u0438\u043B\u0438 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435, \u0437\u0435\u043B\u0435\u0442\u043E \u0438 \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_black_beans"
+          ],
+          range: [
+            1.5,
+            3.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_tortilla"
+          ],
+          range: [
+            1,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cabbage"
+            ],
+            [
+              "veg_lettuce",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "pro_eggs",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_garlic",
+          3
+        ],
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "m_chickpea_soup",
+      meals: [
+        "main"
+      ],
+      category: "legume",
+      name: "\u0421\u0443\u043F\u0430 \u0441 \u043D\u0430\u0445\u0443\u0442 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430, \u043C\u043E\u0440\u043A\u043E\u0432\u0438\u0442\u0435 \u0438 \u0446\u0435\u043B\u0438\u043D\u0430\u0442\u0430 \u0441 \u043A\u0443\u0440\u043A\u0443\u043C\u0430 \u0438 \u043A\u0438\u043C\u0438\u043E\u043D, \u0434\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0445\u0443\u0442\u0430 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0438 \u0432\u0430\u0440\u0438 20 \u043C\u0438\u043D\u0443\u0442\u0438. \u041E\u0432\u043A\u0443\u0441\u0438 \u0441 \u043B\u0438\u043C\u043E\u043D.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_chickpeas",
+            "leg_lentils"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_celery"
+            ],
+            [
+              "veg_carrot",
+              "veg_tomato"
+            ],
+            [
+              "veg_spinach",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_olives"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ],
+        [
+          "cond_turmeric",
+          1
+        ],
+        [
+          "cond_lemon_juice",
+          10
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad"
+      ],
+      cuisine: "mideast"
+    },
+    {
+      id: "m_hummus_bowl",
+      meals: [
+        "main"
+      ],
+      category: "legume",
+      name: "\u0411\u043E\u0443\u043B \u0441 \u0445\u0443\u043C\u0443\u0441 \u0438 \u043F\u0435\u0447\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0441 \u043A\u0438\u043C\u0438\u043E\u043D. \u041D\u0430\u043C\u0430\u0436\u0438 \u0445\u0443\u043C\u0443\u0441\u0430 \u043D\u0430 \u0434\u044A\u043D\u043E\u0442\u043E \u043D\u0430 \u043A\u0443\u043F\u0430\u0442\u0430 \u0438 \u043F\u043E\u0434\u0440\u0435\u0434\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435, \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430 \u0438 \u044F\u0439\u0446\u0435 \u0438\u043B\u0438 \u0441\u0438\u0440\u0435\u043D\u0435.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_hummus"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_eggplant",
+              "veg_pepper"
+            ],
+            [
+              "veg_cauliflower",
+              "veg_carrot"
+            ],
+            [
+              "veg_zucchini",
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            1,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bulgur",
+            "eng_quinoa",
+            "eng_couscous"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs",
+            "dairy_cheese",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "mideast"
+    },
+    {
+      id: "m_tuscan_beans",
+      meals: [
+        "main"
+      ],
+      category: "legume",
+      name: "\u0411\u044F\u043B \u0431\u043E\u0431 \u043F\u043E \u0442\u043E\u0441\u043A\u0430\u043D\u0441\u043A\u0438",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0441\u044A\u0441 \u0437\u0435\u0445\u0442\u0438\u043D \u0438 \u0440\u043E\u0437\u043C\u0430\u0440\u0438\u043D, \u0434\u043E\u0431\u0430\u0432\u0438 \u0431\u0435\u043B\u0438\u044F \u0431\u043E\u0431 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A\u0430 \u0438 \u0432\u0430\u0440\u0438 10 \u043C\u0438\u043D\u0443\u0442\u0438. \u041F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_white_beans"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_cabbage",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_parmesan",
+            "pro_eggs",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_olives"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "bread",
+        "salad"
+      ]
+    },
+    {
+      id: "m_lentil_bolognese",
+      meals: [
+        "main"
+      ],
+      category: "legume",
+      name: "\u0411\u043E\u043B\u043E\u043D\u0435\u0437\u0435 \u0441 \u043B\u0435\u0449\u0430",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430, \u043C\u043E\u0440\u043A\u043E\u0432\u0438\u0442\u0435 \u0438 \u0446\u0435\u043B\u0438\u043D\u0430\u0442\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u043B\u0435\u0449\u0430\u0442\u0430, \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0438 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 25 \u043C\u0438\u043D\u0443\u0442\u0438. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u043F\u0430\u0441\u0442\u0430\u0442\u0430 \u0438 \u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_lentils"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_pasta",
+            "eng_lentil_pasta"
+          ],
+          range: [
+            1,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_celery"
+            ],
+            [
+              "veg_carrot",
+              "veg_mushrooms"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_parmesan",
+            "pro_tofu"
+          ],
+          range: [
+            0,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "cond_tomato_paste",
+          25
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_shakshuka",
+      meals: [
+        "main",
+        "breakfast"
+      ],
+      category: "veggie",
+      name: "\u0428\u0430\u043A\u0448\u0443\u043A\u0430",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430, \u0447\u0443\u0448\u043A\u0438\u0442\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0441 \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440, \u043D\u0430\u043F\u0440\u0430\u0432\u0438 \u0433\u043D\u0435\u0437\u0434\u0430 \u0438 \u0441\u0447\u0443\u043F\u0438 \u0432 \u0442\u044F\u0445 \u044F\u0439\u0446\u0430\u0442\u0430. \u0413\u043E\u0442\u0432\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A 6\u20137 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            0,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "veg_garlic",
+          3
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      breakfastCategory: "eggs",
+      cuisine: "mideast"
+    },
+    {
+      id: "m_frittata",
+      meals: [
+        "main",
+        "breakfast"
+      ],
+      category: "veggie",
+      name: "\u0424\u0440\u0438\u0442\u0430\u0442\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435, \u0437\u0430\u043B\u0435\u0439 \u0433\u0438 \u0441 \u0440\u0430\u0437\u0431\u0438\u0442\u0438\u0442\u0435 \u044F\u0439\u0446\u0430 \u0438 \u0441\u0438\u0440\u0435\u043D\u0435\u0442\u043E \u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u0432\u044A\u0432 \u0444\u0443\u0440\u043D\u0430 15 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            2,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach",
+              "veg_pepper"
+            ],
+            [
+              "veg_zucchini",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_broccoli"
+            ],
+            [
+              "veg_mushrooms",
+              "veg_onion"
+            ]
+          ],
+          range: [
+            0.5,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "dairy_parmesan",
+            "dairy_mozzarella"
+          ],
+          range: [
+            0,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado",
+            "fat_olives",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      sides: [
+        "bread",
+        "salad",
+        "fruit"
+      ],
+      breakfastCategory: "eggs"
+    },
+    {
+      id: "m_caprese_pasta",
+      meals: [
+        "main"
+      ],
+      category: "veggie",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441 \u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430 \u0438 \u0447\u0435\u0440\u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u0447\u0435\u0440\u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0441 \u0447\u0435\u0441\u044A\u043D\u0430, \u0441\u043C\u0435\u0441\u0438 \u0441 \u043F\u0430\u0441\u0442\u0430\u0442\u0430, \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0430\u0442\u0430 \u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430 \u0438 \u043F\u0440\u0435\u0441\u0435\u043D \u0431\u043E\u0441\u0438\u043B\u0435\u043A.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_pasta",
+            "eng_lentil_pasta"
+          ],
+          range: [
+            1.5,
+            6
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_mozzarella"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_cherry_tomato",
+              "veg_arugula"
+            ],
+            [
+              "veg_cherry_tomato",
+              "veg_spinach"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_greek_salad",
+      meals: [
+        "main"
+      ],
+      category: "veggie",
+      name: "\u0413\u0440\u044A\u0446\u043A\u0430 \u0441\u0430\u043B\u0430\u0442\u0430",
+      prep: "\u041D\u0430\u0440\u0435\u0436\u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435, \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0438\u0442\u0435, \u0447\u0443\u0448\u043A\u0430\u0442\u0430 \u0438 \u043B\u0443\u043A\u0430 \u043D\u0430 \u0435\u0434\u0440\u043E, \u0434\u043E\u0431\u0430\u0432\u0438 \u043C\u0430\u0441\u043B\u0438\u043D\u0438\u0442\u0435 \u0438 \u043F\u0430\u0440\u0447\u0435 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441\u044A\u0441 \u0437\u0435\u0445\u0442\u0438\u043D \u0438 \u0440\u0438\u0433\u0430\u043D.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cucumber",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_olives"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: [],
+      seasonsOnly: [
+        "summer",
+        "autumn"
+      ]
+    },
+    {
+      id: "m_eggplant_parmigiana",
+      meals: [
+        "main"
+      ],
+      category: "veggie",
+      name: "\u041F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D \u0441 \u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D \u043D\u0430 \u0444\u0443\u0440\u043D\u0430",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u0440\u0435\u0437\u0435\u043D\u0438\u0442\u0435 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D, \u043D\u0430\u0440\u0435\u0434\u0438 \u0433\u0438 \u043D\u0430 \u043F\u043B\u0430\u0441\u0442\u043E\u0432\u0435 \u0441 \u0434\u043E\u043C\u0430\u0442\u0435\u043D \u0441\u043E\u0441 \u0438 \u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D \u0438 \u043F\u0435\u0447\u0438 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_eggplant",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_mozzarella",
+            "dairy_ricotta"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_parmesan"
+          ],
+          range: [
+            0,
+            0.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_pasta"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_tomato_paste",
+          20
+        ],
+        [
+          "veg_garlic",
+          3
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      seasonsOnly: [
+        "summer",
+        "autumn"
+      ]
+    },
+    {
+      id: "m_stuffed_zucchini_ricotta",
+      meals: [
+        "main"
+      ],
+      category: "veggie",
+      name: "\u041F\u044A\u043B\u043D\u0435\u043D\u0438 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438 \u0441 \u0440\u0438\u043A\u043E\u0442\u0430",
+      prep: "\u0418\u0437\u0434\u044A\u043B\u0431\u0430\u0439 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438\u0442\u0435, \u0441\u043C\u0435\u0441\u0438 \u0432\u044A\u0442\u0440\u0435\u0448\u043D\u043E\u0441\u0442\u0442\u0430 \u0441 \u0440\u0438\u043A\u043E\u0442\u0430\u0442\u0430, \u044F\u0439\u0446\u0435\u0442\u043E \u0438 \u043A\u043E\u043F\u044A\u0440\u0430, \u043D\u0430\u043F\u044A\u043B\u043D\u0438 \u0433\u0438 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_zucchini"
+            ],
+            [
+              "veg_zucchini",
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            1.5,
+            2.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_ricotta",
+            "dairy_cottage"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_parmesan",
+            "dairy_cheese"
+          ],
+          range: [
+            0,
+            0.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bulgur",
+            "eng_bread_whole",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "pro_eggs",
+          30
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      seasonsOnly: [
+        "summer",
+        "autumn"
+      ]
+    },
+    {
+      id: "m_spinach_ricotta_pasta",
+      meals: [
+        "main"
+      ],
+      category: "veggie",
+      name: "\u041F\u0430\u0441\u0442\u0430 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A \u0438 \u0440\u0438\u043A\u043E\u0442\u0430",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u0441\u043F\u0430\u043D\u0430\u043A\u0430 \u0441 \u0447\u0435\u0441\u044A\u043D\u0430, \u0432\u043C\u0435\u0448\u0430\u0439 \u0440\u0438\u043A\u043E\u0442\u0430\u0442\u0430 \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u043E\u0442 \u043F\u0430\u0441\u0442\u0430\u0442\u0430 \u0438 \u0441\u043C\u0435\u0441\u0438 \u0441\u044A\u0441 \u0441\u0432\u0430\u0440\u0435\u043D\u0430\u0442\u0430 \u043F\u0430\u0441\u0442\u0430 \u0438 \u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_pasta",
+            "eng_lentil_pasta"
+          ],
+          range: [
+            1.5,
+            6
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_ricotta",
+            "dairy_cottage"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_spinach",
+              "veg_mushrooms"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_parmesan"
+          ],
+          range: [
+            0,
+            0.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_veg_lasagna",
+      meals: [
+        "main"
+      ],
+      category: "veggie",
+      name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0430 \u043B\u0430\u0437\u0430\u043D\u044F",
+      prep: "\u041D\u0430\u0440\u0435\u0434\u0438 \u043D\u0430 \u043F\u043B\u0430\u0441\u0442\u043E\u0432\u0435 \u043A\u043E\u0440\u0438, \u0437\u0430\u0434\u0443\u0448\u0435\u043D\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0441 \u0434\u043E\u043C\u0430\u0442\u0435\u043D \u0441\u043E\u0441 \u0438 \u0440\u0438\u043A\u043E\u0442\u0430, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430 \u0438 \u043F\u0435\u0447\u0438 35 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_pasta"
+          ],
+          range: [
+            1.5,
+            5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_ricotta",
+            "dairy_cottage"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_zucchini",
+              "veg_spinach",
+              "veg_tomato"
+            ],
+            [
+              "veg_eggplant",
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_mozzarella",
+            "dairy_parmesan"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_tomato_paste",
+          20
+        ],
+        [
+          "veg_onion",
+          20
+        ]
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_quesadilla",
+      meals: [
+        "main"
+      ],
+      category: "veggie",
+      name: "\u041A\u0435\u0441\u0430\u0434\u0438\u044F \u0441\u044A\u0441 \u0441\u0438\u0440\u0435\u043D\u0435 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0421\u043B\u043E\u0436\u0438 \u0432 \u0442\u043E\u0440\u0442\u0438\u043B\u0430\u0442\u0430 \u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B\u0430, \u0447\u0443\u0448\u043A\u0438\u0442\u0435, \u0446\u0430\u0440\u0435\u0432\u0438\u0446\u0430\u0442\u0430 \u0438 \u0431\u043E\u0431\u0430, \u0441\u0433\u044A\u043D\u0438 \u044F \u0438 \u044F \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 \u0441\u0443\u0445 \u0442\u0438\u0433\u0430\u043D \u0434\u043E \u0440\u0430\u0437\u0442\u043E\u043F\u044F\u0432\u0430\u043D\u0435.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_tortilla"
+          ],
+          range: [
+            1,
+            4
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_kashkaval",
+            "dairy_mozzarella"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ],
+            [
+              "veg_spinach",
+              "veg_mushrooms"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "LEG",
+          options: [
+            "leg_black_beans"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "dairy_yogurt",
+          30
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "m_egg_sweet_potato_bowl",
+      meals: [
+        "main"
+      ],
+      category: "veggie",
+      name: "\u0411\u043E\u0443\u043B \u0441\u044A\u0441 \u0441\u043B\u0430\u0434\u044A\u043A \u043A\u0430\u0440\u0442\u043E\u0444 \u0438 \u044F\u0439\u0446\u0435",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u043A\u0443\u0431\u0447\u0435\u0442\u0430\u0442\u0430 \u0441\u043B\u0430\u0434\u044A\u043A \u043A\u0430\u0440\u0442\u043E\u0444, \u0437\u0430\u0434\u0443\u0448\u0438 \u0441\u043F\u0430\u043D\u0430\u043A\u0430 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0432 \u043A\u0443\u043F\u0430 \u0441 \u044F\u0439\u0446\u0435\u0442\u043E, \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E \u0438 \u0441\u0435\u043C\u043A\u0438\u0442\u0435.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_sweet_potato",
+            "eng_potato"
+          ],
+          range: [
+            1,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_arugula",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_broccoli"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_pumpkin_seeds",
+            "fat_sunflower_seeds"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      sides: [
+        "salad"
+      ]
+    },
+    {
+      id: "m_tofu_teriyaki",
+      meals: [
+        "main"
+      ],
+      category: "plant",
+      name: "\u0422\u043E\u0444\u0443 \u0442\u0435\u0440\u0438\u044F\u043A\u0438",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043A\u0443\u0431\u0447\u0435\u0442\u0430\u0442\u0430 \u0442\u043E\u0444\u0443 \u0434\u043E \u0437\u043B\u0430\u0442\u0438\u0441\u0442\u043E, \u0433\u043B\u0430\u0437\u0438\u0440\u0430\u0439 \u0433\u0438 \u0441\u044A\u0441 \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441, \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B\u0430 \u0438 \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_tofu",
+            "pro_tempeh"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_rice",
+            "eng_quinoa"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_broccoli"
+            ],
+            [
+              "veg_pepper",
+              "veg_carrot"
+            ],
+            [
+              "veg_green_beans"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_almonds",
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_soy",
+          15
+        ],
+        [
+          "cond_ginger",
+          3
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "asia"
+    },
+    {
+      id: "m_tempeh_curry",
+      meals: [
+        "main"
+      ],
+      category: "plant",
+      name: "\u0422\u0435\u043C\u043F\u0435 \u043A\u044A\u0440\u0438",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0441 \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B\u0430 \u0438 \u043A\u0443\u0440\u043A\u0443\u043C\u0430\u0442\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435, \u0442\u0435\u043C\u043F\u0435\u0442\u043E \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 10 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_tempeh",
+            "pro_tofu"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cauliflower",
+              "veg_spinach"
+            ],
+            [
+              "veg_pepper",
+              "veg_zucchini"
+            ],
+            [
+              "veg_pumpkin",
+              "veg_spinach"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_almonds",
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "cond_ginger",
+          5
+        ],
+        [
+          "cond_turmeric",
+          2
+        ],
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "asia"
+    },
+    {
+      id: "m_tofu_poke",
+      meals: [
+        "main"
+      ],
+      category: "plant",
+      name: "\u041F\u043E\u043A\u0435 \u0431\u043E\u0443\u043B \u0441 \u0442\u043E\u0444\u0443",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u0442\u043E\u0444\u0443\u0442\u043E \u0441\u044A\u0441 \u0441\u043E\u0435\u0432 \u0441\u043E\u0441. \u041D\u0430\u0440\u0435\u0434\u0438 \u0432 \u043A\u0443\u043F\u0430 \u043E\u0440\u0438\u0437\u0430, \u0442\u043E\u0444\u0443\u0442\u043E, \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430\u0442\u0430, \u043C\u043E\u0440\u043A\u043E\u0432\u0438\u0442\u0435 \u0438 \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_tofu"
+          ],
+          range: [
+            2,
+            4.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice",
+            "eng_rice_brown",
+            "eng_quinoa"
+          ],
+          range: [
+            1,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber",
+              "veg_carrot"
+            ],
+            [
+              "veg_cabbage",
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_almonds",
+            "fat_pumpkin_seeds"
+          ],
+          range: [
+            0,
+            6
+          ],
+          onlyStyles: [
+            "keto",
+            "low_carb",
+            "paleo"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_soy",
+          10
+        ],
+        [
+          "cond_ginger",
+          2
+        ],
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
+      sides: [],
+      cuisine: "asia"
+    },
+    {
+      id: "m_soy_chili",
+      meals: [
+        "main"
+      ],
+      category: "plant",
+      name: "\u0427\u0438\u043B\u0438 \u0441\u044A\u0441 \u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u0441\u043E\u0435\u0432\u0430\u0442\u0430 \u043A\u0430\u0439\u043C\u0430 \u0441 \u043B\u0443\u043A\u0430 \u0438 \u0447\u0443\u0448\u043A\u0438\u0442\u0435, \u0434\u043E\u0431\u0430\u0432\u0438 \u0431\u043E\u0431\u0430, \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0438 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438\u0442\u0435 \u0438 \u0432\u0430\u0440\u0438 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_soy_mince"
+          ],
+          range: [
+            1.5,
+            4
+          ]
+        },
+        {
+          group: "LEG",
+          options: [
+            "leg_black_beans",
+            "leg_white_beans"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_rice"
+          ],
+          range: [
+            0,
+            4
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          40
+        ],
+        [
+          "cond_tomato_paste",
+          20
+        ],
+        [
+          "veg_garlic",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "m_tofu_peanut",
+      meals: [
+        "main"
+      ],
+      category: "plant",
+      name: "\u0422\u043E\u0444\u0443 \u0441 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D \u0441\u043E\u0441 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0417\u0430\u043F\u0435\u0447\u0438 \u0442\u043E\u0444\u0443\u0442\u043E, \u0437\u0430\u0434\u0443\u0448\u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u043F\u043E\u043B\u0435\u0439 \u0432\u0441\u0438\u0447\u043A\u043E \u0441\u044A\u0441 \u0441\u043E\u0441 \u043E\u0442 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E, \u0441\u043E\u0435\u0432 \u0441\u043E\u0441 \u0438 \u043B\u0438\u043C\u043E\u043D.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_tofu",
+            "pro_tempeh"
+          ],
+          range: [
+            2,
+            5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_broccoli",
+              "veg_carrot"
+            ],
+            [
+              "veg_cabbage",
+              "veg_pepper"
+            ],
+            [
+              "veg_green_beans"
+            ]
+          ],
+          range: [
+            1,
+            2.5
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_brown",
+            "eng_buckwheat",
+            "eng_rice"
+          ],
+          range: [
+            0,
+            6
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_peanut_butter"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_soy",
+          10
+        ],
+        [
+          "cond_lemon_juice",
+          5
+        ],
+        [
+          "fat_sunflower_oil",
+          5
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "asia"
+    },
+    {
+      id: "m_soy_tacos",
+      meals: [
+        "main"
+      ],
+      category: "plant",
+      name: "\u0422\u0430\u043A\u043E \u0441\u044A\u0441 \u0441\u043E\u0435\u0432\u0430 \u043A\u0430\u0439\u043C\u0430",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u0441\u043E\u0435\u0432\u0430\u0442\u0430 \u043A\u0430\u0439\u043C\u0430 \u0441 \u043A\u0438\u043C\u0438\u043E\u043D, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435 \u0438 \u044F \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0432 \u0442\u043E\u0440\u0442\u0438\u043B\u0438\u0442\u0435 \u0441 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435, \u0437\u0435\u043B\u0435\u0442\u043E \u0438 \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_soy_mince"
+          ],
+          range: [
+            1.5,
+            3.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_tortilla"
+          ],
+          range: [
+            1,
+            4
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_cabbage"
+            ],
+            [
+              "veg_lettuce",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_onion",
+          30
+        ],
+        [
+          "cond_tomato_paste",
+          15
+        ]
+      ],
+      sides: [
+        "salad"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "b_overnight_oats",
+      meals: [
+        "breakfast"
+      ],
+      category: "porridge",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438 \u0437\u0430 \u043F\u0440\u0435\u0437 \u043D\u043E\u0449\u0442\u0430 \u0441 {FRU}",
+      prep: "\u0421\u043C\u0435\u0441\u0438 \u043E\u0432\u0435\u0441\u0435\u043D\u0438\u0442\u0435 \u044F\u0434\u043A\u0438 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E \u0438\u043B\u0438 \u043C\u043B\u044F\u043A\u043E\u0442\u043E \u0438 \u0441\u0435\u043C\u0435\u043D\u0430\u0442\u0430 \u0438 \u0433\u0438 \u043E\u0441\u0442\u0430\u0432\u0438 \u0432 \u0445\u043B\u0430\u0434\u0438\u043B\u043D\u0438\u043A\u0430 \u043F\u0440\u0435\u0437 \u043D\u043E\u0449\u0442\u0430. \u0421\u0443\u0442\u0440\u0438\u043D\u0442\u0430 \u0434\u043E\u0431\u0430\u0432\u0438 \u043F\u043B\u043E\u0434\u0430.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            1,
+            4
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_yogurt",
+            "dairy_greek",
+            "dairy_milk_2",
+            "dairy_soy_milk",
+            "dairy_yogurt_lf"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_raspberry"
+            ],
+            [
+              "fruit_apple"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_chia",
+            "fat_walnuts",
+            "fat_almonds"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "b_smoothie_bowl",
+      meals: [
+        "breakfast"
+      ],
+      category: "dairy",
+      name: "\u0421\u043C\u0443\u0442\u0438 \u0431\u043E\u0443\u043B \u0441 {FRU}",
+      prep: "\u041F\u0430\u0441\u0438\u0440\u0430\u0439 \u0437\u0430\u043C\u0440\u0430\u0437\u0435\u043D\u0438\u044F \u043F\u043B\u043E\u0434 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E \u0434\u043E \u0433\u044A\u0441\u0442\u0430 \u0441\u043C\u0435\u0441 \u0438 \u044F \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438 \u0438 \u0441\u0435\u043C\u0435\u043D\u0430.",
+      parts: [
+        {
+          group: "MLK",
+          options: [
+            "dairy_greek",
+            "dairy_skyr",
+            "dairy_yogurt",
+            "dairy_soy_yogurt"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_banana",
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_strawberry",
+              "fruit_banana"
+            ],
+            [
+              "fruit_mango"
+            ],
+            [
+              "fruit_raspberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            0,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_chia",
+            "fat_almonds",
+            "fat_pumpkin_seeds"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        }
+      ],
+      sides: []
+    },
+    {
+      id: "b_oat_egg_pancakes",
+      meals: [
+        "breakfast"
+      ],
+      category: "bread",
+      name: "\u041F\u0430\u043B\u0430\u0447\u0438\u043D\u043A\u0438 \u043E\u0442 \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438 \u0438 \u044F\u0439\u0446\u0430",
+      prep: "\u041F\u0430\u0441\u0438\u0440\u0430\u0439 \u043E\u0432\u0435\u0441\u0435\u043D\u0438\u0442\u0435 \u044F\u0434\u043A\u0438 \u0441 \u044F\u0439\u0446\u0430\u0442\u0430 \u0438 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E, \u0438\u0437\u043F\u0435\u0447\u0438 \u043C\u0430\u043B\u043A\u0438 \u043F\u0430\u043B\u0430\u0447\u0438\u043D\u043A\u0438 \u0432 \u043D\u0435\u0437\u0430\u043B\u0435\u043F\u0432\u0430\u0449 \u0442\u0438\u0433\u0430\u043D \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u043F\u043B\u043E\u0434.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            1,
+            3.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_apple"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_yogurt",
+            "dairy_greek",
+            "dairy_soy_yogurt"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "b_french_toast",
+      meals: [
+        "breakfast"
+      ],
+      category: "bread",
+      name: "\u0424\u0440\u0435\u043D\u0441\u043A\u0438 \u0442\u043E\u0441\u0442 \u0441 {FRU}",
+      prep: "\u041F\u043E\u0442\u043E\u043F\u0438 \u0444\u0438\u043B\u0438\u0438\u0442\u0435 \u0432 \u044F\u0439\u0446\u0430\u0442\u0430, \u0440\u0430\u0437\u0431\u0438\u0442\u0438 \u0441 \u043C\u043B\u044F\u043A\u043E \u0438 \u043A\u0430\u043D\u0435\u043B\u0430, \u0438 \u0433\u0438 \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 \u0442\u0438\u0433\u0430\u043D. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u043F\u043B\u043E\u0434\u0430 \u0438 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_raspberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_greek",
+            "dairy_yogurt",
+            "dairy_skyr"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_butter",
+            "fat_oil"
+          ],
+          range: [
+            0,
+            0.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "dairy_milk_2",
+          30
+        ],
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "b_breakfast_burrito",
+      meals: [
+        "breakfast"
+      ],
+      category: "eggs",
+      name: "\u0422\u043E\u0440\u0442\u0438\u043B\u0430 \u0441 \u0431\u044A\u0440\u043A\u0430\u043D\u0438 \u044F\u0439\u0446\u0430",
+      prep: "\u0418\u0437\u043F\u0435\u0447\u0438 \u0431\u044A\u0440\u043A\u0430\u043D\u0438 \u044F\u0439\u0446\u0430 \u0441 \u0447\u0443\u0448\u043A\u0438 \u0438 \u0441\u043F\u0430\u043D\u0430\u043A, \u0437\u0430\u0432\u0438\u0439 \u0433\u0438 \u0432 \u0442\u043E\u0440\u0442\u0438\u043B\u0430\u0442\u0430 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0438 \u0441\u0438\u0440\u0435\u043D\u0435.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_tortilla"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_pepper",
+              "veg_spinach"
+            ],
+            [
+              "veg_tomato",
+              "veg_spinach"
+            ],
+            [
+              "veg_mushrooms"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "dairy_kashkaval"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      sides: [
+        "fruit"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "b_huevos_rancheros",
+      meals: [
+        "breakfast"
+      ],
+      category: "eggs",
+      name: "\u042F\u0439\u0446\u0430 \u0441 \u0447\u0435\u0440\u0435\u043D \u0431\u043E\u0431 \u0438 \u0434\u043E\u043C\u0430\u0442\u0435\u043D \u0441\u043E\u0441",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u0441 \u0447\u0443\u0448\u043A\u0430 \u0438 \u043A\u0438\u043C\u0438\u043E\u043D, \u0437\u0430\u0442\u043E\u043F\u043B\u0438 \u0431\u043E\u0431\u0430 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u044F\u0439\u0446\u0430\u0442\u0430 \u043D\u0430 \u043E\u0447\u0438 \u0432\u044A\u0440\u0445\u0443 \u0442\u043E\u0440\u0442\u0438\u043B\u0430.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "LEG",
+          options: [
+            "leg_black_beans"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_tortilla",
+            "eng_bread_whole"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      sides: [
+        "fruit"
+      ],
+      cuisine: "latam"
+    },
+    {
+      id: "b_menemen",
+      meals: [
+        "breakfast"
+      ],
+      category: "eggs",
+      name: "\u041C\u0435\u043D\u0435\u043C\u0435\u043D",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u0447\u0443\u0448\u043A\u0438\u0442\u0435 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435, \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 \u0432 \u0442\u044F\u0445 \u044F\u0439\u0446\u0430\u0442\u0430 \u0434\u043E \u043A\u0440\u0435\u043C\u043E\u043E\u0431\u0440\u0430\u0437\u043D\u0430 \u043A\u0430\u0448\u0430 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato",
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      sides: [
+        "fruit"
+      ]
+    },
+    {
+      id: "b_egg_muffins",
+      meals: [
+        "breakfast"
+      ],
+      category: "eggs",
+      name: "\u042F\u0439\u0447\u0435\u043D\u0438 \u043C\u044A\u0444\u0438\u043D\u0438 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0420\u0430\u0437\u0431\u0438\u0439 \u044F\u0439\u0446\u0430\u0442\u0430 \u0441\u044A\u0441 \u0441\u0438\u0442\u043D\u043E \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438\u0442\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u0441\u0438\u0440\u0435\u043D\u0435\u0442\u043E, \u0440\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0438 \u0432\u044A\u0432 \u0444\u043E\u0440\u043C\u0438 \u0437\u0430 \u043C\u044A\u0444\u0438\u043D\u0438 \u0438 \u043F\u0435\u0447\u0438 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach",
+              "veg_pepper"
+            ],
+            [
+              "veg_broccoli",
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_zucchini",
+              "veg_onion"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese",
+            "dairy_kashkaval",
+            "dairy_cottage"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        }
+      ],
+      sides: [
+        "fruit"
+      ]
+    },
+    {
+      id: "b_syrniki",
+      meals: [
+        "breakfast"
+      ],
+      category: "dairy",
+      name: "\u041F\u0430\u043B\u0430\u0447\u0438\u043D\u043A\u0438 \u043E\u0442 \u0438\u0437\u0432\u0430\u0440\u0430",
+      prep: "\u0421\u043C\u0435\u0441\u0438 \u0438\u0437\u0432\u0430\u0440\u0430\u0442\u0430 \u0441 \u044F\u0439\u0446\u0435\u0442\u043E \u0438 \u043C\u0430\u043B\u043A\u043E \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438, \u043E\u0444\u043E\u0440\u043C\u0438 \u043C\u0430\u043B\u043A\u0438 \u043F\u0438\u0442\u043A\u0438 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u0432 \u0442\u0438\u0433\u0430\u043D. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u043F\u043B\u043E\u0434 \u0438 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage",
+            "dairy_cottage_low",
+            "dairy_ricotta"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_raspberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_yogurt",
+            "dairy_greek"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "pro_eggs",
+          50
+        ],
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "b_ricotta_toast",
+      meals: [
+        "breakfast",
+        "snack"
+      ],
+      category: "bread",
+      name: "\u0422\u043E\u0441\u0442 \u0441 \u0440\u0438\u043A\u043E\u0442\u0430 \u0438 {FRU}",
+      prep: "\u041D\u0430\u043C\u0430\u0436\u0438 \u043F\u0440\u0435\u043F\u0435\u0447\u0435\u043D\u0430\u0442\u0430 \u0444\u0438\u043B\u0438\u044F \u0441 \u0440\u0438\u043A\u043E\u0442\u0430 \u0438 \u043D\u0430\u0440\u0435\u0434\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438\u044F \u043F\u043B\u043E\u0434. \u041F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_ricotta",
+            "dairy_cottage"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_peach"
+            ],
+            [
+              "fruit_pear"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_blueberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "b_salmon_rye",
+      meals: [
+        "breakfast"
+      ],
+      category: "bread",
+      name: "\u0420\u044A\u0436\u0435\u043D \u0445\u043B\u044F\u0431 \u0441\u044A\u0441 \u0441\u044C\u043E\u043C\u0433\u0430 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430",
+      prep: "\u041D\u0430\u043C\u0430\u0436\u0438 \u0440\u044A\u0436\u0435\u043D\u0438\u044F \u0445\u043B\u044F\u0431 \u0441 \u0438\u0437\u0432\u0430\u0440\u0430, \u043D\u0430\u0440\u0435\u0434\u0438 \u043F\u0430\u0440\u0447\u0435\u0442\u0430\u0442\u0430 \u0441\u044C\u043E\u043C\u0433\u0430 \u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430\u0442\u0430 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u043E\u043F\u044A\u0440 \u0438 \u043B\u0438\u043C\u043E\u043D.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_rye_bread",
+            "eng_bread_whole"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_salmon",
+            "pro_trout"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage",
+            "dairy_cottage_low",
+            "dairy_ricotta"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ],
+            [
+              "veg_cucumber",
+              "veg_arugula"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          5
+        ]
+      ],
+      sides: [
+        "fruit"
+      ]
+    },
+    {
+      id: "b_greek_yogurt_walnuts",
+      meals: [
+        "breakfast"
+      ],
+      category: "dairy",
+      name: "{MLK} \u0441 \u043E\u0440\u0435\u0445\u0438 \u0438 \u043C\u0435\u0434",
+      prep: "\u0421\u043B\u043E\u0436\u0438 \u0433\u0440\u044A\u0446\u043A\u043E\u0442\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0432 \u043A\u0443\u043F\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u043F\u043B\u043E\u0434\u0430, \u043E\u0440\u0435\u0445\u0438\u0442\u0435 \u0438 \u043C\u0430\u043B\u043A\u043E \u043C\u0435\u0434.",
+      parts: [
+        {
+          group: "MLK",
+          options: [
+            "dairy_greek",
+            "dairy_skyr"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds",
+            "fat_hazelnuts"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_pear"
+            ],
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_peach"
+            ],
+            [
+              "fruit_blueberry"
+            ]
+          ],
+          range: [
+            0,
+            1
+          ],
+          with: true
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_honey",
+          5
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "b_millet_porridge",
+      meals: [
+        "breakfast"
+      ],
+      category: "porridge",
+      name: "\u041A\u0430\u0448\u0430 \u043E\u0442 \u043F\u0440\u043E\u0441\u043E \u0441 {FRU}",
+      prep: "\u0421\u0432\u0430\u0440\u0438 \u0438\u0437\u043C\u0438\u0442\u043E\u0442\u043E \u043F\u0440\u043E\u0441\u043E \u0432 \u043C\u043B\u044F\u043A\u043E\u0442\u043E \u0438 \u0432\u043E\u0434\u0430\u0442\u0430 20 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u0431\u0430\u0432\u0438 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 \u043F\u043B\u043E\u0434\u0430.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_millet"
+          ],
+          range: [
+            1,
+            4
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_milk_2",
+            "dairy_soy_milk",
+            "dairy_milk_lf"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_pear"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_blueberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds",
+            "fat_pumpkin_seeds"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "b_tofu_avocado_toast",
+      meals: [
+        "breakfast"
+      ],
+      category: "plant",
+      name: "\u0422\u043E\u0441\u0442 \u0441 \u0442\u043E\u0444\u0443 \u0438 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+      prep: "\u041D\u0430\u043C\u0430\u0447\u043A\u0430\u0439 \u0442\u043E\u0444\u0443\u0442\u043E \u0441 \u043A\u0443\u0440\u043A\u0443\u043C\u0430 \u0438 \u0441\u043E\u043B, \u0437\u0430\u043F\u0435\u0447\u0438 \u0433\u043E \u0438 \u0433\u043E \u0441\u043B\u043E\u0436\u0438 \u0432\u044A\u0440\u0445\u0443 \u043F\u0440\u0435\u043F\u0435\u0447\u0435\u043D\u0438\u044F \u0445\u043B\u044F\u0431 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E \u0438 \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_tofu"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_tomato",
+              "veg_arugula"
+            ]
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_turmeric",
+          1
+        ]
+      ],
+      sides: [
+        "fruit"
+      ]
+    },
+    {
+      id: "b_peanut_banana_oats",
+      meals: [
+        "breakfast"
+      ],
+      category: "porridge",
+      name: "\u041E\u0432\u0435\u0441\u0435\u043D\u0430 \u043A\u0430\u0448\u0430 \u0441 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E \u043C\u0430\u0441\u043B\u043E \u0438 \u0431\u0430\u043D\u0430\u043D",
+      prep: "\u0421\u0432\u0430\u0440\u0438 \u043E\u0432\u0435\u0441\u0435\u043D\u0438\u0442\u0435 \u044F\u0434\u043A\u0438 \u0432 \u043C\u043B\u044F\u043A\u043E\u0442\u043E, \u0432\u043C\u0435\u0448\u0430\u0439 \u0444\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u043E\u0442\u043E \u043C\u0430\u0441\u043B\u043E \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0440\u0435\u0437\u0435\u043D\u0438 \u0431\u0430\u043D\u0430\u043D.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            1,
+            4
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_milk_2",
+            "dairy_soy_milk",
+            "dairy_milk_lf",
+            "dairy_milk"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_peanut_butter",
+            "fat_almond_butter"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_banana"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        }
+      ],
+      sides: []
+    },
+    {
+      id: "b_baked_apple_oats",
+      meals: [
+        "breakfast"
+      ],
+      category: "porridge",
+      name: "\u041F\u0435\u0447\u0435\u043D\u0438 \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438 \u0441 \u044F\u0431\u044A\u043B\u043A\u0430 \u0438 \u043A\u0430\u043D\u0435\u043B\u0430",
+      prep: "\u0421\u043C\u0435\u0441\u0438 \u043E\u0432\u0435\u0441\u0435\u043D\u0438\u0442\u0435 \u044F\u0434\u043A\u0438 \u0441 \u043C\u043B\u044F\u043A\u043E\u0442\u043E, \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0430\u0442\u0430 \u044F\u0431\u044A\u043B\u043A\u0430 \u0438 \u043A\u0430\u043D\u0435\u043B\u0430\u0442\u0430 \u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u0432\u044A\u0432 \u0444\u0443\u0440\u043D\u0430 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            1,
+            4
+          ]
+        },
+        {
+          group: "MLK",
+          options: [
+            "dairy_milk_2",
+            "dairy_soy_milk",
+            "dairy_milk_lf"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_pear"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          2
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "b_mozzarella_tomato_toast",
+      meals: [
+        "breakfast"
+      ],
+      category: "bread",
+      name: "\u0424\u0438\u043B\u0438\u044F \u0441 \u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438",
+      prep: "\u041D\u0430\u0440\u0435\u0434\u0438 \u0432\u044A\u0440\u0445\u0443 \u043F\u0440\u0435\u043F\u0435\u0447\u0435\u043D\u0438\u044F \u043F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442 \u0445\u043B\u044F\u0431 \u0440\u0435\u0437\u0435\u043D\u0438 \u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0431\u043E\u0441\u0438\u043B\u0435\u043A \u0438 \u0437\u0435\u0445\u0442\u0438\u043D.",
+      parts: [
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_mozzarella"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato"
+            ],
+            [
+              "veg_cherry_tomato",
+              "veg_arugula"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            0.5
+          ]
+        }
+      ],
+      sides: [
+        "fruit"
+      ]
+    },
+    {
+      id: "b_eggs_spinach",
+      meals: [
+        "breakfast"
+      ],
+      category: "eggs",
+      name: "\u042F\u0439\u0446\u0430 \u043D\u0430 \u043E\u0447\u0438 \u0441\u044A\u0441 \u0441\u043F\u0430\u043D\u0430\u043A",
+      prep: "\u0417\u0430\u0434\u0443\u0448\u0438 \u0441\u043F\u0430\u043D\u0430\u043A\u0430 \u0441 \u0447\u0435\u0441\u044A\u043D\u0430, \u043D\u0430\u043F\u0440\u0430\u0432\u0438 \u0433\u043D\u0435\u0437\u0434\u0430 \u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u0432 \u0442\u044F\u0445 \u044F\u0439\u0446\u0430\u0442\u0430 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1.5,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_spinach",
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_rye_bread"
+          ],
+          range: [
+            0,
+            3
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "dairy_cheese"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_garlic",
+          3
+        ]
+      ],
+      sides: [
+        "fruit"
+      ]
+    },
+    {
+      id: "b_soy_yogurt_bowl",
+      meals: [
+        "breakfast",
+        "snack"
+      ],
+      category: "plant",
+      name: "\u0421\u043E\u0435\u0432 \u0439\u043E\u0433\u0443\u0440\u0442 \u0441 {FRU} \u0438 \u0441\u0435\u043C\u0435\u043D\u0430",
+      prep: "\u0421\u043B\u043E\u0436\u0438 \u0441\u043E\u0435\u0432\u0438\u044F \u0439\u043E\u0433\u0443\u0440\u0442 \u0432 \u043A\u0443\u043F\u0430 \u0438 \u0434\u043E\u0431\u0430\u0432\u0438 \u043F\u043B\u043E\u0434\u0430, \u0441\u0435\u043C\u0435\u043D\u0430\u0442\u0430 \u0438 \u043C\u0430\u043B\u043A\u043E \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438.",
+      parts: [
+        {
+          group: "MLK",
+          options: [
+            "dairy_soy_yogurt"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_mango"
+            ],
+            [
+              "fruit_kiwi"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_chia",
+            "fat_flax",
+            "fat_pumpkin_seeds"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            "pro_plant_protein"
+          ],
+          range: [
+            0,
+            2
+          ],
+          onlyPatterns: [
+            "vegan"
+          ]
+        }
+      ],
+      sides: []
+    },
+    {
+      id: "b_hummus_egg_plate",
+      meals: [
+        "breakfast"
+      ],
+      category: "eggs",
+      name: "\u0425\u0443\u043C\u0443\u0441 \u0441 \u044F\u0439\u0446\u0435 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0420\u0430\u0437\u0441\u0442\u0435\u043B\u0438 \u0445\u0443\u043C\u0443\u0441\u0430 \u0432 \u0447\u0438\u043D\u0438\u044F, \u0441\u043B\u043E\u0436\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u043E\u0442\u043E \u0432\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "LEG",
+          options: [
+            "leg_hummus"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber",
+              "veg_tomato"
+            ],
+            [
+              "veg_pepper",
+              "veg_cucumber"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_bread_whole",
+            "eng_tortilla"
+          ],
+          range: [
+            0,
+            2
+          ],
+          with: true
+        }
+      ],
+      sides: [
+        "fruit"
+      ],
+      cuisine: "mideast"
+    },
+    {
+      id: "b_buckwheat_egg",
+      meals: [
+        "breakfast"
+      ],
+      category: "eggs",
+      name: "\u0415\u043B\u0434\u0430 \u0441 \u044F\u0439\u0446\u0435 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0421\u0432\u0430\u0440\u0438 \u0435\u043B\u0434\u0430\u0442\u0430, \u0437\u0430\u043F\u0435\u0447\u0438 \u044F \u043B\u0435\u043A\u043E \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u044F\u0439\u0446\u0435 \u043D\u0430 \u043E\u0447\u0438 \u043E\u0442\u0433\u043E\u0440\u0435.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_buckwheat"
+          ],
+          range: [
+            1,
+            3
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_mushrooms",
+              "veg_onion"
+            ],
+            [
+              "veg_spinach"
+            ],
+            [
+              "veg_pepper",
+              "veg_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ],
+          with: true
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil",
+            "fat_butter"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      sides: [
+        "fruit",
+        "yogurt"
+      ]
+    },
+    {
+      id: "b_banana_egg_pancakes",
+      meals: [
+        "breakfast"
+      ],
+      category: "eggs",
+      name: "\u041F\u0430\u043B\u0430\u0447\u0438\u043D\u043A\u0438 \u043E\u0442 \u0431\u0430\u043D\u0430\u043D \u0438 \u044F\u0439\u0446\u0430",
+      prep: "\u041D\u0430\u043C\u0430\u0447\u043A\u0430\u0439 \u0431\u0430\u043D\u0430\u043D\u0430, \u0440\u0430\u0437\u0431\u0438\u0439 \u0433\u043E \u0441 \u044F\u0439\u0446\u0430\u0442\u0430 \u0438 \u0449\u0438\u043F\u043A\u0430 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u043C\u0430\u043B\u043A\u0438 \u043F\u0430\u043B\u0430\u0447\u0438\u043D\u043A\u0438 \u0432 \u043D\u0435\u0437\u0430\u043B\u0435\u043F\u0432\u0430\u0449 \u0442\u0438\u0433\u0430\u043D.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_banana"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            0,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_peanut_butter",
+            "fat_almond_butter",
+            "fat_walnuts"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: [
+        "yogurt"
+      ]
+    },
+    {
+      id: "b_kefir_smoothie",
+      meals: [
+        "breakfast",
+        "snack"
+      ],
+      category: "dairy",
+      name: "\u0428\u0435\u0439\u043A \u043E\u0442 {MLK} \u0438 {FRU}",
+      prep: "\u041F\u0430\u0441\u0438\u0440\u0430\u0439 \u043A\u0435\u0444\u0438\u0440\u0430 \u0441 \u043F\u043B\u043E\u0434\u0430, \u043E\u0432\u0435\u0441\u0435\u043D\u0438\u0442\u0435 \u044F\u0434\u043A\u0438 \u0438 \u0441\u0435\u043C\u0435\u043D\u0430\u0442\u0430 \u0437\u0430 30 \u0441\u0435\u043A\u0443\u043D\u0434\u0438.",
+      parts: [
+        {
+          group: "MLK",
+          options: [
+            "dairy_kefir",
+            "dairy_yogurt",
+            "dairy_soy_milk"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_strawberry"
+            ],
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_raspberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_oats"
+          ],
+          range: [
+            0,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_flax",
+            "fat_chia",
+            "fat_almonds"
+          ],
+          range: [
+            0,
+            1
+          ]
+        },
+        {
+          group: "PRO",
+          options: [
+            [
+              "pro_plant_protein"
+            ],
+            [
+              "pro_whey"
+            ]
+          ],
+          range: [
+            0,
+            3
+          ],
+          onlyPatterns: [
+            "vegan",
+            "vegetarian",
+            "pescatarian"
+          ]
+        }
+      ],
+      sides: []
+    },
+    {
+      id: "s_cottage_dip",
+      meals: [
+        "snack",
+        "late"
+      ],
+      category: "dairy",
+      name: "\u0414\u0438\u043F \u043E\u0442 \u0438\u0437\u0432\u0430\u0440\u0430 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438",
+      prep: "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 \u0438\u0437\u0432\u0430\u0440\u0430\u0442\u0430 \u0441 \u043A\u043E\u043F\u044A\u0440, \u0447\u0435\u0441\u044A\u043D \u0438 \u043C\u0430\u043B\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0438 \u043F\u0440\u044A\u0447\u0438\u0446\u0438.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "dairy_cottage",
+            "dairy_cottage_low"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_cucumber"
+            ],
+            [
+              "veg_pepper",
+              "veg_celery"
+            ],
+            [
+              "veg_cucumber",
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "dairy_yogurt",
+          20
+        ],
+        [
+          "veg_garlic",
+          2
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "s_roasted_chickpeas",
+      meals: [
+        "snack"
+      ],
+      category: "savory",
+      name: "\u041F\u0435\u0447\u0435\u043D \u043D\u0430\u0445\u0443\u0442",
+      prep: "\u041F\u043E\u0434\u0441\u0443\u0448\u0438 \u0441\u0432\u0430\u0440\u0435\u043D\u0438\u044F \u043D\u0430\u0445\u0443\u0442, \u043E\u0432\u043A\u0443\u0441\u0438 \u0433\u043E \u0441 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440, \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u043C\u0430\u043B\u043A\u043E \u0437\u0435\u0445\u0442\u0438\u043D \u0438 \u0433\u043E \u0438\u0437\u043F\u0435\u0447\u0438 \u0434\u043E \u0445\u0440\u0443\u043F\u043A\u0430\u0432\u043E\u0441\u0442.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_chickpeas"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            0.5
+          ]
+        }
+      ],
+      sides: []
+    },
+    {
+      id: "s_tzatziki_veg",
+      meals: [
+        "snack",
+        "late"
+      ],
+      category: "dairy",
+      name: "\u0426\u0430\u0446\u0438\u043A\u0438 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0438 \u043F\u0440\u044A\u0447\u0438\u0446\u0438",
+      prep: "\u0421\u043C\u0435\u0441\u0438 \u0433\u044A\u0441\u0442\u043E\u0442\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0430\u0442\u0430 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430, \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u043A\u043E\u043F\u044A\u0440\u0430. \u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u043C\u043E\u0440\u043A\u043E\u0432\u0438 \u0438 \u0447\u0443\u0448\u043A\u0438 \u0437\u0430 \u043F\u043E\u0442\u0430\u043F\u044F\u043D\u0435.",
+      parts: [
+        {
+          group: "MLK",
+          options: [
+            "dairy_greek",
+            "dairy_yogurt",
+            "dairy_yogurt_lf"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_pepper"
+            ],
+            [
+              "veg_celery",
+              "veg_carrot"
+            ],
+            [
+              "veg_cucumber",
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            0.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "veg_cucumber",
+          50
+        ],
+        [
+          "veg_garlic",
+          2
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "s_guacamole",
+      meals: [
+        "snack"
+      ],
+      category: "savory",
+      name: "\u0413\u0443\u0430\u043A\u0430\u043C\u043E\u043B\u0435 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0438 \u043F\u0440\u044A\u0447\u0438\u0446\u0438",
+      prep: "\u041D\u0430\u043C\u0430\u0447\u043A\u0430\u0439 \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A, \u0441\u0438\u0442\u043D\u043E \u043D\u0430\u0440\u044F\u0437\u0430\u043D \u0434\u043E\u043C\u0430\u0442, \u043B\u0443\u043A \u0438 \u0441\u043E\u043B \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0438 \u043F\u0440\u044A\u0447\u0438\u0446\u0438.",
+      parts: [
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            1,
+            2.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_cucumber"
+            ],
+            [
+              "veg_pepper",
+              "veg_celery"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_cakes"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          10
+        ],
+        [
+          "veg_tomato",
+          30
+        ],
+        [
+          "veg_onion",
+          10
+        ]
+      ],
+      sides: [],
+      cuisine: "latam"
+    },
+    {
+      id: "s_caprese",
+      meals: [
+        "snack",
+        "late"
+      ],
+      category: "savory",
+      name: "\u041A\u0430\u043F\u0440\u0435\u0437\u0435",
+      prep: "\u041D\u0430\u0440\u0435\u0434\u0438 \u0440\u0435\u0437\u0435\u043D\u0438\u0442\u0435 \u043C\u043E\u0446\u0430\u0440\u0435\u043B\u0430 \u0438 \u0434\u043E\u043C\u0430\u0442\u0438, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0431\u043E\u0441\u0438\u043B\u0435\u043A, \u0441\u043E\u043B \u0438 \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441 \u043C\u0430\u043B\u043A\u043E \u0437\u0435\u0445\u0442\u0438\u043D.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "dairy_mozzarella"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_tomato"
+            ],
+            [
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_oil"
+          ],
+          range: [
+            0,
+            0.5
+          ]
+        }
+      ],
+      sides: [],
+      seasonsOnly: [
+        "summer",
+        "autumn"
+      ]
+    },
+    {
+      id: "s_yogurt_apple_cinnamon",
+      meals: [
+        "snack"
+      ],
+      category: "dairy",
+      name: "\u041A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u044F\u0431\u044A\u043B\u043A\u0430 \u0438 \u043A\u0430\u043D\u0435\u043B\u0430",
+      prep: "\u041D\u0430\u0441\u0442\u044A\u0440\u0436\u0438 \u044F\u0431\u044A\u043B\u043A\u0430\u0442\u0430 \u0432 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 \u043C\u0430\u043B\u043A\u043E \u043E\u0440\u0435\u0445\u0438.",
+      parts: [
+        {
+          group: "MLK",
+          options: [
+            "dairy_yogurt",
+            "dairy_greek",
+            "dairy_yogurt_lf",
+            "dairy_skyr"
+          ],
+          range: [
+            1,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_pear"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds"
+          ],
+          range: [
+            0,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: [],
+      fruitPaired: true
+    },
+    {
+      id: "s_tuna_rice_cakes",
+      meals: [
+        "snack"
+      ],
+      category: "savory",
+      name: "\u041E\u0440\u0438\u0437\u043E\u0432\u0438 \u0433\u0430\u043B\u0435\u0442\u0438 \u0441 \u0440\u0438\u0431\u0430 \u0442\u043E\u043D",
+      prep: "\u0421\u043C\u0435\u0441\u0438 \u0440\u0438\u0431\u0430\u0442\u0430 \u0442\u043E\u043D \u0441 \u043C\u0430\u043B\u043A\u043E \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u0433\u043E\u0440\u0447\u0438\u0446\u0430 \u0438 \u043B\u0438\u043C\u043E\u043D \u0438 \u044F \u043D\u0430\u043C\u0430\u0436\u0438 \u0432\u044A\u0440\u0445\u0443 \u0433\u0430\u043B\u0435\u0442\u0438\u0442\u0435 \u0441 \u0440\u0435\u0437\u0435\u043D\u0438 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_tuna"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_cakes",
+            "eng_rye_bread"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ],
+            [
+              "veg_cherry_tomato"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "dairy_yogurt",
+          15
+        ],
+        [
+          "cond_mustard",
+          3
+        ],
+        [
+          "cond_lemon_juice",
+          3
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "s_egg_avocado",
+      meals: [
+        "snack",
+        "late"
+      ],
+      category: "savory",
+      name: "\u0412\u0430\u0440\u0435\u043D\u043E \u044F\u0439\u0446\u0435 \u0441 \u0430\u0432\u043E\u043A\u0430\u0434\u043E",
+      prep: "\u0421\u0432\u0430\u0440\u0438 \u044F\u0439\u0446\u0435\u0442\u043E, \u043D\u0430\u0440\u0435\u0436\u0438 \u0433\u043E \u0438 \u0433\u043E \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u043F\u043E\u043B\u043E\u0432\u0438\u043D \u0430\u0432\u043E\u043A\u0430\u0434\u043E, \u0441\u043E\u043B, \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u043B\u0438\u043C\u043E\u043D.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "pro_eggs"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_avocado"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          3
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "s_hummus_rice_cakes",
+      meals: [
+        "snack"
+      ],
+      category: "savory",
+      name: "\u041E\u0440\u0438\u0437\u043E\u0432\u0438 \u0433\u0430\u043B\u0435\u0442\u0438 \u0441 \u0445\u0443\u043C\u0443\u0441",
+      prep: "\u041D\u0430\u043C\u0430\u0436\u0438 \u0433\u0430\u043B\u0435\u0442\u0438\u0442\u0435 \u0441 \u0445\u0443\u043C\u0443\u0441 \u0438 \u043D\u0430\u0440\u0435\u0434\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430 \u0438\u043B\u0438 \u0447\u0435\u0440\u0438 \u0434\u043E\u043C\u0430\u0442\u0438.",
+      parts: [
+        {
+          group: "LEG",
+          options: [
+            "leg_hummus"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "STA",
+          options: [
+            "eng_rice_cakes",
+            "eng_rye_bread"
+          ],
+          range: [
+            0.5,
+            2
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_cucumber"
+            ],
+            [
+              "veg_cherry_tomato"
+            ],
+            [
+              "veg_pepper"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
+      ],
+      sides: []
+    },
+    {
+      id: "s_soy_yogurt_nuts",
+      meals: [
+        "snack",
+        "late"
+      ],
+      category: "plant",
+      name: "\u0421\u043E\u0435\u0432 \u0439\u043E\u0433\u0443\u0440\u0442 \u0441 \u044F\u0434\u043A\u0438",
+      prep: "\u0421\u043B\u043E\u0436\u0438 \u0441\u043E\u0435\u0432\u0438\u044F \u0439\u043E\u0433\u0443\u0440\u0442 \u0432 \u043A\u0443\u043F\u0430 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u044F\u0434\u043A\u0438\u0442\u0435 \u0438 \u043A\u0430\u043D\u0435\u043B\u0430.",
+      parts: [
+        {
+          group: "MLK",
+          options: [
+            "dairy_soy_yogurt"
+          ],
+          range: [
+            1,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds",
+            "fat_pumpkin_seeds"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "l_warm_milk_cinnamon",
+      meals: [
+        "late"
+      ],
+      category: "dairy",
+      name: "{MLK} \u0441 \u043A\u0430\u043D\u0435\u043B\u0430",
+      prep: "\u0417\u0430\u0442\u043E\u043F\u043B\u0438 \u043C\u043B\u044F\u043A\u043E\u0442\u043E, \u0431\u0435\u0437 \u0434\u0430 \u0437\u0430\u0432\u0438\u0440\u0430, \u0438 \u0434\u043E\u0431\u0430\u0432\u0438 \u043A\u0430\u043D\u0435\u043B\u0430.",
+      parts: [
+        {
+          group: "MLK",
+          options: [
+            "dairy_milk_2",
+            "dairy_milk_lf",
+            "dairy_soy_milk",
+            "dairy_milk"
+          ],
+          range: [
+            1,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "s_ricotta_berries",
+      meals: [
+        "snack"
+      ],
+      category: "dairy",
+      name: "\u0420\u0438\u043A\u043E\u0442\u0430 \u0441 \u0433\u043E\u0440\u0441\u043A\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435",
+      prep: "\u0421\u043B\u043E\u0436\u0438 \u0440\u0438\u043A\u043E\u0442\u0430\u0442\u0430 \u0432 \u043A\u0443\u043F\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u0433\u043E\u0440\u0441\u043A\u0438\u0442\u0435 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430.",
+      parts: [
+        {
+          group: "PRO",
+          options: [
+            "dairy_ricotta",
+            "dairy_cottage_low"
+          ],
+          range: [
+            1,
+            2
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_raspberry"
+            ],
+            [
+              "fruit_blueberry"
+            ],
+            [
+              "fruit_strawberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: [],
+      fruitPaired: true
+    },
+    {
+      id: "s_veg_tahini",
+      meals: [
+        "snack"
+      ],
+      category: "savory",
+      name: "\u0417\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0441 \u0434\u0438\u043F \u043E\u0442 \u0442\u0430\u0445\u0430\u043D",
+      prep: "\u0420\u0430\u0437\u0440\u0435\u0434\u0438 \u0442\u0430\u0445\u0430\u043D\u0430 \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A, \u0432\u043E\u0434\u0430 \u0438 \u0447\u0435\u0441\u044A\u043D \u0434\u043E \u0433\u043B\u0430\u0434\u044A\u043A \u0434\u0438\u043F \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u043A\u043E\u0432\u0438 \u043F\u0440\u044A\u0447\u0438\u0446\u0438.",
+      parts: [
+        {
+          group: "FAT",
+          options: [
+            "fat_tahini"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "VEG",
+          options: [
+            [
+              "veg_carrot",
+              "veg_cucumber"
+            ],
+            [
+              "veg_pepper",
+              "veg_celery"
+            ],
+            [
+              "veg_cauliflower",
+              "veg_carrot"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_lemon_juice",
+          5
+        ],
+        [
+          "veg_garlic",
+          2
+        ]
+      ],
+      sides: [],
+      cuisine: "mideast"
+    },
+    {
+      id: "s_baked_apple",
+      meals: [
+        "snack"
+      ],
+      category: "fruit",
+      name: "\u041F\u0435\u0447\u0435\u043D\u0430 \u044F\u0431\u044A\u043B\u043A\u0430 \u0441 \u043E\u0440\u0435\u0445\u0438 \u0438 \u043A\u0430\u043D\u0435\u043B\u0430",
+      prep: "\u0418\u0437\u0434\u044A\u043B\u0431\u0430\u0439 \u044F\u0431\u044A\u043B\u043A\u0430\u0442\u0430, \u043D\u0430\u043F\u044A\u043B\u043D\u0438 \u044F \u0441 \u043E\u0440\u0435\u0445\u0438 \u0438 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 \u044F \u0438\u0437\u043F\u0435\u0447\u0438 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+      parts: [
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_apple"
+            ],
+            [
+              "fruit_pear"
+            ]
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds"
+          ],
+          range: [
+            0.5,
+            1.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: [],
+      fruitPaired: true,
+      seasonsOnly: [
+        "autumn",
+        "winter"
+      ]
+    },
+    {
+      id: "l_skyr_cinnamon",
+      meals: [
+        "late",
+        "snack"
+      ],
+      category: "dairy",
+      name: "\u0421\u043A\u0438\u0440 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430",
+      prep: "\u0421\u043B\u043E\u0436\u0438 \u0441\u043A\u0438\u0440\u0430 \u0432 \u043A\u0443\u043F\u0430 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430.",
+      parts: [
+        {
+          group: "MLK",
+          options: [
+            "dairy_skyr",
+            "dairy_greek"
+          ],
+          range: [
+            1,
+            1.5
+          ]
+        },
+        {
+          group: "FAT",
+          options: [
+            "fat_walnuts",
+            "fat_almonds"
+          ],
+          range: [
+            0,
+            0.5
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: []
+    },
+    {
+      id: "s_mango_lassi",
+      meals: [
+        "snack"
+      ],
+      category: "dairy",
+      name: "\u041B\u0430\u0441\u0438 \u0441 \u043C\u0430\u043D\u0433\u043E",
+      prep: "\u041F\u0430\u0441\u0438\u0440\u0430\u0439 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043C\u0430\u043D\u0433\u043E\u0442\u043E, \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u0449\u0438\u043F\u043A\u0430 \u043A\u0430\u0440\u0434\u0430\u043C\u043E\u043D \u0438\u043B\u0438 \u043A\u0430\u043D\u0435\u043B\u0430.",
+      parts: [
+        {
+          group: "MLK",
+          options: [
+            "dairy_yogurt",
+            "dairy_yogurt_2",
+            "dairy_kefir",
+            "dairy_soy_yogurt"
+          ],
+          range: [
+            1,
+            1.5
+          ]
+        },
+        {
+          group: "FRU",
+          options: [
+            [
+              "fruit_mango"
+            ],
+            [
+              "fruit_banana"
+            ],
+            [
+              "fruit_strawberry"
+            ]
+          ],
+          range: [
+            0.5,
+            1
+          ]
+        }
+      ],
+      fixed: [
+        [
+          "cond_cinnamon",
+          1
+        ]
+      ],
+      sides: [],
+      cuisine: "india"
     }
   ],
   sides: {
@@ -43399,7 +52103,15 @@ function seasonFor(date = /* @__PURE__ */ new Date(), climate = "north") {
   const month = climate === "south" ? (date.getMonth() + 6) % 12 : date.getMonth();
   return NORTH_SEASONS[month];
 }
-var FOREIGN_CUISINE_PENALTY = { main: 2, breakfast: 1.5, snack: 1, late: 1 };
+var FOREIGN_CUISINE_PENALTY = { main: 0.5, breakfast: 0.4, snack: 0.3, late: 0.3 };
+var DISTANT_CUISINES = /* @__PURE__ */ new Set(["asia", "latam", "india", "mideast"]);
+var DISTANT_CUISINE_PENALTY = { main: 2, breakfast: 1.5, snack: 1, late: 1 };
+var HOME_CUISINE_BONUS = { main: 0.75, breakfast: 0.5, snack: 0.25, late: 0.25 };
+function cuisinePenalty(region, dish, kind) {
+  if (!dish?.cuisine) return 0;
+  if (dish.cuisine === "bg") return region.localCuisine ? -(HOME_CUISINE_BONUS[kind] || 0) : FOREIGN_CUISINE_PENALTY[kind] || 0;
+  return region.localCuisine && DISTANT_CUISINES.has(dish.cuisine) ? DISTANT_CUISINE_PENALTY[kind] || 0 : 0;
+}
 
 // nutrition-engine/policy.js
 var MIN_UNIVERSALITY = 3;
@@ -43556,8 +52268,8 @@ function buildFoodPolicy(profile, options = {}) {
     patternDef: PATTERNS[pattern],
     season,
     region,
-    /** Ястие от българската кухня за клиент извън дома ѝ — по-рядко, не забранено. */
-    dishPenalty: (dish, kind) => !region.localCuisine && dish.cuisine === "bg" ? FOREIGN_CUISINE_PENALTY[kind] || 0 : 0,
+    /** Българската кухня извън дома ѝ и далечните кухни у дома ѝ — по-рядко, не забранено (region.js). */
+    dishPenalty: (dish, kind) => cuisinePenalty(region, dish, kind),
     rules: rules.map((r) => ({ code: r.code, label: r.label, basis: r.basis })),
     allowed,
     preference,
@@ -44964,6 +53676,1079 @@ var recipes_default = {
         "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 {FAT2}."
       ],
       tip: "\u0421\u043C\u0435\u0441\u0438 \u043A\u0438\u043D\u043E\u0430\u0442\u0430 \u043E\u0449\u0435 \u0442\u043E\u043F\u043B\u0430 \u2014 \u0442\u0430\u043A\u0430 \u043F\u043E\u0435\u043C\u0430 \u043F\u043E-\u0434\u043E\u0431\u0440\u0435 \u043E\u0432\u043A\u0443\u0441\u044F\u0432\u0430\u043D\u0435\u0442\u043E."
+    },
+    m_chicken_teriyaki: {
+      time: 30,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {STA} \u0441\u043F\u043E\u0440\u0435\u0434 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u044F\u0442\u0430 \u043D\u0430 \u043E\u043F\u0430\u043A\u043E\u0432\u043A\u0430\u0442\u0430.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u0445\u0430\u043F\u043A\u0438 \u0438 \u0433\u043E \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 {FAT} \u0432 \u0433\u043E\u0440\u0435\u0449 \u0442\u0438\u0433\u0430\u043D 6\u20137 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441, \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0438\u044F \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B \u0438 \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 2 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u0441\u043E\u0441\u044A\u0442 \u0441\u0435 \u0441\u0433\u044A\u0441\u0442\u0438.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u0441 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 4\u20135 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u0430 \u043E\u0441\u0442\u0430\u043D\u0430\u0442 \u0445\u0440\u0443\u043F\u043A\u0430\u0432\u0438.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441\u044A\u0441 \u0441\u0443\u0441\u0430\u043C \u0438\u043B\u0438 \u0437\u0435\u043B\u0435\u043D \u043B\u0443\u043A, \u0430\u043A\u043E \u0438\u043C\u0430\u0448 \u2014 \u0434\u0430\u0432\u0430\u0442 \u0432\u043A\u0443\u0441 \u0431\u0435\u0437 \u0434\u0430 \u0442\u0435\u0436\u0430\u0442."
+    },
+    m_chicken_fajitas: {
+      time: 25,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u043B\u0435\u043D\u0442\u0438 \u0438 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u0438 \u0441 \u043A\u0438\u043C\u0438\u043E\u043D, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0441\u043E\u043B.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u043D\u0430 \u0438\u0432\u0438\u0446\u0438 \u0438 \u0433\u0438 \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 \u0433\u043E\u0440\u0435\u0449 \u0442\u0438\u0433\u0430\u043D \u0441 \u043A\u0430\u043F\u043A\u0430 \u0437\u0435\u0445\u0442\u0438\u043D 5 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043C\u0435\u0441\u043E\u0442\u043E \u0438 \u043F\u0435\u0447\u0438 \u043E\u0449\u0435 6\u20137 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u0441\u0435 \u0437\u0430\u0447\u0435\u0440\u0432\u0438.",
+        "\u0417\u0430\u0442\u043E\u043F\u043B\u0438 {STA} \u0432 \u0441\u0443\u0445 \u0442\u0438\u0433\u0430\u043D \u0438 \u043D\u0430\u043C\u0430\u0447\u043A\u0430\u0439 {FAT} \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u041D\u0430\u043F\u044A\u043B\u043D\u0438 \u0442\u043E\u0440\u0442\u0438\u043B\u0438\u0442\u0435 \u0441 \u043C\u0435\u0441\u043E\u0442\u043E \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435, \u0434\u043E\u0431\u0430\u0432\u0438 \u0430\u0432\u043E\u043A\u0430\u0434\u043E\u0442\u043E \u0438 \u043B\u044A\u0436\u0438\u0446\u0430 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2} \u0432 \u043F\u043B\u044A\u043D\u043A\u0430\u0442\u0430."
+      ],
+      tip: "\u0421\u043B\u043E\u0436\u0438 \u043F\u043B\u044A\u043D\u043A\u0430\u0442\u0430 \u043D\u0430 \u043C\u0430\u0441\u0430\u0442\u0430 \u0438 \u0432\u0441\u0435\u043A\u0438 \u0434\u0430 \u0441\u0438 \u0437\u0430\u0432\u0438\u0435 \u0441\u0430\u043C \u2014 \u0442\u0430\u043A\u0430 \u0441\u0435 \u044F\u0434\u0435 \u043F\u043E-\u0431\u0430\u0432\u043D\u043E."
+    },
+    m_chicken_shawarma_bowl: {
+      time: 35,
+      steps: [
+        "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0447\u0435\u0441\u044A\u043D, \u043A\u0438\u043C\u0438\u043E\u043D, \u043A\u0443\u0440\u043A\u0443\u043C\u0430 \u0438 \u0441\u043E\u043B \u0438 \u043E\u0432\u043A\u0443\u0441\u0438 {PRO} \u0432 \u0441\u043C\u0435\u0441\u0442\u0430 \u043F\u043E\u043D\u0435 15 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0418\u0437\u043F\u0435\u0447\u0438 \u043C\u0435\u0441\u043E\u0442\u043E \u0432 \u0442\u0438\u0433\u0430\u043D \u0438\u043B\u0438 \u0432\u044A\u0432 \u0444\u0443\u0440\u043D\u0430 \u043D\u0430 220\xB0C 15\u201318 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0433\u043E \u043D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u043B\u0435\u043D\u0442\u0438.",
+        "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 {STA} \u0441\u043F\u043E\u0440\u0435\u0434 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u044F\u0442\u0430 \u043D\u0430 \u043E\u043F\u0430\u043A\u043E\u0432\u043A\u0430\u0442\u0430.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u0438 \u043F\u043E\u0434\u0440\u0435\u0434\u0438 \u0432\u0441\u0438\u0447\u043A\u043E \u0432 \u043A\u0443\u043F\u0430.",
+        "\u0420\u0430\u0437\u0440\u0435\u0434\u0438 {FAT} \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u043F\u043E\u043B\u0435\u0439 \u043E\u0442\u0433\u043E\u0440\u0435.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041C\u0430\u0440\u0438\u043D\u0430\u0442\u0430\u0442\u0430 \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u043F\u0440\u0430\u0432\u0438 \u043C\u0435\u0441\u043E\u0442\u043E \u043A\u0440\u0435\u0445\u043A\u043E \u2014 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0442\u043E\u0438 \u0432 \u0445\u043B\u0430\u0434\u0438\u043B\u043D\u0438\u043A\u0430 \u043E\u0442 \u0432\u0435\u0447\u0435\u0440\u0442\u0430."
+    },
+    m_chicken_tomato_basil_pasta: {
+      time: 25,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {STA} \u0432 \u043F\u043E\u0434\u0441\u043E\u043B\u0435\u043D\u0430 \u0432\u043E\u0434\u0430 \u0441\u043F\u043E\u0440\u0435\u0434 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u044F\u0442\u0430 \u043D\u0430 \u043E\u043F\u0430\u043A\u043E\u0432\u043A\u0430\u0442\u0430.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u0445\u0430\u043F\u043A\u0438 \u0438 \u0433\u043E \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 {FAT} 6\u20137 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {VEG} \u0438 \u0441\u043C\u0430\u0447\u043A\u0430\u043D\u0438\u044F \u0447\u0435\u0441\u044A\u043D \u0438 \u0437\u0430\u0434\u0443\u0448\u0438 4\u20135 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u043C\u0435\u0441\u0438 \u043F\u0430\u0441\u0442\u0430\u0442\u0430 \u0441\u044A\u0441 \u0441\u043E\u0441\u0430 \u0438 \u043D\u0430\u043A\u044A\u0441\u0430\u043D \u043F\u0440\u0435\u0441\u0435\u043D \u0431\u043E\u0441\u0438\u043B\u0435\u043A.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 {PRO2}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0417\u0430\u043F\u0430\u0437\u0438 \u043C\u0430\u043B\u043A\u043E \u043E\u0442 \u0432\u043E\u0434\u0430\u0442\u0430 \u043D\u0430 \u043F\u0430\u0441\u0442\u0430\u0442\u0430 \u2014 \u043B\u044A\u0436\u0438\u0446\u0430 \u043E\u0442 \u043D\u0435\u044F \u043F\u0440\u0430\u0432\u0438 \u0441\u043E\u0441\u0430 \u043A\u0430\u0434\u0438\u0444\u0435\u043D."
+    },
+    m_chicken_lemon_herb: {
+      time: 45,
+      steps: [
+        "\u0417\u0430\u0433\u0440\u0435\u0439 \u0444\u0443\u0440\u043D\u0430\u0442\u0430 \u043D\u0430 200\xB0C.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {STA} \u0438 {VEG} \u043D\u0430 \u0435\u0434\u0440\u0438 \u043F\u0430\u0440\u0447\u0435\u0442\u0430 \u0438 \u0433\u0438 \u043F\u043E\u0434\u0440\u0435\u0434\u0438 \u0432 \u0442\u0430\u0432\u0430.",
+        "\u0421\u043B\u043E\u0436\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 {PRO}, \u043F\u043E\u043B\u0435\u0439 \u0441 {FAT} \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0440\u043E\u0437\u043C\u0430\u0440\u0438\u043D, \u043C\u0430\u0449\u0435\u0440\u043A\u0430, \u0441\u043E\u043B \u0438 \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440.",
+        "\u041F\u0435\u0447\u0438 35\u201340 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u043C\u0435\u0441\u043E\u0442\u043E \u0441\u0435 \u0437\u0430\u0447\u0435\u0440\u0432\u0438, \u0430 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u043E\u043C\u0435\u043A\u043D\u0430\u0442.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0415\u0434\u043D\u0430 \u0442\u0430\u0432\u0430 \u2014 \u0435\u0434\u0438\u043D \u0441\u044A\u0434 \u0437\u0430 \u043C\u0438\u0435\u043D\u0435. \u0421\u0433\u043E\u0442\u0432\u0438 \u0434\u0432\u043E\u0439\u043D\u043E \u0438 \u043E\u0431\u044F\u0434\u044A\u0442 \u0437\u0430 \u0443\u0442\u0440\u0435 \u0435 \u0433\u043E\u0442\u043E\u0432."
+    },
+    m_chicken_cacciatore: {
+      time: 45,
+      steps: [
+        "\u0417\u0430\u043F\u0435\u0447\u0438 {PRO} \u0432 {FAT} \u043E\u0442 \u0432\u0441\u0438\u0447\u043A\u0438 \u0441\u0442\u0440\u0430\u043D\u0438 5\u20136 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0433\u043E \u0438\u0437\u0432\u0430\u0434\u0438.",
+        "\u0412 \u0441\u044A\u0449\u0438\u044F \u0441\u044A\u0434 \u0437\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0438 {VEG} 5 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435, \u0440\u0438\u0433\u0430\u043D, \u0440\u043E\u0437\u043C\u0430\u0440\u0438\u043D \u0438 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430 \u0438 \u0432\u044A\u0440\u043D\u0438 \u043C\u0435\u0441\u043E\u0442\u043E.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041D\u0430 \u0434\u0440\u0443\u0433\u0438\u044F \u0434\u0435\u043D \u044F\u0441\u0442\u0438\u0435\u0442\u043E \u0435 \u043E\u0449\u0435 \u043F\u043E-\u0432\u043A\u0443\u0441\u043D\u043E \u2014 \u0441\u0442\u0430\u0432\u0430 \u0437\u0430 \u043E\u0431\u044F\u0434 \u0432 \u043A\u0443\u0442\u0438\u044F."
+    },
+    m_chicken_tikka: {
+      time: 40,
+      steps: [
+        "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043A\u0443\u0440\u043A\u0443\u043C\u0430, \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B, \u043A\u0438\u043C\u0438\u043E\u043D, \u0447\u0435\u0441\u044A\u043D \u0438 \u0441\u043E\u043B.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u0445\u0430\u043F\u043A\u0438 \u0438 \u0433\u043E \u043E\u0441\u0442\u0430\u0432\u0438 \u0432 \u043C\u0430\u0440\u0438\u043D\u0430\u0442\u0430\u0442\u0430 \u043F\u043E\u043D\u0435 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0418\u0437\u043F\u0435\u0447\u0438 \u043C\u0435\u0441\u043E\u0442\u043E \u0432\u044A\u0432 \u0444\u0443\u0440\u043D\u0430 \u043D\u0430 220\xB0C 15 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438\u043B\u0438 \u0432 \u0442\u0438\u0433\u0430\u043D \u0441 {FAT}.",
+        "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 {STA} \u0438 \u0437\u0430\u0434\u0443\u0448\u0438 {VEG} \u0441 \u0449\u0438\u043F\u043A\u0430 \u043A\u0443\u0440\u043A\u0443\u043C\u0430.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041C\u0430\u0440\u0438\u043D\u0430\u0442\u0430\u0442\u0430 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u043D\u0430\u043F\u0440\u0430\u0432\u0438 \u0441\u0443\u0442\u0440\u0438\u043D \u2014 \u0432\u0435\u0447\u0435\u0440\u0442\u0430 \u043E\u0441\u0442\u0430\u0432\u0430 \u0441\u0430\u043C\u043E \u0434\u0430 \u0441\u0435 \u0438\u0437\u043F\u0435\u0447\u0435."
+    },
+    m_chicken_satay: {
+      time: 30,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u043B\u0435\u043D\u0442\u0438, \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u0438 \u0441\u044A\u0441 \u0441\u043E\u0435\u0432 \u0441\u043E\u0441 \u0438 \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B \u0438 \u0433\u0438 \u043D\u0430\u043D\u0438\u0436 \u043D\u0430 \u0448\u0438\u0448\u0447\u0435\u0442\u0430.",
+        "\u0418\u0437\u043F\u0435\u0447\u0438 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0438\u043B\u0438 \u0432 \u0442\u0438\u0433\u0430\u043D \u043F\u043E 4 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u0441\u0442\u0440\u0430\u043D\u0430.",
+        "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 {FAT} \u0441\u044A\u0441 \u0441\u043E\u0435\u0432 \u0441\u043E\u0441, \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u043C\u0430\u043B\u043A\u043E \u0442\u043E\u043F\u043B\u0430 \u0432\u043E\u0434\u0430 \u0434\u043E \u0433\u043B\u0430\u0434\u044A\u043A \u0441\u043E\u0441.",
+        "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 {STA} \u0438 \u043D\u0430\u0440\u0435\u0436\u0438 \u0438\u043B\u0438 \u0437\u0430\u0434\u0443\u0448\u0438 {VEG}.",
+        "\u041F\u043E\u043B\u0435\u0439 \u0448\u0438\u0448\u0447\u0435\u0442\u0430\u0442\u0430 \u0441\u044A\u0441 \u0441\u043E\u0441\u0430.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0421\u043E\u0441\u044A\u0442 \u0441\u0435 \u0441\u0433\u044A\u0441\u0442\u044F\u0432\u0430, \u043A\u0430\u0442\u043E \u0438\u0437\u0441\u0442\u0438\u043D\u0435 \u2014 \u0440\u0430\u0437\u0440\u0435\u0434\u0438 \u0433\u043E \u0441 \u043B\u044A\u0436\u0438\u0446\u0430 \u0442\u043E\u043F\u043B\u0430 \u0432\u043E\u0434\u0430."
+    },
+    m_chicken_greek_tzatziki: {
+      time: 30,
+      steps: [
+        "\u041F\u043E\u0434\u043F\u0440\u0430\u0432\u0438 {PRO} \u0441 \u0440\u0438\u0433\u0430\u043D, \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A, \u0441\u043E\u043B \u0438 \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0433\u043E \u0438\u0437\u043F\u0435\u0447\u0438 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0438\u043B\u0438 \u0432 \u0442\u0438\u0433\u0430\u043D 6 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u0441\u0442\u0440\u0430\u043D\u0430.",
+        "\u041D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u0439 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430, \u0438\u0437\u0446\u0435\u0434\u0438 \u044F \u0438 \u044F \u0441\u043C\u0435\u0441\u0438 \u0441 {MLK}, \u0447\u0435\u0441\u044A\u043D, \u043A\u043E\u043F\u044A\u0440 \u0438 {FAT}.",
+        "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 {STA} \u0438 \u043D\u0430\u0440\u0435\u0436\u0438 \u0438\u043B\u0438 \u0437\u0430\u0434\u0443\u0448\u0438 {VEG}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u043C\u0435\u0441\u043E\u0442\u043E \u0441 \u0446\u0430\u0446\u0438\u043A\u0438\u0442\u043E \u043E\u0442\u0441\u0442\u0440\u0430\u043D\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2}."
+      ],
+      tip: "\u0426\u0430\u0446\u0438\u043A\u0438\u0442\u043E \u0438\u0437\u0434\u044A\u0440\u0436\u0430 2 \u0434\u043D\u0438 \u0432 \u0445\u043B\u0430\u0434\u0438\u043B\u043D\u0438\u043A\u0430 \u2014 \u0441\u0442\u0438\u0433\u0430 \u0437\u0430 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F."
+    },
+    m_turkey_meatballs_tomato: {
+      time: 40,
+      steps: [
+        "\u0421\u043C\u0435\u043B\u0438 \u0438\u043B\u0438 \u043D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0441\u0438\u0442\u043D\u043E {PRO} \u0438 \u043E\u043C\u0435\u0441\u0438 \u0441 \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D \u043B\u0443\u043A, \u0447\u0435\u0441\u044A\u043D, \u0441\u043E\u043B \u0438 \u0440\u0438\u0433\u0430\u043D.",
+        "\u041E\u0444\u043E\u0440\u043C\u0438 \u043C\u0430\u043B\u043A\u0438 \u043A\u044E\u0444\u0442\u0435\u043D\u0446\u0430 \u0438 \u0433\u0438 \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 {FAT} \u043E\u0442 \u0432\u0441\u0438\u0447\u043A\u0438 \u0441\u0442\u0440\u0430\u043D\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0438 {VEG}, \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435 \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u0437\u0430\u0434\u0443\u0448\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A 15 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041C\u043E\u043A\u0440\u0438 \u0440\u044A\u0446\u0435 \u043F\u043E\u043C\u0430\u0433\u0430\u0442 \u043A\u044E\u0444\u0442\u0435\u043D\u0446\u0430\u0442\u0430 \u0434\u0430 \u043D\u0435 \u043B\u0435\u043F\u043D\u0430\u0442."
+    },
+    m_turkey_chili: {
+      time: 40,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0441\u0438\u0442\u043D\u043E {PRO} \u0438 \u0433\u043E \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 {FAT} \u0441 \u043B\u0443\u043A\u0430 6\u20137 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG}, \u043A\u0438\u043C\u0438\u043E\u043D, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435.",
+        "\u0421\u043B\u043E\u0436\u0438 {LEG} \u0438 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0427\u0438\u043B\u0438\u0442\u043E \u0441\u0435 \u0437\u0430\u043C\u0440\u0430\u0437\u044F\u0432\u0430 \u043E\u0442\u043B\u0438\u0447\u043D\u043E \u2014 \u0441\u0433\u043E\u0442\u0432\u0438 \u0434\u0432\u043E\u0439\u043D\u043E \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E."
+    },
+    m_chicken_paella: {
+      time: 45,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u043F\u0430\u0440\u0447\u0435\u0442\u0430 \u0438 \u0433\u043E \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 {FAT} \u0432 \u0448\u0438\u0440\u043E\u043A \u0442\u0438\u0433\u0430\u043D.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043B\u0443\u043A\u0430 \u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG} \u0438 \u0437\u0430\u0434\u0443\u0448\u0438 5 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u043B\u043E\u0436\u0438 {STA}, \u043A\u0443\u0440\u043A\u0443\u043C\u0430 \u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440, \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 \u0438 \u0437\u0430\u043B\u0435\u0439 \u0441 \u0434\u0432\u043E\u0439\u043D\u043E \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430.",
+        "\u0412\u0430\u0440\u0438 \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D \u0431\u0435\u0437 \u0431\u044A\u0440\u043A\u0430\u043D\u0435 18\u201320 \u043C\u0438\u043D\u0443\u0442\u0438, \u043A\u0430\u0442\u043E \u0432 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0442\u0435 5 \u043C\u0438\u043D\u0443\u0442\u0438 \u0434\u043E\u0431\u0430\u0432\u0438\u0448 \u0433\u0440\u0430\u0445\u0430.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 \u043B\u0438\u043C\u043E\u043D \u0438 {FAT2}."
+      ],
+      tip: "\u041D\u0435 \u0431\u044A\u0440\u043A\u0430\u0439 \u043F\u0430\u0435\u043B\u044F\u0442\u0430, \u0434\u043E\u043A\u0430\u0442\u043E \u0432\u0440\u0438 \u2014 \u0442\u0430\u043A\u0430 \u043E\u0440\u0438\u0437\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430 \u0440\u043E\u043D\u043B\u0438\u0432."
+    },
+    m_chicken_quinoa_avocado: {
+      time: 30,
+      steps: [
+        "\u0418\u0437\u043F\u043B\u0430\u043A\u043D\u0438 {STA} \u0438 \u044F \u0441\u0432\u0430\u0440\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438, \u043F\u043E\u0441\u043B\u0435 \u044F \u043E\u0445\u043B\u0430\u0434\u0438.",
+        "\u041F\u043E\u0434\u043F\u0440\u0430\u0432\u0438 {PRO}, \u0438\u0437\u043F\u0435\u0447\u0438 \u0433\u043E \u043D\u0430 \u0442\u0438\u0433\u0430\u043D \u0438 \u0433\u043E \u043D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u043B\u0435\u043D\u0442\u0438.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u0438 {FAT}.",
+        "\u0421\u043C\u0435\u0441\u0438 \u0432\u0441\u0438\u0447\u043A\u043E \u0432 \u043A\u0443\u043F\u0430, \u043F\u043E\u043B\u0435\u0439 \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 {FAT2} \u0438 \u043E\u0432\u043A\u0443\u0441\u0438 \u0441\u044A\u0441 \u0441\u043E\u043B."
+      ],
+      tip: "\u041A\u0438\u043D\u043E\u0430\u0442\u0430 \u0438 \u043F\u0438\u043B\u0435\u0442\u043E \u0441\u0435 \u0441\u0433\u043E\u0442\u0432\u044F\u0442 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E \u2014 \u0441\u0430\u043B\u0430\u0442\u0430\u0442\u0430 \u0441\u0435 \u0441\u0433\u043B\u043E\u0431\u044F\u0432\u0430 \u0437\u0430 5 \u043C\u0438\u043D\u0443\u0442\u0438."
+    },
+    m_turkey_patty_salad: {
+      time: 30,
+      steps: [
+        "\u0421\u043C\u0435\u043B\u0438 \u0438\u043B\u0438 \u043D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0441\u0438\u0442\u043D\u043E {PRO} \u0438 \u043E\u043C\u0435\u0441\u0438 \u0441 \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D \u043B\u0443\u043A, \u0447\u0435\u0441\u044A\u043D, \u043C\u0430\u0433\u0434\u0430\u043D\u043E\u0437 \u0438 \u0441\u043E\u043B.",
+        "\u041E\u0444\u043E\u0440\u043C\u0438 \u043A\u044E\u0444\u0442\u0435\u0442\u0430 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u043D\u0430 \u0442\u0438\u0433\u0430\u043D \u0438\u043B\u0438 \u0441\u043A\u0430\u0440\u0430 \u043F\u043E 5 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u0441\u0442\u0440\u0430\u043D\u0430.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u0438 \u043E\u0432\u043A\u0443\u0441\u0438 \u0441 {FAT} \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041D\u0430\u043F\u0440\u0430\u0432\u0438 \u043F\u043E\u0432\u0435\u0447\u0435 \u043A\u044E\u0444\u0442\u0435\u0442\u0430 \u2014 \u0441\u0442\u0443\u0434\u0435\u043D\u0438 \u0441\u0442\u0430\u0432\u0430\u0442 \u0437\u0430 \u0431\u044A\u0440\u0437 \u043E\u0431\u044F\u0434."
+    },
+    m_chili_con_carne: {
+      time: 45,
+      steps: [
+        "\u0417\u0430\u043F\u0435\u0447\u0438 {PRO} \u0441 \u043B\u0443\u043A\u0430 \u0432 {FAT} 6\u20137 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG}, \u043A\u0438\u043C\u0438\u043E\u043D, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435.",
+        "\u0421\u043B\u043E\u0436\u0438 {LEG} \u0438 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0410\u043A\u043E \u0441\u0442\u0430\u043D\u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u044A\u0441\u0442\u043E, \u0434\u043E\u0431\u0430\u0432\u0438 \u043C\u0430\u043B\u043A\u043E \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430."
+    },
+    m_beef_broccoli: {
+      time: 25,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u0442\u044A\u043D\u043A\u0438 \u043B\u0435\u043D\u0442\u0438 \u043D\u0430\u043F\u0440\u044F\u043A\u043E \u043D\u0430 \u0432\u043B\u0430\u043A\u043D\u0430\u0442\u0430.",
+        "\u0417\u0430\u043F\u0435\u0447\u0438 \u043C\u0435\u0441\u043E\u0442\u043E \u0432 {FAT} \u0432 \u0441\u0438\u043B\u043D\u043E \u0437\u0430\u0433\u0440\u044F\u0442 \u0442\u0438\u0433\u0430\u043D 3\u20134 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0433\u043E \u0438\u0437\u0432\u0430\u0434\u0438.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} 3 \u043C\u0438\u043D\u0443\u0442\u0438, \u0432\u044A\u0440\u043D\u0438 \u043C\u0435\u0441\u043E\u0442\u043E \u0438 \u0434\u043E\u0431\u0430\u0432\u0438 \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441, \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B\u0430 \u0438 \u0447\u0435\u0441\u044A\u043D\u0430.",
+        "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 \u043E\u0449\u0435 2 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0422\u0438\u0433\u0430\u043D\u044A\u0442 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0435 \u043C\u043D\u043E\u0433\u043E \u0433\u043E\u0440\u0435\u0449 \u2014 \u0442\u0430\u043A\u0430 \u043C\u0435\u0441\u043E\u0442\u043E \u0441\u0435 \u0437\u0430\u043F\u0438\u0447\u0430, \u0430 \u043D\u0435 \u0441\u0435 \u0432\u0430\u0440\u0438."
+    },
+    m_beef_tacos: {
+      time: 25,
+      steps: [
+        "\u0417\u0430\u043F\u0435\u0447\u0438 {PRO} \u0441 \u043B\u0443\u043A\u0430, \u043A\u0438\u043C\u0438\u043E\u043D, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0441\u043E\u043B 7\u20138 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0441\u0438\u0442\u043D\u043E {VEG}.",
+        "\u0417\u0430\u0442\u043E\u043F\u043B\u0438 {STA} \u0432 \u0441\u0443\u0445 \u0442\u0438\u0433\u0430\u043D.",
+        "\u041D\u0430\u043F\u044A\u043B\u043D\u0438 \u0442\u043E\u0440\u0442\u0438\u043B\u0438\u0442\u0435 \u0441 \u043C\u0435\u0441\u043E\u0442\u043E \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u0434\u043E\u0431\u0430\u0432\u0438 \u043B\u044A\u0436\u0438\u0446\u0430 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E.",
+        "\u0421\u043B\u043E\u0436\u0438 {FAT} \u043D\u0430 \u0440\u0435\u0437\u0435\u043D\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2}."
+      ],
+      tip: "\u041B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0432\u044A\u0440\u0445\u0443 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0437\u0430\u043C\u0435\u0441\u0442\u0432\u0430 \u0441\u043E\u0441\u0430 \u043E\u0442 \u043C\u0430\u0433\u0430\u0437\u0438\u043D\u0430."
+    },
+    m_goulash: {
+      time: 90,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0438 \u0433\u043E \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 {FAT} \u0441 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438\u044F \u043B\u0443\u043A.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440, \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435 \u0438 \u0437\u0430\u043B\u0435\u0439 \u0441 \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D \u043E\u043A\u043E\u043B\u043E 60 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {VEG} \u0438 {STA} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0438 \u0432\u0430\u0440\u0438 \u043E\u0449\u0435 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0413\u0443\u043B\u0430\u0448\u044A\u0442 \u0435 \u043E\u0449\u0435 \u043F\u043E-\u0432\u043A\u0443\u0441\u0435\u043D \u043D\u0430 \u0432\u0442\u043E\u0440\u0438\u044F \u0434\u0435\u043D \u2014 \u0441\u0433\u043E\u0442\u0432\u0438 \u0437\u0430 \u0434\u0432\u0430."
+    },
+    m_kofta_tahini: {
+      time: 35,
+      steps: [
+        "\u041E\u043C\u0435\u0441\u0438 {PRO} \u0441 \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D \u043B\u0443\u043A, \u0441\u0438\u0442\u043D\u043E \u043D\u0430\u0440\u044F\u0437\u0430\u043D \u043C\u0430\u0433\u0434\u0430\u043D\u043E\u0437, \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0441\u043E\u043B.",
+        "\u041E\u0444\u043E\u0440\u043C\u0438 \u043F\u0440\u043E\u0434\u044A\u043B\u0433\u043E\u0432\u0430\u0442\u0438 \u043A\u044E\u0444\u0442\u0435\u0442\u0430 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0438\u043B\u0438 \u0432\u044A\u0432 \u0444\u0443\u0440\u043D\u0430 \u043D\u0430 220\xB0C 12\u201315 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 {STA} \u0438 \u043D\u0430\u0440\u0435\u0436\u0438 \u0438\u043B\u0438 \u0438\u0437\u043F\u0435\u0447\u0438 {VEG}.",
+        "\u0420\u0430\u0437\u0440\u0435\u0434\u0438 {FAT} \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u043F\u043E\u043B\u0435\u0439 \u043A\u044E\u0444\u0442\u0435\u0442\u0430\u0442\u0430.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0428\u0438\u0448\u0447\u0435\u0442\u0430\u0442\u0430 \u043E\u0442 \u0434\u044A\u0440\u0432\u043E \u043D\u0430\u043A\u0438\u0441\u043D\u0438 \u0432\u044A\u0432 \u0432\u043E\u0434\u0430 20 \u043C\u0438\u043D\u0443\u0442\u0438 \u2014 \u043D\u044F\u043C\u0430 \u0434\u0430 \u043F\u0440\u0435\u0433\u043E\u0440\u044F\u0442."
+    },
+    m_lasagna: {
+      time: 60,
+      steps: [
+        "\u0417\u0430\u043F\u0435\u0447\u0438 {PRO} \u0441 \u043B\u0443\u043A\u0430 \u0432 {FAT}, \u0434\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0438 {VEG} \u0438 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435 \u0438 \u0437\u0430\u0434\u0443\u0448\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041D\u0430\u0440\u0435\u0434\u0438 \u0432 \u0442\u0430\u0432\u0430 \u043F\u043B\u0430\u0441\u0442 {STA}, \u043F\u043B\u0430\u0441\u0442 \u0441\u043E\u0441 \u0438 \u043F\u043B\u0430\u0441\u0442 {PRO2}.",
+        "\u041F\u043E\u0432\u0442\u043E\u0440\u0438 \u043F\u043B\u0430\u0441\u0442\u043E\u0432\u0435\u0442\u0435 \u0438 \u0437\u0430\u0432\u044A\u0440\u0448\u0438 \u0441\u044A\u0441 \u0441\u043E\u0441\u0430 \u0438 \u043F\u0430\u0440\u043C\u0435\u0437\u0430\u043D.",
+        "\u041F\u0435\u0447\u0438 \u043D\u0430 190\xB0C 35 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u043E\u0441\u0442\u0430\u0432\u0438 \u0434\u0430 \u043F\u043E\u0447\u0438\u043D\u0435 10 \u043C\u0438\u043D\u0443\u0442\u0438 \u043F\u0440\u0435\u0434\u0438 \u0440\u044F\u0437\u0430\u043D\u0435.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041B\u0430\u0437\u0430\u043D\u044F\u0442\u0430 \u0441\u0435 \u0440\u0435\u0436\u0435 \u043F\u043E-\u0447\u0438\u0441\u0442\u043E, \u0430\u043A\u043E \u0438\u0437\u0441\u0442\u0438\u043D\u0435 10 \u043C\u0438\u043D\u0443\u0442\u0438."
+    },
+    m_pork_souvlaki: {
+      time: 40,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0438 \u0433\u0438 \u043E\u0432\u043A\u0443\u0441\u0438 \u0441 {FAT}, \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A, \u0447\u0435\u0441\u044A\u043D, \u0440\u0438\u0433\u0430\u043D \u0438 \u0441\u043E\u043B \u0437\u0430 \u043F\u043E\u043D\u0435 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041D\u0430\u043D\u0438\u0436 \u043C\u0435\u0441\u043E\u0442\u043E \u043D\u0430 \u0448\u0438\u0448\u0447\u0435\u0442\u0430 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u043D\u0430 \u0441\u043A\u0430\u0440\u0430 \u0438\u043B\u0438 \u0432 \u0442\u0438\u0433\u0430\u043D 10\u201312 \u043C\u0438\u043D\u0443\u0442\u0438, \u043A\u0430\u0442\u043E \u0433\u0438 \u043E\u0431\u0440\u044A\u0449\u0430\u0448.",
+        "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0430 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430, \u0447\u0435\u0441\u044A\u043D \u0438 \u043A\u043E\u043F\u044A\u0440 \u0437\u0430 \u0446\u0430\u0446\u0438\u043A\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {STA} \u0438 {VEG}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041B\u0438\u043C\u043E\u043D\u044A\u0442 \u0432 \u043C\u0430\u0440\u0438\u043D\u0430\u0442\u0430\u0442\u0430 \u043F\u0440\u0430\u0432\u0438 \u0441\u0432\u0438\u043D\u0441\u043A\u043E\u0442\u043E \u043F\u043E-\u0441\u043E\u0447\u043D\u043E."
+    },
+    m_pork_ginger_stirfry: {
+      time: 25,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u0442\u044A\u043D\u043A\u0438 \u043B\u0435\u043D\u0442\u0438.",
+        "\u0417\u0430\u043F\u0435\u0447\u0438 \u0433\u043E \u0432 {FAT} \u0432 \u043C\u043D\u043E\u0433\u043E \u0433\u043E\u0440\u0435\u0449 \u0442\u0438\u0433\u0430\u043D 4 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG}, \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0438\u044F \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B, \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441 \u0438 \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 4 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041D\u0430\u0440\u0435\u0436\u0438 \u0432\u0441\u0438\u0447\u043A\u043E, \u043F\u0440\u0435\u0434\u0438 \u0434\u0430 \u0437\u0430\u043F\u0430\u043B\u0438\u0448 \u043A\u043E\u0442\u043B\u043E\u043D\u0430 \u2014 \u0433\u043E\u0442\u0432\u0438 \u0441\u0435 \u0437\u0430 \u043C\u0438\u043D\u0443\u0442\u0438."
+    },
+    m_lamb_chickpea_stew: {
+      time: 80,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0438 \u0433\u043E \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 {FAT} \u0441 \u043B\u0443\u043A\u0430.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043A\u0438\u043C\u0438\u043E\u043D, \u043A\u0443\u0440\u043A\u0443\u043C\u0430 \u0438 \u0449\u0438\u043F\u043A\u0430 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 1 \u043C\u0438\u043D\u0443\u0442\u0430.",
+        "\u0421\u043B\u043E\u0436\u0438 {VEG}, {LEG} \u0438 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435 \u0438 \u0437\u0430\u043B\u0435\u0439 \u0441 \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A \u043E\u043A\u043E\u043B\u043E 60 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u043C\u0435\u0441\u043E\u0442\u043E \u043E\u043C\u0435\u043A\u043D\u0435.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041A\u0430\u043D\u0435\u043B\u0430\u0442\u0430 \u0438 \u043A\u0438\u043C\u0438\u043E\u043D\u044A\u0442 \u0434\u0430\u0432\u0430\u0442 \u0442\u043E\u043F\u044A\u043B \u0432\u043A\u0443\u0441 \u0431\u0435\u0437 \u043D\u0443\u0436\u0434\u0430 \u043E\u0442 \u043C\u043D\u043E\u0433\u043E \u0441\u043E\u043B."
+    },
+    m_burrito_bowl: {
+      time: 30,
+      steps: [
+        "\u0417\u0430\u043F\u0435\u0447\u0438 {PRO} \u0441 \u043A\u0438\u043C\u0438\u043E\u043D, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0441\u043E\u043B 7\u20138 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 {STA} \u0438 \u0437\u0430\u0442\u043E\u043F\u043B\u0438 {LEG}.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u0438 {FAT}.",
+        "\u041F\u043E\u0434\u0440\u0435\u0434\u0438 \u0432\u0441\u0438\u0447\u043A\u043E \u0432 \u043A\u0443\u043F\u0430 \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2}."
+      ],
+      tip: "\u0411\u0435\u0437 \u0442\u043E\u0440\u0442\u0438\u043B\u0430\u0442\u0430 \u0431\u0443\u0440\u0438\u0442\u043E \u0431\u043E\u0443\u043B\u044A\u0442 \u0435 \u043F\u043E-\u043B\u0435\u043A \u0438 \u0441\u0435 \u044F\u0434\u0435 \u0441 \u0432\u0438\u043B\u0438\u0446\u0430."
+    },
+    m_beef_stroganoff: {
+      time: 35,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u0442\u044A\u043D\u043A\u0438 \u043B\u0435\u043D\u0442\u0438 \u0438 \u0433\u0438 \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 {FAT} 3\u20134 \u043C\u0438\u043D\u0443\u0442\u0438, \u043F\u043E\u0441\u043B\u0435 \u0433\u0438 \u0438\u0437\u0432\u0430\u0434\u0438.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u0432 \u0441\u044A\u0449\u0438\u044F \u0442\u0438\u0433\u0430\u043D 6\u20137 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0412\u044A\u0440\u043D\u0438 \u043C\u0435\u0441\u043E\u0442\u043E, \u043D\u0430\u043C\u0430\u043B\u0438 \u043E\u0433\u044A\u043D\u044F \u0438 \u0432\u043C\u0435\u0448\u0430\u0439 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u0433\u043E\u0440\u0447\u0438\u0446\u0430\u0442\u0430, \u0431\u0435\u0437 \u0434\u0430 \u0437\u0430\u0432\u0438\u0440\u0430.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E \u0441\u0435 \u0441\u043B\u0430\u0433\u0430 \u043D\u0430 \u0441\u043B\u0430\u0431 \u043E\u0433\u044A\u043D \u2014 \u0442\u0430\u043A\u0430 \u043D\u0435 \u0441\u0435 \u043F\u0440\u0435\u0441\u0438\u0447\u0430."
+    },
+    m_beef_veg_soup: {
+      time: 90,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0432 \u0441\u0442\u0443\u0434\u0435\u043D\u0430 \u0432\u043E\u0434\u0430, \u043A\u0430\u0442\u043E \u043E\u0431\u0438\u0440\u0430\u0448 \u043F\u044F\u043D\u0430\u0442\u0430, \u043E\u043A\u043E\u043B\u043E 60 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG}, \u043B\u0443\u043A\u0430 \u0438 {STA} \u0438 \u0432\u0430\u0440\u0438 \u043E\u0449\u0435 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041E\u0432\u043A\u0443\u0441\u0438 \u0441\u044A\u0441 \u0441\u043E\u043B, \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440, \u043C\u0430\u0433\u0434\u0430\u043D\u043E\u0437 \u0438 {FAT}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0421\u0443\u043F\u0430\u0442\u0430 \u0435 \u043F\u043E-\u0431\u0438\u0441\u0442\u0440\u0430, \u0430\u043A\u043E \u043C\u0435\u0441\u043E\u0442\u043E \u0437\u0430\u043F\u043E\u0447\u043D\u0435 \u0434\u0430 \u0432\u0440\u0438 \u0432 \u0441\u0442\u0443\u0434\u0435\u043D\u0430 \u0432\u043E\u0434\u0430."
+    },
+    m_fish_tacos: {
+      time: 25,
+      steps: [
+        "\u041F\u043E\u0434\u043F\u0440\u0430\u0432\u0438 {PRO} \u0441 \u043A\u0438\u043C\u0438\u043E\u043D, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440, \u0441\u043E\u043B \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u0418\u0437\u043F\u0435\u0447\u0438 \u0440\u0438\u0431\u0430\u0442\u0430 \u0432 \u0442\u0438\u0433\u0430\u043D \u0441 \u043A\u0430\u043F\u043A\u0430 \u0437\u0435\u0445\u0442\u0438\u043D \u043F\u043E 3 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u0441\u0442\u0440\u0430\u043D\u0430 \u0438 \u044F \u0440\u0430\u0437\u0434\u0435\u043B\u0438 \u043D\u0430 \u043F\u0430\u0440\u0447\u0435\u0442\u0430.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0442\u044A\u043D\u043A\u043E {VEG} \u0438 \u0437\u0430\u0442\u043E\u043F\u043B\u0438 {STA}.",
+        "\u041D\u0430\u043F\u044A\u043B\u043D\u0438 \u0442\u043E\u0440\u0442\u0438\u043B\u0438\u0442\u0435 \u0438 \u0434\u043E\u0431\u0430\u0432\u0438 \u043B\u044A\u0436\u0438\u0446\u0430 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E \u0441 \u043B\u0438\u043C\u043E\u043D.",
+        "\u0421\u043B\u043E\u0436\u0438 {FAT} \u043D\u0430 \u0440\u0435\u0437\u0435\u043D\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2}."
+      ],
+      tip: "\u0411\u044F\u043B\u0430\u0442\u0430 \u0440\u0438\u0431\u0430 \u0441\u0435 \u0440\u0430\u0437\u043F\u0430\u0434\u0430 \u043B\u0435\u0441\u043D\u043E \u2014 \u043E\u0431\u0440\u044A\u0449\u0430\u0439 \u044F \u0441\u0430\u043C\u043E \u0432\u0435\u0434\u043D\u044A\u0436."
+    },
+    m_salmon_teriyaki: {
+      time: 25,
+      steps: [
+        "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 {STA} \u0441\u043F\u043E\u0440\u0435\u0434 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u044F\u0442\u0430 \u043D\u0430 \u043E\u043F\u0430\u043A\u043E\u0432\u043A\u0430\u0442\u0430.",
+        "\u0418\u0437\u043F\u0435\u0447\u0438 {PRO} \u0432 \u0442\u0438\u0433\u0430\u043D \u0441 {FAT} 4 \u043C\u0438\u043D\u0443\u0442\u0438 \u0441 \u043A\u043E\u0436\u0430\u0442\u0430 \u043D\u0430\u0434\u043E\u043B\u0443 \u0438 2 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u0434\u0440\u0443\u0433\u0430\u0442\u0430 \u0441\u0442\u0440\u0430\u043D\u0430.",
+        "\u041F\u043E\u043B\u0435\u0439 \u0441\u044A\u0441 \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441, \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0438\u044F \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B \u0438 \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u043E\u0441\u0442\u0430\u0432\u0438 1 \u043C\u0438\u043D\u0443\u0442\u0430 \u0434\u0430 \u0441\u0435 \u0433\u043B\u0430\u0437\u0438\u0440\u0430.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u043D\u0430 \u043F\u0430\u0440\u0430 \u0438\u043B\u0438 \u0441 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0421\u044C\u043E\u043C\u0433\u0430\u0442\u0430 \u0435 \u0433\u043E\u0442\u043E\u0432\u0430, \u043A\u043E\u0433\u0430\u0442\u043E \u0441\u0435 \u0440\u0430\u0437\u0434\u0435\u043B\u044F \u043D\u0430 \u043B\u044E\u0441\u043F\u0438, \u043D\u043E \u0432 \u0441\u0440\u0435\u0434\u0430\u0442\u0430 \u0435 \u043E\u0449\u0435 \u0441\u043E\u0447\u043D\u0430."
+    },
+    m_fish_curry: {
+      time: 35,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430, \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0438\u044F \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B, \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u043A\u0443\u0440\u043A\u0443\u043C\u0430\u0442\u0430 \u0432 {FAT} 4 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG} \u0438 \u0447\u0430\u0448\u0430 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 5 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u043B\u043E\u0436\u0438 {PRO} \u043D\u0430 \u0435\u0434\u0440\u0438 \u043F\u0430\u0440\u0447\u0435\u0442\u0430 \u0438 \u0432\u0430\u0440\u0438 \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D 8 \u043C\u0438\u043D\u0443\u0442\u0438, \u0431\u0435\u0437 \u0434\u0430 \u0431\u044A\u0440\u043A\u0430\u0448 \u0441\u0438\u043B\u043D\u043E.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0432 \u043A\u0440\u0430\u044F \u043E\u0441\u0432\u0435\u0436\u0430\u0432\u0430 \u043A\u044A\u0440\u0438\u0442\u043E."
+    },
+    m_nicoise: {
+      time: 30,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {STA} \u0438 {VEG} \u0432 \u043F\u043E\u0434\u0441\u043E\u043B\u0435\u043D\u0430 \u0432\u043E\u0434\u0430 \u0434\u043E \u043E\u043C\u0435\u043A\u0432\u0430\u043D\u0435 \u0438 \u0433\u0438 \u043E\u0445\u043B\u0430\u0434\u0438.",
+        "\u0421\u0432\u0430\u0440\u0438 {PRO2} 9 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0433\u0438 \u043D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0447\u0435\u0442\u0432\u044A\u0440\u0442\u0438\u043D\u043A\u0438.",
+        "\u041E\u0442\u0446\u0435\u0434\u0438 {PRO} \u0438 \u043F\u043E\u0434\u0440\u0435\u0434\u0438 \u0432\u0441\u0438\u0447\u043A\u043E \u0432 \u0447\u0438\u043D\u0438\u044F \u0441 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438\u0442\u0435 \u0434\u043E\u043C\u0430\u0442\u0438 \u0438 \u043C\u0430\u0440\u0443\u043B\u044F.",
+        "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 {FAT} \u0441 \u0433\u043E\u0440\u0447\u0438\u0446\u0430 \u0438 \u043E\u0446\u0435\u0442 \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441\u0430\u043B\u0430\u0442\u0430\u0442\u0430.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2}."
+      ],
+      tip: "\u0421\u0430\u043B\u0430\u0442\u0430\u0442\u0430 \u0435 \u0446\u044F\u043B\u043E \u0445\u0440\u0430\u043D\u0435\u043D\u0435 \u2014 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0430 \u0435 \u0437\u0430 \u043A\u0443\u0442\u0438\u044F \u0437\u0430 \u043E\u0431\u044F\u0434."
+    },
+    m_shrimp_paella: {
+      time: 40,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG} \u0432 {FAT} \u0432 \u0448\u0438\u0440\u043E\u043A \u0442\u0438\u0433\u0430\u043D 5 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {STA}, \u043A\u0443\u0440\u043A\u0443\u043C\u0430 \u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0437\u0430\u043B\u0435\u0439 \u0441 \u0434\u0432\u043E\u0439\u043D\u043E \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430.",
+        "\u0412\u0430\u0440\u0438 \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D \u0431\u0435\u0437 \u0431\u044A\u0440\u043A\u0430\u043D\u0435 15 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041D\u0430\u0440\u0435\u0434\u0438 {PRO} \u0438 \u0433\u0440\u0430\u0445\u0430 \u043E\u0442\u0433\u043E\u0440\u0435 \u0438 \u0432\u0430\u0440\u0438 \u043E\u0449\u0435 5 \u043C\u0438\u043D\u0443\u0442\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 \u043B\u0438\u043C\u043E\u043D \u0438 {FAT2}."
+      ],
+      tip: "\u0421\u043A\u0430\u0440\u0438\u0434\u0438\u0442\u0435 \u0441\u0430 \u0433\u043E\u0442\u043E\u0432\u0438, \u043A\u043E\u0433\u0430\u0442\u043E \u0441\u0442\u0430\u043D\u0430\u0442 \u0440\u043E\u0437\u043E\u0432\u0438 \u2014 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u0432\u0430\u0440\u044F\u0432\u0430\u0439."
+    },
+    m_fish_mediterranean: {
+      time: 35,
+      steps: [
+        "\u0417\u0430\u0433\u0440\u0435\u0439 \u0444\u0443\u0440\u043D\u0430\u0442\u0430 \u043D\u0430 200\xB0C \u0438 \u043D\u0430\u0440\u0435\u0434\u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG} \u0432 \u0442\u0430\u0432\u0430.",
+        "\u0421\u043B\u043E\u0436\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 {PRO}, \u043F\u043E\u043B\u0435\u0439 \u0441 {FAT} \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0440\u0438\u0433\u0430\u043D, \u0441\u043E\u043B \u0438 \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2} \u043E\u043A\u043E\u043B\u043E \u0440\u0438\u0431\u0430\u0442\u0430.",
+        "\u041F\u0435\u0447\u0438 18\u201320 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}."
+      ],
+      tip: "\u0420\u0438\u0431\u0430\u0442\u0430 \u0435 \u0433\u043E\u0442\u043E\u0432\u0430, \u043A\u043E\u0433\u0430\u0442\u043E \u043C\u0435\u0441\u043E\u0442\u043E \u0441\u0442\u0430\u0432\u0430 \u043D\u0435\u043F\u0440\u043E\u0437\u0440\u0430\u0447\u043D\u043E \u0438 \u0441\u0435 \u0440\u0430\u0437\u0434\u0435\u043B\u044F \u043B\u0435\u0441\u043D\u043E."
+    },
+    m_salmon_spinach_pasta: {
+      time: 25,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {STA} \u0432 \u043F\u043E\u0434\u0441\u043E\u043B\u0435\u043D\u0430 \u0432\u043E\u0434\u0430.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0438 \u0433\u0438 \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 {FAT} 4 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {VEG} \u0438 \u0441\u043C\u0430\u0447\u043A\u0430\u043D\u0438\u044F \u0447\u0435\u0441\u044A\u043D \u0438 \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439, \u0434\u043E\u043A\u0430\u0442\u043E \u0441\u043F\u0430\u043D\u0430\u043A\u044A\u0442 \u043E\u043C\u0435\u043A\u043D\u0435.",
+        "\u0421\u043C\u0435\u0441\u0438 \u0441 \u043F\u0430\u0441\u0442\u0430\u0442\u0430, \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u043B\u044A\u0436\u0438\u0446\u0430 \u043E\u0442 \u0432\u043E\u0434\u0430\u0442\u0430 \u043D\u0430 \u043F\u0430\u0441\u0442\u0430\u0442\u0430.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041B\u0438\u043C\u043E\u043D\u043E\u0432\u0430\u0442\u0430 \u043A\u043E\u0440\u0430 \u0434\u0430\u0432\u0430 \u0441\u0432\u0435\u0436\u0435\u0441\u0442 \u0431\u0435\u0437 \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u0441\u043E\u043B."
+    },
+    m_fish_patties: {
+      time: 40,
+      steps: [
+        "\u0421\u043C\u0435\u043B\u0438 \u0438\u043B\u0438 \u043D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0441\u0438\u0442\u043D\u043E {PRO} \u0438 \u043E\u043C\u0435\u0441\u0438 \u0441 \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D \u043B\u0443\u043A, \u044F\u0439\u0446\u0435\u0442\u043E, \u043A\u043E\u043F\u044A\u0440 \u0438 \u0441\u043E\u043B.",
+        "\u041E\u0444\u043E\u0440\u043C\u0438 \u043A\u044E\u0444\u0442\u0435\u043D\u0446\u0430 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u0432\u044A\u0432 \u0444\u0443\u0440\u043D\u0430 \u043D\u0430 200\xB0C 15\u201318 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438\u043B\u0438 \u0432 \u0442\u0438\u0433\u0430\u043D \u0441 {FAT}.",
+        "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 {STA} \u0438 {VEG}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 \u043B\u0438\u043C\u043E\u043D \u0438 {FAT2}."
+      ],
+      tip: "\u041E\u0445\u043B\u0430\u0434\u0438 \u0441\u043C\u0435\u0441\u0442\u0430 15 \u043C\u0438\u043D\u0443\u0442\u0438 \u2014 \u043A\u044E\u0444\u0442\u0435\u043D\u0446\u0430\u0442\u0430 \u0449\u0435 \u0441\u0435 \u043E\u0444\u043E\u0440\u043C\u044F\u0442 \u043F\u043E-\u043B\u0435\u0441\u043D\u043E."
+    },
+    m_sardines_oven: {
+      time: 40,
+      steps: [
+        "\u0417\u0430\u0433\u0440\u0435\u0439 \u0444\u0443\u0440\u043D\u0430\u0442\u0430 \u043D\u0430 200\xB0C \u0438 \u043D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0442\u044A\u043D\u043A\u043E {STA} \u0438 {VEG}.",
+        "\u041D\u0430\u0440\u0435\u0434\u0438 \u0433\u0438 \u0432 \u0442\u0430\u0432\u0430, \u043F\u043E\u043B\u0435\u0439 \u0441 \u043F\u043E\u043B\u043E\u0432\u0438\u043D\u0430\u0442\u0430 {FAT} \u0438 \u043F\u0435\u0447\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u043B\u043E\u0436\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 {PRO}, \u043F\u043E\u043B\u0435\u0439 \u0441 \u043E\u0441\u0442\u0430\u043D\u0430\u043B\u043E\u0442\u043E, \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u0440\u0438\u0433\u0430\u043D \u0438 \u043F\u0435\u0447\u0438 \u043E\u0449\u0435 12 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041C\u0430\u043B\u043A\u0438\u0442\u0435 \u043C\u0430\u0437\u043D\u0438 \u0440\u0438\u0431\u0438 \u0441\u0430 \u0441\u0440\u0435\u0434 \u043D\u0430\u0439-\u0434\u043E\u0431\u0440\u0438\u0442\u0435 \u0438\u0437\u0442\u043E\u0447\u043D\u0438\u0446\u0438 \u043D\u0430 \u043F\u043E\u043B\u0435\u0437\u043D\u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438 \u2014 \u0438 \u0441\u0430 \u0435\u0432\u0442\u0438\u043D\u0438."
+    },
+    m_tuna_poke: {
+      time: 25,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {STA} \u0438 \u043E\u0441\u0442\u0430\u0432\u0438 \u0434\u0430 \u0438\u0437\u0441\u0442\u0438\u043D\u0435.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u043D\u0430 \u0442\u044A\u043D\u043A\u0438 \u0438\u0432\u0438\u0446\u0438 \u0438 {FAT} \u043D\u0430 \u0440\u0435\u0437\u0435\u043D\u0438.",
+        "\u041D\u0430\u0440\u0435\u0434\u0438 \u0432 \u043A\u0443\u043F\u0430 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430, {PRO} \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435.",
+        "\u041F\u043E\u043B\u0435\u0439 \u0441\u044A\u0441 \u0441\u043E\u0435\u0432 \u0441\u043E\u0441, \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2}."
+      ],
+      tip: "\u041A\u0443\u043F\u0430\u0442\u0430 \u0441\u0435 \u0441\u0433\u043B\u043E\u0431\u044F\u0432\u0430 \u0441\u0442\u0443\u0434\u0435\u043D\u0430 \u2014 \u0443\u0434\u043E\u0431\u043D\u0430 \u0435 \u0437\u0430 \u043E\u0431\u044F\u0434 \u043D\u0430 \u0440\u0430\u0431\u043E\u0442\u0430."
+    },
+    m_shrimp_ginger: {
+      time: 25,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430, \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0438\u044F \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B \u0432 {FAT} 3 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG}, \u043A\u0443\u0440\u043A\u0443\u043C\u0430 \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 5 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u043B\u043E\u0436\u0438 {PRO} \u0438 \u0432\u0430\u0440\u0438 \u043E\u0449\u0435 4 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u043F\u043E\u0440\u043E\u0437\u043E\u0432\u0435\u044F\u0442.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA} \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0417\u0430\u043C\u0440\u0430\u0437\u0435\u043D\u0438\u0442\u0435 \u0441\u043A\u0430\u0440\u0438\u0434\u0438 \u0441\u0435 \u0440\u0430\u0437\u043C\u0440\u0430\u0437\u044F\u0432\u0430\u0442 \u0437\u0430 10 \u043C\u0438\u043D\u0443\u0442\u0438 \u0432 \u0441\u0442\u0443\u0434\u0435\u043D\u0430 \u0432\u043E\u0434\u0430."
+    },
+    m_trout_almonds: {
+      time: 30,
+      steps: [
+        "\u0417\u0430\u043F\u0435\u0447\u0438 {FAT} \u0432 \u0441\u0443\u0445 \u0442\u0438\u0433\u0430\u043D 2\u20133 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0433\u0438 \u0438\u0437\u0432\u0430\u0434\u0438.",
+        "\u041F\u043E\u0434\u043F\u0440\u0430\u0432\u0438 {PRO} \u0438 \u044F \u0438\u0437\u043F\u0435\u0447\u0438 \u0432 \u0442\u0438\u0433\u0430\u043D\u0430 \u0441 {FAT2} \u043F\u043E 4 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u0441\u0442\u0440\u0430\u043D\u0430.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u0438 \u043F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 {STA}.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0440\u0438\u0431\u0430\u0442\u0430 \u0441 \u0431\u0430\u0434\u0435\u043C\u0438\u0442\u0435 \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A."
+      ],
+      tip: "\u0421\u0443\u0445\u0438\u044F\u0442 \u0442\u0438\u0433\u0430\u043D \u0438\u0437\u043A\u0430\u0440\u0432\u0430 \u0432\u043A\u0443\u0441\u0430 \u043D\u0430 \u0431\u0430\u0434\u0435\u043C\u0438\u0442\u0435 \u2014 \u0432\u043D\u0438\u043C\u0430\u0432\u0430\u0439 \u0434\u0430 \u043D\u0435 \u0438\u0437\u0433\u043E\u0440\u044F\u0442."
+    },
+    m_dal: {
+      time: 35,
+      steps: [
+        "\u0418\u0437\u043C\u0438\u0439 {LEG} \u0438 \u044F \u0441\u043B\u043E\u0436\u0438 \u0432 \u0442\u0435\u043D\u0434\u0436\u0435\u0440\u0430 \u0441 \u043B\u0443\u043A\u0430, \u0447\u0435\u0441\u044A\u043D\u0430, \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0438\u044F \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B, \u043A\u0443\u0440\u043A\u0443\u043C\u0430\u0442\u0430 \u0438 {VEG}.",
+        "\u0417\u0430\u043B\u0435\u0439 \u0441 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 20\u201325 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u0441\u0442\u0430\u043D\u0435 \u0433\u044A\u0441\u0442\u0430 \u043A\u0430\u0448\u0430.",
+        "\u0417\u0430\u043F\u0435\u0447\u0438 \u043A\u0438\u043C\u0438\u043E\u043D \u0432 {FAT} \u0437\u0430 30 \u0441\u0435\u043A\u0443\u043D\u0434\u0438 \u0438 \u0433\u043E \u0438\u0437\u043B\u0435\u0439 \u0432\u044A\u0440\u0445\u0443 \u0434\u0430\u043B\u0430.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA} \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {PRO} \u043E\u0442\u0433\u043E\u0440\u0435.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0427\u0435\u0440\u0432\u0435\u043D\u0430\u0442\u0430 \u043B\u0435\u0449\u0430 \u043D\u0435 \u0441\u0435 \u043D\u0430\u043A\u0438\u0441\u0432\u0430 \u2014 \u0434\u0430\u043B \u0441\u0435 \u043F\u0440\u0430\u0432\u0438 \u0437\u0430 \u043F\u043E\u043B\u043E\u0432\u0438\u043D \u0447\u0430\u0441."
+    },
+    m_chana_masala: {
+      time: 35,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0432 {FAT} \u0441 \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0438\u044F \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B 5 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043A\u0438\u043C\u0438\u043E\u043D, \u043A\u0443\u0440\u043A\u0443\u043C\u0430 \u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 1 \u043C\u0438\u043D\u0443\u0442\u0430.",
+        "\u0421\u043B\u043E\u0436\u0438 {VEG} \u0438 {LEG} \u0441 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 15 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {PRO} \u043E\u0442\u0433\u043E\u0440\u0435.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041A\u043E\u043D\u0441\u0435\u0440\u0432\u0438\u0440\u0430\u043D \u043D\u0430\u0445\u0443\u0442 \u043F\u0440\u0430\u0432\u0438 \u044F\u0441\u0442\u0438\u0435\u0442\u043E \u0433\u043E\u0442\u043E\u0432\u043E \u0437\u0430 20 \u043C\u0438\u043D\u0443\u0442\u0438."
+    },
+    m_black_bean_bowl: {
+      time: 25,
+      steps: [
+        "\u0417\u0430\u0442\u043E\u043F\u043B\u0438 {LEG} \u0441 \u043A\u0438\u043C\u0438\u043E\u043D, \u0441\u043C\u0430\u0447\u043A\u0430\u043D \u0447\u0435\u0441\u044A\u043D \u0438 \u0449\u0438\u043F\u043A\u0430 \u0441\u043E\u043B.",
+        "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 {STA}.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u0438 {FAT}.",
+        "\u041F\u043E\u0434\u0440\u0435\u0434\u0438 \u0432\u0441\u0438\u0447\u043A\u043E \u0432 \u043A\u0443\u043F\u0430 \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {PRO} \u043E\u0442\u0433\u043E\u0440\u0435."
+      ],
+      tip: "\u0421\u0433\u043E\u0442\u0432\u0438 \u043E\u0440\u0438\u0437\u0430 \u0438 \u0431\u043E\u0431\u0430 \u0437\u0430 2\u20133 \u0434\u043D\u0438 \u2014 \u0431\u043E\u0443\u043B\u044A\u0442 \u0441\u0442\u0430\u0432\u0430 \u0437\u0430 \u043C\u0438\u043D\u0443\u0442\u0438."
+    },
+    m_baked_falafel: {
+      time: 45,
+      steps: [
+        "\u041F\u0430\u0441\u0438\u0440\u0430\u0439 {LEG} \u0441 \u043B\u0443\u043A\u0430, \u0447\u0435\u0441\u044A\u043D\u0430, \u043C\u0430\u0433\u0434\u0430\u043D\u043E\u0437, \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0441\u043E\u043B \u0434\u043E \u0433\u044A\u0441\u0442\u0430 \u0441\u043C\u0435\u0441.",
+        "\u041E\u0444\u043E\u0440\u043C\u0438 \u0442\u043E\u043F\u0447\u0435\u0442\u0430, \u043D\u0430\u043C\u0430\u0436\u0438 \u0433\u0438 \u0441 \u043A\u0430\u043F\u043A\u0430 \u0437\u0435\u0445\u0442\u0438\u043D \u0438 \u0433\u0438 \u043F\u0435\u0447\u0438 \u043D\u0430 200\xB0C 25 \u043C\u0438\u043D\u0443\u0442\u0438, \u043A\u0430\u0442\u043E \u0433\u0438 \u043E\u0431\u044A\u0440\u043D\u0435\u0448 \u0432\u0435\u0434\u043D\u044A\u0436.",
+        "\u0420\u0430\u0437\u0440\u0435\u0434\u0438 {FAT} \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u0432\u043E\u0434\u0430 \u0437\u0430 \u0441\u043E\u0441\u0430.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {PRO} \u043E\u0442\u0441\u0442\u0440\u0430\u043D\u0438."
+      ],
+      tip: "\u041F\u0435\u0447\u0435\u043D\u0438\u0442\u0435 \u0444\u0430\u043B\u0430\u0444\u0435\u043B\u0438 \u0441\u0430 \u0445\u0440\u0443\u043F\u043A\u0430\u0432\u0438 \u043E\u0442\u0432\u044A\u043D \u0431\u0435\u0437 \u043F\u044A\u0440\u0436\u0435\u043D\u0435."
+    },
+    m_minestrone: {
+      time: 45,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG} \u0432 {FAT} 6\u20137 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435 \u0438 {LEG}, \u0437\u0430\u043B\u0435\u0439 \u0441 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u043B\u043E\u0436\u0438 {STA} \u0438 \u0432\u0430\u0440\u0438 \u043E\u0449\u0435 8 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 {PRO} \u0438 \u0431\u043E\u0441\u0438\u043B\u0435\u043A.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041C\u0438\u043D\u0435\u0441\u0442\u0440\u043E\u043D\u0435 \u0441\u0435 \u043F\u0440\u0430\u0432\u0438 \u0441 \u043A\u0430\u043A\u0432\u0438\u0442\u043E \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438\u043C\u0430\u0448 \u2014 \u0432\u0441\u0435\u043A\u0438 \u0441\u0435\u0437\u043E\u043D \u0435 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0430."
+    },
+    m_lentil_roast_salad: {
+      time: 40,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u043D\u0430 200\xB0C 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0432\u0430\u0440\u0438 {LEG} 20 \u043C\u0438\u043D\u0443\u0442\u0438, \u0442\u0430\u043A\u0430 \u0447\u0435 \u0434\u0430 \u043E\u0441\u0442\u0430\u043D\u0435 \u0446\u044F\u043B\u0430, \u0438 \u044F \u043E\u0442\u0446\u0435\u0434\u0438.",
+        "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 {FAT} \u0441 \u0433\u043E\u0440\u0447\u0438\u0446\u0430, \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u0441\u043E\u043B.",
+        "\u0421\u043C\u0435\u0441\u0438 \u043B\u0435\u0449\u0430\u0442\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0441 \u0434\u0440\u0435\u0441\u0438\u043D\u0433\u0430 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 {PRO}.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2} \u043E\u0442\u0433\u043E\u0440\u0435."
+      ],
+      tip: "\u0421\u0430\u043B\u0430\u0442\u0430\u0442\u0430 \u0435 \u0434\u043E\u0431\u0440\u0430 \u0442\u043E\u043F\u043B\u0430 \u0438 \u0441\u0442\u0443\u0434\u0435\u043D\u0430 \u2014 \u0441\u0442\u0430\u0432\u0430 \u0438 \u0437\u0430 \u043A\u0443\u0442\u0438\u044F."
+    },
+    m_bean_tacos: {
+      time: 20,
+      steps: [
+        "\u0417\u0430\u0442\u043E\u043F\u043B\u0438 {LEG} \u0441 \u043A\u0438\u043C\u0438\u043E\u043D, \u0447\u0435\u0441\u044A\u043D \u0438 \u0441\u043E\u043B \u0438 \u0433\u0438 \u043D\u0430\u043C\u0430\u0447\u043A\u0430\u0439 \u043B\u0435\u043A\u043E \u0441 \u0432\u0438\u043B\u0438\u0446\u0430.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0441\u0438\u0442\u043D\u043E {VEG} \u0438 \u0437\u0430\u0442\u043E\u043F\u043B\u0438 {STA}.",
+        "\u041D\u0430\u043F\u044A\u043B\u043D\u0438 \u0442\u043E\u0440\u0442\u0438\u043B\u0438\u0442\u0435 \u0441 \u0431\u043E\u0431\u0430 \u0438 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {PRO} \u0438 {FAT} \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A."
+      ],
+      tip: "\u041B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u043C\u0430\u043B\u043A\u043E \u043B\u0443\u043A \u043F\u0440\u0430\u0432\u044F\u0442 \u0431\u043E\u0431\u043E\u0432\u0438\u044F \u043F\u044A\u043B\u043D\u0435\u0436 \u043F\u043E-\u0441\u0432\u0435\u0436."
+    },
+    m_chickpea_soup: {
+      time: 40,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG} \u0432 {FAT} 6 \u043C\u0438\u043D\u0443\u0442\u0438 \u0441 \u043A\u0443\u0440\u043A\u0443\u043C\u0430 \u0438 \u043A\u0438\u043C\u0438\u043E\u043D.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {LEG} \u0438 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435 \u0438 \u0437\u0430\u043B\u0435\u0439 \u0441 \u0432\u043E\u0434\u0430.",
+        "\u0412\u0430\u0440\u0438 20 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u043E\u0432\u043A\u0443\u0441\u0438 \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u043C\u0430\u0433\u0434\u0430\u043D\u043E\u0437.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {PRO} \u043E\u0442\u0433\u043E\u0440\u0435.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {FAT2}."
+      ],
+      tip: "\u0421\u0443\u043F\u0430\u0442\u0430 \u0441\u0442\u0438\u0433\u0430 \u0437\u0430 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0434\u043D\u0438 \u2014 \u0437\u0430\u0442\u043E\u043F\u043B\u0438 \u0441\u0430\u043C\u043E \u043A\u043E\u043B\u043A\u043E\u0442\u043E \u0449\u0435 \u0438\u0437\u044F\u0434\u0435\u0448."
+    },
+    m_hummus_bowl: {
+      time: 35,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG}, \u043F\u043E\u043B\u0435\u0439 \u0441 {FAT}, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0441\u043E\u043B \u0438 \u043F\u0435\u0447\u0438 \u043D\u0430 200\xB0C 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 {STA}.",
+        "\u0420\u0430\u0437\u0441\u0442\u0435\u043B\u0438 {LEG} \u043D\u0430 \u0434\u044A\u043D\u043E\u0442\u043E \u043D\u0430 \u043A\u0443\u043F\u0430\u0442\u0430.",
+        "\u041F\u043E\u0434\u0440\u0435\u0434\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430\u0442\u0430 \u0438 \u0434\u043E\u0431\u0430\u0432\u0438 {PRO}."
+      ],
+      tip: "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0437\u0430 \u0446\u0432\u044F\u0442 \u0438 \u0441\u0432\u0435\u0436\u0435\u0441\u0442."
+    },
+    m_tuscan_beans: {
+      time: 25,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u0441\u043C\u0430\u0447\u043A\u0430\u043D\u0438\u044F \u0447\u0435\u0441\u044A\u043D \u0432 {FAT} \u0441 \u0440\u043E\u0437\u043C\u0430\u0440\u0438\u043D 1 \u043C\u0438\u043D\u0443\u0442\u0430.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {VEG} \u0438 \u0437\u0430\u0434\u0443\u0448\u0438 5 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u043B\u043E\u0436\u0438 {LEG} \u0441 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 10 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {PRO} \u043E\u0442\u0433\u043E\u0440\u0435.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2}."
+      ],
+      tip: "\u041F\u044A\u043B\u043D\u043E\u0446\u0435\u043D\u043D\u0430 \u0432\u0435\u0447\u0435\u0440\u044F \u0437\u0430 20 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438, \u043A\u043E\u0438\u0442\u043E \u0441\u0442\u043E\u044F\u0442 \u0432 \u0448\u043A\u0430\u0444\u0430."
+    },
+    m_lentil_bolognese: {
+      time: 40,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0438 \u0441\u0438\u0442\u043D\u043E \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG} \u0432 {FAT} 6 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {LEG}, \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435, \u0440\u0438\u0433\u0430\u043D \u0438 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0432\u0430\u0440\u0438 {STA} \u0438 \u044F \u0441\u043C\u0435\u0441\u0438 \u0441\u044A\u0441 \u0441\u043E\u0441\u0430.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 {PRO}."
+      ],
+      tip: "\u0421\u043E\u0441\u044A\u0442 \u0441\u0435 \u0437\u0430\u043C\u0440\u0430\u0437\u044F\u0432\u0430 \u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u0438 \u2014 \u0431\u044A\u0440\u0437\u0430 \u0432\u0435\u0447\u0435\u0440\u044F \u0437\u0430 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0435\u043D \u0434\u0435\u043D."
+    },
+    m_shakshuka: {
+      time: 30,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG} \u0432 {FAT} \u0441 \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 10 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041D\u0430\u043F\u0440\u0430\u0432\u0438 \u0433\u043D\u0435\u0437\u0434\u0430 \u0432 \u0441\u043E\u0441\u0430 \u0438 \u0441\u0447\u0443\u043F\u0438 \u0432 \u0442\u044F\u0445 {PRO}.",
+        "\u0413\u043E\u0442\u0432\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A 6\u20137 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u0431\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0441\u0435 \u0441\u0442\u0435\u0433\u043D\u0435.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 {PRO2} \u0438 \u043C\u0430\u0433\u0434\u0430\u043D\u043E\u0437.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0416\u044A\u043B\u0442\u044A\u043A\u044A\u0442 \u043E\u0441\u0442\u0430\u0432\u0430 \u0442\u0435\u0447\u0435\u043D, \u0430\u043A\u043E \u043C\u0430\u0445\u043D\u0435\u0448 \u0442\u0438\u0433\u0430\u043D\u0430 \u043E\u0442 \u043E\u0433\u044A\u043D\u044F 1 \u043C\u0438\u043D\u0443\u0442\u0430 \u043F\u043E-\u0440\u0430\u043D\u043E."
+    },
+    m_frittata: {
+      time: 30,
+      steps: [
+        "\u0417\u0430\u0433\u0440\u0435\u0439 \u0444\u0443\u0440\u043D\u0430\u0442\u0430 \u043D\u0430 190\xB0C.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u0432 {FAT} \u0432 \u0442\u0438\u0433\u0430\u043D \u0437\u0430 \u0444\u0443\u0440\u043D\u0430 5 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0420\u0430\u0437\u0431\u0438\u0439 {PRO} \u0441\u044A\u0441 \u0441\u043E\u043B \u0438 \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0433\u0438 \u0438\u0437\u043B\u0435\u0439 \u0432\u044A\u0440\u0445\u0443 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 {PRO2} \u0438 \u043F\u0435\u0447\u0438 12\u201315 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u0441\u0435 \u0441\u0442\u0435\u0433\u043D\u0435.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0421\u0442\u0443\u0434\u0435\u043D\u0430 \u0444\u0440\u0438\u0442\u0430\u0442\u0430 \u0435 \u0447\u0443\u0434\u0435\u0441\u043D\u0430 \u0437\u0430 \u043A\u0443\u0442\u0438\u044F \u2014 \u0440\u0435\u0436\u0438 \u043D\u0430 \u043F\u0430\u0440\u0447\u0435\u0442\u0430 \u043A\u0430\u0442\u043E \u0442\u043E\u0440\u0442\u0430."
+    },
+    m_caprese_pasta: {
+      time: 20,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {STA} \u0432 \u043F\u043E\u0434\u0441\u043E\u043B\u0435\u043D\u0430 \u0432\u043E\u0434\u0430.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u0441 \u0447\u0435\u0441\u044A\u043D\u0430 \u0432 {FAT} 5 \u043C\u0438\u043D\u0443\u0442\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u0434\u043E\u043C\u0430\u0442\u0438\u0442\u0435 \u043E\u043C\u0435\u043A\u043D\u0430\u0442.",
+        "\u0421\u043C\u0435\u0441\u0438 \u043F\u0430\u0441\u0442\u0430\u0442\u0430 \u0441\u044A\u0441 \u0441\u043E\u0441\u0430 \u0438 \u043D\u0430\u043A\u044A\u0441\u0430\u043D \u043F\u0440\u0435\u0441\u0435\u043D \u0431\u043E\u0441\u0438\u043B\u0435\u043A.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {PRO} \u043D\u0430 \u043F\u0430\u0440\u0447\u0435\u0442\u0430 \u0442\u043E\u0447\u043D\u043E \u043F\u0440\u0435\u0434\u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u043D\u0435."
+      ],
+      tip: "\u041C\u043E\u0446\u0430\u0440\u0435\u043B\u0430\u0442\u0430 \u0441\u0435 \u0441\u043B\u0430\u0433\u0430 \u043D\u0430\u043A\u0440\u0430\u044F \u2014 \u0442\u0430\u043A\u0430 \u043E\u0441\u0442\u0430\u0432\u0430 \u043C\u0435\u043A\u0430, \u0430 \u043D\u0435 \u0440\u0430\u0437\u0442\u043E\u043F\u0435\u043D\u0430."
+    },
+    m_greek_salad: {
+      time: 10,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u0438 \u043B\u0443\u043A\u0430 \u043D\u0430 \u0435\u0434\u0440\u0438 \u043F\u0430\u0440\u0447\u0435\u0442\u0430.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2} \u0438 \u0441\u043B\u043E\u0436\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 {PRO}.",
+        "\u041F\u043E\u043B\u0435\u0439 \u0441 {FAT} \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0440\u0438\u0433\u0430\u043D.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}."
+      ],
+      tip: "\u041D\u0435 \u0441\u043E\u043B\u0438 \u043C\u043D\u043E\u0433\u043E \u2014 \u0441\u0438\u0440\u0435\u043D\u0435\u0442\u043E \u0438 \u043C\u0430\u0441\u043B\u0438\u043D\u0438\u0442\u0435 \u0441\u0430 \u0441\u043E\u043B\u0435\u043D\u0438."
+    },
+    m_eggplant_parmigiana: {
+      time: 55,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u043D\u0430 \u0440\u0435\u0437\u0435\u043D\u0438, \u043D\u0430\u043C\u0430\u0436\u0438 \u0441 {FAT} \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u043D\u0430 200\xB0C 15 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041D\u0430\u0440\u0435\u0434\u0438 \u0432 \u0442\u0430\u0432\u0430 \u043F\u043B\u0430\u0441\u0442 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D, \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E \u043F\u044E\u0440\u0435 \u0441 \u0440\u0438\u0433\u0430\u043D \u0438 {PRO}.",
+        "\u041F\u043E\u0432\u0442\u043E\u0440\u0438 \u043F\u043B\u0430\u0441\u0442\u043E\u0432\u0435\u0442\u0435 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 {PRO2}.",
+        "\u041F\u0435\u0447\u0438 25 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}."
+      ],
+      tip: "\u041F\u0435\u0447\u0435\u043D\u0438\u044F\u0442 \u043F\u0430\u0442\u043B\u0430\u0434\u0436\u0430\u043D \u043F\u043E\u0435\u043C\u0430 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u043C\u0430\u0437\u043D\u0438\u043D\u0430 \u043E\u0442 \u043F\u044A\u0440\u0436\u0435\u043D\u0438\u044F."
+    },
+    m_stuffed_zucchini_ricotta: {
+      time: 45,
+      steps: [
+        "\u0420\u0430\u0437\u0440\u0435\u0436\u0438 {VEG} \u043D\u0430\u0434\u043B\u044A\u0436\u043D\u043E \u0438 \u0438\u0437\u0434\u044A\u043B\u0431\u0430\u0439 \u0441\u0440\u0435\u0434\u0430\u0442\u0430 \u0441 \u043B\u044A\u0436\u0438\u0446\u0430.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 \u0432\u044A\u0442\u0440\u0435\u0448\u043D\u043E\u0441\u0442\u0442\u0430 \u0438 \u044F \u0441\u043C\u0435\u0441\u0438 \u0441 {PRO}, \u044F\u0439\u0446\u0435\u0442\u043E, \u043A\u043E\u043F\u044A\u0440 \u0438 \u0441\u043E\u043B.",
+        "\u041D\u0430\u043F\u044A\u043B\u043D\u0438 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0438\u0442\u0435, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 {PRO2} \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441 {FAT}.",
+        "\u041F\u0435\u0447\u0438 \u043D\u0430 200\xB0C 25 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}."
+      ],
+      tip: "\u041E\u0441\u0442\u0430\u0432\u0438 \u0442\u044A\u043D\u043A\u0430 \u0441\u0442\u0435\u043D\u0430 \u043D\u0430 \u0442\u0438\u043A\u0432\u0438\u0447\u043A\u0430\u0442\u0430, \u0437\u0430 \u0434\u0430 \u043D\u0435 \u0441\u0435 \u0440\u0430\u0437\u043F\u0430\u0434\u043D\u0435."
+    },
+    m_spinach_ricotta_pasta: {
+      time: 20,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {STA} \u0432 \u043F\u043E\u0434\u0441\u043E\u043B\u0435\u043D\u0430 \u0432\u043E\u0434\u0430 \u0438 \u0437\u0430\u043F\u0430\u0437\u0438 \u0447\u0430\u0448\u0430 \u043E\u0442 \u0432\u043E\u0434\u0430\u0442\u0430.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u0441 \u0447\u0435\u0441\u044A\u043D\u0430 \u0432 {FAT} 3\u20134 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0412\u043C\u0435\u0448\u0430\u0439 {PRO} \u0438 \u043C\u0430\u043B\u043A\u043E \u043E\u0442 \u0432\u043E\u0434\u0430\u0442\u0430 \u043D\u0430 \u043F\u0430\u0441\u0442\u0430\u0442\u0430 \u0434\u043E \u043A\u0440\u0435\u043C\u043E\u043E\u0431\u0440\u0430\u0437\u0435\u043D \u0441\u043E\u0441.",
+        "\u0421\u043C\u0435\u0441\u0438 \u0441 \u043F\u0430\u0441\u0442\u0430\u0442\u0430 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 {PRO2} \u0438 \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440."
+      ],
+      tip: "\u0429\u0438\u043F\u043A\u0430 \u0438\u043D\u0434\u0438\u0439\u0441\u043A\u043E \u043E\u0440\u0435\u0445\u0447\u0435 \u043F\u043E\u0434\u0447\u0435\u0440\u0442\u0430\u0432\u0430 \u0432\u043A\u0443\u0441\u0430 \u043D\u0430 \u0441\u043F\u0430\u043D\u0430\u043A\u0430 \u0438 \u0440\u0438\u043A\u043E\u0442\u0430\u0442\u0430."
+    },
+    m_veg_lasagna: {
+      time: 60,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG} \u0432 {FAT} \u0441 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435 \u0438 \u0440\u0438\u0433\u0430\u043D 10 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041D\u0430\u0440\u0435\u0434\u0438 \u0432 \u0442\u0430\u0432\u0430 \u043F\u043B\u0430\u0441\u0442 {STA}, \u043F\u043B\u0430\u0441\u0442 \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438 \u0438 \u043F\u043B\u0430\u0441\u0442 {PRO}.",
+        "\u041F\u043E\u0432\u0442\u043E\u0440\u0438 \u0438 \u0437\u0430\u0432\u044A\u0440\u0448\u0438 \u0441 {PRO2}.",
+        "\u041F\u0435\u0447\u0438 \u043D\u0430 190\xB0C 35 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u043E\u0441\u0442\u0430\u0432\u0438 10 \u043C\u0438\u043D\u0443\u0442\u0438 \u043F\u0440\u0435\u0434\u0438 \u0440\u044F\u0437\u0430\u043D\u0435."
+      ],
+      tip: "\u041B\u0430\u0437\u0430\u043D\u044F\u0442\u0430 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u0441\u0433\u043B\u043E\u0431\u0438 \u0432\u0435\u0447\u0435\u0440\u0442\u0430 \u0438 \u0434\u0430 \u0441\u0435 \u0438\u0437\u043F\u0435\u0447\u0435 \u043D\u0430 \u0441\u043B\u0435\u0434\u0432\u0430\u0449\u0438\u044F \u0434\u0435\u043D."
+    },
+    m_quesadilla: {
+      time: 15,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0441\u0438\u0442\u043D\u043E {VEG}.",
+        "\u041D\u0430\u0440\u044A\u0441\u0438 \u043F\u043E\u043B\u043E\u0432\u0438\u043D\u0430\u0442\u0430 \u043E\u0442 {STA} \u0441 {PRO}, \u0437\u0435\u043B\u0435\u043D\u0447\u0443\u0446\u0438\u0442\u0435 \u0438 {LEG}.",
+        "\u0421\u0433\u044A\u043D\u0438 \u0442\u043E\u0440\u0442\u0438\u043B\u0430\u0442\u0430 \u0438 \u044F \u0437\u0430\u043F\u0435\u0447\u0438 \u0432 \u0441\u0443\u0445 \u0442\u0438\u0433\u0430\u043D \u043F\u043E 2\u20133 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u0441\u0442\u0440\u0430\u043D\u0430.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0442\u0440\u0438\u044A\u0433\u044A\u043B\u043D\u0438\u0446\u0438 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {FAT} \u0438 \u043B\u044A\u0436\u0438\u0446\u0430 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E."
+      ],
+      tip: "\u041F\u0440\u0438\u0442\u0438\u0441\u043A\u0430\u0439 \u0441 \u0448\u043F\u0430\u0442\u0443\u043B\u0430 \u2014 \u0441\u0438\u0440\u0435\u043D\u0435\u0442\u043E \u0437\u0430\u043B\u0435\u043F\u0432\u0430 \u0434\u0432\u0435\u0442\u0435 \u043F\u043E\u043B\u043E\u0432\u0438\u043D\u0438."
+    },
+    m_egg_sweet_potato_bowl: {
+      time: 35,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {STA} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430, \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u0438 \u0441 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u043F\u0435\u0447\u0438 \u043D\u0430 200\xB0C 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0432\u0430\u0440\u0438 \u0438\u043B\u0438 \u0438\u0437\u043F\u0435\u0447\u0438 {PRO}.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u0438\u043B\u0438 \u043D\u0430\u0440\u0435\u0436\u0438 {VEG}.",
+        "\u041F\u043E\u0434\u0440\u0435\u0434\u0438 \u0432\u0441\u0438\u0447\u043A\u043E \u0432 \u043A\u0443\u043F\u0430 \u0441 {FAT} \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u0421\u043B\u0430\u0434\u043A\u0438\u044F\u0442 \u043A\u0430\u0440\u0442\u043E\u0444 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0441\u0435 \u0438\u0437\u043F\u0435\u0447\u0435 \u0437\u0430 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0434\u043D\u0438 \u043D\u0430\u043F\u0440\u0435\u0434."
+    },
+    m_tofu_teriyaki: {
+      time: 30,
+      steps: [
+        "\u041F\u043E\u043F\u0438\u0439 {PRO} \u0441 \u043A\u0443\u0445\u043D\u0435\u043D\u0441\u043A\u0430 \u0445\u0430\u0440\u0442\u0438\u044F \u0438 \u0433\u043E \u043D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430.",
+        "\u0417\u0430\u043F\u0435\u0447\u0438 \u043A\u0443\u0431\u0447\u0435\u0442\u0430\u0442\u0430 \u0432 {FAT} \u0434\u043E \u0437\u043B\u0430\u0442\u0438\u0441\u0442\u043E \u043E\u0442 \u0432\u0441\u0438\u0447\u043A\u0438 \u0441\u0442\u0440\u0430\u043D\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441, \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0438\u044F \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B \u0438 \u0447\u0435\u0441\u044A\u043D\u0430 \u0438 \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 2 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041F\u0440\u0438\u0442\u0438\u0441\u043D\u0438 \u0442\u043E\u0444\u0443\u0442\u043E \u043F\u043E\u0434 \u0442\u0435\u0436\u0435\u0441\u0442 15 \u043C\u0438\u043D\u0443\u0442\u0438 \u2014 \u0441\u0442\u0430\u0432\u0430 \u043F\u043E-\u0445\u0440\u0443\u043F\u043A\u0430\u0432\u043E."
+    },
+    m_tempeh_curry: {
+      time: 35,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430, \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0438\u044F \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B \u0438 \u043A\u0443\u0440\u043A\u0443\u043C\u0430\u0442\u0430 \u0432 {FAT} 4 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {VEG} \u0438 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430.",
+        "\u0417\u0430\u043B\u0435\u0439 \u0441 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 10 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA} \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u041F\u043E\u0434\u043D\u0435\u0441\u0438 \u0441 {FAT2}."
+      ],
+      tip: "\u041A\u044A\u0440\u0438\u0442\u043E \u0435 \u043E\u0449\u0435 \u043F\u043E-\u0432\u043A\u0443\u0441\u043D\u043E \u043D\u0430 \u0434\u0440\u0443\u0433\u0438\u044F \u0434\u0435\u043D."
+    },
+    m_tofu_poke: {
+      time: 25,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {STA} \u0438 \u043E\u0441\u0442\u0430\u0432\u0438 \u0434\u0430 \u0438\u0437\u0441\u0442\u0438\u043D\u0435.",
+        "\u0417\u0430\u043F\u0435\u0447\u0438 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0432 \u0442\u0438\u0433\u0430\u043D \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441\u044A\u0441 \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u0438 {FAT}.",
+        "\u041F\u043E\u0434\u0440\u0435\u0434\u0438 \u0432\u0441\u0438\u0447\u043A\u043E \u0432 \u043A\u0443\u043F\u0430 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0434\u0436\u0438\u043D\u0434\u0436\u0438\u0444\u0438\u043B \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT2}."
+      ],
+      tip: "\u0412\u0441\u0438\u0447\u043A\u0438 \u0441\u044A\u0441\u0442\u0430\u0432\u043A\u0438 \u0441\u0435 \u043F\u0440\u0438\u0433\u043E\u0442\u0432\u044F\u0442 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u043D\u043E \u2014 \u043A\u0443\u043F\u0430\u0442\u0430 \u0435 \u0433\u043E\u0442\u043E\u0432\u0430 \u0437\u0430 3 \u043C\u0438\u043D\u0443\u0442\u0438."
+    },
+    m_soy_chili: {
+      time: 35,
+      steps: [
+        "\u041D\u0430\u043A\u0438\u0441\u043D\u0438 {PRO} \u0432 \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430 10 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u044F \u0438\u0437\u0446\u0435\u0434\u0438.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043B\u0443\u043A\u0430 \u0438 {VEG} \u0432 {FAT}, \u0434\u043E\u0431\u0430\u0432\u0438 \u043A\u0430\u0439\u043C\u0430\u0442\u0430, \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440.",
+        "\u0421\u043B\u043E\u0436\u0438 {LEG}, \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435 \u0438 \u0432\u043E\u0434\u0430 \u0438 \u0432\u0430\u0440\u0438 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}."
+      ],
+      tip: "\u0421\u043E\u0435\u0432\u043E\u0442\u043E \u043C\u0435\u0441\u043E \u043F\u043E\u0435\u043C\u0430 \u0432\u043A\u0443\u0441\u0430 \u043D\u0430 \u043F\u043E\u0434\u043F\u0440\u0430\u0432\u043A\u0438\u0442\u0435 \u2014 \u043D\u0435 \u043F\u0435\u0441\u0442\u0438 \u043A\u0438\u043C\u0438\u043E\u043D\u0430."
+    },
+    m_tofu_peanut: {
+      time: 25,
+      steps: [
+        "\u0417\u0430\u043F\u0435\u0447\u0438 {PRO} \u043D\u0430 \u043A\u0443\u0431\u0447\u0435\u0442\u0430 \u0432 \u0442\u0438\u0433\u0430\u043D \u0441 \u043A\u0430\u043F\u043A\u0430 \u043E\u043B\u0438\u043E.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} 5 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 {FAT} \u0441\u044A\u0441 \u0441\u043E\u0435\u0432\u0438\u044F \u0441\u043E\u0441, \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u0438 \u0442\u043E\u043F\u043B\u0430 \u0432\u043E\u0434\u0430.",
+        "\u0421\u043C\u0435\u0441\u0438 \u0432\u0441\u0438\u0447\u043A\u043E \u0441\u044A\u0441 \u0441\u043E\u0441\u0430 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}."
+      ],
+      tip: "\u0424\u044A\u0441\u0442\u044A\u0447\u0435\u043D\u0438\u044F\u0442 \u0441\u043E\u0441 \u0441\u0442\u0430\u0432\u0430 \u0438 \u0437\u0430 \u0441\u0442\u0443\u0434\u0435\u043D\u0430 \u0441\u0430\u043B\u0430\u0442\u0430 \u043E\u0442 \u0437\u0435\u043B\u0435 \u0438 \u043C\u043E\u0440\u043A\u043E\u0432\u0438."
+    },
+    m_soy_tacos: {
+      time: 25,
+      steps: [
+        "\u041D\u0430\u043A\u0438\u0441\u043D\u0438 {PRO} \u0432 \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430 10 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u044F \u0438\u0437\u0446\u0435\u0434\u0438.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u044F \u0441 \u043B\u0443\u043A\u0430, \u043A\u0438\u043C\u0438\u043E\u043D, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0434\u043E\u043C\u0430\u0442\u0435\u043D\u043E\u0442\u043E \u043F\u044E\u0440\u0435 7\u20138 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 \u043D\u0430 \u0441\u0438\u0442\u043D\u043E {VEG} \u0438 \u0437\u0430\u0442\u043E\u043F\u043B\u0438 {STA}.",
+        "\u041D\u0430\u043F\u044A\u043B\u043D\u0438 \u0442\u043E\u0440\u0442\u0438\u043B\u0438\u0442\u0435 \u0438 \u0434\u043E\u0431\u0430\u0432\u0438 {FAT}."
+      ],
+      tip: "\u041B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A \u043D\u0430\u0434 \u0442\u0430\u043A\u043E-\u0442\u043E \u043E\u0441\u0432\u0435\u0436\u0430\u0432\u0430 \u0432\u043A\u0443\u0441\u0430."
+    },
+    b_overnight_oats: {
+      time: 5,
+      steps: [
+        "\u0421\u043C\u0435\u0441\u0438 {STA} \u0441 {MLK}, \u0449\u0438\u043F\u043A\u0430 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 {FAT} \u0432 \u0431\u0443\u0440\u043A\u0430\u043D.",
+        "\u0417\u0430\u0442\u0432\u043E\u0440\u0438 \u0438 \u043E\u0441\u0442\u0430\u0432\u0438 \u0432 \u0445\u043B\u0430\u0434\u0438\u043B\u043D\u0438\u043A\u0430 \u043F\u0440\u0435\u0437 \u043D\u043E\u0449\u0442\u0430.",
+        "\u0421\u0443\u0442\u0440\u0438\u043D\u0442\u0430 \u0434\u043E\u0431\u0430\u0432\u0438 {FRU} \u043E\u0442\u0433\u043E\u0440\u0435.",
+        "\u0412\u043C\u0435\u0448\u0430\u0439 {PRO}, \u0430\u043A\u043E \u0435 \u0432 \u043F\u043B\u0430\u043D\u0430."
+      ],
+      tip: "\u041F\u0440\u0438\u0433\u043E\u0442\u0432\u0438 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0431\u0443\u0440\u043A\u0430\u043D\u0430 \u043D\u0430\u0432\u0435\u0434\u043D\u044A\u0436 \u2014 \u0441\u0442\u043E\u044F\u0442 \u0434\u043E 3 \u0434\u043D\u0438."
+    },
+    b_smoothie_bowl: {
+      time: 10,
+      steps: [
+        "\u041F\u0430\u0441\u0438\u0440\u0430\u0439 {FRU} \u0441 {MLK} \u0434\u043E \u0433\u044A\u0441\u0442\u0430 \u0441\u043C\u0435\u0441.",
+        "\u0418\u0437\u0441\u0438\u043F\u0438 \u0432 \u043A\u0443\u043F\u0430.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441\u044A\u0441 {STA} \u0438 {FAT}.",
+        "\u0412\u043C\u0435\u0448\u0430\u0439 {PRO} \u043F\u0440\u0438 \u043F\u0430\u0441\u0438\u0440\u0430\u043D\u0435\u0442\u043E, \u0430\u043A\u043E \u0435 \u0432 \u043F\u043B\u0430\u043D\u0430."
+      ],
+      tip: "\u0417\u0430\u043C\u0440\u0430\u0437\u0435\u043D \u043F\u043B\u043E\u0434 \u043F\u0440\u0430\u0432\u0438 \u0441\u043C\u0443\u0442\u0438\u0442\u043E \u0433\u044A\u0441\u0442\u043E \u043A\u0430\u0442\u043E \u0441\u043B\u0430\u0434\u043E\u043B\u0435\u0434."
+    },
+    b_oat_egg_pancakes: {
+      time: 20,
+      steps: [
+        "\u041F\u0430\u0441\u0438\u0440\u0430\u0439 {STA} \u0441 {PRO} \u0438 \u0449\u0438\u043F\u043A\u0430 \u043A\u0430\u043D\u0435\u043B\u0430 \u0434\u043E \u0433\u043B\u0430\u0434\u043A\u0430 \u0441\u043C\u0435\u0441.",
+        "\u0418\u0437\u043F\u0435\u0447\u0438 \u043C\u0430\u043B\u043A\u0438 \u043F\u0430\u043B\u0430\u0447\u0438\u043D\u043A\u0438 \u0432 \u043D\u0435\u0437\u0430\u043B\u0435\u043F\u0432\u0430\u0449 \u0442\u0438\u0433\u0430\u043D \u043F\u043E 2 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u0441\u0442\u0440\u0430\u043D\u0430.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {FRU}.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {MLK} \u043E\u0442\u0433\u043E\u0440\u0435."
+      ],
+      tip: "\u0422\u0435\u0441\u0442\u043E\u0442\u043E \u0441\u0435 \u043F\u0440\u0430\u0432\u0438 \u0432\u0435\u0447\u0435\u0440\u0442\u0430 \u2014 \u0441\u0443\u0442\u0440\u0438\u043D\u0442\u0430 \u0441\u0430\u043C\u043E \u043F\u0435\u0447\u0435\u0448."
+    },
+    b_french_toast: {
+      time: 15,
+      steps: [
+        "\u0420\u0430\u0437\u0431\u0438\u0439 {PRO} \u0441 \u043C\u0430\u043B\u043A\u043E \u043C\u043B\u044F\u043A\u043E \u0438 \u043A\u0430\u043D\u0435\u043B\u0430.",
+        "\u041F\u043E\u0442\u043E\u043F\u0438 {STA} \u0432 \u0441\u043C\u0435\u0441\u0442\u0430 \u043E\u0442 \u0434\u0432\u0435\u0442\u0435 \u0441\u0442\u0440\u0430\u043D\u0438.",
+        "\u0417\u0430\u043F\u0435\u0447\u0438 \u0444\u0438\u043B\u0438\u0438\u0442\u0435 \u0432 \u0442\u0438\u0433\u0430\u043D \u0441 {FAT} \u043F\u043E 2 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u0441\u0442\u0440\u0430\u043D\u0430.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {FRU} \u0438 {MLK}."
+      ],
+      tip: "\u041F\u044A\u043B\u043D\u043E\u0437\u044A\u0440\u043D\u0435\u0441\u0442\u0438\u0442\u0435 \u0444\u0438\u043B\u0438\u0438 \u0437\u0430\u0441\u0438\u0449\u0430\u0442 \u043F\u043E-\u0434\u044A\u043B\u0433\u043E \u043E\u0442 \u0431\u0435\u043B\u0438\u0442\u0435."
+    },
+    b_breakfast_burrito: {
+      time: 15,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u0432 \u0442\u0438\u0433\u0430\u043D 3 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u0440\u0430\u0437\u0431\u0438\u0442\u0438\u0442\u0435 {PRO} \u0438 \u0431\u044A\u0440\u043A\u0430\u0439 \u0434\u043E \u0441\u0442\u044F\u0433\u0430\u043D\u0435.",
+        "\u0417\u0430\u0442\u043E\u043F\u043B\u0438 {STA} \u0438 \u0441\u043B\u043E\u0436\u0438 \u044F\u0439\u0446\u0430\u0442\u0430 \u0432 \u0441\u0440\u0435\u0434\u0430\u0442\u0430.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {PRO2} \u0438 {FAT} \u0438 \u0437\u0430\u0432\u0438\u0439 \u043D\u0430 \u0440\u0443\u043B\u043E."
+      ],
+      tip: "\u0423\u0432\u0438\u0442\u0430 \u0432\u044A\u0432 \u0444\u043E\u043B\u0438\u043E, \u0442\u043E\u0440\u0442\u0438\u043B\u0430\u0442\u0430 \u0435 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0437\u0430 \u0438\u0437 \u043F\u044A\u0442."
+    },
+    b_huevos_rancheros: {
+      time: 20,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u0441 \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0441\u043E\u043B 5 \u043C\u0438\u043D\u0443\u0442\u0438 \u0434\u043E \u0433\u044A\u0441\u0442 \u0441\u043E\u0441.",
+        "\u0417\u0430\u0442\u043E\u043F\u043B\u0438 {LEG} \u0432 \u0441\u043E\u0441\u0430.",
+        "\u0418\u0437\u043F\u0435\u0447\u0438 {PRO} \u043D\u0430 \u043E\u0447\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0432\u044A\u0440\u0445\u0443 {STA} \u0441 {FAT}."
+      ],
+      tip: "\u0417\u0430\u043A\u0443\u0441\u043A\u0430, \u043A\u043E\u044F\u0442\u043E \u0437\u0430\u0441\u0438\u0449\u0430 \u0434\u043E \u043E\u0431\u044F\u0434 \u2014 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0430 \u0437\u0430 \u043D\u0430\u0442\u043E\u0432\u0430\u0440\u0435\u043D \u0434\u0435\u043D."
+    },
+    b_menemen: {
+      time: 15,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG} \u0432 {FAT} 6\u20137 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0447\u0443\u043F\u0438 {PRO} \u043E\u0442\u0433\u043E\u0440\u0435 \u0438 \u0431\u044A\u0440\u043A\u0430\u0439 \u043B\u0435\u043A\u043E \u0434\u043E \u043A\u0440\u0435\u043C\u043E\u043E\u0431\u0440\u0430\u0437\u043D\u0430 \u0441\u043C\u0435\u0441.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 {PRO2} \u0438 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}."
+      ],
+      tip: "\u041C\u0430\u0445\u043D\u0438 \u043E\u0442 \u043E\u0433\u044A\u043D\u044F, \u0434\u043E\u043A\u0430\u0442\u043E \u044F\u0439\u0446\u0430\u0442\u0430 \u0441\u0430 \u043E\u0449\u0435 \u043C\u0430\u043B\u043A\u043E \u0432\u043B\u0430\u0436\u043D\u0438 \u2014 \u0449\u0435 \u0434\u043E\u0433\u043E\u0442\u0432\u044F\u0442 \u0441\u0430\u043C\u0438."
+    },
+    b_egg_muffins: {
+      time: 30,
+      steps: [
+        "\u0417\u0430\u0433\u0440\u0435\u0439 \u0444\u0443\u0440\u043D\u0430\u0442\u0430 \u043D\u0430 180\xB0C.",
+        "\u0420\u0430\u0437\u0431\u0438\u0439 {PRO} \u0441\u044A\u0441 \u0441\u0438\u0442\u043D\u043E \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG}, {PRO2} \u0438 \u0441\u043E\u043B.",
+        "\u0420\u0430\u0437\u043F\u0440\u0435\u0434\u0435\u043B\u0438 \u0432\u044A\u0432 \u0444\u043E\u0440\u043C\u0438 \u0437\u0430 \u043C\u044A\u0444\u0438\u043D\u0438 \u0438 \u043F\u0435\u0447\u0438 18\u201320 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}."
+      ],
+      tip: "\u041C\u044A\u0444\u0438\u043D\u0438\u0442\u0435 \u0441\u0442\u043E\u044F\u0442 4 \u0434\u043D\u0438 \u0432 \u0445\u043B\u0430\u0434\u0438\u043B\u043D\u0438\u043A\u0430 \u2014 \u0437\u0430\u043A\u0443\u0441\u043A\u0430 \u0437\u0430 \u0446\u044F\u043B\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430."
+    },
+    b_syrniki: {
+      time: 25,
+      steps: [
+        "\u0421\u043C\u0435\u0441\u0438 {PRO} \u0441 \u044F\u0439\u0446\u0435\u0442\u043E, {STA} \u0438 \u0449\u0438\u043F\u043A\u0430 \u043A\u0430\u043D\u0435\u043B\u0430.",
+        "\u041E\u0444\u043E\u0440\u043C\u0438 \u043C\u0430\u043B\u043A\u0438 \u043F\u0438\u0442\u043A\u0438 \u0438 \u0433\u0438 \u0438\u0437\u043F\u0435\u0447\u0438 \u0432 \u043D\u0435\u0437\u0430\u043B\u0435\u043F\u0432\u0430\u0449 \u0442\u0438\u0433\u0430\u043D \u043F\u043E 3 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u0441\u0442\u0440\u0430\u043D\u0430.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {FRU}.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {MLK} \u043E\u0442\u0433\u043E\u0440\u0435."
+      ],
+      tip: "\u0410\u043A\u043E \u0441\u043C\u0435\u0441\u0442\u0430 \u0435 \u0440\u044F\u0434\u043A\u0430, \u0434\u043E\u0431\u0430\u0432\u0438 \u043E\u0449\u0435 \u043C\u0430\u043B\u043A\u043E \u043E\u0432\u0435\u0441\u0435\u043D\u0438 \u044F\u0434\u043A\u0438."
+    },
+    b_ricotta_toast: {
+      time: 5,
+      steps: [
+        "\u041F\u0440\u0435\u043F\u0435\u0447\u0438 {STA}.",
+        "\u041D\u0430\u043C\u0430\u0436\u0438 \u0441 {PRO}.",
+        "\u041D\u0430\u0440\u0435\u0434\u0438 {FRU} \u043E\u0442\u0433\u043E\u0440\u0435 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FAT}."
+      ],
+      tip: "\u0421\u043B\u0430\u0434\u043A\u043E \u0431\u0435\u0437 \u0437\u0430\u0445\u0430\u0440 \u2014 \u043F\u043B\u043E\u0434\u044A\u0442 \u0438 \u043A\u0430\u043D\u0435\u043B\u0430\u0442\u0430 \u0441\u0442\u0438\u0433\u0430\u0442."
+    },
+    b_salmon_rye: {
+      time: 10,
+      steps: [
+        "\u041F\u0440\u0435\u043F\u0435\u0447\u0438 {STA}.",
+        "\u041D\u0430\u043C\u0430\u0436\u0438 \u0441 {PRO2}.",
+        "\u041D\u0430\u0440\u0435\u0434\u0438 {PRO} \u043D\u0430 \u043F\u0430\u0440\u0447\u0435\u0442\u0430 \u0438 \u0442\u044A\u043D\u043A\u043E \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438 {VEG}.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u043E\u043F\u044A\u0440, \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A."
+      ],
+      tip: "\u0418\u0437\u043F\u0435\u0447\u0438 \u0441\u044C\u043E\u043C\u0433\u0430\u0442\u0430 \u0432\u0435\u0447\u0435\u0440\u0442\u0430 \u2014 \u0441\u0443\u0442\u0440\u0438\u043D\u0442\u0430 \u0437\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0435 \u0437\u0430 3 \u043C\u0438\u043D\u0443\u0442\u0438."
+    },
+    b_greek_yogurt_walnuts: {
+      time: 5,
+      steps: [
+        "\u0421\u043B\u043E\u0436\u0438 {MLK} \u0432 \u043A\u0443\u043F\u0430.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FRU} \u043D\u0430 \u043F\u0430\u0440\u0447\u0435\u0442\u0430.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 {FAT} \u0438 \u043C\u0430\u043B\u043A\u043E \u043C\u0435\u0434.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {STA} \u0437\u0430 \u0445\u0440\u0443\u043F\u043A\u0430\u0432\u043E\u0441\u0442.",
+        "\u0412\u043C\u0435\u0448\u0430\u0439 {PRO}, \u0430\u043A\u043E \u0435 \u0432 \u043F\u043B\u0430\u043D\u0430."
+      ],
+      tip: "\u0417\u0430\u043F\u0435\u0447\u0438 \u043E\u0440\u0435\u0445\u0438\u0442\u0435 \u043D\u0430 \u0441\u0443\u0445 \u0442\u0438\u0433\u0430\u043D \u2014 \u0430\u0440\u043E\u043C\u0430\u0442\u044A\u0442 \u0435 \u0434\u0432\u043E\u0439\u043D\u043E \u043F\u043E-\u0441\u0438\u043B\u0435\u043D."
+    },
+    b_millet_porridge: {
+      time: 25,
+      steps: [
+        "\u0418\u0437\u043C\u0438\u0439 {STA} \u0441 \u0433\u043E\u0440\u0435\u0449\u0430 \u0432\u043E\u0434\u0430.",
+        "\u0421\u0432\u0430\u0440\u0438 \u0433\u043E \u0432 {MLK} \u0438 \u043C\u0430\u043B\u043A\u043E \u0432\u043E\u0434\u0430 \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D 20 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 {FRU}.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 {FAT}.",
+        "\u0412\u043C\u0435\u0448\u0430\u0439 {PRO}, \u0430\u043A\u043E \u0435 \u0432 \u043F\u043B\u0430\u043D\u0430."
+      ],
+      tip: "\u041F\u0440\u043E\u0441\u043E\u0442\u043E \u0435 \u0431\u0435\u0437 \u0433\u043B\u0443\u0442\u0435\u043D \u0438 \u0441\u0435 \u0441\u0432\u0430\u0440\u044F\u0432\u0430 \u043D\u0430\u0432\u0435\u0434\u043D\u044A\u0436 \u0437\u0430 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0441\u0443\u0442\u0440\u0438\u043D\u0438."
+    },
+    b_tofu_avocado_toast: {
+      time: 15,
+      steps: [
+        "\u041D\u0430\u043C\u0430\u0447\u043A\u0430\u0439 {PRO} \u0441 \u0432\u0438\u043B\u0438\u0446\u0430 \u0441 \u043A\u0443\u0440\u043A\u0443\u043C\u0430, \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440 \u0438 \u0441\u043E\u043B.",
+        "\u0417\u0430\u043F\u0435\u0447\u0438 \u0432 \u0442\u0438\u0433\u0430\u043D 4\u20135 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041F\u0440\u0435\u043F\u0435\u0447\u0438 {STA} \u0438 \u043D\u0430\u043C\u0430\u0436\u0438 \u0441 {FAT}.",
+        "\u0421\u043B\u043E\u0436\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 \u0442\u043E\u0444\u0443\u0442\u043E \u0438 {VEG}."
+      ],
+      tip: "\u041A\u0443\u0440\u043A\u0443\u043C\u0430\u0442\u0430 \u0434\u0430\u0432\u0430 \u0442\u043E\u043F\u044A\u043B \u0436\u044A\u043B\u0442 \u0446\u0432\u044F\u0442 \u0438 \u043B\u0435\u043A \u0432\u043A\u0443\u0441."
+    },
+    b_peanut_banana_oats: {
+      time: 10,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {STA} \u0432 {MLK} \u043D\u0430 \u0442\u0438\u0445 \u043E\u0433\u044A\u043D 4\u20135 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0412\u043C\u0435\u0448\u0430\u0439 {FAT}.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {FRU} \u043E\u0442\u0433\u043E\u0440\u0435.",
+        "\u0412\u043C\u0435\u0448\u0430\u0439 {PRO}, \u0430\u043A\u043E \u0435 \u0432 \u043F\u043B\u0430\u043D\u0430."
+      ],
+      tip: "\u041E\u0442\u043C\u0435\u0440\u0432\u0430\u0439 \u0441 \u043B\u044A\u0436\u0438\u0446\u0430 \u2014 \u0442\u0430\u043A\u0430 \u043F\u043E\u0440\u0446\u0438\u044F\u0442\u0430 \u043E\u0441\u0442\u0430\u0432\u0430 \u0442\u043E\u0447\u043D\u0430."
+    },
+    b_baked_apple_oats: {
+      time: 35,
+      steps: [
+        "\u0417\u0430\u0433\u0440\u0435\u0439 \u0444\u0443\u0440\u043D\u0430\u0442\u0430 \u043D\u0430 180\xB0C.",
+        "\u0421\u043C\u0435\u0441\u0438 {STA} \u0441 {MLK}, \u043D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0430\u0442\u0430 {FRU} \u0438 \u043A\u0430\u043D\u0435\u043B\u0430.",
+        "\u0418\u0437\u0441\u0438\u043F\u0438 \u0432 \u043C\u0430\u043B\u043A\u0430 \u0444\u043E\u0440\u043C\u0430, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 {FAT} \u0438 \u043F\u0435\u0447\u0438 25 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0412\u043C\u0435\u0448\u0430\u0439 {PRO} \u0432 \u0441\u043C\u0435\u0441\u0442\u0430 \u043F\u0440\u0435\u0434\u0438 \u043F\u0435\u0447\u0435\u043D\u0435, \u0430\u043A\u043E \u0435 \u0432 \u043F\u043B\u0430\u043D\u0430."
+      ],
+      tip: "\u0418\u0437\u043F\u0435\u0447\u0438 \u0433\u043E\u043B\u044F\u043C\u0430 \u0442\u0430\u0432\u0430 \u0438 \u044F \u0440\u0430\u0437\u0434\u0435\u043B\u0438 \u043D\u0430 \u043F\u043E\u0440\u0446\u0438\u0438 \u0437\u0430 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0434\u043D\u0438."
+    },
+    b_mozzarella_tomato_toast: {
+      time: 5,
+      steps: [
+        "\u041F\u0440\u0435\u043F\u0435\u0447\u0438 {STA}.",
+        "\u041D\u0430\u0440\u0435\u0434\u0438 {PRO} \u0438 {VEG} \u043D\u0430 \u0440\u0435\u0437\u0435\u043D\u0438.",
+        "\u041F\u043E\u043B\u0435\u0439 \u0441 {FAT}, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0431\u043E\u0441\u0438\u043B\u0435\u043A, \u0441\u043E\u043B \u0438 \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440."
+      ],
+      tip: "\u041D\u0430\u0439-\u0432\u043A\u0443\u0441\u043D\u043E \u0435 \u0441 \u0443\u0437\u0440\u0435\u043B\u0438 \u043B\u0435\u0442\u043D\u0438 \u0434\u043E\u043C\u0430\u0442\u0438."
+    },
+    b_eggs_spinach: {
+      time: 15,
+      steps: [
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u0441 \u0447\u0435\u0441\u044A\u043D\u0430 \u0432 {FAT} 2\u20133 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041D\u0430\u043F\u0440\u0430\u0432\u0438 \u0433\u043D\u0435\u0437\u0434\u0430 \u0438 \u0441\u0447\u0443\u043F\u0438 \u0432 \u0442\u044F\u0445 {PRO}.",
+        "\u0413\u043E\u0442\u0432\u0438 \u043F\u043E\u0434 \u043A\u0430\u043F\u0430\u043A 4\u20135 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 {PRO2} \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}."
+      ],
+      tip: "\u0417\u0430\u043C\u0440\u0430\u0437\u0435\u043D \u0441\u043F\u0430\u043D\u0430\u043A \u0440\u0430\u0431\u043E\u0442\u0438 \u0441\u044A\u0449\u043E \u0442\u043E\u043B\u043A\u043E\u0432\u0430 \u0434\u043E\u0431\u0440\u0435."
+    },
+    b_soy_yogurt_bowl: {
+      time: 5,
+      steps: [
+        "\u0421\u043B\u043E\u0436\u0438 {MLK} \u0432 \u043A\u0443\u043F\u0430.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FRU} \u0438 {FAT}.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441\u044A\u0441 {STA}.",
+        "\u0412\u043C\u0435\u0448\u0430\u0439 {PRO}, \u0430\u043A\u043E \u0435 \u0432 \u043F\u043B\u0430\u043D\u0430."
+      ],
+      tip: "\u041B\u0435\u043D\u0435\u043D\u0438\u0442\u0435 \u0441\u0435\u043C\u0435\u043D\u0430 \u0441\u0435 \u0443\u0441\u0432\u043E\u044F\u0432\u0430\u0442 \u043F\u043E-\u0434\u043E\u0431\u0440\u0435 \u0441\u043C\u043B\u0435\u043D\u0438."
+    },
+    b_hummus_egg_plate: {
+      time: 15,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {PRO} 9 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0433\u0438 \u043D\u0430\u0440\u0435\u0436\u0438.",
+        "\u0420\u0430\u0437\u0441\u0442\u0435\u043B\u0438 {LEG} \u0432 \u0447\u0438\u043D\u0438\u044F.",
+        "\u041F\u043E\u0434\u0440\u0435\u0434\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 \u044F\u0439\u0446\u0430\u0442\u0430 \u0438 {VEG} \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441\u044A\u0441 {STA}."
+      ],
+      tip: "\u0412\u0430\u0440\u0435\u043D\u0438\u0442\u0435 \u044F\u0439\u0446\u0430 \u0441\u0435 \u043F\u0440\u0430\u0432\u044F\u0442 \u0437\u0430 \u043D\u044F\u043A\u043E\u043B\u043A\u043E \u0434\u043D\u0438 \u043D\u0430\u0432\u0435\u0434\u043D\u044A\u0436."
+    },
+    b_buckwheat_egg: {
+      time: 25,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {STA} 15 \u043C\u0438\u043D\u0443\u0442\u0438.",
+        "\u0417\u0430\u0434\u0443\u0448\u0438 {VEG} \u0432 {FAT} \u0438 \u0434\u043E\u0431\u0430\u0432\u0438 \u0435\u043B\u0434\u0430\u0442\u0430.",
+        "\u0418\u0437\u043F\u0435\u0447\u0438 {PRO} \u043D\u0430 \u043E\u0447\u0438 \u0438 \u0433\u0438 \u0441\u043B\u043E\u0436\u0438 \u043E\u0442\u0433\u043E\u0440\u0435."
+      ],
+      tip: "\u0421\u0432\u0430\u0440\u0435\u043D\u0430\u0442\u0430 \u0435\u043B\u0434\u0430 \u0441\u0442\u043E\u0438 3 \u0434\u043D\u0438 \u2014 \u0437\u0430\u043A\u0443\u0441\u043A\u0430\u0442\u0430 \u0441\u0442\u0430\u0432\u0430 \u0437\u0430 5 \u043C\u0438\u043D\u0443\u0442\u0438."
+    },
+    b_banana_egg_pancakes: {
+      time: 15,
+      steps: [
+        "\u041D\u0430\u043C\u0430\u0447\u043A\u0430\u0439 {FRU} \u0438 \u0440\u0430\u0437\u0431\u0438\u0439 \u0441 {PRO} \u0438 \u043A\u0430\u043D\u0435\u043B\u0430.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {STA}, \u0430\u043A\u043E \u0438\u0441\u043A\u0430\u0448 \u043F\u043E-\u043F\u043B\u044A\u0442\u043D\u0438 \u043F\u0430\u043B\u0430\u0447\u0438\u043D\u043A\u0438.",
+        "\u0418\u0437\u043F\u0435\u0447\u0438 \u043C\u0430\u043B\u043A\u0438 \u043F\u0430\u043B\u0430\u0447\u0438\u043D\u043A\u0438 \u0432 \u043D\u0435\u0437\u0430\u043B\u0435\u043F\u0432\u0430\u0449 \u0442\u0438\u0433\u0430\u043D \u043F\u043E 1\u20132 \u043C\u0438\u043D\u0443\u0442\u0438 \u043E\u0442 \u0441\u0442\u0440\u0430\u043D\u0430.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 {FAT}."
+      ],
+      tip: "\u041A\u043E\u043B\u043A\u043E\u0442\u043E \u043F\u043E-\u0443\u0437\u0440\u044F\u043B \u0435 \u0431\u0430\u043D\u0430\u043D\u044A\u0442, \u0442\u043E\u043B\u043A\u043E\u0432\u0430 \u043F\u043E-\u0441\u043B\u0430\u0434\u043A\u0438 \u0441\u0430 \u043F\u0430\u043B\u0430\u0447\u0438\u043D\u043A\u0438\u0442\u0435."
+    },
+    b_kefir_smoothie: {
+      time: 5,
+      steps: [
+        "\u0421\u043B\u043E\u0436\u0438 {MLK}, {FRU}, {STA} \u0438 {FAT} \u0432 \u0431\u043B\u0435\u043D\u0434\u0435\u0440.",
+        "\u041F\u0430\u0441\u0438\u0440\u0430\u0439 30 \u0441\u0435\u043A\u0443\u043D\u0434\u0438 \u0434\u043E \u0433\u043B\u0430\u0434\u043A\u0430 \u0441\u043C\u0435\u0441.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {PRO}, \u0430\u043A\u043E \u0435 \u0432 \u043F\u043B\u0430\u043D\u0430."
+      ],
+      tip: "\u041F\u0438\u0439 \u0448\u0435\u0439\u043A\u0430 \u0431\u0430\u0432\u043D\u043E \u2014 \u0437\u0430\u0441\u0438\u0449\u0430 \u043F\u043E\u0432\u0435\u0447\u0435."
+    },
+    s_cottage_dip: {
+      time: 10,
+      steps: [
+        "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 {PRO} \u0441 \u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E, \u043A\u043E\u043F\u044A\u0440, \u0447\u0435\u0441\u044A\u043D \u0438 \u0441\u043E\u043B.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u043D\u0430 \u043F\u0440\u044A\u0447\u0438\u0446\u0438 \u0438 \u0433\u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0441 \u0434\u0438\u043F\u0430."
+      ],
+      tip: "\u0414\u0438\u043F\u044A\u0442 \u0441\u0442\u043E\u0438 2 \u0434\u043D\u0438 \u0432 \u0445\u043B\u0430\u0434\u0438\u043B\u043D\u0438\u043A\u0430."
+    },
+    s_roasted_chickpeas: {
+      time: 35,
+      steps: [
+        "\u041F\u043E\u0434\u0441\u0443\u0448\u0438 {LEG} \u0441 \u043A\u0443\u0445\u043D\u0435\u043D\u0441\u043A\u0430 \u0445\u0430\u0440\u0442\u0438\u044F.",
+        "\u041E\u0432\u043A\u0443\u0441\u0438 \u0441 {FAT}, \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440, \u043A\u0438\u043C\u0438\u043E\u043D \u0438 \u0441\u043E\u043B.",
+        "\u041F\u0435\u0447\u0438 \u043D\u0430 200\xB0C 25\u201330 \u043C\u0438\u043D\u0443\u0442\u0438, \u043A\u0430\u0442\u043E \u0440\u0430\u0437\u043A\u043B\u0430\u0442\u0438\u0448 \u0442\u0430\u0432\u0430\u0442\u0430 \u0432\u0435\u0434\u043D\u044A\u0436."
+      ],
+      tip: "\u041E\u0441\u0442\u0430\u0432\u0438 \u043D\u0430\u0445\u0443\u0442\u0430 \u0434\u0430 \u0438\u0437\u0441\u0442\u0438\u043D\u0435 \u0432\u044A\u0432 \u0444\u0443\u0440\u043D\u0430\u0442\u0430 \u2014 \u0441\u0442\u0430\u0432\u0430 \u043F\u043E-\u0445\u0440\u0443\u043F\u043A\u0430\u0432."
+    },
+    s_tzatziki_veg: {
+      time: 10,
+      steps: [
+        "\u041D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u0439 \u043A\u0440\u0430\u0441\u0442\u0430\u0432\u0438\u0446\u0430\u0442\u0430 \u0438 \u044F \u0438\u0437\u0446\u0435\u0434\u0438.",
+        "\u0421\u043C\u0435\u0441\u0438 \u044F \u0441 {MLK}, \u0447\u0435\u0441\u044A\u043D\u0430, \u043A\u043E\u043F\u044A\u0440 \u0438 {FAT}.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u043D\u0430 \u043F\u0440\u044A\u0447\u0438\u0446\u0438 \u0437\u0430 \u043F\u043E\u0442\u0430\u043F\u044F\u043D\u0435."
+      ],
+      tip: "\u041A\u043E\u043B\u043A\u043E\u0442\u043E \u043F\u043E-\u0433\u044A\u0441\u0442\u043E \u0435 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E, \u0442\u043E\u043B\u043A\u043E\u0432\u0430 \u043F\u043E-\u0432\u043A\u0443\u0441\u043D\u043E \u0435 \u0446\u0430\u0446\u0438\u043A\u0438\u0442\u043E."
+    },
+    s_guacamole: {
+      time: 10,
+      steps: [
+        "\u041D\u0430\u043C\u0430\u0447\u043A\u0430\u0439 {FAT} \u0441 \u0432\u0438\u043B\u0438\u0446\u0430 \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u0441\u0438\u0442\u043D\u043E \u043D\u0430\u0440\u044F\u0437\u0430\u043D\u0438\u044F \u0434\u043E\u043C\u0430\u0442, \u043C\u0430\u043B\u043A\u043E \u043B\u0443\u043A \u0438 \u0441\u043E\u043B.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u043D\u0430 \u043F\u0440\u044A\u0447\u0438\u0446\u0438.",
+        "\u0421\u0435\u0440\u0432\u0438\u0440\u0430\u0439 \u0438 \u0441\u044A\u0441 {STA}."
+      ],
+      tip: "\u041B\u0438\u043C\u043E\u043D\u044A\u0442 \u043F\u0430\u0437\u0438 \u0433\u0443\u0430\u043A\u0430\u043C\u043E\u043B\u0435\u0442\u043E \u043E\u0442 \u043F\u043E\u0442\u044A\u043C\u043D\u044F\u0432\u0430\u043D\u0435."
+    },
+    s_caprese: {
+      time: 5,
+      steps: [
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {PRO} \u0438 {VEG} \u043D\u0430 \u0440\u0435\u0437\u0435\u043D\u0438.",
+        "\u041D\u0430\u0440\u0435\u0434\u0438 \u0433\u0438 \u0432 \u0447\u0438\u043D\u0438\u044F, \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0431\u043E\u0441\u0438\u043B\u0435\u043A, \u0441\u043E\u043B \u0438 \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440.",
+        "\u041F\u043E\u043B\u0435\u0439 \u0441 {FAT}."
+      ],
+      tip: "\u041F\u0440\u0435\u0441\u0435\u043D \u0431\u043E\u0441\u0438\u043B\u0435\u043A \u043F\u0440\u0430\u0432\u0438 \u0446\u044F\u043B\u0430\u0442\u0430 \u0440\u0430\u0437\u043B\u0438\u043A\u0430."
+    },
+    s_yogurt_apple_cinnamon: {
+      time: 5,
+      steps: [
+        "\u0421\u043B\u043E\u0436\u0438 {MLK} \u0432 \u043A\u0443\u043F\u0430.",
+        "\u041D\u0430\u0441\u0442\u044A\u0440\u0436\u0438 {FRU} \u0438 \u044F \u0432\u043C\u0435\u0448\u0430\u0439.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 {FAT}."
+      ],
+      tip: "\u041D\u0430\u0441\u0442\u044A\u0440\u0433\u0430\u043D\u0430\u0442\u0430 \u044F\u0431\u044A\u043B\u043A\u0430 \u043F\u043E\u0434\u0441\u043B\u0430\u0436\u0434\u0430 \u0431\u0435\u0437 \u0437\u0430\u0445\u0430\u0440."
+    },
+    s_tuna_rice_cakes: {
+      time: 5,
+      steps: [
+        "\u0421\u043C\u0435\u0441\u0438 {PRO} \u0441 \u043A\u0438\u0441\u0435\u043B\u043E\u0442\u043E \u043C\u043B\u044F\u043A\u043E, \u0433\u043E\u0440\u0447\u0438\u0446\u0430\u0442\u0430 \u0438 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u041D\u0430\u043C\u0430\u0436\u0438 \u0432\u044A\u0440\u0445\u0443 {STA}.",
+        "\u0421\u043B\u043E\u0436\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 {VEG} \u043D\u0430 \u0440\u0435\u0437\u0435\u043D\u0438."
+      ],
+      tip: "\u0420\u0438\u0431\u0430 \u0442\u043E\u043D \u0432 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D \u0441\u043E\u0441 \u0435 \u043F\u043E-\u043B\u0435\u043A\u0430 \u043E\u0442 \u0442\u0430\u0437\u0438 \u0432 \u043E\u043B\u0438\u043E."
+    },
+    s_egg_avocado: {
+      time: 12,
+      steps: [
+        "\u0421\u0432\u0430\u0440\u0438 {PRO} 9 \u043C\u0438\u043D\u0443\u0442\u0438 \u0438 \u0433\u0438 \u043E\u0431\u0435\u043B\u0438.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {FAT} \u0438 \u043F\u043E\u043B\u0435\u0439 \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A.",
+        "\u041E\u0432\u043A\u0443\u0441\u0438 \u0441\u044A\u0441 \u0441\u043E\u043B \u0438 \u0447\u0435\u0440\u0435\u043D \u043F\u0438\u043F\u0435\u0440."
+      ],
+      tip: "\u042F\u0439\u0446\u0435 \u0438 \u0430\u0432\u043E\u043A\u0430\u0434\u043E \u0437\u0430\u0441\u0438\u0449\u0430\u0442 \u0437\u0430 \u0434\u044A\u043B\u0433\u043E \u0441 \u043C\u0430\u043B\u043A\u043E \u0432\u044A\u0433\u043B\u0435\u0445\u0438\u0434\u0440\u0430\u0442\u0438."
+    },
+    s_hummus_rice_cakes: {
+      time: 5,
+      steps: [
+        "\u041D\u0430\u043C\u0430\u0436\u0438 {STA} \u0441 {LEG}.",
+        "\u041D\u0430\u0440\u0435\u0434\u0438 \u043E\u0442\u0433\u043E\u0440\u0435 {VEG} \u043D\u0430 \u0440\u0435\u0437\u0435\u043D\u0438.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 \u0447\u0435\u0440\u0432\u0435\u043D \u043F\u0438\u043F\u0435\u0440."
+      ],
+      tip: "\u0413\u0430\u043B\u0435\u0442\u0438\u0442\u0435 \u043E\u043C\u0435\u043A\u0432\u0430\u0442 \u2014 \u043D\u0430\u043C\u0430\u0436\u0438 \u0433\u0438 \u0442\u043E\u0447\u043D\u043E \u043F\u0440\u0435\u0434\u0438 \u044F\u0434\u0435\u043D\u0435."
+    },
+    s_soy_yogurt_nuts: {
+      time: 2,
+      steps: [
+        "\u0421\u043B\u043E\u0436\u0438 {MLK} \u0432 \u043A\u0443\u043F\u0430.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 {FAT} \u0438 \u043A\u0430\u043D\u0435\u043B\u0430."
+      ],
+      tip: "\u0418\u0437\u0431\u0438\u0440\u0430\u0439 \u0441\u043E\u0435\u0432 \u0439\u043E\u0433\u0443\u0440\u0442 \u0431\u0435\u0437 \u0434\u043E\u0431\u0430\u0432\u0435\u043D\u0430 \u0437\u0430\u0445\u0430\u0440."
+    },
+    l_warm_milk_cinnamon: {
+      time: 5,
+      steps: [
+        "\u0417\u0430\u0442\u043E\u043F\u043B\u0438 {MLK} \u043D\u0430 \u0441\u043B\u0430\u0431 \u043E\u0433\u044A\u043D, \u0431\u0435\u0437 \u0434\u0430 \u0437\u0430\u0432\u0438\u0440\u0430.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 \u0440\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439."
+      ],
+      tip: "\u0422\u043E\u043F\u043B\u0430 \u043D\u0430\u043F\u0438\u0442\u043A\u0430 \u0432\u0435\u0447\u0435\u0440 \u0443\u0441\u043F\u043E\u043A\u043E\u044F\u0432\u0430 \u0438 \u043F\u043E\u043C\u0430\u0433\u0430 \u0437\u0430 \u043F\u043E-\u043B\u0435\u0441\u043D\u043E \u0437\u0430\u0441\u043F\u0438\u0432\u0430\u043D\u0435."
+    },
+    s_ricotta_berries: {
+      time: 3,
+      steps: [
+        "\u0421\u043B\u043E\u0436\u0438 {PRO} \u0432 \u043A\u0443\u043F\u0430.",
+        "\u0414\u043E\u0431\u0430\u0432\u0438 {FRU} \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430."
+      ],
+      tip: "\u0417\u0430\u043C\u0440\u0430\u0437\u0435\u043D\u0438\u0442\u0435 \u0433\u043E\u0440\u0441\u043A\u0438 \u043F\u043B\u043E\u0434\u043E\u0432\u0435 \u0441\u0430 \u0441\u044A\u0449\u043E \u0442\u043E\u043B\u043A\u043E\u0432\u0430 \u043F\u043E\u043B\u0435\u0437\u043D\u0438."
+    },
+    s_veg_tahini: {
+      time: 10,
+      steps: [
+        "\u0420\u0430\u0437\u0431\u044A\u0440\u043A\u0430\u0439 {FAT} \u0441 \u043B\u0438\u043C\u043E\u043D\u043E\u0432 \u0441\u043E\u043A, \u0432\u043E\u0434\u0430, \u0447\u0435\u0441\u044A\u043D \u0438 \u0441\u043E\u043B \u0434\u043E \u0433\u043B\u0430\u0434\u044A\u043A \u0434\u0438\u043F.",
+        "\u041D\u0430\u0440\u0435\u0436\u0438 {VEG} \u043D\u0430 \u043F\u0440\u044A\u0447\u0438\u0446\u0438 \u0438 \u0441\u0435\u0440\u0432\u0438\u0440\u0430\u0439."
+      ],
+      tip: "\u0422\u0430\u0445\u0430\u043D \u0434\u0438\u043F\u044A\u0442 \u0441\u0442\u0430\u0432\u0430 \u043F\u043E-\u0441\u0432\u0435\u0442\u044A\u043B \u0438 \u043F\u0443\u0445\u043A\u0430\u0432 \u0441 \u043F\u043E\u0432\u0435\u0447\u0435 \u0432\u043E\u0434\u0430."
+    },
+    s_baked_apple: {
+      time: 30,
+      steps: [
+        "\u0418\u0437\u0434\u044A\u043B\u0431\u0430\u0439 \u0441\u044A\u0440\u0446\u0435\u0432\u0438\u043D\u0430\u0442\u0430 \u043D\u0430 {FRU}.",
+        "\u041D\u0430\u043F\u044A\u043B\u043D\u0438 \u0441 {FAT} \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430.",
+        "\u041F\u0435\u0447\u0438 \u043D\u0430 180\xB0C 25 \u043C\u0438\u043D\u0443\u0442\u0438 \u0434\u043E \u043E\u043C\u0435\u043A\u0432\u0430\u043D\u0435."
+      ],
+      tip: "\u041F\u0435\u0447\u0435 \u0441\u0435 \u0437\u0430\u0435\u0434\u043D\u043E \u0441 \u0432\u0435\u0447\u0435\u0440\u044F\u0442\u0430 \u2014 \u0444\u0443\u0440\u043D\u0430\u0442\u0430 \u0432\u0435\u0447\u0435 \u0435 \u0442\u043E\u043F\u043B\u0430."
+    },
+    l_skyr_cinnamon: {
+      time: 2,
+      steps: [
+        "\u0421\u043B\u043E\u0436\u0438 {MLK} \u0432 \u043A\u0443\u043F\u0430.",
+        "\u041F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430 \u0438 {FAT}."
+      ],
+      tip: "\u0411\u0435\u043B\u0442\u044A\u043A\u044A\u0442 \u0432\u0435\u0447\u0435\u0440 \u043F\u043E\u043C\u0430\u0433\u0430 \u043D\u0430 \u043C\u0443\u0441\u043A\u0443\u043B\u0438\u0442\u0435 \u0434\u0430 \u0441\u0435 \u0432\u044A\u0437\u0441\u0442\u0430\u043D\u043E\u0432\u044F\u0442 \u043F\u0440\u0435\u0437 \u043D\u043E\u0449\u0442\u0430."
+    },
+    s_mango_lassi: {
+      time: 5,
+      steps: [
+        "\u0421\u043B\u043E\u0436\u0438 {MLK} \u0438 {FRU} \u0432 \u0431\u043B\u0435\u043D\u0434\u0435\u0440 \u0441 \u043C\u0430\u043B\u043A\u043E \u0441\u0442\u0443\u0434\u0435\u043D\u0430 \u0432\u043E\u0434\u0430.",
+        "\u041F\u0430\u0441\u0438\u0440\u0430\u0439 \u0434\u043E \u0433\u043B\u0430\u0434\u043A\u0430 \u0441\u043C\u0435\u0441 \u0438 \u043F\u043E\u0440\u044A\u0441\u0438 \u0441 \u043A\u0430\u043D\u0435\u043B\u0430."
+      ],
+      tip: "\u0417\u0430\u043C\u0440\u0430\u0437\u0435\u043D\u043E \u043C\u0430\u043D\u0433\u043E \u043F\u0440\u0430\u0432\u0438 \u043B\u0430\u0441\u0438\u0442\u043E \u0441\u0442\u0443\u0434\u0435\u043D\u043E \u0431\u0435\u0437 \u043B\u0435\u0434."
     }
   }
 };
