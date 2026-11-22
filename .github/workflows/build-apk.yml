@@ -223,8 +223,8 @@ jobs:
           if ! command -v convert &>/dev/null; then
             echo "ImageMagick 'convert' not found – installing…" && { sudo apt-get update -q && sudo apt-get install -y imagemagick; }
           fi
-          # Старите (не адаптивни) икони: плътен тъмен квадрат със знака (brand/icon-launcher-512.png).
-          # Huawei/EMUI и др. ползват тях и слагат прозрачна икона върху бяла плочка — затова без прозрачност.
+          # Старите (не адаптивни) икони: цветният знак с прозрачност (brand/icon-launcher-512.png, PNG с алфа канал) —
+          # Huawei/EMUI и др. го слагат върху своята светла плочка (както беше при NutriPlan).
           LAUNCHER_SRC="brand/icon-launcher-512.png"
           if [ ! -f "$LAUNCHER_SRC" ]; then LAUNCHER_SRC="$ICON_SRC"; fi
           for entry in "48 mdpi" "72 hdpi" "96 xhdpi" "144 xxhdpi" "192 xxxhdpi"; do
@@ -239,10 +239,11 @@ jobs:
             SIZE=${entry%% *}
             DPI=${entry##* }
             ICON_DIR="android/app/src/main/res/mipmap-${DPI}"
-            # Safe zone = 72dp of 108dp = 66.7% — icon must not exceed this or it gets clipped by launcher shapes
-            SAFE=$((SIZE * 2 / 3))
+            # Безопасната зона е кръг 66dp от 108dp; знакът (бял) е 56% от платното, за да не се реже от кръга.
+            SAFE=$((SIZE * 56 / 100))
+            FG_SRC="brand/mark-color-512.png"; [ -f "$FG_SRC" ] || FG_SRC="$MARK_SRC"
             convert -size "${SIZE}x${SIZE}" xc:none \
-              \( "$MARK_SRC" -resize "${SAFE}x${SAFE}" \) \
+              \( "$FG_SRC" -resize "${SAFE}x${SAFE}" \) \
               -gravity center -composite "${ICON_DIR}/ic_launcher_foreground.png"
           done
           # Set adaptive icon background color to brand dark teal
@@ -250,7 +251,7 @@ jobs:
           from pathlib import Path
           import re
           colors_file = Path("android/app/src/main/res/values/colors.xml")
-          bg_color = '#04181C'
+          bg_color = '#F2FAF6'   # ANDROID_BG в scripts/build-brand.mjs
           entry_line = f'    <color name="ic_launcher_background">{bg_color}</color>'
           if colors_file.exists():
               content = colors_file.read_text()
@@ -384,7 +385,7 @@ jobs:
           cat > android/app/src/main/res/values/nutriplan_splash_colors.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <color name="backgroundColor">#04181C</color>
+              <color name="backgroundColor">#050F0E</color>
           </resources>
           EOF
           cat > android/app/src/main/res/drawable/splash.xml <<'EOF'
@@ -392,7 +393,7 @@ jobs:
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
               <item>
                   <shape android:shape="rectangle">
-                      <solid android:color="#04181C" />
+                      <solid android:color="#050F0E" />
                   </shape>
               </item>
               <item>
@@ -407,7 +408,7 @@ jobs:
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
               <item>
                   <shape android:shape="rectangle">
-                      <solid android:color="#04181C" />
+                      <solid android:color="#050F0E" />
                   </shape>
               </item>
               <item>
