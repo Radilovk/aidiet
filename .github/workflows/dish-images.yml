@@ -1,0 +1,72 @@
+name: Dish images (auto)
+
+# Снимки за нови ястия в каталога (scripts/dish-images.mjs auto, docs/DISH_IMAGES.md).
+# Най-евтиният път: само ястията без снимка; Pixabay + Foodiesfeed; строга оценка с Gemini Flash.
+# Резултатът отива в клон за преглед — нищо не стига до клиент без човек.
+on:
+  push:
+    branches: [main]
+    paths: ['data/engine/dishes.json']
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'collect — кандидати за ръчен преглед; auto — строг автоматичен избор'
+        required: true
+        default: collect
+        type: choice
+        options: [collect, auto]
+      limit:
+        description: 'Най-много ястия за един пуск'
+        required: false
+        default: '40'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dish-images
+  cancel-in-progress: false
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install sharp
+        run: npm install --no-save --no-audit --no-fund sharp@0.34
+      - name: Collect candidates for manual review
+        if: ${{ inputs.mode == 'collect' }}
+        env:
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+        run: |
+          node scripts/dish-images.mjs collect dish-image-candidates.json
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH="dish-images/candidates-${GITHUB_RUN_ID}"
+          git checkout -b "$BRANCH"
+          git add -f dish-image-candidates.json
+          git commit -m "chore(dish-images): кандидати за преглед"
+          git push origin "$BRANCH"
+          echo "Клон с кандидатите: $BRANCH"
+      - name: Find images for dishes without one
+        if: ${{ inputs.mode != 'collect' }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          LIMIT: ${{ inputs.limit || '40' }}
+        run: node scripts/dish-images.mjs auto --limit "$LIMIT"
+      - name: Push to a review branch
+        if: ${{ inputs.mode != 'collect' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add brand/dishes data/engine/dish-images.json
+          git diff --staged --quiet && { echo "Няма нови снимки."; exit 0; }
+          BRANCH="dish-images/auto-${GITHUB_RUN_ID}"
+          git checkout -b "$BRANCH"
+          git commit -m "chore(dish-images): снимки за нови ястия (за преглед)"
+          git push origin "$BRANCH"
+          echo "Клон за преглед: $BRANCH — отворете PR към main."
