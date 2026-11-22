@@ -151,6 +151,23 @@ function appIcon({ maskable = false, pad: padIn, square = false } = {}) {
     <g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})">${markBody('i')}</g>`;
   return svg(`0 0 ${S} ${S}`, defs, body);
 }
+// Android: плътен фон в цвета на марката до самите ръбове + бял знак. Huawei/EMUI, Xiaomi и др. слагат
+// иконата върху своя плочка с цвета от краищата ѝ — при еднакъв цвят до ръба плочката и иконата са едно цяло.
+// Адаптивната икона: фон ANDROID_BG (colors.xml) + бял знак (mark-white-512.png) в безопасната зона.
+export const ANDROID_BG = '#0F7F5C';
+function androidIcon(fill = 0.6) {
+  const S = 1024, k = (S * fill) / Math.max(MB.w, MB.h);
+  const tx = (S - MB.w * k) / 2 - MB.x * k, ty = (S - MB.h * k) / 2 - MB.y * k;
+  // Един плътен цвят (без преливане): плочката на производителя взима цвета от ръба и трябва да съвпада навсякъде.
+  return svg(`0 0 ${S} ${S}`, '', `<rect width="${S}" height="${S}" fill="${ANDROID_BG}"/>` +
+    `<g transform="translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${k.toFixed(5)})"><path d="${M.fill.join(' ')}" fill="#fff" fill-rule="evenodd"/></g>`);
+}
+function whiteMark() {
+  return svg(`${MB.x} ${MB.y} ${MB.w} ${MB.h}`, '', `<path d="${M.fill.join(' ')}" fill="#fff" fill-rule="evenodd"/>`);
+}
+put('brand/nutriin-icon-android.svg', androidIcon());
+put('brand/nutriin-mark-white.svg', whiteMark());
+
 // Знакът с прозрачност (PWA икони, фавикон); фавиконът сменя палитрата по темата на системата.
 function alphaIcon(fill, size = 'main', { adaptive = false } = {}) {
   const S = 1024, k = (S * fill) / Math.max(MB.w, MB.h);
@@ -196,7 +213,8 @@ if (process.argv.includes('--png')) {
     await shot('icon-512x512.svg', size, dest);
   }
   await shot('brand/nutriin-icon-ios.svg', 180, 'brand/apple-touch-icon.png');
-  await shot('brand/nutriin-icon-ios.svg', 512, 'brand/icon-launcher-512.png');  // Android, старата (не адаптивна) икона
+  await shot('brand/nutriin-icon-android.svg', 512, 'brand/icon-launcher-512.png');  // Android, старата (не адаптивна) икона — плътна до ръба
+  await shot('brand/nutriin-mark-white.svg', 512, 'brand/mark-white-512.png');     // Android, предният слой на адаптивната икона
   await shot('brand/nutriin-icon.svg', 512, 'brand/icon-solid-512.png');
   for (const size of [32, 48, 192]) await shotSvg(favPng, size, size, `brand/favicon-${size}.png`);
   await shot('brand/nutriin-icon-maskable.svg', 512, 'brand/icon-maskable-512.png');
