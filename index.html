@@ -764,6 +764,25 @@
             max-width: 500px;
             margin-bottom: 34px;
         }
+        /* Четирите опори на плана: симетрична решетка от стъклени плочки (4 в ред, на телефон 2 × 2). */
+        .lp-lead { margin-bottom: 22px; }
+        .lp-pillars { list-style: none; margin: 0 0 30px; padding: 0; max-width: 520px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .lp-pillars li { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 14px 12px 12px; border-radius: 18px;
+            background: color-mix(in srgb, var(--lp-surface) 72%, transparent); border: 1px solid var(--lp-line);
+            -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 8px 24px -16px rgba(11, 43, 42, 0.35);
+            transition: transform 0.4s var(--lp-ease), border-color 0.3s; }
+        .lp-pillars li:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--lp-accent) 35%, transparent); }
+        [data-theme="dark"] .lp-pillars li { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 24px -16px rgba(0, 0, 0, 0.6); }
+        .lp-pillar-ic { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; margin-bottom: 8px; font-size: 0.95rem;
+            color: var(--lp-accent); background: var(--lp-accent-soft); }
+        .lp-pillars b { font-size: 0.9rem; font-weight: 700; color: var(--lp-ink); letter-spacing: -0.01em; line-height: 1.25; hyphens: manual; }
+        .lp-pillars small { font-size: 0.75rem; color: var(--lp-muted); line-height: 1.35; }
+        @media (max-width: 560px) {
+            .lp-pillars { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .lp-pillars li { padding: 12px; }
+        }
+        @media (prefers-reduced-motion: reduce) { .lp-pillars li { transition: none; } }
         .cta-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
         .lp-btn, .nav-btn.lp-btn {
             padding: 15px 30px;
@@ -2240,7 +2259,13 @@
                     <span class="lp-line lp-enter" style="--d:2"><em>твоя</em> успех.</span>
                     <span class="lp-line lp-line--logic lp-enter" style="--d:2">Промяната започва отвътре.</span>
                 </h1>
-                <p class="lp-lead lp-enter" style="--d:3">Ние създаваме изключително персонализиран план специално за теб и твоята цел. — Хранене — Психология — Суплементация — Активности. Зад всичко това стои екип от лекари и диетолози.</p>
+                <p class="lp-lead lp-enter" style="--d:3">Ние създаваме изключително персонализиран план специално за теб и твоята цел. Зад всичко това стои екип от лекари и диетолози.</p>
+                <ul class="lp-pillars lp-enter" style="--d:3" aria-label="Какво включва планът">
+                    <li><span class="lp-pillar-ic" aria-hidden="true"><i class="fas fa-apple-whole"></i></span><b>Хранене</b><small>какво, колко и кога</small></li>
+                    <li><span class="lp-pillar-ic" aria-hidden="true"><i class="fas fa-brain"></i></span><b>Психология</b><small>навици и емоции</small></li>
+                    <li><span class="lp-pillar-ic" aria-hidden="true"><i class="fas fa-capsules"></i></span><b>Суплементация</b><small>само нужното</small></li>
+                    <li><span class="lp-pillar-ic" aria-hidden="true"><i class="fas fa-person-running"></i></span><b>Активности</b><small>движение по мярка</small></li>
+                </ul>
                 <div class="cta-group lp-enter" style="--d:4">
                     <a href="questionnaire2.html" class="nav-btn lp-btn" id="heroCTABtn">Създай моя план</a>
                     <button type="button" class="btn-outline lp-btn-ghost" id="heroLoginBtn" onclick="window.indexOpenLoginModal()">Вход</button>

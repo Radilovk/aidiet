@@ -19,8 +19,8 @@ const lose = AG.build(base);
 ok(lose.group === 'lose', `отслабване → lose (${lose.group})`);
 ok(lose.targets[0].startsWith(String(GF.profileOf(base).stepTarget).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')), 'крачките са същите като в „Напредък“');
 ok(lose.targets.includes('2–3 силови седмично'), 'отслабване: 2–3 силови');
-ok(/Първите 2 седмици/.test(all(lose)), 'без спорт: откъде да започне');
-ok(/30–45 мин седене/.test(all(lose)), 'ниска активност: прекъсване на седенето');
+ok(/20–30 минути ходене в 5 дни/.test(all(lose)), 'без спорт: откъде да започне');
+ok(/веднъж на час/.test(all(lose)) && /стълбите/.test(all(lose)), 'ниска активност: ставане от стола и стълби');
 ok(lose.items.length + lose.cautions.length <= 8, 'кратко — колкото другите секции');
 ok(/болка в гърдите/.test(lose.cautions.join(' ')) && lose.cautions.length === 1, 'без състояния — само сигналите за спиране');
 
