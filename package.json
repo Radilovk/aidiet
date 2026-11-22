@@ -68,7 +68,8 @@
     "test:i18n": "node scripts/test-i18n.mjs",
     "build:brand": "node scripts/build-brand.mjs --png",
     "build:module-marks": "node scripts/build-module-marks.mjs --png",
-    "i18n:prewarm": "node scripts/i18n-prewarm.mjs"
+    "i18n:prewarm": "node scripts/i18n-prewarm.mjs",
+    "test:document-reader": "node scripts/test-document-reader.mjs"
   },
   "keywords": [
     "ai",
