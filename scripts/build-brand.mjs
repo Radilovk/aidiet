@@ -69,16 +69,11 @@ const W_TOP = -760, W_BOTTOM = 14;
 // Позиции: nutri | ı (по-широко след „i“, за да не се слеят двете стъбла) | n; над ı — листото от знака (плътно).
 const X_I = GL.nutri.width + GL.kernIi, X_N = X_I + GL.i.width + GL.kernIn;
 const W_WIDTH = X_N + GL.n.width;
-// Листото от знака (втората контурна линия на M.fill = външният контур на листото), умалено до точка на „i“.
-const LEAF_D = M.fill[1];
-const LEAF_BOX = (() => { const n = LEAF_D.match(/-?\d+\.?\d*/g).map(Number); const xs = n.filter((_, i) => i % 2 === 0), ys = n.filter((_, i) => i % 2);
-  return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) }; })();
 function leafDot() {
-  const h = 180, k = h / (LEAF_BOX.y1 - LEAF_BOX.y0);                 // височина на листото ≈ 0.47 от x-височината
-  const cx = X_I + (GL.i.stem[0] + GL.i.stem[1]) / 2;                   // над стъблото на ı
-  const tx = cx - (LEAF_BOX.x0 * k) - (LEAF_BOX.x1 - LEAF_BOX.x0) * k * 0.38;  // основата (долу вляво) над стъблото
-  const ty = -GL.xHeight - 62 - LEAF_BOX.y1 * k;                        // 70 единици над x-височината
-  return `<path transform="translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${k.toFixed(4)})" d="${LEAF_D}"/>`;
+  // Кръгло листо (мек връх горе, заоблена основа), наклон 18°, центрирано над стъблото на ı — „точката“ на i.
+  const cx = X_I + (GL.i.stem[0] + GL.i.stem[1]) / 2, cy = -GL.xHeight - 62 - 88;
+  const d = 'M0,-100 C34,-78 66,-40 66,6 C66,56 36,90 0,90 C-36,90 -66,56 -66,6 C-66,-40 -34,-78 0,-100Z';
+  return `<path transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(18)" d="${d}"/>`;
 }
 function wordmark({ scale, x0, baseline, dark }) {
   const ink = dark ? BRAND.inkDark : BRAND.ink, green = dark ? BRAND.greenDark : BRAND.green;
