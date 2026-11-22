@@ -653,7 +653,7 @@ main.wrap { padding-bottom: 56px; }
 }
 
 /* Името EATO | LOGIX — цветният надпис от логото; на тъмна тема EATO е светъл. */
-.brand-word { display: inline-block; height: 18px; aspect-ratio: 2900 / 799; background: url('brand/nutriin-wordmark.svg') left center / contain no-repeat; }
+.brand-word { display: inline-block; height: 18px; aspect-ratio: 2858 / 814; background: url('brand/nutriin-wordmark.svg') left center / contain no-repeat; }
 [data-theme="dark"] .brand-word { background-image: url('brand/nutriin-wordmark-dark.svg'); }
 
 /* ── Стъкло и слоеве (същият език като XB-Studio и лендингите на модулите) ──

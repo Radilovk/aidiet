@@ -65,12 +65,25 @@ function placeMark(id, box, size = 'main') {
 
 const GL = JSON.parse(fs.readFileSync(path.join(ROOT, 'brand/nutriin-wordmark-glyphs.json'), 'utf8'));
 // Надписът в единиците на шрифта: базова линия y=0, горе до точката на „i“ / „t“ (≈ −740).
-const W_TOP = -745, W_BOTTOM = 14;
-const W_WIDTH = GL.nutri.width + GL.in.width;
+const W_TOP = -760, W_BOTTOM = 14;
+// Позиции: nutri | ı (по-широко след „i“, за да не се слеят двете стъбла) | n; над ı — листото от знака (плътно).
+const X_I = GL.nutri.width + GL.kernIi, X_N = X_I + GL.i.width + GL.kernIn;
+const W_WIDTH = X_N + GL.n.width;
+// Листото от знака (втората контурна линия на M.fill = външният контур на листото), умалено до точка на „i“.
+const LEAF_D = M.fill[1];
+const LEAF_BOX = (() => { const n = LEAF_D.match(/-?\d+\.?\d*/g).map(Number); const xs = n.filter((_, i) => i % 2 === 0), ys = n.filter((_, i) => i % 2);
+  return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) }; })();
+function leafDot() {
+  const h = 180, k = h / (LEAF_BOX.y1 - LEAF_BOX.y0);                 // височина на листото ≈ 0.47 от x-височината
+  const cx = X_I + (GL.i.stem[0] + GL.i.stem[1]) / 2;                   // над стъблото на ı
+  const tx = cx - (LEAF_BOX.x0 * k) - (LEAF_BOX.x1 - LEAF_BOX.x0) * k * 0.38;  // основата (долу вляво) над стъблото
+  const ty = -GL.xHeight - 62 - LEAF_BOX.y1 * k;                        // 70 единици над x-височината
+  return `<path transform="translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${k.toFixed(4)})" d="${LEAF_D}"/>`;
+}
 function wordmark({ scale, x0, baseline, dark }) {
   const ink = dark ? BRAND.inkDark : BRAND.ink, green = dark ? BRAND.greenDark : BRAND.green;
   return `<g transform="translate(${x0},${baseline}) scale(${scale})"><path d="${GL.nutri.d}" fill="${ink}"/>` +
-    `<g transform="translate(${GL.nutri.width},0)"><path d="${GL.in.d}" fill="${green}"/></g></g>`;
+    `<g fill="${green}"><g transform="translate(${X_I},0)"><path d="${GL.i.d}"/></g><g transform="translate(${X_N},0)"><path d="${GL.n.d}"/></g>${leafDot()}</g></g>`;
 }
 
 const svg = (vb, defs, body, extra = '') =>
