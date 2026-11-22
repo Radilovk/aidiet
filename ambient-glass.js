@@ -24,7 +24,7 @@
     if (mode === 'classic') return;
 
     d.setAttribute('data-ui', 'glass');
-    document.write('<link rel="stylesheet" href="./ambient-glass.css?v=3" id="ambientGlassCss">');
+    document.write('<link rel="stylesheet" href="./ambient-glass.css?v=4" id="ambientGlassCss">');
 
     var mem = navigator.deviceMemory || 8;
     var cores = navigator.hardwareConcurrency || 8;
@@ -61,6 +61,13 @@
             document.body.insertBefore(a, document.body.firstChild);
         }
         themeColor();
+        // Самостоятелна страница с долна навигация: мек преход към фона под нея (виж .ag-navscrim).
+        if (d.getAttribute('data-embedded-tab') !== '1' && document.querySelector('nav.bottom-nav:not(.spa-bottom-nav)')) {
+            var sc = document.createElement('div');
+            sc.className = 'ag-navscrim';
+            sc.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(sc);
+        }
         new MutationObserver(themeColor).observe(d, { attributes: true, attributeFilter: ['data-theme'] });
 
         /* Напредъкът на деня: лентата в картата на деня (plan.html) */

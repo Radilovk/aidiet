@@ -203,22 +203,27 @@ html[data-ui="glass"] .fab-chat {
 html[data-ui="glass"] body.spa-mode,
 html[data-ui="glass"] .spa-shell,
 html[data-ui="glass"] .spa-tab-stack { background: transparent; }
-/* Разделите свършват над навигацията: прозорците в тях (напр. „Твоят план е готов“) не се скриват под нея. */
-html[data-ui="glass"] .spa-tab-stack { bottom: calc(64px + var(--safe-area-inset-bottom, 0px)); }
+/* Навигацията плава (цяла очертана); разделите свършват над нея — прозорците в тях (напр. „Твоят план е готов“)
+   не се скриват, а под навигацията се вижда само фонът със светлината, не съдържание. */
+html[data-ui="glass"] .spa-tab-stack {
+    bottom: calc(84px + var(--safe-area-inset-bottom, 0px));
+    /* съдържанието се стопява към фона в последните 22px, вместо да се реже по права линия */
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+}
 html[data-ui="glass"] .spa-tab-view { background: transparent; }
 html[data-ui="glass"] .spa-bottom-nav,
 html[data-ui="glass"][data-theme="dark"] .spa-bottom-nav {
-    left: 0; right: 0;
-    bottom: 0;
-    height: calc(64px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
-    padding: 0 6px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
-    border-radius: 22px 22px 0 0;
+    left: 12px; right: 12px;
+    bottom: calc(10px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    height: 64px;
+    padding: 0 6px;
+    border-radius: 32px;
     background: var(--ag-chrome);
     -webkit-backdrop-filter: var(--ag-blur-strong);
     backdrop-filter: var(--ag-blur-strong);
     border: 1px solid var(--ag-edge);
-    border-bottom: 0;
-    box-shadow: inset 0 1px 0 var(--ag-hi), 0 -10px 30px -18px rgba(0, 0, 0, 0.45);
+    box-shadow: inset 0 1px 0 var(--ag-hi), 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 16px 36px -14px rgba(0, 0, 0, 0.45);
 }
 html[data-ui="glass"] .spa-bottom-nav .bottom-nav-item { color: var(--ag-ink-soft); font-size: 11px; }
 html[data-ui="glass"] .spa-bottom-nav .bottom-nav-item.active { color: var(--ag-accent); }
@@ -227,7 +232,7 @@ html[data-ui="glass"][data-theme="dark"] .spa-bottom-nav .bottom-nav-item.active
 html[data-ui="glass"] .spa-nav-pill { top: 6px; height: 50px; border-radius: 25px; background: rgba(5, 115, 125, 0.10); transition: transform 0.5s var(--ag-spring), width 0.5s var(--ag-spring), opacity 0.2s; }
 html[data-ui="glass"][data-theme="dark"] .spa-nav-pill { background: rgba(255, 255, 255, 0.09); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
 @media (min-width: 900px) {
-    html[data-ui="glass"] .spa-bottom-nav { width: min(460px, 100%); }
+    html[data-ui="glass"] .spa-bottom-nav { width: min(436px, calc(100% - 24px)); }
     html[data-ui="glass"] body.spa-mode { background: var(--ag-bg); }
 }
 
@@ -250,20 +255,25 @@ html[data-ui="glass"][data-ui-lite] .ag-aura i { animation: none; }
    Навсякъде в приложението и лендингите
    ========================================================================== */
 
-/* Самостоятелните страници (извън обвивката): същата навигация, прикрепена към дъното */
+/* Самостоятелните страници (извън обвивката): същата плаваща навигация; под нея — мек преход към фона
+   (.ag-navscrim от ambient-glass.js), за да не прозира съдържанието в пролуката. */
+html[data-ui="glass"] .ag-navscrim {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 299; pointer-events: none;
+    height: calc(96px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    background: linear-gradient(to top, var(--ag-bg) 0, var(--ag-bg) calc(34px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))), color-mix(in srgb, var(--ag-bg) 0%, transparent));
+}
 html[data-ui="glass"]:not([data-embedded-tab="1"]) .bottom-nav:not(.spa-bottom-nav),
 html[data-ui="glass"][data-theme="dark"]:not([data-embedded-tab="1"]) .bottom-nav:not(.spa-bottom-nav) {
-    left: 0; right: 0;
-    bottom: 0;
-    height: calc(64px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
-    padding: 0 6px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
-    border-radius: 22px 22px 0 0;
+    left: 12px; right: 12px;
+    bottom: calc(10px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    height: 64px;
+    padding: 0 6px;
+    border-radius: 32px;
     background: var(--ag-chrome);
     -webkit-backdrop-filter: var(--ag-blur-strong);
     backdrop-filter: var(--ag-blur-strong);
     border: 1px solid var(--ag-edge);
-    border-bottom: 0;
-    box-shadow: inset 0 1px 0 var(--ag-hi), 0 -10px 30px -18px rgba(0, 0, 0, 0.45);
+    box-shadow: inset 0 1px 0 var(--ag-hi), 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 16px 36px -14px rgba(0, 0, 0, 0.45);
 }
 html[data-ui="glass"] .bottom-nav:not(.spa-bottom-nav) .bottom-nav-item { color: var(--ag-ink-soft); font-size: 11px; border-radius: 24px; }
 html[data-ui="glass"] .bottom-nav:not(.spa-bottom-nav) .bottom-nav-item.active { color: var(--ag-accent); background: rgba(5, 115, 125, 0.10); }
