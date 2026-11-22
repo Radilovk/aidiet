@@ -42,7 +42,9 @@
   "Добавка": "Supplement",
   "Позволено рядко и забранено": "Allowed rarely and not allowed",
   "За твоето ежедневие": "For your everyday life",
-  "Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.": "The new plan with your changes is awaiting specialist approval. The guidelines below are for your current plan."
+  "Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.": "The new plan with your changes is awaiting specialist approval. The guidelines below are for your current plan.",
+  "Движение и активност": "Movement and activity",
+  "Натоварването съгласувай с лекуващия лекар.": "Agree the load with your doctor."
  },
  "keys": {},
  "patterns": []

@@ -191,7 +191,12 @@
   "Няма универсални диети.": "There are no one-size-fits-all diets.",
   "Нашият подход е съобразен изцяло с теб.": "Our approach is built entirely around you.",
   "Постоянно ще адаптираме всичко към теб": "We will keep adapting everything to you",
-  "Ние създаваме изключително персонализиран план специално за теб и твоята цел. — Хранене — Психология — Суплементация — Активности. Зад всичко това стои екип от лекари и диетолози.": "We create a truly personalised plan specifically for you and your goal. — Nutrition — Psychology — Supplementation — Activities. A team of doctors and dietitians stands behind all of this."
+  "Ние създаваме изключително персонализиран план специално за теб и твоята цел. Зад всичко това стои екип от лекари и диетолози.": "We create a truly personalised plan specifically for you and your goal. A team of doctors and dietitians stands behind all of this.",
+  "Хранене": "Nutrition",
+  "Психология": "Psychology",
+  "Суплементация": "Supplementation",
+  "Активности": "Activities",
+  "Какво включва планът": "What the plan includes"
  },
  "keys": {
   "day.mock.0": "M",

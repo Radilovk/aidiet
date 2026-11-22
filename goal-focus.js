@@ -41,11 +41,11 @@
 
     /** Секциите в „Насоки“. */
     var GUIDE_ORDER = {
-        lose: ['limit', 'foods', 'swaps', 'hacks', 'psychology', 'supplements'],
-        lose_soft: ['foods', 'supplements', 'limit', 'psychology', 'swaps', 'hacks'],
-        gain: ['foods', 'hacks', 'supplements', 'swaps', 'limit', 'psychology'],
-        tone: ['foods', 'limit', 'hacks', 'swaps', 'supplements', 'psychology'],
-        health: ['foods', 'supplements', 'limit', 'psychology', 'swaps', 'hacks']
+        lose: ['limit', 'foods', 'swaps', 'hacks', 'psychology', 'activity', 'supplements'],
+        lose_soft: ['foods', 'supplements', 'limit', 'psychology', 'swaps', 'activity', 'hacks'],
+        gain: ['foods', 'hacks', 'supplements', 'swaps', 'limit', 'activity', 'psychology'],
+        tone: ['foods', 'limit', 'hacks', 'swaps', 'supplements', 'activity', 'psychology'],
+        health: ['foods', 'supplements', 'limit', 'psychology', 'swaps', 'activity', 'hacks']
     };
 
     /**

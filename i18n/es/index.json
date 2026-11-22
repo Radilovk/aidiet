@@ -191,7 +191,12 @@
   "Няма универсални диети.": "No existen dietas universales.",
   "Нашият подход е съобразен изцяло с теб.": "Nuestro enfoque se adapta por completo a ti.",
   "Постоянно ще адаптираме всичко към теб": "Adaptaremos todo a ti constantemente",
-  "Ние създаваме изключително персонализиран план специално за теб и твоята цел. — Хранене — Психология — Суплементация — Активности. Зад всичко това стои екип от лекари и диетолози.": "Creamos un plan totalmente personalizado especialmente para ti y tu objetivo. — Nutrición — Psicología — Suplementación — Actividades. Detrás de todo esto hay un equipo de médicos y dietistas-nutricionistas."
+  "Ние създаваме изключително персонализиран план специално за теб и твоята цел. Зад всичко това стои екип от лекари и диетолози.": "Creamos un plan totalmente personalizado especialmente para ti y tu objetivo. Detrás de todo esto hay un equipo de médicos y dietistas-nutricionistas.",
+  "Хранене": "Nutrición",
+  "Психология": "Psicología",
+  "Суплементация": "Suplementación",
+  "Активности": "Actividades",
+  "Какво включва планът": "Qué incluye el plan"
  },
  "keys": {
   "day.mock.0": "L",

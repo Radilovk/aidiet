@@ -34,6 +34,7 @@
     "test:device-import": "node scripts/test-device-import.mjs",
     "test:device-links": "node scripts/test-device-links.mjs",
     "test:goal-focus": "node scripts/test-goal-focus.mjs",
+    "test:activity-guide": "node scripts/test-activity-guide.mjs",
     "test:goal-model": "node scripts/test-goal-model.mjs",
     "test:council": "node scripts/test-council.mjs",
     "test:weekly-recal": "node scripts/test-weekly-recal.mjs",

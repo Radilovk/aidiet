@@ -42,7 +42,9 @@
   "Добавка": "Takviye",
   "Позволено рядко и забранено": "Nadiren İzin Verilenler ve Yasaklar",
   "За твоето ежедневие": "Günlük Yaşamın İçin",
-  "Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.": "Değişikliklerine göre hazırlanan yeni plan uzmanın onayını bekliyor. Aşağıdaki rehber mevcut planın içindir."
+  "Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.": "Değişikliklerine göre hazırlanan yeni plan uzmanın onayını bekliyor. Aşağıdaki rehber mevcut planın içindir.",
+  "Движение и активност": "Hareket ve aktivite",
+  "Натоварването съгласувай с лекуващия лекар.": "Yüklenmeyi doktorunla netleştir."
  },
  "keys": {},
  "patterns": []

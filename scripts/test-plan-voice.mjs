@@ -47,6 +47,7 @@ const raw = {
   specialistNote: 'Първите две седмици гледайте вечерите.',
   psychology: ['Насока едно.', 'Насока две.', 'Яжте 150 г пиле.', 'Насока три.', 'Изпийте 2 грама магнезий.'],
   habits: ['Навик едно.', 'Навик две.', 'Навик три.'],
+  activity: ['Разходка с колегата по обяд.', 'Стълбите вкъщи вместо асансьора.', 'Трети съвет.'],
   mealNotes: [{ dishId: dish, note: 'Сгответе двойно — утре е обяд за работа.' }, { dishId: 'няма_такова', note: 'изпада' }],
 };
 const voice = normalizePlanVoice(raw, { dishIds: new Set(ids), blockedTerms: ['Без гъби'] });
@@ -56,6 +57,8 @@ ok(Object.keys(voice.mealNotes).length === 1 && voice.mealNotes[dish], 'беле
 ok(normalizePlanVoice({ welcome: 'Обичате ли гъби?' }, { dishIds: [], blockedTerms: ['гъби'] }) === null, 'текст със забранена храна не минава');
 ok(normalizePlanVoice({ psychology: ['a', 'b'] }, { dishIds: [] }) === null, 'под 3 насоки без писмо — няма глас');
 ok(normalizePlanVoice({ welcome: 'Здравейте <script>' }, { dishIds: [] }) === null, 'HTML в текста се отхвърля');
+
+ok(voice.activity.length === 2, 'движение: съветите минават проверката');
 
 // 4. Прилагането.
 applyPlanVoice(plan, voice);
@@ -94,5 +97,6 @@ ok(kcalBefore === JSON.stringify(Object.values(engine.weekPlan).flatMap(d => d.m
   ok(mergeVoiceRepair(first, null, ctx) === first, 'поправка: празен отговор не променя нищо');
 }
 
+{ const pl = { weekPlan: {} }; applyPlanVoice(pl, voice); ok(pl.personalActivity?.length === 2, 'движението влиза в плана (personalActivity)'); }
 console.log(`\n=== plan voice: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

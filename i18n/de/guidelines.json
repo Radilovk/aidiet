@@ -42,7 +42,9 @@
   "Добавка": "Ergänzung",
   "Позволено рядко и забранено": "Selten erlaubt und verboten",
   "За твоето ежедневие": "Für deinen Alltag",
-  "Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.": "Der neue Plan mit deinen Änderungen wartet auf die Freigabe durch eine Fachkraft. Die Empfehlungen unten gelten für deinen aktuellen Plan."
+  "Новият план по промените ти очаква одобрение от специалист. Насоките по-долу са за сегашния ти план.": "Der neue Plan mit deinen Änderungen wartet auf die Freigabe durch eine Fachkraft. Die Empfehlungen unten gelten für deinen aktuellen Plan.",
+  "Движение и активност": "Bewegung und Aktivität",
+  "Натоварването съгласувай с лекуващия лекар.": "Stimme die Belastung mit deinem Arzt ab."
  },
  "keys": {},
  "patterns": []
