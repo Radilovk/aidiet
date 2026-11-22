@@ -82244,7 +82244,7 @@ function buildPasswordResetEmailHtml(oobLink, contactEmail = "info@biocode.onlin
 </body>
 </html>`;
 }
-async function getFirebaseAdminToken(env) {
+async function getFirebaseAdminToken(env, scope = "https://www.googleapis.com/auth/identitytoolkit") {
   const raw = env.FIREBASE_SERVICE_ACCOUNT;
   if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT \u043D\u0435 \u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043D.");
   let sa;
@@ -82274,7 +82274,7 @@ async function getFirebaseAdminToken(env) {
     aud: "https://oauth2.googleapis.com/token",
     iat: now,
     exp: now + 3600,
-    scope: "https://www.googleapis.com/auth/identitytoolkit"
+    scope
   });
   const sigInput = new TextEncoder().encode(`${header}.${payload}`);
   const sigBuf = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", privateKey, sigInput);
@@ -93342,6 +93342,8 @@ var worker_entry_default = {
         return await handleLinksStart(request, env);
       } else if (url.pathname.startsWith("/api/links/callback/") && request.method === "GET") {
         return await handleLinksCallback(request, env, url.pathname.split("/").pop());
+      } else if (url.pathname === "/api/system/auth-domains" && request.method === "POST") {
+        return await handleAuthDomains(request, env);
       } else if (url.pathname === "/api/system/email-domain" && request.method === "POST") {
         return await handleEmailDomain(request, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/links/sync" && request.method === "POST") {
@@ -93553,6 +93555,34 @@ var worker_entry_default = {
     }
   }
 };
+async function handleAuthDomains(request, env) {
+  const nonce = request.headers.get("X-Bridge-Nonce") || "";
+  const stored = env.page_content ? await env.page_content.get("bridge_nonce:auth_domains") : null;
+  if (!nonce || !stored || stored !== nonce) return jsonResponse2({ error: "forbidden" }, 403);
+  try {
+    const { add } = await request.json().catch(() => ({}));
+    const want = (Array.isArray(add) ? add : []).map((d) => String(d).toLowerCase().trim()).filter((d) => /^[a-z0-9.-]+\.[a-z]{2,}$/.test(d));
+    const token = await getFirebaseAdminToken(env, "https://www.googleapis.com/auth/cloud-platform");
+    const project = encodeURIComponent(env.FIREBASE_PROJECT_ID);
+    const url = `https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/config`;
+    const cur = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const cfg = await cur.json().catch(() => ({}));
+    if (!cur.ok) return jsonResponse2({ error: `config ${cur.status}: ${cfg?.error?.message || ""}` }, 502);
+    const have = cfg.authorizedDomains || [];
+    const next = [.../* @__PURE__ */ new Set([...have, ...want])];
+    if (next.length === have.length) return jsonResponse2({ success: true, authorizedDomains: have, changed: false });
+    const up = await fetch(`${url}?updateMask=authorizedDomains`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ authorizedDomains: next })
+    });
+    const out = await up.json().catch(() => ({}));
+    if (!up.ok) return jsonResponse2({ error: `update ${up.status}: ${out?.error?.message || ""}` }, 502);
+    return jsonResponse2({ success: true, authorizedDomains: out.authorizedDomains || next, changed: true });
+  } catch (e) {
+    return jsonResponse2({ error: e.message }, 500);
+  }
+}
 export {
   worker_entry_default as default,
   verifyAcuitySignature,

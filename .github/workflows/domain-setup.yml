@@ -203,3 +203,26 @@ jobs:
             [ "$st" = "verified" ] && { say "- ✓ Потвърдено — писмата вече излизат от info@$DOMAIN"; exit 0; }
           done
           say "- … Още не е потвърдено (DNS може да отнеме до час) — следващото публикуване на worker-а или ръчно пускане проверява пак."
+
+  # Входът с Google: домейните на приложението в Firebase Auth → Authorized domains (worker-ът има ключа на услугата).
+  auth-domains:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      KV: https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/storage/kv/namespaces/81fc0991b2764918b682f9ca170abd4b
+      WORKER: https://aidiet.radilov-k.workers.dev
+      DOMAIN: ${{ inputs.domain || 'nutriin.app' }}
+    steps:
+      - name: Firebase — Authorized domains
+        run: |
+          set -u
+          say() { echo "$*" | tee -a "$GITHUB_STEP_SUMMARY"; }
+          say '### Вход с Google (Firebase Authorized domains)'
+          nonce=$(openssl rand -hex 24)
+          curl -sf -X PUT -H "Authorization: Bearer $CF_TOKEN" --data "$nonce" "$KV/values/bridge_nonce:auth_domains?expiration_ttl=600" >/dev/null || { say "- ✗ Кодът за достъп не е записан в KV"; exit 1; }
+          trap 'curl -s -X DELETE -H "Authorization: Bearer $CF_TOKEN" "$KV/values/bridge_nonce:auth_domains" >/dev/null' EXIT
+          res=$(curl -sS -X POST "$WORKER/api/system/auth-domains" -H "X-Bridge-Nonce: $nonce" -H 'Content-Type: application/json' --data "{\"add\":[\"$DOMAIN\",\"www.$DOMAIN\"]}")
+          if [ "$(echo "$res" | jq -r '.success // false')" = "true" ]; then
+            say "- ✓ Разрешени: $(echo "$res" | jq -r '.authorizedDomains | join(", ")')"
+          else say "- ✗ $(echo "$res" | jq -r '.error // .')"; exit 1; fi
