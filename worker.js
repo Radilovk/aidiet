@@ -82039,7 +82039,7 @@ var DEFAULT_EMAIL_TEMPLATE = {
   paragraph1: "\u0420\u0430\u0434\u0432\u0430\u043C\u0435 \u0441\u0435 \u0434\u0430 \u0442\u0438 \u0441\u044A\u043E\u0431\u0449\u0438\u043C, \u0447\u0435 \u0442\u0432\u043E\u044F\u0442 <strong>\u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D 7-\u0434\u043D\u0435\u0432\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D</strong> \u0435 \u0433\u043E\u0442\u043E\u0432 \u0438 \u0432\u0435\u0447\u0435 \u0435 \u0434\u043E\u0441\u0442\u044A\u043F\u0435\u043D!",
   paragraph2: "\u041D\u0430\u0448\u0438\u044F\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442 \u0432\u043D\u0438\u043C\u0430\u0442\u0435\u043B\u043D\u043E \u0435 \u0440\u0430\u0437\u0433\u043B\u0435\u0434\u0430\u043B \u0442\u0432\u043E\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u0438 \u0435 \u0438\u0437\u0433\u043E\u0442\u0432\u0438\u043B \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u0435\u043D \u043F\u043B\u0430\u043D, \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D \u0441 \u0442\u0432\u043E\u0438\u0442\u0435 \u0446\u0435\u043B\u0438 \u0438 \u043D\u0443\u0436\u0434\u0438.",
   buttonText: "\u0412\u0438\u0436 \u043C\u043E\u044F \u043F\u043B\u0430\u043D \u2192",
-  contactEmail: "info@biocode.online"
+  contactEmail: "info@nutriin.app"
 };
 var PLAN_APP_BASE_URL = "https://biocode.website";
 var EMAIL_LOGO_HTML = `<img src="${PLAN_APP_BASE_URL}/brand/nutriin-email-logo.png" width="240" height="70" alt="Nutriin" style="display:block;margin:0 auto;border:0;outline:none;width:240px;height:auto;">`;
@@ -82052,7 +82052,7 @@ var DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE = {
   paragraph1: "\u0421\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u044A\u0442 \u043D\u0430\u043F\u0440\u0430\u0432\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438 \u0432\u044A\u0432 \u0442\u0432\u043E\u044F <strong>\u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D</strong>.",
   paragraph2: "\u041D\u0430\u0442\u0438\u0441\u043D\u0438 \u0431\u0443\u0442\u043E\u043D\u0430 \u043F\u043E-\u0434\u043E\u043B\u0443, \u0437\u0430 \u0434\u0430 \u0437\u0430\u0440\u0435\u0434\u0438\u0448 \u043D\u043E\u0432\u0430\u0442\u0430 \u0432\u0435\u0440\u0441\u0438\u044F. \u041B\u0438\u043D\u043A\u044A\u0442 \u0435 \u0435\u0434\u043D\u043E\u043A\u0440\u0430\u0442\u0435\u043D \u0438 \u0432\u0430\u043B\u0438\u0434\u0435\u043D 72 \u0447\u0430\u0441\u0430.",
   buttonText: "\u0417\u0430\u0440\u0435\u0434\u0438 \u043E\u0431\u043D\u043E\u0432\u0435\u043D\u0438\u044F \u043F\u043B\u0430\u043D \u2192",
-  contactEmail: "info@biocode.online"
+  contactEmail: "info@nutriin.app"
 };
 function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl) {
   const t = Object.assign({}, DEFAULT_EMAIL_TEMPLATE, tpl || {});
@@ -82185,7 +82185,7 @@ function buildPlanUpdatedEmailHtml(clientName, tpl, buttonUrl) {
 </body>
 </html>`;
 }
-function buildPasswordResetEmailHtml(oobLink, contactEmail = "info@biocode.online") {
+function buildPasswordResetEmailHtml(oobLink, contactEmail = "info@nutriin.app") {
   const safeContactEmail = escapeHtml(contactEmail);
   const safeOobLink = oobLink;
   const year = (/* @__PURE__ */ new Date()).getFullYear();
@@ -90121,7 +90121,7 @@ async function handleGetCalendarIcs(request, env) {
   return new Response(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="nutriplan-reminders.ics"',
+      "Content-Disposition": 'attachment; filename="nutriin-reminders.ics"',
       "Cache-Control": "no-cache"
     }
   });

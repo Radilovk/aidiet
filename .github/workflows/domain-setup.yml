@@ -96,7 +96,7 @@ jobs:
       # Поща: privacy@<домейн> се препраща към личния имейл на собственика (секретът EMAIL_FORWARD_TO,
       # ако е зададен, иначе адресът по-долу). Cloudflare праща писмо за потвърждение на този адрес:
       # препращането тръгва след клик в него.
-      - name: Email routing (privacy@ → личен имейл)
+      - name: Email routing (privacy@, info@ → личен имейл)
         env:
           FORWARD_TO: ${{ secrets.EMAIL_FORWARD_TO || 'radilov.k@gmail.com' }}
         run: |
@@ -124,16 +124,16 @@ jobs:
           verified=$(api GET "/accounts/$CF_ACCOUNT/email/routing/addresses?per_page=50" | jq -r --arg e "$FORWARD_TO" '.result[]? | select((.email|ascii_downcase)==($e|ascii_downcase)) | .verified // empty')
           if [ -n "$verified" ] && [ "$verified" != "null" ]; then say "- ✓ Личният имейл е потвърден"
           else say "- … Личният имейл чака потвърждение: отвори писмото от Cloudflare и натисни линка, после пусни този workflow пак"; fi
-          # 3) Правилото privacy@ → личния имейл (не се дублира).
-          to="privacy@$DOMAIN"
-          have=$(api GET "/zones/$zid/email/routing/rules?per_page=50" | jq -r --arg t "$to" '[.result[]? | select(any(.matchers[]?; .value==$t))] | length')
-          if [ "${have:-0}" -gt 0 ]; then say "- ✓ Правилото \`$to\` вече съществува"
-          else
-            rule=$(jq -n --arg t "$to" --arg d "$FORWARD_TO" '{name:"privacy", enabled:true, matchers:[{type:"literal", field:"to", value:$t}], actions:[{type:"forward", value:[$d]}]}')
+          # 3) Правилата privacy@ и info@ (отговорите на писмата) → личния имейл (не се дублират).
+          for box in privacy info; do
+            to="$box@$DOMAIN"
+            have=$(api GET "/zones/$zid/email/routing/rules?per_page=50" | jq -r --arg t "$to" '[.result[]? | select(any(.matchers[]?; .value==$t))] | length')
+            if [ "${have:-0}" -gt 0 ]; then say "- ✓ Правилото \`$to\` вече съществува"; continue; fi
+            rule=$(jq -n --arg t "$to" --arg d "$FORWARD_TO" --arg n "$box" '{name:$n, enabled:true, matchers:[{type:"literal", field:"to", value:$t}], actions:[{type:"forward", value:[$d]}]}')
             res=$(api POST "/zones/$zid/email/routing/rules" "$rule")
             if [ "$(echo "$res" | jq -r '.success')" = "true" ]; then say "- ✓ \`$to\` → личния имейл"
-            else say "- ✗ Правилото: $(echo "$res" | errs)"; exit 1; fi
-          fi
+            else say "- ✗ Правилото $to: $(echo "$res" | errs)"; exit 1; fi
+          done
 
   # Изпращане от nutriin.app (EMAIL_DOMAIN в email-domain.js): worker-ът (има ключа за Resend) регистрира домейна, тук (ключът за
   # Cloudflare) се слагат DNS записите и се иска потвърждение. Достъпът до worker-а — еднократен код в KV.

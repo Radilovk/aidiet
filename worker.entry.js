@@ -4092,7 +4092,7 @@ const DEFAULT_EMAIL_TEMPLATE = {
   paragraph1: 'Радваме се да ти съобщим, че твоят <strong>персонален 7-дневен хранителен план</strong> е готов и вече е достъпен!',
   paragraph2: 'Нашият специалист внимателно е разгледал твоите данни и е изготвил индивидуален план, съобразен с твоите цели и нужди.',
   buttonText: 'Виж моя план →',
-  contactEmail: 'info@biocode.online'
+  contactEmail: 'info@nutriin.app'
 };
 
 // Писмата към клиентите — както при NutriPlan, за да не падат в спам: подател info@biocode.online
@@ -4112,7 +4112,7 @@ const DEFAULT_PLAN_UPDATED_EMAIL_TEMPLATE = {
   paragraph1: 'Специалистът направи промени във твоя <strong>персонален хранителен план</strong>.',
   paragraph2: 'Натисни бутона по-долу, за да заредиш новата версия. Линкът е еднократен и валиден 72 часа.',
   buttonText: 'Зареди обновения план →',
-  contactEmail: 'info@biocode.online'
+  contactEmail: 'info@nutriin.app'
 };
 
 /**
@@ -4258,7 +4258,7 @@ function buildPlanUpdatedEmailHtml(clientName, tpl, buttonUrl) {
  * @param {string} oobLink     - Firebase password-reset OOB link
  * @param {string} contactEmail
  */
-function buildPasswordResetEmailHtml(oobLink, contactEmail = 'info@biocode.online') {
+function buildPasswordResetEmailHtml(oobLink, contactEmail = 'info@nutriin.app') {
   const safeContactEmail = escapeHtml(contactEmail);
   const safeOobLink = oobLink; // URL – must not be HTML-escaped (breaks href)
   const year = new Date().getFullYear();
@@ -14364,7 +14364,7 @@ async function handleGetCalendarIcs(request, env) {
   return new Response(ics, {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="nutriplan-reminders.ics"',
+      'Content-Disposition': 'attachment; filename="nutriin-reminders.ics"',
       'Cache-Control': 'no-cache',
     },
   });
