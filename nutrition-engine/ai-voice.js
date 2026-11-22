@@ -224,7 +224,7 @@ export function normalizePlanVoice(raw, ctx, rejected = []) {
     specialistNote: ok(specialistNote) ? specialistNote : '',
     psychology: cleanList(raw.psychology, ok, { min: 3, max: 6 }),
     habits: cleanList(raw.habits, ok, { min: 3, max: 6 }),
-    activity: cleanList(raw.activity, ok, { min: 2, max: 4 }),
+    activity: cleanList(raw.activity, ok, { min: 1, max: 2 }),
     mealNotes: {},
   };
   for (const n of Array.isArray(raw.mealNotes) ? raw.mealNotes : []) {
