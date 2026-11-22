@@ -162,8 +162,6 @@
   "EmoEat — емоционално хранене": "EmoEat — duygusal beslenme",
   "IrisMap — ирисов анализ": "IrisMap — iris analizi",
   "Подновява се всяка седмица": "Her hafta yenilenir",
-  "Не поредната интернет диета.": "İnternetteki diyetlerden biri değil.",
-  "Система, съобразена изцяло с твоето тяло.": "Tamamen vücuduna göre kurulmuş bir sistem.",
   "Твой личен AI консултант": "Kişisel yapay zekâ danışmanın",
   "Хранене, медицина, спорт и психология. Зад всичко стои екип от специалисти.": "Beslenme, tıp, spor ve psikoloji. Hepsinin arkasında bir uzman ekibi var.",
   "Емоционално хранене: откъде идва гладът за определени храни. Резултатът влиза направо в плана ти.": "Duygusal yeme: belirli yiyeceklere duyulan isteğin nereden geldiği. Sonuç doğrudan planına eklenir.",
@@ -185,12 +183,15 @@
   "Инсулинова резистентност, автоимунни състояния, антиейджинг и още — 12 протокола.": "İnsülin direnci, otoimmün durumlar, anti-aging ve daha fazlası — 12 protokol.",
   "Замислена жена яде сладолед на кухненска маса": "Mutfak masasında dondurma yiyen düşünceli bir kadın",
   "Промяната започва отвътре.": "Değişim içten başlar.",
-  "Храната е в основата на": "Beslenme, ... temelini oluşturur",
-  "твоят": "senin",
+  "Храната е в основата на": "Beslenme,",
   "Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад всичко това стои екип от лекари и диетолози. Резултатът — ще е твой.": "Biz sana tamamen kişiselleştirilmiş bir plan hazırlıyoruz: vücuduna, sağlığına ve hedefine göre ne, ne kadar ve ne zaman yemen gerektiği. Tüm bunların arkasında doktorlar ve diyetisyenlerden oluşan bir ekip var. Sonuç — senin olacak.",
-  "Постоянно ще адаптираме всичко към теб.": "Her şeyi sürekli sana göre uyarlayacağız.",
   "Конкретни психологически насоки, хранителни добавки и активности": "Net psikolojik öneriler, takviyeler ve aktiviteler",
-  "Препоръки, съобразени с теб и с целта ти.": "Sana ve hedefine göre uyarlanmış öneriler."
+  "Препоръки, съобразени с теб и с целта ти.": "Sana ve hedefine göre uyarlanmış öneriler.",
+  "твоя": "senin",
+  "успех.": "başarının temelidir.",
+  "Няма универсални диети.": "Herkese uyan diyet yoktur.",
+  "Нашият подход е съобразен изцяло с теб.": "Yaklaşımımız tamamen sana göre şekillenir.",
+  "Постоянно ще адаптираме всичко към теб": "Her şeyi sürekli sana göre uyarlayacağız"
  },
  "keys": {
   "day.mock.0": "P",
