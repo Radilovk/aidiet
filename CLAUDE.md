@@ -47,6 +47,7 @@ biocode.website (`PLAN_APP_BASE_URL`); при изпращане `email-domain.j
 - Източник: `worker.entry.js` + импортираните модули в корена, `nutrition-engine/`, `fitness/worker.js`, `studio-platform/`.
 - **`worker.js` е генериран (4MB) — не го редактирай и не го чети.** Сглобява се с `npm run build:worker`.
 - Данни: `data/`, `data/engine/`, `nutrition-library/`, `*-data.js`. Промптове/KV: `KV/`.
+- Снимки на ястията: `brand/dishes/` + `data/engine/dish-images.json`, търсене и избор със `scripts/dish-images.mjs` (виж `docs/DISH_IMAGES.md`).
 - Проверка: `npm run test:worker` (bundle + health); тематични тестове: `npm run test:*` (виж `package.json`, `scripts/`).
 
 ## Други проекти (отделни, не пипай при работа по Nutriin)

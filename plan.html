@@ -529,6 +529,13 @@
             margin-top: 3px;
         }
 
+        /* Снимката на ястието: малък заоблен квадрат вляво (има я само ако ястието има снимка). */
+        .meal-card .meal-thumb { width: 52px; height: 52px; flex: none; border-radius: 14px; object-fit: cover; margin-right: 12px;
+            background: var(--ds-surface-sunken, rgba(15,47,46,.05)); box-shadow: inset 0 0 0 1px var(--ds-line, rgba(15,47,46,.07)); }
+        .meal-card.has-thumb .meal-info { flex: 1; min-width: 0; }
+        .modal-hero-img { display: block; width: calc(100% + 0px); aspect-ratio: 16 / 10; object-fit: cover; border-radius: 18px; margin: 4px 0 14px;
+            background: var(--ds-surface-sunken, rgba(15,47,46,.05)); }
+        .modal-hero-img[hidden] { display: none; }
         .meal-info {
             flex: 1;
             min-width: 0;
@@ -4534,6 +4541,7 @@
         <div class="modal-card">
                 <div class="modal-drag-handle"></div>
             <button type="button" class="modal-close" onclick="closeModal()" aria-label="Затвори"><i class="fas fa-times" aria-hidden="true"></i></button>
+            <img class="modal-hero-img" id="mHeroImg" alt="" hidden decoding="async">
             <h3 class="modal-title" id="mTitle">Заглавие</h3>
             <div class="modal-weight-badge" id="mWeightBadge" style="display:none;">
                 <span class="modal-weight-icon"><i class="fas fa-weight-hanging"></i></span>
@@ -5979,6 +5987,7 @@
                 if (meal.calories) mealCard.setAttribute('data-meal-calories', meal.calories);
                 else if (meal._plannedCalories) mealCard.setAttribute('data-meal-calories', meal._plannedCalories);
                 if (meal.type) mealCard.setAttribute('data-meal-type', meal.type);
+                if (meal.dishId && !isFreeMeal) mealCard.setAttribute('data-dish-id', meal.dishId);
                 mealCard.setAttribute('data-order-hour', _mealUnlockHour(meal.type));
 
                 const mealInfo = document.createElement('div');
@@ -6003,6 +6012,7 @@
                 mealCard.style.animation = `cardEnter 0.45s cubic-bezier(0.22,1,0.36,1) ${_mi * 65}ms both`;
                 mealContainer.appendChild(mealCard);
             });
+            applyDishThumbs(mealContainer);
 
             // Render photo-added meals for this day (from "Добави в плана"),
             // interleaved with planned meals by order hour.
@@ -6688,6 +6698,54 @@
             } catch (_) {}
         })();
 
+        // Снимките на ястията (data/engine/dish-images.json, scripts/dish-images.mjs): малка в картата,
+        // по-голяма в прозореца. Ястие без снимка остава както е.
+        var _dishImages = null;
+        (function loadDishImages() {
+            try {
+                fetch('data/engine/dish-images.json', { cache: 'no-cache' })
+                    .then(function(r) { return r.ok ? r.json() : null; })
+                    .then(function(doc) {
+                        _dishImages = (doc && doc.images) || {};
+                        applyDishThumbs(document);
+                    })
+                    .catch(function() {});
+            } catch (_) {}
+        })();
+
+        function dishImageSrc(dishId, size) {
+            var img = dishId && _dishImages && _dishImages[dishId];
+            return img && img.src ? img.src + '-' + size + '.webp' : '';
+        }
+
+        function applyDishThumbs(root) {
+            if (!_dishImages || !root) return;
+            root.querySelectorAll('.meal-card[data-dish-id]:not(.has-thumb)').forEach(function(card) {
+                var src = dishImageSrc(card.getAttribute('data-dish-id'), 160);
+                if (!src) return;
+                var img = document.createElement('img');
+                img.className = 'meal-thumb';
+                img.src = src;
+                img.alt = '';
+                img.width = 52; img.height = 52;
+                img.loading = 'lazy'; img.decoding = 'async';
+                img.onerror = function() { img.remove(); card.classList.remove('has-thumb'); };
+                card.insertBefore(img, card.firstChild);
+                card.classList.add('has-thumb');
+            });
+        }
+
+        function showMealHeroImage(meal) {
+            var el = document.getElementById('mHeroImg');
+            if (!el) return;
+            var src = meal ? dishImageSrc(meal.dishId, 480) : '';
+            el.hidden = !src;
+            if (src) {
+                el.onerror = function() { el.hidden = true; };
+                el.src = src;
+            } else el.removeAttribute('src');
+        }
+
         function mealRecipeText(meal) {
             // Рецептата по стъпки се показва отделно (showMealRecipeSteps).
             if (Array.isArray(meal.recipeSteps) && meal.recipeSteps.length) return '';
@@ -6826,6 +6884,7 @@
                     meal.calories || null
                 );
                 showMealRecipeSteps(meal);
+                showMealHeroImage(meal);
                 showMealPersonalNote(meal.personalNote || '');
                 showMealSwapAction(swap, meal);
             };
@@ -6867,6 +6926,7 @@
             var staleSwap = document.getElementById('mSwapAction');
             if (staleSwap) staleSwap.remove();
             showMealPersonalNote('');
+            showMealHeroImage(null);
             // Strip dessert name from title to avoid duplication with the mDessert section below
             let displayTitle = title;
             if (dessert && dessert.name) {
