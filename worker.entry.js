@@ -142,6 +142,7 @@ import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, h
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
 import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview } from './plan-review.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, addSpend, BUDGET_KEY } from './spend.js';
+import { claudeReaderAvailable, readLabsWithClaude, assessDocumentWithClaude } from './document-reader.js';
 import { resolveGeminiModel } from './gemini-models.js';
 
 /** Известие до админа при 50% / 100% от дневния AI таван (push в админ панела). */
@@ -15498,6 +15499,19 @@ glucose — глюкоза (кръвна захар) на гладно; hba1c �
  * Разчита показателите от снимка/PDF и ги връща за потвърждение — нищо не се
  * записва, докато клиентът не провери стойностите (POST /api/enrichment).
  */
+/** Claude чете документа, ако има ключ; при грешка → null и извикващият минава на досегашния път (Gemini). */
+async function readWithClaude(env, fn, args) {
+  if (!claudeReaderAvailable(env)) return null;
+  try {
+    const { result, usd } = await fn(env, args);
+    await addSpend(env, usd, { notify: adminSpendNotify(env) });
+    return result;
+  } catch (e) {
+    console.warn('[document-reader] Claude failed, fallback:', e.message);
+    return null;
+  }
+}
+
 async function handleLabExtract(request, env) {
   try {
     const { userId, idToken, imageData, mimeType } = await request.json();
@@ -15514,18 +15528,21 @@ async function handleLabExtract(request, env) {
       return jsonResponse({ error: 'Файлът е твърде голям (до 15 MB).' }, 400);
     }
     const prompt = (await getCustomPrompt(env, 'admin_lab_extraction_prompt')) || DEFAULT_LAB_EXTRACTION_PROMPT;
-    let response;
-    if (isPdf) {
-      // PDF се чете директно само от Gemini; иначе — снимка на страницата.
-      if (!env.GEMINI_API_KEY) {
-        return jsonResponse({ error: 'PDF не се поддържа — качи снимка на страницата с резултатите.' }, 415);
+    // Claude (снимка и PDF директно, JSON по схема); без ключ или при грешка — досегашният път.
+    let parsed = await readWithClaude(env, readLabsWithClaude, { prompt, base64: base64Data, mimeType: effectiveMime });
+    if (!parsed) {
+      let response;
+      if (isPdf) {
+        if (!env.GEMINI_API_KEY) {
+          return jsonResponse({ error: 'PDF не се поддържа — качи снимка на страницата с резултатите.' }, 415);
+        }
+        const config = await getAdminConfig(env);
+        response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2000, config.visionThinkingBudget ?? AI_TASKS.lab_extraction.thinking);
+      } else {
+        response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2000, 'lab_extraction');
       }
-      const config = await getAdminConfig(env);
-      response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2000, config.visionThinkingBudget ?? AI_TASKS.lab_extraction.thinking);
-    } else {
-      response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2000, 'lab_extraction');
+      parsed = parseAIResponse(response) || {};
     }
-    const parsed = parseAIResponse(response) || {};
     const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || '')) ? parsed.date : null;
     const markers = (Array.isArray(parsed.markers) ? parsed.markers : [])
       .filter(m => m && LAB_MARKERS[m.key])
@@ -15639,13 +15656,15 @@ async function handleDocumentAssess(request, env) {
     }).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), String(template));
 
     let response;
+    let parsedDoc = null;
     if (imageData) {
       const isPdf = mimeType === 'application/pdf';
       const allowed = ['image/jpeg', 'image/png', 'image/webp'];
       const effectiveMime = isPdf ? 'application/pdf' : (allowed.includes(mimeType) ? mimeType : 'image/jpeg');
       const base64Data = String(imageData).startsWith('data:') ? String(imageData).slice(String(imageData).indexOf(',') + 1) : String(imageData);
       if ((base64Data.length * 3) / 4 > 15 * 1024 * 1024) return jsonResponse({ error: 'Файлът е твърде голям (до 15 MB).' }, 400);
-      if (isPdf) {
+      parsedDoc = await readWithClaude(env, assessDocumentWithClaude, { prompt, base64: base64Data, mimeType: effectiveMime });
+      if (parsedDoc) { /* Claude прочете документа */ } else if (isPdf) {
         if (!env.GEMINI_API_KEY) return jsonResponse({ error: 'PDF не се поддържа — качи снимка на страницата.' }, 415);
         const config = await getAdminConfig(env);
         response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === 'google' && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2500, config.visionThinkingBudget ?? AI_TASKS.document_image.thinking);
@@ -15653,9 +15672,10 @@ async function handleDocumentAssess(request, env) {
         response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2500, 'document_image');
       }
     } else {
-      response = await callAIModel(env, prompt, 2500, 'document_assessment', null, data, null);
+      parsedDoc = await readWithClaude(env, assessDocumentWithClaude, { prompt });
+      if (!parsedDoc) response = await callAIModel(env, prompt, 2500, 'document_assessment', null, data, null);
     }
-    const parsed = parseAIResponse(response) || {};
+    const parsed = parsedDoc || parseAIResponse(response) || {};
     const value = normalizeDocumentValue(parsed);
     const known = new Set(compileProfile(data || {}).clinical);
     const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || '')) ? parsed.date : null;

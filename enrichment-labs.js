@@ -49,13 +49,29 @@ export function labRange(key, sex = 'X') {
   return ranges[key] || null;
 }
 
+// Изписвания на една и съща единица (без преобразуване), след нормализиране (малки букви, без интервали, µ/μ → u).
+const SAME = {
+  glucose: ['mmol/l'], hba1c: ['%'], ldl: ['mmol/l'], hdl: ['mmol/l'], tchol: ['mmol/l'], tg: ['mmol/l'],
+  uric: ['umol/l'], ferritin: ['ug/l', 'ng/ml'], hgb: ['g/l'], vitd: ['nmol/l'], b12: ['pmol/l'],
+  alt: ['u/l', 'iu/l', 'ui/l'], ggt: ['u/l', 'iu/l', 'ui/l'], tsh: ['miu/l', 'mu/l', 'uiu/ml', 'uu/ml', 'uiu/ml'],
+  egfr: ['ml/min/1.73m2', 'ml/min/1.73m²', 'ml/min/1,73m2', 'ml/min/1,73m²', 'ml/min'], potassium: ['mmol/l', 'meq/l'],
+};
+const normUnit = (u) => String(u || '').trim().toLowerCase().replace(/\s+/g, '').replace(/[µμ]/g, 'u');
+
+/**
+ * Стойността в каноничната единица. Неразпозната единица → null: показателят не влиза в правилата
+ * (по-добре пропуснат, отколкото сравнен в грешен мащаб, напр. mg/dL като mmol/L).
+ * Липсваща единица се приема за каноничната — бланките в България я ползват по подразбиране.
+ */
 function canonical(key, value, unit) {
   const m = MARKERS[key];
   if (!m) return null;
-  const u = String(unit || '').trim().toLowerCase().replace(/\s+/g, '');
-  if (!u || u === m.unit.toLowerCase().replace(/\s+/g, '')) return value;
-  const conv = m.alt[u];
-  return conv ? conv(value) : value;
+  const u = normUnit(unit);
+  if (!u || u === normUnit(m.unit) || (SAME[key] || []).includes(u)) return value;
+  const alt = Object.entries(m.alt).find(([k]) => normUnit(k) === u);
+  if (alt) return alt[1](value);
+  if (key === 'b12' && (u === 'ng/l' || u === 'pg/ml')) return value * 0.7378;
+  return null;
 }
 
 /**

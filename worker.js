@@ -424,8 +424,8 @@ var require_goal_model = __commonJS({
       }
       function resolve(f) {
         f = f || {};
-        var read = readGoals(f.goal, f.goalOther);
-        var codes = read.codes.slice();
+        var read2 = readGoals(f.goal, f.goalOther);
+        var codes = read2.codes.slice();
         var protocolGoal = f.protocolGoal || f.protocol && PROTOCOL_GOALS[f.protocol] || null;
         if (protocolGoal) readGoals(protocolGoal).codes.forEach(function(c) {
           if (codes.indexOf(c) === -1) codes.push(c);
@@ -511,7 +511,7 @@ var require_goal_model = __commonJS({
         return {
           codes,
           primary: primary.code,
-          fromText: read.fromText,
+          fromText: read2.fromText,
           direction: dir,
           directionLabel: DIRECTION_LABEL[dir],
           intakePct: pct,
@@ -50060,13 +50060,34 @@ function labRange(key, sex = "X") {
   };
   return ranges[key] || null;
 }
+var SAME = {
+  glucose: ["mmol/l"],
+  hba1c: ["%"],
+  ldl: ["mmol/l"],
+  hdl: ["mmol/l"],
+  tchol: ["mmol/l"],
+  tg: ["mmol/l"],
+  uric: ["umol/l"],
+  ferritin: ["ug/l", "ng/ml"],
+  hgb: ["g/l"],
+  vitd: ["nmol/l"],
+  b12: ["pmol/l"],
+  alt: ["u/l", "iu/l", "ui/l"],
+  ggt: ["u/l", "iu/l", "ui/l"],
+  tsh: ["miu/l", "mu/l", "uiu/ml", "uu/ml", "uiu/ml"],
+  egfr: ["ml/min/1.73m2", "ml/min/1.73m\xB2", "ml/min/1,73m2", "ml/min/1,73m\xB2", "ml/min"],
+  potassium: ["mmol/l", "meq/l"]
+};
+var normUnit = (u) => String(u || "").trim().toLowerCase().replace(/\s+/g, "").replace(/[µμ]/g, "u");
 function canonical(key, value, unit) {
   const m = MARKERS[key];
   if (!m) return null;
-  const u = String(unit || "").trim().toLowerCase().replace(/\s+/g, "");
-  if (!u || u === m.unit.toLowerCase().replace(/\s+/g, "")) return value;
-  const conv = m.alt[u];
-  return conv ? conv(value) : value;
+  const u = normUnit(unit);
+  if (!u || u === normUnit(m.unit) || (SAME[key] || []).includes(u)) return value;
+  const alt = Object.entries(m.alt).find(([k]) => normUnit(k) === u);
+  if (alt) return alt[1](value);
+  if (key === "b12" && (u === "ng/l" || u === "pg/ml")) return value * 0.7378;
+  return null;
 }
 var RULES2 = {
   glucose: (v) => v >= 7 ? { status: "high", clinical: ["IR"], caution: "\u0413\u043B\u044E\u043A\u043E\u0437\u0430 \u043D\u0430 \u0433\u043B\u0430\u0434\u043D\u043E \u0432 \u0434\u0438\u0430\u0431\u0435\u0442\u043D\u0438\u044F \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D \u2014 \u0437\u0430 \u043F\u043E\u0442\u0432\u044A\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u0438 \u043F\u0440\u043E\u0441\u043B\u0435\u0434\u044F\u0432\u0430\u043D\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440." } : v >= 5.6 ? { status: "high", clinical: ["IR"] } : null,
@@ -77811,6 +77832,98 @@ async function handleReviewApply(request, env, { respond, now = Date.now() }) {
   return respond({ success: true, planUpdatedAt: c.planUpdatedAt });
 }
 
+// document-reader.js
+var READER_MODEL = "claude-opus-5-5";
+var PRICE3 = { in: 4, out: 20 };
+var IMAGE_TYPES = /* @__PURE__ */ new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+var LAB_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["date", "markers"],
+  properties: {
+    date: { anyOf: [{ type: "string" }, { type: "null" }], description: "\u0414\u0430\u0442\u0430\u0442\u0430 \u043D\u0430 \u0432\u0437\u0435\u043C\u0430\u043D\u0435 \u043D\u0430 \u043F\u0440\u043E\u0431\u0430\u0442\u0430, YYYY-MM-DD, \u0438\u043B\u0438 null" },
+    markers: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["key", "printedName", "value", "unit", "refLow", "refHigh", "confidence"],
+        properties: {
+          key: { type: "string" },
+          printedName: { type: "string" },
+          value: { type: "number" },
+          unit: { type: "string" },
+          refLow: { anyOf: [{ type: "number" }, { type: "null" }] },
+          refHigh: { anyOf: [{ type: "number" }, { type: "null" }] },
+          confidence: { type: "number" }
+        }
+      }
+    }
+  }
+};
+var strArr = { type: "array", items: { type: "string" } };
+var DOCUMENT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["relevant", "docType", "isLabReport", "title", "date", "summary", "findings", "clinical", "exclusions", "medications", "cautions", "impact", "planChanges"],
+  properties: {
+    relevant: { type: "boolean" },
+    docType: { type: "string", enum: ["epicrisis", "doctor_note", "prescription", "imaging", "lab", "allergy", "own_note", "other"] },
+    isLabReport: { type: "boolean" },
+    title: { type: "string" },
+    date: { anyOf: [{ type: "string" }, { type: "null" }] },
+    summary: { type: "string" },
+    findings: strArr,
+    clinical: strArr,
+    exclusions: strArr,
+    medications: strArr,
+    cautions: strArr,
+    impact: { type: "string", enum: ["none", "context", "menu", "strategy"] },
+    planChanges: strArr
+  }
+};
+var SYSTEM = `\u0420\u0430\u0437\u0447\u0438\u0442\u0430\u0448 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0438 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0438 \u043D\u0430 Nutriin (\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u0438 \u043F\u043B\u0430\u043D\u043E\u0432\u0435). \u0422\u043E\u0447\u043D\u043E\u0441\u0442\u0442\u0430 \u0435 \u043F\u043E-\u0432\u0430\u0436\u043D\u0430 \u043E\u0442 \u043F\u044A\u043B\u043D\u043E\u0442\u0430\u0442\u0430:
+- \u041F\u0440\u0435\u043D\u0430\u0441\u044F\u0448 \u0447\u0438\u0441\u043B\u0430\u0442\u0430 \u0438 \u0435\u0434\u0438\u043D\u0438\u0446\u0438\u0442\u0435 \u0442\u043E\u0447\u043D\u043E \u043A\u0430\u043A\u0442\u043E \u0441\u0430 \u043E\u0442\u043F\u0435\u0447\u0430\u0442\u0430\u043D\u0438; \u043D\u0435 \u0433\u0438 \u0437\u0430\u043A\u0440\u044A\u0433\u043B\u044F\u0448 \u0438 \u043D\u0435 \u0433\u0438 \u043F\u0440\u0435\u043E\u0431\u0440\u0430\u0437\u0443\u0432\u0430\u0448.
+- \u0410\u043A\u043E \u0446\u0438\u0444\u0440\u0430, \u0435\u0434\u0438\u043D\u0438\u0446\u0430 \u0438\u043B\u0438 \u0440\u0435\u0434 \u043D\u0435 \u0441\u0435 \u0447\u0435\u0442\u0435 \u0441\u0438\u0433\u0443\u0440\u043D\u043E, \u0434\u0430\u0432\u0430\u0448 \u043D\u0438\u0441\u043A\u0430 \u0443\u0432\u0435\u0440\u0435\u043D\u043E\u0441\u0442 (\u043F\u043E\u0434 0.7) \u2014 \u043D\u0435 \u0433\u0430\u0434\u0430\u0435\u0448.
+- \u041D\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u044F\u0448 \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u0438 \u0438 \u043D\u0435 \u0434\u0430\u0432\u0430\u0448 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438 \u0441\u044A\u0432\u0435\u0442\u0438; \u0440\u0435\u0448\u0435\u043D\u0438\u044F\u0442\u0430 \u0437\u0430 \u043F\u043B\u0430\u043D\u0430 \u0441\u0435 \u0432\u0437\u0438\u043C\u0430\u0442 \u0432 \u043A\u043E\u0434\u0430 \u0438 \u043E\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442.`;
+function fileBlock(base64, mimeType) {
+  if (mimeType === "application/pdf") {
+    return { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } };
+  }
+  return { type: "image", source: { type: "base64", media_type: IMAGE_TYPES.has(mimeType) ? mimeType : "image/jpeg", data: base64 } };
+}
+async function read(env, { prompt, base64, mimeType, schema, effort, client }) {
+  const api = client || new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  const content = [];
+  if (base64) content.push(fileBlock(base64, mimeType));
+  content.push({ type: "text", text: prompt });
+  const message = await api.beta.messages.stream({
+    model: READER_MODEL,
+    max_tokens: 16e3,
+    thinking: { type: "adaptive" },
+    output_config: { effort, format: { type: "json_schema", schema } },
+    // При отказ по правилата за безопасност същата заявка минава на резервен модел.
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system: SYSTEM,
+    messages: [{ role: "user", content }]
+  }).finalMessage();
+  const u = message.usage || {};
+  const usd = ((u.input_tokens || 0) * PRICE3.in + (u.output_tokens || 0) * PRICE3.out) / 1e6;
+  if (message.stop_reason === "refusal" || message.stop_reason === "max_tokens") {
+    throw new Error(`Claude: ${message.stop_reason}`);
+  }
+  const text2 = message.content.filter((b) => b.type === "text").map((b) => b.text).join("");
+  return { result: JSON.parse(text2), usd };
+}
+var claudeReaderAvailable = (env) => Boolean(env.ANTHROPIC_API_KEY);
+function readLabsWithClaude(env, { prompt, base64, mimeType, client }) {
+  return read(env, { prompt, base64, mimeType, schema: LAB_SCHEMA, effort: "high", client });
+}
+function assessDocumentWithClaude(env, { prompt, base64, mimeType, client }) {
+  return read(env, { prompt, base64, mimeType, schema: DOCUMENT_SCHEMA, effort: "high", client });
+}
+
 // handoff.js
 var HANDOFF_TTL_SEC = 30 * 24 * 60 * 60;
 var HANDOFF_MAX_BYTES = 48 * 1024;
@@ -90886,6 +90999,17 @@ glucose \u2014 \u0433\u043B\u044E\u043A\u043E\u0437\u0430 (\u043A\u0440\u044A\u0
 - date \u2014 \u0434\u0430\u0442\u0430\u0442\u0430 \u043D\u0430 \u0432\u0437\u0435\u043C\u0430\u043D\u0435 \u043D\u0430 \u043F\u0440\u043E\u0431\u0430\u0442\u0430, \u0430\u043A\u043E \u0441\u0435 \u0432\u0438\u0436\u0434\u0430.
 - confidence \u043F\u043E\u0434 0.7, \u0430\u043A\u043E \u0446\u0438\u0444\u0440\u0430\u0442\u0430 \u043D\u0435 \u0441\u0435 \u0447\u0435\u0442\u0435 \u044F\u0441\u043D\u043E.
 - \u041D\u0435 \u0442\u044A\u043B\u043A\u0443\u0432\u0430\u0439 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438\u0442\u0435 \u0438 \u043D\u0435 \u0434\u0430\u0432\u0430\u0439 \u0441\u044A\u0432\u0435\u0442\u0438.`;
+async function readWithClaude(env, fn, args) {
+  if (!claudeReaderAvailable(env)) return null;
+  try {
+    const { result, usd } = await fn(env, args);
+    await addSpend(env, usd, { notify: adminSpendNotify(env) });
+    return result;
+  } catch (e) {
+    console.warn("[document-reader] Claude failed, fallback:", e.message);
+    return null;
+  }
+}
 async function handleLabExtract(request, env) {
   try {
     const { userId, idToken, imageData, mimeType } = await request.json();
@@ -90901,17 +91025,20 @@ async function handleLabExtract(request, env) {
       return jsonResponse2({ error: "\u0424\u0430\u0439\u043B\u044A\u0442 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C (\u0434\u043E 15 MB)." }, 400);
     }
     const prompt = await getCustomPrompt(env, "admin_lab_extraction_prompt") || DEFAULT_LAB_EXTRACTION_PROMPT;
-    let response;
-    if (isPdf) {
-      if (!env.GEMINI_API_KEY) {
-        return jsonResponse2({ error: "PDF \u043D\u0435 \u0441\u0435 \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430 \u2014 \u043A\u0430\u0447\u0438 \u0441\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0430\u0442\u0430 \u0441 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438\u0442\u0435." }, 415);
+    let parsed = await readWithClaude(env, readLabsWithClaude, { prompt, base64: base64Data, mimeType: effectiveMime });
+    if (!parsed) {
+      let response;
+      if (isPdf) {
+        if (!env.GEMINI_API_KEY) {
+          return jsonResponse2({ error: "PDF \u043D\u0435 \u0441\u0435 \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430 \u2014 \u043A\u0430\u0447\u0438 \u0441\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0430\u0442\u0430 \u0441 \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442\u0438\u0442\u0435." }, 415);
+        }
+        const config = await getAdminConfig(env);
+        response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === "google" && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2e3, config.visionThinkingBudget ?? AI_TASKS.lab_extraction.thinking);
+      } else {
+        response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2e3, "lab_extraction");
       }
-      const config = await getAdminConfig(env);
-      response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === "google" && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2e3, config.visionThinkingBudget ?? AI_TASKS.lab_extraction.thinking);
-    } else {
-      response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2e3, "lab_extraction");
+      parsed = parseAIResponse(response) || {};
     }
-    const parsed = parseAIResponse(response) || {};
     const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || "")) ? parsed.date : null;
     const markers = (Array.isArray(parsed.markers) ? parsed.markers : []).filter((m) => m && LAB_MARKERS[m.key]).map((m) => ({
       key: m.key,
@@ -90999,13 +91126,16 @@ async function handleDocumentAssess(request, env) {
       exclusionsList: describeCodes(VOCABULARY.exclusions)
     }).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), String(template));
     let response;
+    let parsedDoc = null;
     if (imageData) {
       const isPdf = mimeType === "application/pdf";
       const allowed = ["image/jpeg", "image/png", "image/webp"];
       const effectiveMime = isPdf ? "application/pdf" : allowed.includes(mimeType) ? mimeType : "image/jpeg";
       const base64Data = String(imageData).startsWith("data:") ? String(imageData).slice(String(imageData).indexOf(",") + 1) : String(imageData);
       if (base64Data.length * 3 / 4 > 15 * 1024 * 1024) return jsonResponse2({ error: "\u0424\u0430\u0439\u043B\u044A\u0442 \u0435 \u0442\u0432\u044A\u0440\u0434\u0435 \u0433\u043E\u043B\u044F\u043C (\u0434\u043E 15 MB)." }, 400);
-      if (isPdf) {
+      parsedDoc = await readWithClaude(env, assessDocumentWithClaude, { prompt, base64: base64Data, mimeType: effectiveMime });
+      if (parsedDoc) {
+      } else if (isPdf) {
         if (!env.GEMINI_API_KEY) return jsonResponse2({ error: "PDF \u043D\u0435 \u0441\u0435 \u043F\u043E\u0434\u0434\u044A\u0440\u0436\u0430 \u2014 \u043A\u0430\u0447\u0438 \u0441\u043D\u0438\u043C\u043A\u0430 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0430\u0442\u0430." }, 415);
         const config = await getAdminConfig(env);
         response = await callGeminiVision(env, prompt, base64Data, effectiveMime, config.visionProvider === "google" && config.visionModelName ? config.visionModelName : DEFAULT_GEMINI_PLAN_MODEL, 2500, config.visionThinkingBudget ?? AI_TASKS.document_image.thinking);
@@ -91013,9 +91143,10 @@ async function handleDocumentAssess(request, env) {
         response = await callAIModelWithVision(env, prompt, base64Data, effectiveMime, 2500, "document_image");
       }
     } else {
-      response = await callAIModel(env, prompt, 2500, "document_assessment", null, data, null);
+      parsedDoc = await readWithClaude(env, assessDocumentWithClaude, { prompt });
+      if (!parsedDoc) response = await callAIModel(env, prompt, 2500, "document_assessment", null, data, null);
     }
-    const parsed = parseAIResponse(response) || {};
+    const parsed = parsedDoc || parseAIResponse(response) || {};
     const value = normalizeDocumentValue(parsed);
     const known = new Set(compileProfile(data || {}).clinical);
     const date = /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.date || "")) ? parsed.date : null;
@@ -91136,14 +91267,14 @@ async function handleAdminLinksStatus(request, env) {
     const enabled = new Set(enabledProviders(env));
     const stats = Object.fromEntries(LINK_SOURCES.map((id) => [id, { linked: 0, errors: 0, lastSync: null }]));
     let cursor;
-    let read = 0;
+    let read2 = 0;
     do {
       const page = await env.page_content.list({ prefix: "link:", cursor });
       for (const { name } of page.keys) {
         const provider = name.split(":").pop();
         if (!stats[provider]) continue;
         stats[provider].linked++;
-        if (read++ >= 500) continue;
+        if (read2++ >= 500) continue;
         const link = await kvGetJSON(env, name);
         if (link?.error) stats[provider].errors++;
         if (link?.syncedAt && (!stats[provider].lastSync || link.syncedAt > stats[provider].lastSync)) stats[provider].lastSync = link.syncedAt;
