@@ -1,0 +1,13 @@
+{
+  "about": "Снимките на ястията (scripts/dish-images.mjs, docs/DISH_IMAGES.md): images — id → { src: път без размера (brand/dishes/<id>, файлове -480.webp и -160.webp), source, page, author, picked }; skipped — ястия без подходяща снимка. Ястие без снимка се показва без нея.",
+  "images": {
+    "m_shakshuka": {
+      "src": "brand/dishes/m_shakshuka",
+      "source": "foodiesfeed",
+      "page": "https://www.foodiesfeed.com/free-food-photo/greek-shakshuka-on-a-wooden-board",
+      "author": "Foodiesfeed",
+      "picked": "2026-11-22"
+    }
+  },
+  "skipped": {}
+}

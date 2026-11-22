@@ -77,3 +77,4 @@ design-audit-shots/
 
 # Бета-тест: снимки и отчети (scripts/beta/run.mjs)
 beta-report/
+.cache/
