@@ -1349,7 +1349,7 @@ const RATE_LIMIT = {
   STUDIO_LOGIN: { maxRequests: 10, windowSec: 900 },   // studio platform: the admin's 5-digit code
   HANDOFF: { maxRequests: 10, windowSec: 600 },        // модул → Nutriin: нова пратка
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 },   // преглед и прибиране на пратка
-  SESSION_MOVE: { maxRequests: 20, windowSec: 600 },   // biocode.website / nutriin.com → nutriin.app: пренасяне на паметта на браузъра
+  SESSION_MOVE: { maxRequests: 20, windowSec: 600 },   // biocode.website / eatologix.com → nutriin.app: пренасяне на паметта на браузъра
   PROTOCOL_AI: { maxRequests: 5, windowSec: 3600 },    // AI протокол без плащане (protocols.html)
 };
 
@@ -15334,7 +15334,7 @@ async function handleHandoffCreate(request, env) {
 }
 
 /* ── Пренасяне на сесията между домейните ───────────────────────────────
- * biocode.website / nutriin.com → nutriin.app (EmoEat → emoeat.app): браузърът пази паметта
+ * biocode.website / eatologix.com → nutriin.app (EmoEat → emoeat.app): браузърът пази паметта
  * (localStorage) по домейн, затова при пренасочването тя се качва еднократно под
  * случаен ключ за 10 минути и новият домейн я прибира веднага (i18n.js). Ключът е в
  * хеша на адреса (не стига до сървърите), прибира се веднъж и се изтрива.
@@ -15342,7 +15342,7 @@ async function handleHandoffCreate(request, env) {
 const SESSION_MOVE_PREFIX = 'session_move:';
 const SESSION_MOVE_TTL_SEC = 600;
 const SESSION_MOVE_MAX_BYTES = 4 * 1024 * 1024;
-const SESSION_MOVE_FROM = /^https:\/\/(www\.)?(biocode\.website|nutriin\.com)$/i; // старите адреси → nutriin.app
+const SESSION_MOVE_FROM = /^https:\/\/(www\.)?(biocode\.website|eatologix\.com)$/i; // старите адреси → nutriin.app
 
 /** POST /api/session/move — Body: { data: { ключ: стойност } } от biocode.website / nutriin.app. */
 async function handleSessionMoveCreate(request, env) {
@@ -15734,7 +15734,7 @@ async function handleEnrichmentDelete(request, env) {
 const LINK_SYNC_MIN_MS = 3 * 60 * 60 * 1000;
 const LINK_TTL = 365 * 24 * 60 * 60;
 /** Къде може да върне браузърът след вход при доставчика. */
-const LINK_RETURN_HOSTS = ['biocode.website', 'www.biocode.website', 'nutriin.app', 'www.nutriin.app', 'nutriin.eu', 'www.nutriin.eu', 'nutriin.com', 'www.nutriin.com', 'emoeat.app', 'www.emoeat.app', 'irismap.app', 'www.irismap.app', 'radilovk.github.io', 'localhost', '127.0.0.1'];
+const LINK_RETURN_HOSTS = ['biocode.website', 'www.biocode.website', 'nutriin.app', 'www.nutriin.app', 'nutriin.eu', 'www.nutriin.eu', 'eatologix.com', 'www.eatologix.com', 'emoeat.app', 'www.emoeat.app', 'irismap.app', 'www.irismap.app', 'radilovk.github.io', 'localhost', '127.0.0.1'];
 
 function linkRedirectUri(request, provider) {
   return `${new URL(request.url).origin}/api/links/callback/${provider}`;

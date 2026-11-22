@@ -80000,7 +80000,7 @@ var RATE_LIMIT = {
   HANDOFF_READ: { maxRequests: 30, windowSec: 600 },
   // преглед и прибиране на пратка
   SESSION_MOVE: { maxRequests: 20, windowSec: 600 },
-  // biocode.website / nutriin.com → nutriin.app: пренасяне на паметта на браузъра
+  // biocode.website / eatologix.com → nutriin.app: пренасяне на паметта на браузъра
   PROTOCOL_AI: { maxRequests: 5, windowSec: 3600 }
   // AI протокол без плащане (protocols.html)
 };
@@ -90744,7 +90744,7 @@ async function handleHandoffCreate(request, env) {
 var SESSION_MOVE_PREFIX = "session_move:";
 var SESSION_MOVE_TTL_SEC = 600;
 var SESSION_MOVE_MAX_BYTES = 4 * 1024 * 1024;
-var SESSION_MOVE_FROM = /^https:\/\/(www\.)?(biocode\.website|nutriin\.com)$/i;
+var SESSION_MOVE_FROM = /^https:\/\/(www\.)?(biocode\.website|eatologix\.com)$/i;
 async function handleSessionMoveCreate(request, env) {
   try {
     if (!env.page_content) return jsonResponse2({ error: ERROR_MESSAGES.KV_NOT_CONFIGURED }, 500);
@@ -91075,7 +91075,7 @@ async function handleEnrichmentDelete(request, env) {
 }
 var LINK_SYNC_MIN_MS = 3 * 60 * 60 * 1e3;
 var LINK_TTL = 365 * 24 * 60 * 60;
-var LINK_RETURN_HOSTS = ["biocode.website", "www.biocode.website", "nutriin.app", "www.nutriin.app", "nutriin.eu", "www.nutriin.eu", "nutriin.com", "www.nutriin.com", "emoeat.app", "www.emoeat.app", "irismap.app", "www.irismap.app", "radilovk.github.io", "localhost", "127.0.0.1"];
+var LINK_RETURN_HOSTS = ["biocode.website", "www.biocode.website", "nutriin.app", "www.nutriin.app", "nutriin.eu", "www.nutriin.eu", "eatologix.com", "www.eatologix.com", "emoeat.app", "www.emoeat.app", "irismap.app", "www.irismap.app", "radilovk.github.io", "localhost", "127.0.0.1"];
 function linkRedirectUri(request, provider) {
   return `${new URL(request.url).origin}/api/links/callback/${provider}`;
 }

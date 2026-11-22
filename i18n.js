@@ -54,7 +54,7 @@
 
         // ── Новият домейн: прибиране ────────────────────────────────────
         var m = /[#&]np_move=([A-Za-z0-9_-]{20,64})/.exec(location.hash);
-        if (m && (h === 'nutriin.app' || h === 'nutriin.com' || h === 'emoeat.app')) {
+        if (m && (h === 'nutriin.app' || h === 'eatologix.com' || h === 'emoeat.app')) {
             var orig = /[#&]np_hash=([^&]*)/.exec(location.hash);
             var clean = location.pathname + location.search + (orig ? '#' + decodeURIComponent(orig[1]) : '');
             hold();
@@ -74,7 +74,7 @@
         }
 
         // ── Старите домейни: препращане (с паметта, ако има профил) ──────
-        if (h !== 'biocode.website' && h !== 'nutriin.app') return;
+        if (h !== 'biocode.website' && h !== 'eatologix.com') return;
         var p = location.pathname;
         if (/^\/(xbody|xb-studio|xems-|studio|acuity\/|fitness\/|kids|pep|reta|aix|lqto|vaprosnik|dopamine|health\.html|admin|notifications-test|pwa-test|design_presentation|samples\/|clients\/|docs\/)/i.test(p)) return;
         var emo = /^\/emoeat[^/]*\.html$/i.test(p);
