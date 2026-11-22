@@ -1026,7 +1026,37 @@
             background: linear-gradient(to top, var(--bg-color) 40%, transparent 100%);
         }
 
-    </style>
+    
+        /* Проверка на отговорите: прозорец с конкретните въпроси / уточнение / спиране */
+        .gate-overlay { position: fixed; inset: 0; z-index: 20000; display: flex; align-items: flex-end; justify-content: center; padding: 12px; background: rgba(5, 15, 14, .55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+        .gate-card { width: 100%; max-width: 480px; max-height: calc(100vh - 24px); overflow: auto; border-radius: 24px; padding: 22px 18px calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--card-bg, #fff); color: var(--text-dark, #0E2A27); box-shadow: 0 30px 70px -20px rgba(0,0,0,.6); }
+        [data-theme="dark"] .gate-card { background: #0F1F1E; border: 1px solid rgba(255,255,255,.08); }
+        .gate-card h2 { margin: 6px 0 6px; font-size: 1.2rem; }
+        .gate-card p { margin: 0 0 10px; line-height: 1.5; }
+        .gate-sub { opacity: .8; font-size: .92rem; }
+        .gate-icon { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; font-size: 1.2rem; background: rgba(5,115,125,.12); color: #05737D; }
+        .gate-icon.stop { background: rgba(220,38,38,.12); color: #DC2626; }
+        [data-theme="dark"] .gate-icon { color: #3FDCCF; }
+        [data-theme="dark"] .gate-icon.stop { color: #F87171; }
+        .gate-q { border: 1px solid rgba(14,42,39,.1); border-radius: 16px; padding: 12px; margin: 10px 0; }
+        [data-theme="dark"] .gate-q { border-color: rgba(255,255,255,.1); }
+        .gate-q legend { font-weight: 700; padding: 0 4px; }
+        .gate-why { font-size: .86rem; opacity: .8; margin: 4px 0 8px; }
+        .gate-why.warn { color: #B45309; opacity: 1; }
+        [data-theme="dark"] .gate-why.warn { color: #FBBF24; }
+        .gate-opt { display: flex; gap: 10px; align-items: center; min-height: 44px; padding: 6px 10px; border-radius: 12px; cursor: pointer; }
+        .gate-opt:has(input:checked) { background: rgba(5,115,125,.10); }
+        .gate-opt input { width: 20px; height: 20px; flex-shrink: 0; }
+        .gate-text, .gate-input { width: 100%; box-sizing: border-box; min-height: 44px; border-radius: 12px; border: 1px solid rgba(14,42,39,.18); padding: 10px 12px; font: inherit; background: transparent; color: inherit; margin-top: 6px; }
+        .gate-actions { display: flex; gap: 10px; margin-top: 14px; }
+        .gate-btn { flex: 1; min-height: 48px; border: 0; border-radius: 14px; background: var(--ds-fill-grad, #05737D); color: #fff; font: inherit; font-weight: 700; display: grid; place-items: center; text-decoration: none; cursor: pointer; }
+        .gate-btn[disabled] { opacity: .5; }
+        .gate-btn.ghost { background: transparent; color: inherit; border: 1.5px solid rgba(14,42,39,.2); }
+        [data-theme="dark"] .gate-btn.ghost { border-color: rgba(255,255,255,.2); }
+        .gate-spin { width: 34px; height: 34px; margin: 6px auto 10px; border: 3px solid rgba(5,115,125,.2); border-top-color: #05737D; border-radius: 50%; animation: gateSpin .8s linear infinite; }
+        .gate-busy-text { text-align: center; }
+        @keyframes gateSpin { to { transform: rotate(360deg); } }
+</style>
     <script src="./meal-swaps.js"></script>
     <script src="./plan-sync.js"></script>
     <script src="./partner-ref.js"></script>
@@ -3956,6 +3986,136 @@
             return planPayload;
         }
 
+
+        /* ── Проверка на отговорите преди плана ─────────────────────────────────────────────
+         * Сървърът (/api/validate-questionnaire, gate: 2) решава: ok | correct | ask | stop.
+         *  correct — показваме САМО сгрешените въпроси, поправят се на място и проверката тръгва отново;
+         *  ask     — критичен въпрос (готови отговори, при нужда и свободен текст); отговорът влиза в плана;
+         *  stop    — ясно обяснение защо не изготвяме план (напр. нужен е преглед от лекар).
+         * Грешка в мрежата не спира човека. → true = продължаваме към плана. */
+        let gateRounds = 0;
+        function gatePayload() {
+            const p = appendDqTextMapToPayload(buildPlanPayloadFromAnswers(answers));
+            const qmap = {};
+            for (const q of currentQueue) if (q && q.id && q.text && answers[q.id] != null && answers[q.id] !== '') qmap[q.id] = q.text;
+            p._qmap = qmap; p.gate = 2;
+            p.followUps = answers.followUps || [];
+            p.criticalFollowUp = answers.criticalFollowUp || {};
+            return p;
+        }
+        function gateOverlay(html) {
+            const o = document.createElement('div');
+            o.className = 'gate-overlay';
+            o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
+            o.innerHTML = '<div class="gate-card">' + html + '</div>';
+            document.body.appendChild(o);
+            return o;
+        }
+        const gEsc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        function gateBusy(on) {
+            let b = document.getElementById('gateBusy');
+            if (on && !b) { b = gateOverlay('<div class="gate-spin" aria-hidden="true"></div><p class="gate-busy-text">Проверяваме отговорите…</p>'); b.id = 'gateBusy'; }
+            if (!on && b) b.remove();
+        }
+        async function answerGate() {
+            if (gateRounds > 6) return true;               // предпазител срещу безкраен кръг
+            gateRounds++;
+            let r = null;
+            gateBusy(true);
+            try {
+                const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 25000);
+                const res = await fetch('https://aidiet.radilov-k.workers.dev/api/validate-questionnaire', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(gatePayload()), signal: ctrl.signal });
+                clearTimeout(t);
+                if (res.ok) r = await res.json();
+            } catch (e) { console.warn('answer gate skipped:', e.message); }
+            gateBusy(false);
+            if (!r || !r.decision || r.decision === 'ok') {
+                if (r && Array.isArray(r.notes) && r.notes.length) answers.validationNotes = r.notes;
+                return true;
+            }
+            if (r.decision === 'stop') { gateStop(r.stopReason); return false; }
+            if (r.decision === 'ask') return gateAsk(r.questions || []);
+            if (r.decision === 'correct') return gateCorrect(r.corrections || []);
+            return true;
+        }
+        function gateStop(reason) {
+            const o = gateOverlay('<div class="gate-icon stop"><i class="fas fa-user-doctor"></i></div>' +
+                '<h2>Нужен е преглед от лекар</h2><p>' + gEsc(reason) + '</p>' +
+                '<p class="gate-sub">Отговорите ти са запазени — когато вече се наблюдаваш, можеш да промениш отговора и да продължиш.</p>' +
+                '<div class="gate-actions"><button type="button" class="gate-btn ghost" data-act="back">Промени отговорите</button>' +
+                '<a class="gate-btn" href="index.html?stay=1">Към началото</a></div>');
+            o.querySelector('[data-act="back"]').onclick = () => { o.remove(); delete answers.criticalFollowUp; saveAnswersSafe(); renderStep(); };
+        }
+        function saveAnswersSafe() { try { localStorage.setItem('questionnaireAnswers', JSON.stringify(answers)); } catch (_) {} }
+        function gateAsk(questions) {
+            return new Promise((resolve) => {
+                const html = '<div class="gate-icon ask"><i class="fas fa-circle-question"></i></div>' +
+                    '<h2>Още едно уточнение</h2><p class="gate-sub">За да изготвим безопасен план, ни е нужен точен отговор.</p>' +
+                    questions.map((q, i) => '<fieldset class="gate-q" data-i="' + i + '"><legend>' + gEsc(q.text) + '</legend>' +
+                        (q.why ? '<p class="gate-why">' + gEsc(q.why) + '</p>' : '') +
+                        (q.options || []).map(o => '<label class="gate-opt"><input type="radio" name="gq' + i + '" value="' + gEsc(o) + '"><span>' + gEsc(o) + '</span></label>').join('') +
+                        (q.allowText ? '<textarea class="gate-text" rows="2" placeholder="' + ((q.options || []).length ? 'Друго — опиши накратко' : 'Твоят отговор') + '"></textarea>' : '') +
+                        '</fieldset>').join('') +
+                    '<div class="gate-actions"><button type="button" class="gate-btn" data-act="ok" disabled>Продължи</button></div>';
+                const o = gateOverlay(html);
+                const ok = o.querySelector('[data-act="ok"]');
+                const valueOf = (i) => {
+                    const f = o.querySelector('.gate-q[data-i="' + i + '"]');
+                    const t = f.querySelector('.gate-text'); const c = f.querySelector('input:checked');
+                    return (t && t.value.trim()) || (c && c.value) || '';
+                };
+                const check = () => { ok.disabled = !questions.every((_, i) => valueOf(i)); };
+                o.addEventListener('input', check); o.addEventListener('change', check);
+                ok.onclick = async () => {
+                    const QV = window.QuestionnaireValidation || {};
+                    questions.forEach((q, i) => {
+                        const a = valueOf(i);
+                        if (q.critical && QV.criticalAnswerValue) {
+                            answers.criticalFollowUp = answers.criticalFollowUp || {};
+                            answers.criticalFollowUp[q.id.replace(/^critical_/, '')] = QV.criticalAnswerValue(a) || 'seen';
+                        }
+                        answers.followUps = (answers.followUps || []).concat([{ q: q.text, a }]);
+                    });
+                    // Уточненията влизат в плана като бележка.
+                    const extra = questions.map((q, i) => q.text + ' — ' + valueOf(i)).join('\n');
+                    answers.additionalNotes = answers.additionalNotes ? answers.additionalNotes + '\nУточнения: ' + extra : 'Уточнения: ' + extra;
+                    saveAnswersSafe();
+                    o.remove();
+                    resolve(await answerGate());
+                };
+            });
+        }
+        function gateCorrect(corrections) {
+            return new Promise((resolve) => {
+                const items = corrections.map(c => ({ ...c, q: rawQuestions.find(x => x.id === c.field) || currentQueue.find(x => x.id === c.field) })).filter(c => c.q);
+                if (!items.length) { resolve(true); return; }
+                const field = (c, i) => {
+                    const q = c.q, v = answers[q.id];
+                    if (q.type === 'radio') return (q.options || []).map(o => '<label class="gate-opt"><input type="radio" name="gc' + i + '" value="' + gEsc(o) + '"' + (v === o ? ' checked' : '') + '><span>' + gEsc(o) + '</span></label>').join('');
+                    if (q.type === 'checkbox') { const arr = Array.isArray(v) ? v : []; return (q.options || []).map(o => '<label class="gate-opt"><input type="checkbox" value="' + gEsc(o) + '"' + (arr.includes(o) ? ' checked' : '') + '><span>' + gEsc(o) + '</span></label>').join(''); }
+                    if (q.type === 'textarea') return '<textarea class="gate-text" rows="3">' + gEsc(v || '') + '</textarea>';
+                    return '<input class="gate-input" type="' + (q.type === 'number' ? 'number' : 'text') + '" inputmode="' + (q.type === 'number' ? 'decimal' : 'text') + '" value="' + gEsc(v == null ? '' : v) + '">';
+                };
+                const o = gateOverlay('<div class="gate-icon fix"><i class="fas fa-pen"></i></div>' +
+                    '<h2>Провери тези отговори</h2><p class="gate-sub">Изглежда има грешка. Поправи само тях — останалото е запазено и анализът продължава.</p>' +
+                    items.map((c, i) => '<fieldset class="gate-q" data-i="' + i + '"><legend>' + gEsc(c.q.text) + '</legend>' +
+                        '<p class="gate-why warn">' + gEsc(c.problem) + '</p>' + field(c, i) + '</fieldset>').join('') +
+                    '<div class="gate-actions"><button type="button" class="gate-btn" data-act="ok">Готово — продължи</button></div>');
+                o.querySelector('[data-act="ok"]').onclick = async () => {
+                    items.forEach((c, i) => {
+                        const f = o.querySelector('.gate-q[data-i="' + i + '"]'), q = c.q;
+                        if (q.type === 'radio') { const x = f.querySelector('input:checked'); if (x) answers[q.id] = x.value; }
+                        else if (q.type === 'checkbox') answers[q.id] = [...f.querySelectorAll('input:checked')].map(x => x.value);
+                        else { const x = f.querySelector('.gate-text, .gate-input'); if (x) answers[q.id] = q.type === 'number' ? String(x.value).replace(',', '.') : x.value.trim(); }
+                    });
+                    saveAnswersSafe();
+                    o.remove();
+                    resolve(await answerGate());
+                };
+            });
+        }
+
         function redirectToValidationWarning(issues, canProceed) {
             localStorage.setItem('validationIssues', JSON.stringify(issues));
             localStorage.setItem('validationSource', 'questionnaire2');
@@ -4049,6 +4209,8 @@
 
         async function finishQuiz() {
             if (!(await ensureHealthDataConsent())) return;
+            if (!skipNextValidation && !(await answerGate())) return;
+            skipNextValidation = false;
             console.log("Final JSON:", JSON.stringify(answers, null, 2));
             
             renderDiagnosticLoading(false);
@@ -4099,47 +4261,7 @@
                 let planPayload = buildPlanPayloadFromAnswers(answers);
                 planPayload = appendDqTextMapToPayload(planPayload);
 
-                // Step 0a: Instant deterministic validation (no AI, no network)
-                if (!skipNextValidation && window.QuestionnaireValidation) {
-                    const det = window.QuestionnaireValidation.runDeterministicValidation(planPayload);
-                    if (det.issues.length > 0) {
-                        console.log('Deterministic validation found issues:', det.issues);
-                        redirectToValidationWarning(det.issues, det.canProceed);
-                        return;
-                    }
-                }
-
-                // Step 0b: AI Validation - only for subtle issues after deterministic pass
-                console.log('Running questionnaire validation...');
-                if (skipNextValidation) {
-                    skipNextValidation = false;
-                    console.log('Validation bypassed by user confirmation');
-                } else {
-                try {
-                    const valController = new AbortController();
-                    const valTimeoutId = setTimeout(() => valController.abort(), 20000);
-
-                    const valResponse = await fetch('https://aidiet.radilov-k.workers.dev/api/validate-questionnaire', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(planPayload),
-                        signal: valController.signal
-                    });
-                    clearTimeout(valTimeoutId);
-
-                    if (valResponse.ok) {
-                        const valResult = await valResponse.json();
-                        if (valResult.hasIssues && valResult.issues && valResult.issues.length > 0) {
-                            console.log('Validation found issues:', valResult.validationSource || 'api', valResult.issues);
-                            redirectToValidationWarning(valResult.issues, valResult.canProceed);
-                            return;
-                        }
-                    }
-                    console.log('Validation passed');
-                } catch (valError) {
-                    console.warn('Validation skipped due to error:', valError.message);
-                }
-                } // end of validation block
+                // Проверката на отговорите е преди записа (answerGate в началото на finishQuiz).
 
                 let replacementAuth = { requireApproval: false, authContext: null };
                 try {

@@ -389,3 +389,77 @@ export function firstIssueField(issues) {
   }
   return issues.find(i => i.field)?.field || null;
 }
+
+/* ── Критични състояния: наблюдава ли се човекът от специалист? ──────────────────────────────
+ * Не блокираме трудните състояния — храненето помага при повечето. Спираме само когато има ясна
+ * заплаха за живота и здравето И човекът още не е стигнал до лекар: тогава планът е второстепенен.
+ * Въпросът се задава веднъж (отговорът се пази в criticalFollowUp[key]).
+ */
+export const CRITICAL_FOLLOWUP_OPTIONS = [
+  { value: 'treated', label: 'Да — наблюдавам се и имам назначено лечение' },
+  { value: 'seen', label: 'Да — бил/а съм на преглед, но нямам указания за храненето' },
+  { value: 'none', label: 'Не — още не съм се консултирал/а с лекар' },
+];
+
+const CRITICAL = [
+  { key: 'eating_disorder', label: 'хранително разстройство (анорексия, булимия)',
+    text: /анорекс|булими|хранително разстройств|предизвикв\w* повръщане/i,
+    compensation: /повръщ|лаксатив|слабителн|диуретик/i, bmiBelow: 16 },
+  { key: 'diabetes_insulin', label: 'диабет на инсулин', text: /диабет тип 1|тип 1 диабет|инсулинозависим|инсулин(?!ова)/i },
+  { key: 'heart_failure', label: 'сърдечна недостатъчност', text: /сърдечна недостатъчност/i },
+  { key: 'kidney', label: 'бъбречно заболяване', text: /бъбречна недостатъчност|диализ|хронично бъбречно|ХБЗ/i },
+  { key: 'liver', label: 'тежко чернодробно заболяване', text: /цироза|чернодробна недостатъчност/i },
+  { key: 'cancer', label: 'онкологично заболяване', text: /\bрак\b|онколог|химиотерапи|лъчетерапи|тумор|карцином|лимфом|левкеми/i },
+  { key: 'adrenal', label: 'надбъбречна недостатъчност', text: /надбъбречна недостатъчност|адисон/i },
+];
+
+const textOf = (v) => (Array.isArray(v) ? v.join(' ') : String(v == null ? '' : v));
+
+/** Кои критични състояния личат от отговорите → [{ key, label }] */
+export function detectCritical(data) {
+  const d = data || {};
+  const all = Object.entries(d)
+    .filter(([k]) => /^(medicalConditions|healthConditions|medications|additionalNotes|weightChangeDetails|dietDislike|dq_)/.test(k))
+    .map(([, v]) => textOf(v)).join(' \n ');
+  const bmi = calculateBmi(d);
+  const found = [];
+  for (const c of CRITICAL) {
+    let hit = c.text.test(all);
+    if (!hit && c.compensation && c.compensation.test(textOf(d.compensationMethods))) hit = true;
+    if (!hit && c.bmiBelow && Number.isFinite(bmi) && bmi < c.bmiBelow) hit = true;
+    if (hit) found.push({ key: c.key, label: c.label });
+  }
+  return found;
+}
+
+/**
+ * Критичните въпроси, на които още няма отговор, и дали някой отговор спира плана.
+ * @returns {{ questions: Array<{id:string,text:string,options:string[],allowText:boolean,why:string,critical:boolean}>, stop: string|null, notes: string[] }}
+ */
+export function criticalGate(data) {
+  const answered = (data && data.criticalFollowUp) || {};
+  const questions = [];
+  const notes = [];
+  let stop = null;
+  for (const c of detectCritical(data)) {
+    const a = answered[c.key];
+    if (!a) {
+      questions.push({
+        id: `critical_${c.key}`, critical: true, allowText: false,
+        text: `Наблюдаваш ли се от лекар за ${c.label}?`,
+        options: CRITICAL_FOLLOWUP_OPTIONS.map(o => o.label),
+        why: 'При това състояние храненето е важна, но допълнителна част от лечението — планът трябва да се съгласува с назначеното от лекаря.',
+      });
+    } else if (a === 'none') {
+      stop = stop || `При ${c.label} първата стъпка е преглед и лечение от лекар. Храненето може много да помогне, но не може да замести лечението — затова не изготвяме план преди консултация. Когато вече се наблюдаваш, върни се и ще изготвим план, съобразен с назначеното от лекаря.`;
+    } else {
+      notes.push(`${c.label}: ${a === 'treated' ? 'наблюдава се, има назначено лечение' : 'бил/а на преглед, без указания за храненето'}`);
+    }
+  }
+  return { questions, stop, notes };
+}
+
+/** Отговорът на въпрос за критично състояние → стойност за criticalFollowUp. */
+export function criticalAnswerValue(label) {
+  return (CRITICAL_FOLLOWUP_OPTIONS.find(o => o.label === label) || {}).value || null;
+}

@@ -31,6 +31,7 @@ import {
 import {
   validateDataAdequacyIssues,
   runDeterministicValidation,
+  criticalGate,
 } from './questionnaire-validation.mjs';
 import {
   normalizeAnalysisOutput,
@@ -1255,9 +1256,64 @@ function normalizeQuestionnaireData(data) {
  * Handle questionnaire AI validation endpoint.
  * Called before plan generation to check for issues in user data.
  */
+/**
+ * Проверката на отговорите преди плана (gate: 2 — новите клиенти).
+ * → { decision: 'ok'|'correct'|'ask'|'stop', corrections, questions, stopReason, notes }
+ *  correct — само конкретните сгрешени/противоречиви въпроси (id), клиентът поправя тях и продължава;
+ *  ask     — критичен факт, който липсва: въпрос с готови отговори (критичните състояния — винаги
+ *            „наблюдаваш ли се от лекар“; AI — до 2 въпроса, само в първия кръг);
+ *  stop    — само при ясна заплаха и без лекар; трудните състояния сами по себе си не спират плана.
+ */
+async function answerGate(env, data) {
+  const valConfig = await getValidationConfig(env);
+  const det = runDeterministicValidation(data, valConfig);
+  const notes = det.issues.filter(i => i.severity !== 'high').map(i => i.description);
+  const corrections = det.issues.filter(i => i.severity === 'high' && i.field).map(i => ({ field: i.field, problem: i.description }));
+  if (corrections.length) return { decision: 'correct', corrections, questions: [], stopReason: '', notes };
+
+  const crit = criticalGate(data);
+  notes.push(...crit.notes);
+  if (crit.stop) return { decision: 'stop', corrections: [], questions: [], stopReason: crit.stop, notes };
+  if (crit.questions.length) return { decision: 'ask', corrections: [], questions: crit.questions, stopReason: '', notes };
+
+  try {
+    const qmap = data._qmap && typeof data._qmap === 'object' ? data._qmap : {};
+    const followUps = Array.isArray(data.followUps) ? data.followUps : [];
+    const skip = new Set(['_qmap', 'followUps', 'criticalFollowUp', 'medicalFiles', 'email', '_dq_text_map', 'consentHealthData']);
+    const userData = Object.entries(data).filter(([k, v]) => !skip.has(k) && v !== '' && v != null)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n').slice(0, 9000);
+    const template = await requireKvPrompt(env, 'admin_answer_gate_prompt');
+    const prompt = Object.entries({
+      questions: Object.entries(qmap).map(([id, t]) => `${id} → ${String(t).slice(0, 140)}`).join('\n').slice(0, 6000) || 'няма',
+      userData,
+      followUps: followUps.map(f => `${String(f.q || '').slice(0, 200)} → ${String(f.a || '').slice(0, 300)}`).join('\n') || 'няма',
+    }).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), String(template));
+    const r = parseAIResponse(await callAIModel(env, prompt, 1500, 'answer_gate', null, null, null, false)) || {};
+    notes.push(...(Array.isArray(r.notes) ? r.notes : []).map(x => String(x || '').slice(0, 300)).filter(Boolean).slice(0, 5));
+    const known = new Set(Object.keys(qmap));
+    const aiCorr = (Array.isArray(r.corrections) ? r.corrections : [])
+      .filter(c => c && known.has(String(c.field))).map(c => ({ field: String(c.field), problem: String(c.problem || '').slice(0, 300) })).slice(0, 5);
+    if (r.decision === 'correct' && aiCorr.length) return { decision: 'correct', corrections: aiCorr, questions: [], stopReason: '', notes };
+    if (r.decision === 'stop' && r.stopReason) return { decision: 'stop', corrections: [], questions: [], stopReason: String(r.stopReason).slice(0, 600), notes };
+    // Допълнителни въпроси — само в първия кръг (след отговора не питаме пак).
+    const aiQ = followUps.length ? [] : (Array.isArray(r.questions) ? r.questions : []).filter(q => q && q.text)
+      .map((q, i) => ({ id: `ai_${i}`, text: String(q.text).slice(0, 200), why: String(q.why || '').slice(0, 240),
+        options: (Array.isArray(q.options) ? q.options : []).map(o => String(o || '').slice(0, 80)).filter(Boolean).slice(0, 5),
+        allowText: q.allowText === true || !(Array.isArray(q.options) && q.options.length) })).slice(0, 2);
+    if (r.decision === 'ask' && aiQ.length) return { decision: 'ask', corrections: [], questions: aiQ, stopReason: '', notes };
+  } catch (e) {
+    console.warn('answer gate AI skipped:', e.message);   // AI не е достъпен — не спираме човека
+  }
+  return { decision: 'ok', corrections: [], questions: [], stopReason: '', notes };
+}
+
 async function handleValidateQuestionnaire(request, env) {
   try {
     const data = normalizeQuestionnaireData(await request.json());
+    if (data && Number(data.gate) === 2) {
+      if (!data.name || !data.age || !data.weight || !data.height) return jsonResponse({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+      return jsonResponse(await answerGate(env, data));
+    }
     
     // Validate minimum required fields
     if (!data.name || !data.age || !data.weight || !data.height) {
@@ -1325,7 +1381,7 @@ async function handleValidateQuestionnaire(request, env) {
   } catch (error) {
     console.error('Error in questionnaire validation:', error);
     // On error, allow user to proceed (don't block)
-    return jsonResponse({ valid: true, hasIssues: false, issues: [] });
+    return jsonResponse({ valid: true, hasIssues: false, issues: [], decision: 'ok', corrections: [], questions: [], notes: [] });
   }
 }
 
@@ -9947,6 +10003,7 @@ const AI_TASKS = {
   council_rebuttal: { tier: 'main', thinking: 'low', maxTokens: 500 },
   health_digest: { tier: 'lite', thinking: 'minimal' },
   ai_validation: { tier: 'lite', thinking: 'low', maxTokens: 1200 },
+  answer_gate: { tier: 'main', thinking: 'low', maxTokens: 1500 },
   document_assessment: { tier: 'main', thinking: 'medium' },
   emoeat_analysis: { tier: 'main', thinking: 'low' },
   // Снимки и PDF (моделът за зрение от админа)

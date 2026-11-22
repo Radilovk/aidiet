@@ -30748,6 +30748,64 @@ function runDeterministicValidation(data, config) {
     hasContradiction: contradiction.hasContradiction
   };
 }
+var CRITICAL_FOLLOWUP_OPTIONS = [
+  { value: "treated", label: "\u0414\u0430 \u2014 \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0432\u0430\u043C \u0441\u0435 \u0438 \u0438\u043C\u0430\u043C \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u043E \u043B\u0435\u0447\u0435\u043D\u0438\u0435" },
+  { value: "seen", label: "\u0414\u0430 \u2014 \u0431\u0438\u043B/\u0430 \u0441\u044A\u043C \u043D\u0430 \u043F\u0440\u0435\u0433\u043B\u0435\u0434, \u043D\u043E \u043D\u044F\u043C\u0430\u043C \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u044F \u0437\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E" },
+  { value: "none", label: "\u041D\u0435 \u2014 \u043E\u0449\u0435 \u043D\u0435 \u0441\u044A\u043C \u0441\u0435 \u043A\u043E\u043D\u0441\u0443\u043B\u0442\u0438\u0440\u0430\u043B/\u0430 \u0441 \u043B\u0435\u043A\u0430\u0440" }
+];
+var CRITICAL = [
+  {
+    key: "eating_disorder",
+    label: "\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u043D\u043E \u0440\u0430\u0437\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E (\u0430\u043D\u043E\u0440\u0435\u043A\u0441\u0438\u044F, \u0431\u0443\u043B\u0438\u043C\u0438\u044F)",
+    text: /анорекс|булими|хранително разстройств|предизвикв\w* повръщане/i,
+    compensation: /повръщ|лаксатив|слабителн|диуретик/i,
+    bmiBelow: 16
+  },
+  { key: "diabetes_insulin", label: "\u0434\u0438\u0430\u0431\u0435\u0442 \u043D\u0430 \u0438\u043D\u0441\u0443\u043B\u0438\u043D", text: /диабет тип 1|тип 1 диабет|инсулинозависим|инсулин(?!ова)/i },
+  { key: "heart_failure", label: "\u0441\u044A\u0440\u0434\u0435\u0447\u043D\u0430 \u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E\u0441\u0442", text: /сърдечна недостатъчност/i },
+  { key: "kidney", label: "\u0431\u044A\u0431\u0440\u0435\u0447\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435", text: /бъбречна недостатъчност|диализ|хронично бъбречно|ХБЗ/i },
+  { key: "liver", label: "\u0442\u0435\u0436\u043A\u043E \u0447\u0435\u0440\u043D\u043E\u0434\u0440\u043E\u0431\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435", text: /цироза|чернодробна недостатъчност/i },
+  { key: "cancer", label: "\u043E\u043D\u043A\u043E\u043B\u043E\u0433\u0438\u0447\u043D\u043E \u0437\u0430\u0431\u043E\u043B\u044F\u0432\u0430\u043D\u0435", text: /\bрак\b|онколог|химиотерапи|лъчетерапи|тумор|карцином|лимфом|левкеми/i },
+  { key: "adrenal", label: "\u043D\u0430\u0434\u0431\u044A\u0431\u0440\u0435\u0447\u043D\u0430 \u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E\u0441\u0442", text: /надбъбречна недостатъчност|адисон/i }
+];
+var textOf2 = (v) => Array.isArray(v) ? v.join(" ") : String(v == null ? "" : v);
+function detectCritical(data) {
+  const d = data || {};
+  const all = Object.entries(d).filter(([k]) => /^(medicalConditions|healthConditions|medications|additionalNotes|weightChangeDetails|dietDislike|dq_)/.test(k)).map(([, v]) => textOf2(v)).join(" \n ");
+  const bmi = calculateBmi(d);
+  const found = [];
+  for (const c of CRITICAL) {
+    let hit = c.text.test(all);
+    if (!hit && c.compensation && c.compensation.test(textOf2(d.compensationMethods))) hit = true;
+    if (!hit && c.bmiBelow && Number.isFinite(bmi) && bmi < c.bmiBelow) hit = true;
+    if (hit) found.push({ key: c.key, label: c.label });
+  }
+  return found;
+}
+function criticalGate(data) {
+  const answered = data && data.criticalFollowUp || {};
+  const questions = [];
+  const notes = [];
+  let stop = null;
+  for (const c of detectCritical(data)) {
+    const a = answered[c.key];
+    if (!a) {
+      questions.push({
+        id: `critical_${c.key}`,
+        critical: true,
+        allowText: false,
+        text: `\u041D\u0430\u0431\u043B\u044E\u0434\u0430\u0432\u0430\u0448 \u043B\u0438 \u0441\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440 \u0437\u0430 ${c.label}?`,
+        options: CRITICAL_FOLLOWUP_OPTIONS.map((o) => o.label),
+        why: "\u041F\u0440\u0438 \u0442\u043E\u0432\u0430 \u0441\u044A\u0441\u0442\u043E\u044F\u043D\u0438\u0435 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u0435 \u0432\u0430\u0436\u043D\u0430, \u043D\u043E \u0434\u043E\u043F\u044A\u043B\u043D\u0438\u0442\u0435\u043B\u043D\u0430 \u0447\u0430\u0441\u0442 \u043E\u0442 \u043B\u0435\u0447\u0435\u043D\u0438\u0435\u0442\u043E \u2014 \u043F\u043B\u0430\u043D\u044A\u0442 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0441\u0435 \u0441\u044A\u0433\u043B\u0430\u0441\u0443\u0432\u0430 \u0441 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u043E\u0442\u043E \u043E\u0442 \u043B\u0435\u043A\u0430\u0440\u044F."
+      });
+    } else if (a === "none") {
+      stop = stop || `\u041F\u0440\u0438 ${c.label} \u043F\u044A\u0440\u0432\u0430\u0442\u0430 \u0441\u0442\u044A\u043F\u043A\u0430 \u0435 \u043F\u0440\u0435\u0433\u043B\u0435\u0434 \u0438 \u043B\u0435\u0447\u0435\u043D\u0438\u0435 \u043E\u0442 \u043B\u0435\u043A\u0430\u0440. \u0425\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u043C\u043E\u0436\u0435 \u043C\u043D\u043E\u0433\u043E \u0434\u0430 \u043F\u043E\u043C\u043E\u0433\u043D\u0435, \u043D\u043E \u043D\u0435 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0437\u0430\u043C\u0435\u0441\u0442\u0438 \u043B\u0435\u0447\u0435\u043D\u0438\u0435\u0442\u043E \u2014 \u0437\u0430\u0442\u043E\u0432\u0430 \u043D\u0435 \u0438\u0437\u0433\u043E\u0442\u0432\u044F\u043C\u0435 \u043F\u043B\u0430\u043D \u043F\u0440\u0435\u0434\u0438 \u043A\u043E\u043D\u0441\u0443\u043B\u0442\u0430\u0446\u0438\u044F. \u041A\u043E\u0433\u0430\u0442\u043E \u0432\u0435\u0447\u0435 \u0441\u0435 \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0432\u0430\u0448, \u0432\u044A\u0440\u043D\u0438 \u0441\u0435 \u0438 \u0449\u0435 \u0438\u0437\u0433\u043E\u0442\u0432\u0438\u043C \u043F\u043B\u0430\u043D, \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D \u0441 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u043E\u0442\u043E \u043E\u0442 \u043B\u0435\u043A\u0430\u0440\u044F.`;
+    } else {
+      notes.push(`${c.label}: ${a === "treated" ? "\u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0432\u0430 \u0441\u0435, \u0438\u043C\u0430 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u043E \u043B\u0435\u0447\u0435\u043D\u0438\u0435" : "\u0431\u0438\u043B/\u0430 \u043D\u0430 \u043F\u0440\u0435\u0433\u043B\u0435\u0434, \u0431\u0435\u0437 \u0443\u043A\u0430\u0437\u0430\u043D\u0438\u044F \u0437\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E"}`);
+    }
+  }
+  return { questions, stop, notes };
+}
 
 // meal-compatibility.js
 function groupOfProduct(name) {
@@ -80017,9 +80075,53 @@ function normalizeQuestionnaireData(data) {
   ensureProfileMetricsOnData(data);
   return data;
 }
+async function answerGate(env, data) {
+  const valConfig = await getValidationConfig(env);
+  const det = runDeterministicValidation(data, valConfig);
+  const notes = det.issues.filter((i) => i.severity !== "high").map((i) => i.description);
+  const corrections = det.issues.filter((i) => i.severity === "high" && i.field).map((i) => ({ field: i.field, problem: i.description }));
+  if (corrections.length) return { decision: "correct", corrections, questions: [], stopReason: "", notes };
+  const crit = criticalGate(data);
+  notes.push(...crit.notes);
+  if (crit.stop) return { decision: "stop", corrections: [], questions: [], stopReason: crit.stop, notes };
+  if (crit.questions.length) return { decision: "ask", corrections: [], questions: crit.questions, stopReason: "", notes };
+  try {
+    const qmap = data._qmap && typeof data._qmap === "object" ? data._qmap : {};
+    const followUps = Array.isArray(data.followUps) ? data.followUps : [];
+    const skip = /* @__PURE__ */ new Set(["_qmap", "followUps", "criticalFollowUp", "medicalFiles", "email", "_dq_text_map", "consentHealthData"]);
+    const userData = Object.entries(data).filter(([k, v]) => !skip.has(k) && v !== "" && v != null).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : typeof v === "object" ? JSON.stringify(v) : v}`).join("\n").slice(0, 9e3);
+    const template = await requireKvPrompt(env, "admin_answer_gate_prompt");
+    const prompt = Object.entries({
+      questions: Object.entries(qmap).map(([id, t]) => `${id} \u2192 ${String(t).slice(0, 140)}`).join("\n").slice(0, 6e3) || "\u043D\u044F\u043C\u0430",
+      userData,
+      followUps: followUps.map((f) => `${String(f.q || "").slice(0, 200)} \u2192 ${String(f.a || "").slice(0, 300)}`).join("\n") || "\u043D\u044F\u043C\u0430"
+    }).reduce((t, [k, v]) => t.split(`{${k}}`).join(String(v)), String(template));
+    const r = parseAIResponse(await callAIModel(env, prompt, 1500, "answer_gate", null, null, null, false)) || {};
+    notes.push(...(Array.isArray(r.notes) ? r.notes : []).map((x) => String(x || "").slice(0, 300)).filter(Boolean).slice(0, 5));
+    const known = new Set(Object.keys(qmap));
+    const aiCorr = (Array.isArray(r.corrections) ? r.corrections : []).filter((c) => c && known.has(String(c.field))).map((c) => ({ field: String(c.field), problem: String(c.problem || "").slice(0, 300) })).slice(0, 5);
+    if (r.decision === "correct" && aiCorr.length) return { decision: "correct", corrections: aiCorr, questions: [], stopReason: "", notes };
+    if (r.decision === "stop" && r.stopReason) return { decision: "stop", corrections: [], questions: [], stopReason: String(r.stopReason).slice(0, 600), notes };
+    const aiQ = followUps.length ? [] : (Array.isArray(r.questions) ? r.questions : []).filter((q) => q && q.text).map((q, i) => ({
+      id: `ai_${i}`,
+      text: String(q.text).slice(0, 200),
+      why: String(q.why || "").slice(0, 240),
+      options: (Array.isArray(q.options) ? q.options : []).map((o) => String(o || "").slice(0, 80)).filter(Boolean).slice(0, 5),
+      allowText: q.allowText === true || !(Array.isArray(q.options) && q.options.length)
+    })).slice(0, 2);
+    if (r.decision === "ask" && aiQ.length) return { decision: "ask", corrections: [], questions: aiQ, stopReason: "", notes };
+  } catch (e) {
+    console.warn("answer gate AI skipped:", e.message);
+  }
+  return { decision: "ok", corrections: [], questions: [], stopReason: "", notes };
+}
 async function handleValidateQuestionnaire(request, env) {
   try {
     const data = normalizeQuestionnaireData(await request.json());
+    if (data && Number(data.gate) === 2) {
+      if (!data.name || !data.age || !data.weight || !data.height) return jsonResponse2({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
+      return jsonResponse2(await answerGate(env, data));
+    }
     if (!data.name || !data.age || !data.weight || !data.height) {
       return jsonResponse2({ error: ERROR_MESSAGES.MISSING_FIELDS }, 400);
     }
@@ -80072,7 +80174,7 @@ async function handleValidateQuestionnaire(request, env) {
     return jsonResponse2({ valid: true, hasIssues: false, issues: [] });
   } catch (error) {
     console.error("Error in questionnaire validation:", error);
-    return jsonResponse2({ valid: true, hasIssues: false, issues: [] });
+    return jsonResponse2({ valid: true, hasIssues: false, issues: [], decision: "ok", corrections: [], questions: [], notes: [] });
   }
 }
 var RATE_LIMIT = {
@@ -86771,6 +86873,7 @@ var AI_TASKS = {
   council_rebuttal: { tier: "main", thinking: "low", maxTokens: 500 },
   health_digest: { tier: "lite", thinking: "minimal" },
   ai_validation: { tier: "lite", thinking: "low", maxTokens: 1200 },
+  answer_gate: { tier: "main", thinking: "low", maxTokens: 1500 },
   document_assessment: { tier: "main", thinking: "medium" },
   emoeat_analysis: { tier: "main", thinking: "low" },
   // Снимки и PDF (моделът за зрение от админа)

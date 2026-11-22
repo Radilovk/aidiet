@@ -76,5 +76,20 @@ const base = {
   check('bmi calc', bmi > 25 && bmi < 26, String(bmi.toFixed(1)));
 }
 
+// ── Критичните състояния: питаме „наблюдаваш ли се от лекар“, спираме само при „не“ ──
+{
+  const { criticalGate, detectCritical } = await import('../questionnaire-validation.mjs');
+  const base = { name: 'А', age: 40, weight: 80, height: 175 };
+  assert.equal(criticalGate({ ...base, medicalConditions: ['Хипертония (високо кръвно налягане)'] }).questions.length, 0, 'хипертонията не е спиращо състояние');
+  const g = criticalGate({ ...base, medicalConditions: ['Сърдечна недостатъчност'] });
+  assert.equal(g.questions.length, 1); assert.equal(g.stop, null);
+  assert.ok(criticalGate({ ...base, medicalConditions: ['Сърдечна недостатъчност'], criticalFollowUp: { heart_failure: 'none' } }).stop);
+  const ok = criticalGate({ ...base, medicalConditions: ['Сърдечна недостатъчност'], criticalFollowUp: { heart_failure: 'treated' } });
+  assert.equal(ok.stop, null); assert.equal(ok.questions.length, 0); assert.equal(ok.notes.length, 1);
+  assert.deepEqual(detectCritical({ ...base, medicalConditions: ['Диабет / Инсулинова резистентност'] }), [], 'инсулинова резистентност не е критична');
+  assert.equal(detectCritical({ ...base, compensationMethods: ['Повръщане'] })[0].key, 'eating_disorder');
+  console.log('✓ критични състояния: въпрос, спиране само без лекар');
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
