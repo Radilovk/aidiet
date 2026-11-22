@@ -1,5 +1,5 @@
 /**
- * Eatologix Context Format (NPCF) — domain-specific token compression
+ * Nutriin Context Format (NPCF) — domain-specific token compression
  * for AI plan generation prompts. Lossless for medical/clinical fields.
  *
  * Tiers:

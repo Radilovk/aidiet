@@ -1,12 +1,13 @@
 # Карта на репото (чети първо това)
 
 Едно репо, няколко проекта, общ плосък корен. GitHub Pages сервира корена като biocode.website — това е само
-източникът; **публичният адрес на Eatologix е eatologix.com** (EmoEat — emoeat.app), през worker-а (`app-domain.js`).
-В страниците, sitemap и canonical се пише eatologix.com, не biocode.website. Изключение — писмата към клиенти:
-подател `info@biocode.online` и връзки от biocode.website (установена репутация, да не падат в спам; `PLAN_APP_BASE_URL`). **Не местим страници** — адресите се чупят.
+източникът; **публичният адрес на Nutriin е nutriin.app** (EmoEat — emoeat.app), през worker-а (`app-domain.js`).
+В страниците, sitemap и canonical се пише nutriin.app, не biocode.website. Писмата към клиенти се пишат с връзки от
+biocode.website (`PLAN_APP_BASE_URL`); при изпращане `email-domain.js` ги сменя с потвърдения домейн на пощата
+(nutriin.app, преходно eatologix.com), а без потвърден домейн остават `info@biocode.online` и biocode.website. **Не местим страници** — адресите се чупят.
 Правила за работа: `.cursorrules` и `PROJECT_NOTES.md` (промптове само в `KV/prompts/`).
 
-## Eatologix (PWA + Android APK, `com.biocode.nutriplan`)
+## Nutriin (PWA + Android APK, `com.biocode.nutriplan`)
 - Страници: `index.html` (вход), `questionnaire2.html`, `plan.html`, `profile.html`, `analysis.html`,
   `plan-pending.html`, `plan-book.html`, `game-analytics.html`, `guidelines.html`, `quick-answer.html`,
   `food-picker.html`, `features.html`, `warning.html`, `privacy-policy.html`, `terms.html`, `help.html` (въпроси и отговори),
@@ -17,15 +18,21 @@
 - Общ фронтенд JS: `app.js`, `app-ui.js`/`app-ui.css`, `design-system.css`, `platform.js`, `platform-compat.js`,
   `session-utils.js`, `auth-guard.js`, `plan-sync.js`, `local-scheduler.js`, `notification-launch.js`,
   `health-sync.js`, `activity-tracker.js` (крачкомер + въпрос за тренировка; дневните цели — `nutrition-engine/metabolic.js`), `native-backup.js`, `drive-backup.js`, `meal-swaps.js`, `game-scoring.js`, `sw.js`, `manifest.json`.
-- Марка (бивш NutriPlan): лого/икони в `brand/` + `icon-*.png|svg`, `favicon.svg` — генерират се с `npm run build:brand`
-  (`scripts/build-brand.mjs`, един векторен източник; не рисувай на ръка). Цветове: токени `--brand-*` в `design-system.css`,
-  класове `.ex-logo` / `.ex-mark`.
+- Марка **Nutriin** (nutri + **in** — вътре, отвътре; преди Eatologix, още преди NutriPlan): знакът е ябълка, нарисувана
+  с една линия, която вътре изписва „in“, + листо. Лого/икони в `brand/nutriin-*` + `icon-*.png|svg`, `favicon.svg` —
+  генерират се с `npm run build:brand` (`scripts/build-brand.mjs`; източници `brand/nutriin-mark.json` и
+  `brand/nutriin-wordmark-glyphs.json`; не рисувай на ръка). Надписът „nutri“ лек + „in“ плътен зелен. `brand/eatologix-*` са
+  копия на новите (за изпратени писма и стари версии). Цветове: токени `--brand-*` в `design-system.css`, класове `.ex-logo` / `.ex-mark`.
+  Вътрешните имена остават старите: `window.EatologixI18n`, `EatologixBotCheck`, `EatologixPricing`, `__EATOLOGIX_BETA_UNLOCK`.
 - **Визуален език „Светлина · Стъкло · Спокойствие“:** `ambient-glass.css` + `ambient-glass.js` (във всяка страница на
   приложението, в края на `<head>`; `?ui=classic` връща стария вид). Публичните страници — `html.ui-glass` в `protocol-page.css`.
 - **Дизайн: `DESIGN_PRINCIPLES.md`** — ролите на цветовете (60-30-10), структурата на екрана (хиро без кутия →
   обобщение → разгъващи се секции/карти), разделенията, думите за нивата. Всяка промяна по вида — оттам и с токените. Идентификаторите остават старите: `window.NutriPlan*`, `com.biocode.nutriplan`,
   `NutriPlan-v*.apk` (по тях старите версии намират обновления), ключове в localStorage.
-- Домейн eatologix.com: `app-domain.js` във worker-а (страниците от biocode.website, `/api/` същият), `APP_HOSTS` в `wrangler.toml`.
+- Домейн nutriin.app: `app-domain.js` във worker-а (страниците от biocode.website, `/api/` същият), `APP_HOSTS` и `MAIN_HOST`
+  в `wrangler.toml`. nutriin.eu → 301 към nutriin.app. eatologix.com (старото име) се обслужва, а браузърът пренася паметта
+  и препраща към nutriin.app (`i18n.js`, само ако nutriin.app отговаря). Пощата: подател „Nutriin“ от info@nutriin.app, щом
+  Resend потвърди домейна (`email-domain.js`, workflow „Domain setup“); дотогава — от вече потвърдения info@eatologix.com.
 - Преводи: `i18n.js` + `i18n/<език>/common.json` и `i18n/<език>/<страница>.json` (bg е изходният език; ръчен речник
   „точен български текст → превод“, `data-i18n` за двусмислени текстове, `patterns` за текст с числа). Поддържани: bg, en, de, es, ru (руският е на кирилица — текст с ы/э/ё не се превежда).
   Каквото липсва в речника → резервен AI превод `/api/i18n/translate` (`i18n-server.js`, кеш в KV, общ за всички).
@@ -36,19 +43,19 @@
   `.github/workflows/build-apk.yml` (копира корена в shell с изключения), `publish-apk-release.yml`.
   Нов root файл влиза в APK автоматично, освен ако не е в изключенията на `build-apk.yml`.
 
-## Бекенд (Cloudflare Worker, общ за Eatologix, fitness, studio)
+## Бекенд (Cloudflare Worker, общ за Nutriin, fitness, studio)
 - Източник: `worker.entry.js` + импортираните модули в корена, `nutrition-engine/`, `fitness/worker.js`, `studio-platform/`.
 - **`worker.js` е генериран (4MB) — не го редактирай и не го чети.** Сглобява се с `npm run build:worker`.
 - Данни: `data/`, `data/engine/`, `nutrition-library/`, `*-data.js`. Промптове/KV: `KV/`.
 - Проверка: `npm run test:worker` (bundle + health); тематични тестове: `npm run test:*` (виж `package.json`, `scripts/`).
 
-## Други проекти (отделни, не пипай при работа по Eatologix)
+## Други проекти (отделни, не пипай при работа по Nutriin)
 - `fitness/` — KA-TRAINER (собствен `package.json`, бекендът е в общия worker).
 - `xbody.html` (+ `xbody-*`, `acuity/`), `studio.html` + `studio-platform/`, `emoeat.html`, `kids.html`,
   `longevity.html`, `protocols.html`, `protocol-landing.html`, `pep*.html`, `reta.html`, `aix.html`,
   `lqto2026.html`, `vaprosnikhomeo.html`, `dopamine-test.html`, `health.html`.
 - `xb-studio.html` (+ `studio-app/landing/`) — публичната страница на приложението XB-Studio (iOS/Android сваляне, студиата от живия списък).
-- `admin.html` (+ `admin-*`) — админ панел на Eatologix, не влиза в приложението.
+- `admin.html` (+ `admin-*`) — админ панел на Nutriin, не влиза в приложението.
 - `viber-sender/`, `workflows/`, `migrations/`, `samples/`, `clients/` — помощни.
 
 ## Големи файлове (чети на части, търси с Grep)

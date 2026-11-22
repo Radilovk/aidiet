@@ -1,5 +1,5 @@
 /**
- * EATOLOGIX на собствен домейн (eatologix.com).
+ * NUTRIIN на собствен домейн (nutriin.app; nutriin.eu → nutriin.app; eatologix.com — предишното име).
  *
  * GitHub Pages сервира репото само на biocode.website (там са и другите проекти), затова
  * собственият домейн минава през worker-а: страниците на приложението се взимат от сайта
@@ -9,7 +9,10 @@
  * Включване: в Cloudflare домейнът се добавя като Custom Domain на worker-а „aidiet“
  * (и www.; .github/workflows/domain-setup.yml), а в wrangler.toml → APP_HOSTS.
  * Домейните на модулите (emoeat.app) са в MODULE_HOSTS: своя начална страница, а страниците
- * на Eatologix се пренасочват към eatologix.com. (GitHub Pages дава само един домейн на репо —
+ * на Nutriin се пренасочват към основния домейн (MAIN_HOST в wrangler.toml, по подразбиране nutriin.app).
+ * ALIAS_HOSTS (nutriin.eu) → 301 към основния домейн. eatologix.com се обслужва както досега:
+ * пренасочването към nutriin.app е в браузъра (i18n.js), защото паметта на браузъра (профил, план)
+ * е по домейн и трябва да се пренесе — сървърно 301 би я загубило. (GitHub Pages дава само един домейн на репо —
  * biocode.website, затова собствените домейни минават оттук.)
  */
 const ORIGIN = 'https://biocode.website';
@@ -18,7 +21,7 @@ const ORIGIN = 'https://biocode.website';
 // (EmoEat — emoeat.html, emoeat-landing.html — е част от системата и минава.)
 const OTHER_PROJECTS = /^\/(xbody|xb-studio|xems-|studio|acuity\/|fitness\/|kids|pep|reta|aix|lqto|vaprosnik|dopamine|health\.html|notifications-test|pwa-test|design_presentation|samples\/|clients\/|docs\/|KV\/|migrations\/|workflows\/|viber-sender\/|scripts\/|\.github\/|CNAME$)/i;
 // Изключение: картинките направо в docs/ (напр. docs/Chat2.png — иконата на асистента) са част от
-// приложението; влизат и в APK (build-apk.yml: docs/*.png). Без това иконата на чата е празна на eatologix.com.
+// приложението; влизат и в APK (build-apk.yml: docs/*.png). Без това иконата на чата е празна на nutriin.app.
 const APP_ASSETS = /^\/docs\/[^/]+\.png$/i;
 const list = (v) => String(v || '').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
 
@@ -28,14 +31,16 @@ export function isAppHost(env, host) {
 }
 
 // Домейните на модулите (същият worker, същите страници от сайта): начална страница и кои
-// страници остават на домейна; всичко друго (*.html) отива на основния домейн на Eatologix.
+// страници остават на домейна; всичко друго (*.html) отива на основния домейн на Nutriin.
 const MODULE_HOSTS = {
   'emoeat.app': {
     home: '/emoeat-landing.html',
     pages: /^\/(emoeat[^/]*\.html|privacy-policy\.html|terms\.html|help\.html|delete-account\.html)$/i
   }
 };
-const MAIN_HOST = 'eatologix.com';
+const mainHost = (env) => String(env.MAIN_HOST || 'nutriin.app').toLowerCase();
+// Домейни, които само пренасочват към основния (няма какво да се пренася — там никой не е бил).
+const ALIAS_HOSTS = ['nutriin.eu'];
 
 /** null → не е домейнът на приложението (или е /api/) и заявката продължава към worker-а. */
 export async function handleAppDomain(request, env) {
@@ -43,12 +48,14 @@ export async function handleAppDomain(request, env) {
   const host = url.hostname.toLowerCase();
   if (!isAppHost(env, host)) return null;
   const bare = host.replace(/^www\./, '');
+  const MAIN_HOST = mainHost(env);
+  if (ALIAS_HOSTS.includes(bare)) return Response.redirect(`https://${MAIN_HOST}${url.pathname}${url.search}`, 301);
   if (host !== bare) return Response.redirect(`https://${bare}${url.pathname}${url.search}`, 301);
   if (url.pathname.startsWith('/api/')) return null;
   if (request.method !== 'GET' && request.method !== 'HEAD') return null;
   const mod = MODULE_HOSTS[bare];
   if (OTHER_PROJECTS.test(url.pathname) && !APP_ASSETS.test(url.pathname)) return Response.redirect(`https://${mod ? MAIN_HOST : bare}/`, 302);
-  // Домейн на модул: страниците на Eatologix се отварят на основния домейн.
+  // Домейн на модул: страниците на Nutriin се отварят на основния домейн.
   if (mod && url.pathname !== '/' && /\.html$/i.test(url.pathname) && !mod.pages.test(url.pathname)) {
     return Response.redirect(`https://${MAIN_HOST}${url.pathname}${url.search}`, 302);
   }

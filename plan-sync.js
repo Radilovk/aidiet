@@ -1,5 +1,5 @@
 /**
- * Eatologix — login plan restore, plan replacement auth, pending activation.
+ * Nutriin — login plan restore, plan replacement auth, pending activation.
  */
 (function (global) {
     'use strict';

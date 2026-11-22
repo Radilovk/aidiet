@@ -44,9 +44,12 @@ STUDIO_ROOT_DOMAIN = "biocode-bg.com,xbody.online"
 # the app's public page (xb-studio.html) on its own domain; www → the bare domain
 STUDIO_LANDING_HOSTS = "xbody.online"
 # Eatologix на собствен домейн: страниците от сайта, /api/ — същият worker (app-domain.js).
-# Домейнът се добавя и в Cloudflare като Custom Domain на този worker (eatologix.com и www.eatologix.com).
+# Домейните се добавят и в Cloudflare като Custom Domain на този worker (с и без www): nutriin.app, nutriin.eu,
+# eatologix.com (предишното име — браузърът пренася паметта и препраща към nutriin.app, i18n.js), emoeat.app.
 # emoeat.app — модулът EmoEat (началото е emoeat-landing.html; MODULE_HOSTS в app-domain.js).
-APP_HOSTS = "eatologix.com,emoeat.app"
+APP_HOSTS = "nutriin.app,nutriin.eu,eatologix.com,emoeat.app"
+# Основният домейн на Nutriin (модулите и nutriin.eu пренасочват към него).
+MAIN_HOST = "nutriin.app"
 # workers.dev URL is assigned automatically (aidiet.radilov-k.workers.dev).
 # Do NOT use `route` here — that syntax is for custom domains in a Cloudflare zone.
 

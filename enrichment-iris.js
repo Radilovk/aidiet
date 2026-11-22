@@ -41,7 +41,7 @@ export function deriveIris(facts) {
     },
     hints: { behaviors: [], approach: [], clinical: [], cautions },
     reasons: ['ирисов анализ (IrisMap)'],
-    // За сверката с Eatologix (cross-check.js) — не излиза към клиента.
+    // За сверката с Nutriin (cross-check.js) — не излиза към клиента.
     raw: { systems: a.systems || [], questionnaire: fact.value.questionnaire || null },
   };
 }

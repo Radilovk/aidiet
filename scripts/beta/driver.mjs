@@ -7,7 +7,7 @@ let pw;
 try { pw = require('playwright'); } catch { pw = require('/opt/node22/lib/node_modules/playwright'); }
 
 const ALLOWED_EXTERNAL = /^https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net|unpkg\.com)\//;
-const APP_HOSTS = /^https:\/\/(biocode\.website|www\.biocode\.website|eatologix\.com|www\.eatologix\.com)\//;
+const APP_HOSTS = /^https:\/\/(biocode\.website|www\.biocode\.website|nutriin\.app|www\.nutriin\.app|eatologix\.com|www\.eatologix\.com)\//;
 
 export async function openBrowser() { return pw.chromium.launch(); }
 

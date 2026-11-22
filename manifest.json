@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Eatologix - Интелигентна Хранителна Платформа",
-  "short_name": "Eatologix",
+  "name": "Nutriin - Интелигентна Хранителна Платформа",
+  "short_name": "Nutriin",
   "description": "Комплексна здравна платформа с екип от специалисти. Персонализиран план за хранене, психология, добавки и активности чрез 7-степенен AI анализ с 30+ критерия. 24/7 AI консултант на разположение.",
   "start_url": "/",
   "scope": "/",
@@ -97,14 +97,14 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Eatologix — Начален екран (мобилен)"
+      "label": "Nutriin — Начален екран (мобилен)"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Eatologix — Начален екран (таблет/десктоп)"
+      "label": "Nutriin — Начален екран (таблет/десктоп)"
     }
   ],
   "categories": [

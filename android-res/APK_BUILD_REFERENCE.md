@@ -1,4 +1,4 @@
-# APK Build Reference — Eatologix (com.biocode.nutriplan)
+# APK Build Reference — Nutriin (com.biocode.nutriplan)
 
 > **ВАЖНО ЗА ВСИЧКИ АГЕНТИ И РАЗРАБОТЧИЦИ**
 > Този файл описва пълното „замразено" (locked) състояние на APK билда.
@@ -22,7 +22,7 @@
 
 ```
 appId / packageId : com.biocode.nutriplan
-appName           : Eatologix
+appName           : Nutriin
 webDir            : capacitor-shell        ← директорията с frontend файловете
 ```
 

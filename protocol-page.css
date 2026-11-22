@@ -1,7 +1,7 @@
 /* Публичните страници извън приложението: протоколите (protocol-<slug>.html,
  * protocol-landing.html), помощ, изтриване на профил и правните текстове.
  * Самостоятелни и леки: без design-system.css и иконни шрифтове.
- * Цветовете следват Eatologix; --acc идва от състоянието. Футърът — site-footer.css. */
+ * Цветовете следват Nutriin; --acc идва от състоянието. Футърът — site-footer.css. */
 
 :root {
     --acc: #05737D;
@@ -653,8 +653,8 @@ main.wrap { padding-bottom: 56px; }
 }
 
 /* Името EATO | LOGIX — цветният надпис от логото; на тъмна тема EATO е светъл. */
-.brand-word { display: inline-block; height: 18px; aspect-ratio: 6328 / 740; background: url('brand/eatologix-wordmark.svg') left center / contain no-repeat; }
-[data-theme="dark"] .brand-word { background-image: url('brand/eatologix-wordmark-dark.svg'); }
+.brand-word { display: inline-block; height: 18px; aspect-ratio: 2875 / 874; background: url('brand/nutriin-wordmark.svg') left center / contain no-repeat; }
+[data-theme="dark"] .brand-word { background-image: url('brand/nutriin-wordmark-dark.svg'); }
 
 /* ── Стъкло и слоеве (същият език като XB-Studio и лендингите на модулите) ──
  * <html class="ui-glass">: протоколите (от генератора), цени, помощ, правните текстове и изтриването на профил.

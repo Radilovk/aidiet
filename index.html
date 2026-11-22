@@ -13,30 +13,30 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Eatologix">
+    <meta name="apple-mobile-web-app-title" content="Nutriin">
 
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://eatologix.com/">
-    <meta property="og:title" content="Eatologix — логиката на твоето хранене">
+    <meta property="og:url" content="https://nutriin.app/">
+    <meta property="og:title" content="Nutriin — храненето отвътре">
     <meta property="og:description" content="Хранителен план, изчислен от над 30 твои показателя, проверен от специалист и преизчисляван всяка седмица. Ти се храниш и виждаш резултата — логиката е наша.">
-    <meta property="og:image" content="https://eatologix.com/brand/og-image.png">
+    <meta property="og:image" content="https://nutriin.app/brand/og-image.png">
     <meta property="og:locale" content="bg_BG">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://eatologix.com/">
-    <meta name="twitter:title" content="Eatologix — логиката на твоето хранене">
+    <meta name="twitter:url" content="https://nutriin.app/">
+    <meta name="twitter:title" content="Nutriin — храненето отвътре">
     <meta name="twitter:description" content="Хранителен план, изчислен от над 30 твои показателя, проверен от специалист и преизчисляван всяка седмица. Ти се храниш и виждаш резултата — логиката е наша.">
-    <meta name="twitter:image" content="https://eatologix.com/brand/og-image.png">
+    <meta name="twitter:image" content="https://nutriin.app/brand/og-image.png">
 
-    <link rel="canonical" href="https://eatologix.com/">
+    <link rel="canonical" href="https://nutriin.app/">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" sizes="48x48" href="brand/favicon-48.png">
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./brand/apple-touch-icon.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./brand/apple-touch-icon.png">
-    <title>Eatologix — логиката на твоето хранене</title>
+    <title>Nutriin — храненето отвътре</title>
     <!-- Prefetch adjacent tabs so the browser caches them before they are needed -->
     <link rel="prefetch" href="./plan.html">
     <link rel="prefetch" href="./guidelines.html">
@@ -63,14 +63,14 @@
         html.app-booting::after {
             left: 50%; top: 50%;
             width: 120px; height: 120px; margin: -60px 0 0 -60px;
-            background: url("./brand/eatologix-mark-tech.svg") center / contain no-repeat;
+            background: url("./brand/nutriin-mark-big.svg") center / contain no-repeat;
             filter: drop-shadow(0 0 18px rgba(0,224,220,0.35));
             animation: appBootPulse 1.6s ease-in-out infinite;
         }
         html.app-booting body::after {
             content: '';
             position: fixed; z-index: 20001; left: 50%; width: 168px; margin-left: -84px; height: 26px; top: calc(50% + 78px);
-            background: url("./brand/eatologix-wordmark-dark.svg") center / contain no-repeat;
+            background: url("./brand/nutriin-wordmark-dark.svg") center / contain no-repeat;
             visibility: visible;
             animation: appBootName 0.6s ease 0.2s both;
         }
@@ -720,8 +720,8 @@
         .lp-line--logic { color: var(--lp-leaf, #07CF61); }
         /* Логото на марката в началния екран (знак + EATO | LOGIX), следва темата. */
         .lp-brand { margin: 0 0 22px; }
-        .lp-brand-logo { display: block; width: min(300px, 70vw); aspect-ratio: 1196 / 920; background: url('brand/eatologix-logo.svg') left center / contain no-repeat; filter: drop-shadow(0 18px 36px rgba(0, 224, 220, 0.16)); }
-        [data-theme="dark"] .lp-brand-logo { background-image: url('brand/eatologix-logo-dark.svg'); filter: drop-shadow(0 0 28px rgba(0, 224, 220, 0.22)) drop-shadow(0 0 40px rgba(160, 245, 0, 0.10)); }
+        .lp-brand-logo { display: block; width: min(300px, 70vw); aspect-ratio: 1200 / 1362; background: url('brand/nutriin-logo.svg') left center / contain no-repeat; filter: drop-shadow(0 18px 36px rgba(0, 224, 220, 0.16)); }
+        [data-theme="dark"] .lp-brand-logo { background-image: url('brand/nutriin-logo-dark.svg'); filter: drop-shadow(0 0 28px rgba(25, 214, 210, 0.20)); }
         @media (max-width: 899px) { .lp-brand-logo { width: min(220px, 60vw); } }
         .lp-eyebrow {
             display: inline-flex;
@@ -2143,7 +2143,7 @@
     <script src="./ambient-glass.js?v=2"></script>
 </head>
 <body>
-    <div id="spaShell" class="spa-shell" hidden aria-label="Eatologix приложение">
+    <div id="spaShell" class="spa-shell" hidden aria-label="Nutriin приложение">
         <div class="spa-tab-stack">
             <iframe class="spa-tab-view" data-tab-view="plan" title="Моят план" data-src="plan.html?embedded=1"></iframe>
             <iframe class="spa-tab-view" data-tab-view="guidelines" title="Насоки" data-src="guidelines.html?embedded=1"></iframe>
@@ -2186,7 +2186,7 @@
 
     <!-- Navigation -->
     <nav class="top-nav" role="navigation" aria-label="Главна навигация">
-        <a href="#" class="logo" aria-label="Eatologix начална страница"><span class="ex-logo" role="img" aria-label="Eatologix"></span></a>
+        <a href="#" class="logo" aria-label="Nutriin начална страница"><span class="ex-logo" role="img" aria-label="Nutriin"></span></a>
         <div class="top-nav-actions">
             <label class="lang-pick" title="Език / Language"><i class="fas fa-globe" aria-hidden="true"></i><select data-lang-picker="short" aria-label="Език / Language"><option value="bg">BG</option></select></label>
         <button type="button" class="theme-toggle-btn" id="navLoginBtn" onclick="window.indexOpenLoginModal()" aria-label="Вход"><i class="far fa-user" aria-hidden="true"></i></button>
@@ -2234,11 +2234,11 @@
         <div class="lp-hero-inner">
             <div class="hero-content lp-hero-copy">
                 <figure class="lp-hero-photo lp-enter" style="--d:0" data-slot="hero" data-fx="kenburns" data-every="6"><img src="brand/photos/index-hero-4c4ab10e-1280.webp" srcset="brand/photos/index-hero-4c4ab10e-640.webp 640w, brand/photos/index-hero-4c4ab10e-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Усмихната двойка в кухнята с ябълка и здравословни храни" width="1280" height="543" decoding="async" fetchpriority="high" data-x="95.2" data-y="30.1" data-z="1"><img src="brand/photos/index-hero-263d3a8b-1280.webp" srcset="brand/photos/index-hero-263d3a8b-640.webp 640w, brand/photos/index-hero-263d3a8b-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Силует на жена сред природата с вдигнати палци" width="1280" height="720" decoding="async" loading="lazy" data-x="100" data-y="100" data-z="1"><img src="brand/photos/index-hero-77ffdaff-626.webp" alt="Усмихната жена в спортно облекло с разперени ръце край морето" width="626" height="417" decoding="async" loading="lazy" data-only="mobile"><img src="brand/photos/index-hero-1e91daf1-1280.webp" srcset="brand/photos/index-hero-1e91daf1-640.webp 640w, brand/photos/index-hero-1e91daf1-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Мъж измерва талията си с жълт шивашки метър" width="1280" height="853" decoding="async" loading="lazy"><img src="brand/photos/index-hero-ef4932ad-640.webp" alt="Боси крака върху кантар и зелен сантиметър" width="640" height="426" decoding="async" loading="lazy" data-only="mobile"><img src="brand/photos/index-hero-0f9be665-1280.webp" srcset="brand/photos/index-hero-0f9be665-640.webp 640w, brand/photos/index-hero-0f9be665-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Жена измерва обиколката на талията си с метър" width="1280" height="853" decoding="async" loading="lazy"><img src="brand/photos/index-hero-23c3a2b7-612.webp" alt="Жена на кантар държи зелена ябълка и поничка" width="612" height="383" decoding="async" loading="lazy" data-only="mobile"></figure>
-                <p class="lp-eyebrow lp-enter" style="--d:0"><span class="lp-pulse" aria-hidden="true"></span> Логиката на твоето хранене</p>
+                <p class="lp-eyebrow lp-enter" style="--d:0"><span class="lp-pulse" aria-hidden="true"></span> Храненето, видяно отвътре</p>
                 <h1 id="lpHeroTitle" class="lp-h1">
                     <span class="lp-line lp-enter" style="--d:1">Лична цел —</span>
                     <span class="lp-line lp-enter" style="--d:2"><em>личен</em> план.</span>
-                    <span class="lp-line lp-line--logic lp-enter" style="--d:2">Логичен избор.</span>
+                    <span class="lp-line lp-line--logic lp-enter" style="--d:2">Промяна отвътре.</span>
                 </h1>
                 <p class="lp-lead lp-enter" style="--d:3">Ние създаваме изключително персонализиран план: какво, колко и кога да ядеш, според тялото, здравето и целта ти. Зад изчисленията стои екип от лекари и диетолози. Резултатът от всичко това е твой.</p>
                 <div class="cta-group lp-enter" style="--d:4">
@@ -2316,13 +2316,13 @@
         </button>
         <div class="notification-status" id="notificationStatus"></div>
         <p class="notification-compat-note">
-            На Android: разреши известията и изключи ограничението за батерия за Eatologix.
+            На Android: разреши известията и изключи ограничението за батерия за Nutriin.
             На iPhone: добави сайта към началния екран от Safari.
         </p>
     </section>
 
     <!-- Numbers -->
-    <section class="lp-numbers" id="numbers" aria-label="Eatologix в числа">
+    <section class="lp-numbers" id="numbers" aria-label="Nutriin в числа">
         <div class="lp-wrap lp-numbers-grid lp-reveal">
             <div class="lp-num"><b data-count="30" data-suffix="+">30+</b><span>показателя в анализа</span></div>
             <div class="lp-num"><b data-count="11">11</b><span>клинични протокола</span></div>
@@ -2506,7 +2506,7 @@
         <div class="lp-wrap">
             <header class="lp-head lp-reveal">
                 <p class="lp-kicker">Приложение</p>
-                <h2 class="lp-h2">Eatologix — <em>приложение на телефона</em>.</h2>
+                <h2 class="lp-h2">Nutriin — <em>приложение на телефона</em>.</h2>
                 <p class="lp-sub">С известия за храненията и старт с едно докосване. Android и iPhone.</p>
             </header>
 
@@ -2516,7 +2516,7 @@
                     <h3>От браузъра</h3>
                     <p>Най-бързо. Без файл за сваляне.</p>
                     <ol class="android-steps">
-                        <li>Отвори <strong>eatologix.com</strong> в Chrome</li>
+                        <li>Отвори <strong>nutriin.app</strong> в Chrome</li>
                         <li>Меню <strong>⋮</strong> → <strong>„Инсталирай приложение“</strong></li>
                         <li>Потвърди</li>
                     </ol>
@@ -2530,11 +2530,11 @@
                     <h3>APK файл</h3>
                     <p>Пълното Android приложение.</p>
                     <ol class="android-steps">
-                        <li>Свали <strong>Eatologix.apk</strong></li>
+                        <li>Свали <strong>Nutriin.apk</strong></li>
                         <li>Разреши инсталация от този източник</li>
                         <li>Отвори файла и потвърди</li>
                     </ol>
-                    <a class="android-btn" id="apkDownloadBtn" href="https://github.com/Radilovk/aidiet/releases/latest/download/NutriPlan.apk" download="Eatologix.apk">
+                    <a class="android-btn" id="apkDownloadBtn" href="https://github.com/Radilovk/aidiet/releases/latest/download/NutriPlan.apk" download="Nutriin.apk">
                         <i class="fab fa-android"></i> Свали APK
                     </a>
                     <script>
@@ -2551,16 +2551,16 @@
                                     var m = /^v-build(\d+)-/.exec(rel.tag_name || '');
                                     if (!m || rel.draft || rel.prerelease) return;
                                     // Файлът с версията в името — уникален адрес, без кеширан стар APK в браузъра.
-                                    // Eatologix-v*.apk (новото име); по-старите издания имат само NutriPlan-v*.apk.
+                                    // Nutriin-v*.apk (новото име; по-рано Eatologix-v*.apk); най-старите издания имат само NutriPlan-v*.apk.
                                     var assets = rel.assets || [];
-                                    var asset = assets.filter(function (a) { return /^Eatologix-v[\d.]+\.apk$/.test(a.name); })[0]
+                                    var asset = assets.filter(function (a) { return /^(Nutriin|Eatologix)-v[\d.]+\.apk$/.test(a.name); })[0]
                                         || assets.filter(function (a) { return /^NutriPlan-v[\d.]+\.apk$/.test(a.name); })[0];
                                     if (asset && (!best || Number(m[1]) > best.n)) best = { n: Number(m[1]), url: asset.browser_download_url, name: asset.name };
                                 });
                                 if (!best) return;
                                 btn.href = best.url;
                                 btn.setAttribute('download', best.name);
-                                btn.innerHTML = '<i class="fab fa-android"></i> Свали APK v' + best.name.replace(/^(NutriPlan|Eatologix)-v|\.apk$/g, '');
+                                btn.innerHTML = '<i class="fab fa-android"></i> Свали APK v' + best.name.replace(/^(NutriPlan|Nutriin)-v|\.apk$/g, '');
                             })
                             .catch(function () {});
                     })();
@@ -2572,9 +2572,9 @@
                     <h3>iPhone и iPad</h3>
                     <p>От Safari — на началния екран като приложение.</p>
                     <ol class="android-steps">
-                        <li>Отвори <strong>eatologix.com</strong> в Safari</li>
+                        <li>Отвори <strong>nutriin.app</strong> в Safari</li>
                         <li>Бутон <strong>„Сподели“</strong> → <strong>„Добави към началния екран“</strong></li>
-                        <li>Отвори Eatologix от иконата</li>
+                        <li>Отвори Nutriin от иконата</li>
                     </ol>
                 </div>
             </div>
@@ -2602,8 +2602,8 @@
         <div class="sf-wrap">
             <div class="sf-top">
                 <div class="sf-brand">
-                    <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark"><img src="brand/eatologix-mark.svg" alt="" width="30" height="30"></span><img class="sf-word" src="brand/eatologix-wordmark-dark.svg" alt="Eatologix" height="17"></a>
-                    <p class="sf-tag">Логиката е наша. Резултатът — твой.</p>
+                    <a class="sf-logo" href="index.html?stay=1"><span class="sf-mark"><img src="brand/nutriin-mark.svg" alt="" width="30" height="30"></span><img class="sf-word" src="brand/nutriin-wordmark-dark.svg" alt="Nutriin" height="17"></a>
+                    <p class="sf-tag">Започва отвътре. Личи навън.</p>
                     <p class="sf-about">Хранителен план с точни грамажи, изчислен по тялото, здравето и целта ти и преизчисляван всяка седмица.</p>
                     <div class="sf-stores sf-web" aria-label="Мобилни магазини">
                         <span class="sf-store"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z"/></svg><span><small>Скоро в</small><b>Google Play</b></span></span>
@@ -2648,7 +2648,7 @@
                 </nav>
             </div>
             <div class="sf-bottom">
-                <p>© 2026 Eatologix · eatologix.com</p>
+                <p>© 2026 Nutriin · nutriin.app</p>
                 <p>Хранителни насоки, не медицинска услуга. При заболяване — с лекар.</p>
             </div>
         </div>
@@ -2687,7 +2687,7 @@
             <i class="fas fa-mobile-alt"></i>
         </div>
         <div class="install-banner-content">
-            <div class="install-banner-title" id="installBannerTitle">Инсталирай Eatologix</div>
+            <div class="install-banner-title" id="installBannerTitle">Инсталирай Nutriin</div>
             <div class="install-banner-text" id="installBannerText">Добави приложението към началния екран</div>
             <div class="install-banner-browser" id="installBannerBrowser" style="display: none;">
                 <i class="fas fa-info-circle"></i>
@@ -2710,9 +2710,9 @@
     <div id="ios-banner" class="ios-prompt" style="display:none;">
         <button onclick="dismissIosBanner()" class="ios-close">✕</button>
         <div class="ios-header">
-            <img src="./icon-192x192.png" class="ios-icon" alt="Eatologix Icon">
+            <img src="./icon-192x192.png" class="ios-icon" alt="Nutriin Icon">
             <div class="ios-title-group">
-                <h4>Инсталирай Eatologix</h4>
+                <h4>Инсталирай Nutriin</h4>
                 <p>Добави на екрана за бърз достъп и известия</p>
             </div>
         </div>
@@ -3490,7 +3490,7 @@
 
         // Installation instruction texts
         const INSTALL_INSTRUCTIONS = {
-            DESKTOP: 'За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай Eatologix..."',
+            DESKTOP: 'За да инсталираш приложението:\n\n1. Потърси иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликни върху нея и избери "Инсталирай"\n3. Или отвори менюто на браузъра (⋮) и избери "Инсталирай Nutriin..."',
             ANDROID: '📱 Как да инсталирам на Android?\n\n✅ БЪРЗ НАЧИН:\n1. Отвори менюто на браузъра (⋮) в горния десен ъгъл\n2. Избери "Инсталирай приложение" или "Добави към начален екран"\n3. Натисни "Инсталирай" в диалога\n\n✅ АЛТЕРНАТИВА:\n• Потърси иконата (⊕) в адресната лента\n• Кликни и избери "Инсталирай"\n\n💡 ВАЖНО: Ако не виждаш опцията веднага:\n• Презареди страницата (F5)\n• Изчакай 2-3 секунди\n• Кликни на някой бутон на страницата',
             IOS: 'За да добавиш приложението към началния екран:\n\n1. Натисни бутона Share/Споделяне (⬆️) в долната част на екрана\n2. Превърти надолу и избери "Add to Home Screen" (Добави към начален екран)\n3. Потвърди, като натиснеш "Add" (Добави)',
             MOBILE_GENERIC: 'За да добавиш приложението към началния екран:\n\n1. Отвори менюто на браузъра (обикновено в горната част)\n2. Потърси опцията "Добави към начален екран" или подобна\n3. Потвърди действието'
@@ -3621,7 +3621,7 @@
                 const titleEl = document.getElementById('installBannerTitle');
                 const textEl = document.getElementById('installBannerText');
 
-                if (titleEl) titleEl.textContent = '📱 Инсталирай Eatologix';
+                if (titleEl) titleEl.textContent = '📱 Инсталирай Nutriin';
                 if (textEl) textEl.textContent = 'Натисни "Инсталирай" за инструкции';
 
                 updateBannerIcon();
@@ -3967,7 +3967,7 @@
                                 console.log('%cTo install this app:', 'font-weight: bold');
                                 console.log('  1. Look for the install icon (⊕ or ⬇) in the address bar on the right side');
                                 console.log('  2. Click the icon to install the app');
-                                console.log('  3. Or open Chrome menu (⋮) → "Install Eatologix..."');
+                                console.log('  3. Or open Chrome menu (⋮) → "Install Nutriin..."');
                                 console.log('');
                                 console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
                                 console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', CONSOLE_STYLES.SEPARATOR);
@@ -4126,7 +4126,7 @@
             const contextMessages = {
                 'questionnaire': 'Искаш ли да получаваш известия за твоя хранителен план?',
                 'plan': 'Искаш ли да получаваш напомняния за твоите хранения?',
-                'action': 'Искаш ли да получаваш известия от Eatologix?'
+                'action': 'Искаш ли да получаваш известия от Nutriin?'
             };
 
             const message = contextMessages[context] || contextMessages['action'];
@@ -4353,7 +4353,7 @@
     <script src="./local-scheduler.js"></script>
     <script src="./app.js"></script>
     <!-- Login Modal — email/password with forgot password -->
-    <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в Eatologix">
+    <div id="loginModal" role="dialog" aria-modal="true" aria-label="Вход в Nutriin">
         <div class="login-modal-box">
             <button class="login-modal-close" onclick="window.indexCloseLoginModal()" aria-label="Затвори">✕</button>
             <h2 class="login-modal-title" id="loginModalTitle">Вход</h2>

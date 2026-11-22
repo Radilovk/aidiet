@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Административна панел за управление на Eatologix платформата.">
+    <meta name="description" content="Административна панел за управление на Nutriin платформата.">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#EEFDFC" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Eatologix">
+    <meta name="apple-mobile-web-app-title" content="Nutriin">
     <link rel="canonical" href="https://biocode.website/admin.html">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" sizes="48x48" href="brand/favicon-48.png">
     <link rel="manifest" href="./admin-manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="./brand/apple-touch-icon.png">
     <link rel="apple-touch-icon" sizes="152x152" href="./brand/apple-touch-icon.png">
-    <title>Админ Панел - Eatologix</title>
+    <title>Админ Панел - Nutriin</title>
     <!-- Design System 2026 -->
     <link rel="stylesheet" href="./design-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -1584,7 +1584,7 @@
     <div id="ios-banner" class="ios-prompt" style="display:none;">
         <button onclick="dismissIosBanner()" class="ios-close">✕</button>
         <div class="ios-header">
-            <img src="./icon-192x192.png" class="ios-icon" alt="Eatologix Icon">
+            <img src="./icon-192x192.png" class="ios-icon" alt="Nutriin Icon">
             <div class="ios-title-group">
                 <h4>Инсталирай Админ Панел</h4>
                 <p>Добави администраторското приложение на екрана за бърз достъп</p>
@@ -2757,7 +2757,7 @@
             <div class="card rf-root" id="referralsCard">
                 <h2><i class="fas fa-route"></i> Насочвания от модули</h2>
                 <div class="info-box">
-                    <strong>Фуния:</strong> линк (клик „към Eatologix“ в модула) → отворен (страницата в Eatologix) → първи план (нов клиент, планът ползва данните) → в профила (клиентът е потвърдил). Конверсията е „в профила“ ÷ „линкове“.
+                    <strong>Фуния:</strong> линк (клик „към Nutriin“ в модула) → отворен (страницата в Nutriin) → първи план (нов клиент, планът ползва данните) → в профила (клиентът е потвърдил). Конверсията е „в профила“ ÷ „линкове“.
                 </div>
                 <div class="rf-toolbar">
                     <div class="rf-range" role="group" aria-label="Период">
@@ -3248,7 +3248,7 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningActivityTitle" placeholder="Eatologix"
+                            <input type="text" id="gnEveningActivityTitle" placeholder="Nutriin"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
@@ -3277,7 +3277,7 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningBalanceTitle" placeholder="Eatologix"
+                            <input type="text" id="gnEveningBalanceTitle" placeholder="Nutriin"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
@@ -3306,7 +3306,7 @@
                         </div>
                         <div>
                             <label>Заглавие</label>
-                            <input type="text" id="gnEveningWaterTitle" placeholder="Eatologix"
+                            <input type="text" id="gnEveningWaterTitle" placeholder="Nutriin"
                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                     </div>
@@ -8278,16 +8278,16 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     : (data.config || {});
 
                 document.getElementById('gnMorningTime').value  = cfg.morningTime  || '07:00';
-                document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'Eatologix';
+                document.getElementById('gnMorningTitle').value = cfg.morningTitle || 'Nutriin';
                 document.getElementById('gnMorningBody').value  = cfg.morningBody  || 'Спа ли добре тази нощ?';
                 document.getElementById('gnEveningActivityTime').value  = cfg.eveningActivityTime  || '20:00';
-                document.getElementById('gnEveningActivityTitle').value = cfg.eveningActivityTitle || 'Eatologix';
+                document.getElementById('gnEveningActivityTitle').value = cfg.eveningActivityTitle || 'Nutriin';
                 document.getElementById('gnEveningActivityBody').value  = cfg.eveningActivityBody  || 'Колко се движи днес?';
                 document.getElementById('gnEveningBalanceTime').value  = cfg.eveningBalanceTime  || '20:05';
-                document.getElementById('gnEveningBalanceTitle').value = cfg.eveningBalanceTitle || 'Eatologix';
+                document.getElementById('gnEveningBalanceTitle').value = cfg.eveningBalanceTitle || 'Nutriin';
                 document.getElementById('gnEveningBalanceBody').value  = cfg.eveningBalanceBody  || 'Как се чувстваше днес?';
                 document.getElementById('gnEveningWaterTime').value  = cfg.eveningWaterTime  || '20:10';
-                document.getElementById('gnEveningWaterTitle').value = cfg.eveningWaterTitle || 'Eatologix';
+                document.getElementById('gnEveningWaterTitle').value = cfg.eveningWaterTitle || 'Nutriin';
                 document.getElementById('gnEveningWaterBody').value  = cfg.eveningWaterBody  || 'Пи ли достатъчно вода днес?';
 
                 renderAllGnActionRows(cfg);
@@ -8373,16 +8373,16 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
             const cfg = {
                 morningTime:  document.getElementById('gnMorningTime').value  || '07:00',
-                morningTitle: document.getElementById('gnMorningTitle').value || 'Eatologix',
+                morningTitle: document.getElementById('gnMorningTitle').value || 'Nutriin',
                 morningBody:  document.getElementById('gnMorningBody').value  || 'Спа ли добре тази нощ?',
                 eveningActivityTime:  document.getElementById('gnEveningActivityTime').value  || '20:00',
-                eveningActivityTitle: document.getElementById('gnEveningActivityTitle').value || 'Eatologix',
+                eveningActivityTitle: document.getElementById('gnEveningActivityTitle').value || 'Nutriin',
                 eveningActivityBody:  document.getElementById('gnEveningActivityBody').value  || 'Колко се движи днес?',
                 eveningBalanceTime:   document.getElementById('gnEveningBalanceTime').value  || '20:05',
-                eveningBalanceTitle:  document.getElementById('gnEveningBalanceTitle').value || 'Eatologix',
+                eveningBalanceTitle:  document.getElementById('gnEveningBalanceTitle').value || 'Nutriin',
                 eveningBalanceBody:   document.getElementById('gnEveningBalanceBody').value  || 'Как се чувстваше днес?',
                 eveningWaterTime:     document.getElementById('gnEveningWaterTime').value  || '20:10',
-                eveningWaterTitle:    document.getElementById('gnEveningWaterTitle').value || 'Eatologix',
+                eveningWaterTitle:    document.getElementById('gnEveningWaterTitle').value || 'Nutriin',
                 eveningWaterBody:     document.getElementById('gnEveningWaterBody').value  || 'Пи ли достатъчно вода днес?',
                 morningActions: (window.GnActionsUI && GnActionsUI.collect('gnMorningActions')) || [],
                 eveningActivityActions: (window.GnActionsUI && GnActionsUI.collect('gnEveningActivityActions')) || [],
@@ -8458,13 +8458,13 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 }
 
                 const typeLabels = {
-                    morning_check: { title: 'Eatologix', body: 'Спа ли добре тази нощ?', url: '/plan.html?action=morning_check' },
-                    evening_activity: { title: 'Eatologix', body: 'Колко се движи днес?', url: '/plan.html?action=evening_activity' },
-                    evening_balance: { title: 'Eatologix', body: 'Как се чувстваше днес?', url: '/plan.html?action=evening_balance' },
-                    evening_water: { title: 'Eatologix', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' },
-                    evening_check: { title: 'Eatologix', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' }
+                    morning_check: { title: 'Nutriin', body: 'Спа ли добре тази нощ?', url: '/plan.html?action=morning_check' },
+                    evening_activity: { title: 'Nutriin', body: 'Колко се движи днес?', url: '/plan.html?action=evening_activity' },
+                    evening_balance: { title: 'Nutriin', body: 'Как се чувстваше днес?', url: '/plan.html?action=evening_balance' },
+                    evening_water: { title: 'Nutriin', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' },
+                    evening_check: { title: 'Nutriin', body: 'Пи ли достатъчно вода днес?', url: '/plan.html?action=evening_water' }
                 };
-                const tpl = typeLabels[type] || { title: 'Тестово известие от Eatologix', body: 'Това е тестово известие.', url: '/plan.html' };
+                const tpl = typeLabels[type] || { title: 'Тестово известие от Nutriin', body: 'Това е тестово известие.', url: '/plan.html' };
 
                 const response = await fetch(WORKER_URL + '/api/push/send', {
                     method: 'POST',
@@ -9679,7 +9679,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             {
                 id: 'questionnaire2_bg',
                 label: '📝 Въпросник – Фон на страницата',
-                description: 'Фонова снимка на цялата страница с въпросника (HealthScore / Eatologix въпросник).',
+                description: 'Фонова снимка на цялата страница с въпросника (HealthScore / Nutriin въпросник).',
                 example: 'Пример: светъл минималистичен фон (бял мрамор, пастелен градиент, нежен листен принт) — неутрален и успокояващ, за да не разсейва от въпросите на холистичния профилиращ въпросник.',
                 recommendedSize: '1920 × 1080 px (landscape)',
                 page: 'questionnaire2.html'
@@ -11837,7 +11837,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 if (installBtn) {
                     installBtn.innerHTML = '<i class="fas fa-info-circle"></i><span>Инструкции</span>';
                     installBtn.onclick = () => {
-                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай Eatologix Админ Панел..."');
+                        alert('За да инсталирате приложението:\n\n1. Потърсете иконата за инсталация (⊕ или ⬇) в адресната лента в горния десен ъгъл\n2. Кликнете върху нея и изберете "Инсталирай"\n3. Или отворете менюто на браузъра (⋮) и изберете "Инсталирай Nutriin Админ Панел..."');
                     };
                 }
                 installBanner.classList.add('show');
@@ -12085,7 +12085,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                                 console.log('%cTo install this app:', 'font-weight: bold');
                                 console.log('  1. Look for the install icon (⊕ or ⬇) in the address bar on the right side');
                                 console.log('  2. Click the icon to install the app');
-                                console.log('  3. Or open Chrome menu (⋮) → "Install Eatologix Admin..."');
+                                console.log('  3. Or open Chrome menu (⋮) → "Install Nutriin Admin..."');
                                 console.log('');
                                 console.log('%cFor automatic install prompts, test on Android Chrome/Edge.', 'color: #f59e0b');
                                 console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color: #03939C');

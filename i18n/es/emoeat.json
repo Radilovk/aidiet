@@ -12,7 +12,7 @@
   "Начало": "Inicio",
   "Моите резултати": "Mis resultados",
   "Нов анализ": "Nuevo análisis",
-  "Към Eatologix": "Ir a Eatologix",
+  "Към Nutriin": "Ir a Nutriin",
   "Всички модули": "Todos los módulos",
   "Дълголетие": "Longevidad",
   "Клинични Протоколи": "Protocolos clínicos",
@@ -365,7 +365,7 @@
   "Включено в плана": "Incluido en el plan",
   "Включи в плана": "Incluir en el plan",
   "Хранителен план, съобразен с профила ти": "Un plan de alimentación adaptado a tu perfil",
-  "Eatologix ще отчете модела ти още от първия ден: кога и защо се появява гладът, какво помага вместо забрани, как да са подредени храненията. Обобщението на профила (без отделните отговори) отива с теб.": "Eatologix tendrá en cuenta tu patrón desde el primer día: cuándo y por qué aparece el hambre, qué ayuda en lugar de prohibiciones y cómo organizar las comidas. El resumen de tu perfil (sin las respuestas individuales) va contigo.",
+  "Nutriin ще отчете модела ти още от първия ден: кога и защо се появява гладът, какво помага вместо забрани, как да са подредени храненията. Обобщението на профила (без отделните отговори) отива с теб.": "Nutriin tendrá en cuenta tu patrón desde el primer día: cuándo y por qué aparece el hambre, qué ayuda en lugar de prohibiciones y cómo organizar las comidas. El resumen de tu perfil (sin las respuestas individuales) va contigo.",
   "Създай моя план": "Crear mi plan"
  },
  "patterns": [

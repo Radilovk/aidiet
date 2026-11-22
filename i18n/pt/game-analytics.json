@@ -1,7 +1,7 @@
 {
  "_comment": "game-analytics.html — ръчен превод. Точен български текст → превод; каквото липсва — резервният AI превод. [Portuguese (Brazilian): автоматичен превод, gemini-3.6-flash]",
  "strings": {
-  "Текущ анализ и здравен индекс за твоя хранителен план в Eatologix.": "Análise atual e índice de saúde para o seu plano alimentar no Eatologix.",
+  "Текущ анализ и здравен индекс за твоя хранителен план в Nutriin.": "Análise atual e índice de saúde para o seu plano alimentar no Nutriin.",
   "Напредък": "Progresso",
   "За Твоята цел": "Para a sua meta",
   "Текущ анализ": "Análise atual",

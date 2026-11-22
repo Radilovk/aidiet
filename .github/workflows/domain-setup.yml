@@ -1,6 +1,6 @@
-name: Domain setup (eatologix.com)
+name: Domain setup (nutriin.app)
 
-# Свързва собствения домейн на Eatologix с worker-а „aidiet“ (app-domain.js):
+# Свързва собствения домейн на Nutriin с worker-а „aidiet“ (app-domain.js):
 #  1. зоната в Cloudflare (създава се, ако я няма) → DNS сървърите за регистратора (Namecheap);
 #  2. Custom Domain на worker-а за домейна и www (Cloudflare сам прави DNS записите и сертификата).
 # Безопасно е да се пуска многократно. Резултатът е в „Summary“ на задачата.
@@ -12,11 +12,11 @@ on:
       domain:
         description: 'Домейнът'
         required: false
-        default: 'eatologix.com'
+        default: 'nutriin.app'
   push:
     branches: [claude/jolly-goodall-obbojn]
     paths: ['.github/workflows/domain-setup.yml']
-  # След всяко публикуване на worker-а: довършва пощата за изпращане от eatologix.com (Resend), докато
+  # След всяко публикуване на worker-а: довършва пощата за изпращане от nutriin.app (Resend), докато
   # Resend не потвърди домейна — после стъпката спира веднага (1 четене от KV).
   workflow_run:
     workflows: ['Deploy Cloudflare Worker']
@@ -37,7 +37,7 @@ jobs:
     env:
       CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      DOMAIN: ${{ inputs.domain || 'eatologix.com' }}
+      DOMAIN: ${{ inputs.domain || 'nutriin.app' }}
       SERVICE: aidiet
     steps:
       - name: Zone + worker custom domains
@@ -135,7 +135,7 @@ jobs:
             else say "- ✗ Правилото: $(echo "$res" | errs)"; exit 1; fi
           fi
 
-  # Изпращане от eatologix.com: worker-ът (има ключа за Resend) регистрира домейна, тук (ключът за
+  # Изпращане от nutriin.app (EMAIL_DOMAIN в email-domain.js): worker-ът (има ключа за Resend) регистрира домейна, тук (ключът за
   # Cloudflare) се слагат DNS записите и се иска потвърждение. Достъпът до worker-а — еднократен код в KV.
   resend:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
@@ -143,17 +143,18 @@ jobs:
     env:
       CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      DOMAIN: eatologix.com
+      DOMAIN: nutriin.app
       KV: https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/storage/kv/namespaces/81fc0991b2764918b682f9ca170abd4b
       WORKER: https://aidiet.radilov-k.workers.dev
     steps:
-      - name: Resend — изпращане от eatologix.com
+      - name: Resend — изпращане от nutriin.app
         run: |
           set -u
           api() { curl -sS -X "$1" "https://api.cloudflare.com/client/v4$2" -H "Authorization: Bearer $CF_TOKEN" -H 'Content-Type: application/json' ${3:+--data "$3"}; }
           say() { echo "$*" | tee -a "$GITHUB_STEP_SUMMARY"; }
-          say '### Изпращане от eatologix.com (Resend)'
-          if curl -sf -H "Authorization: Bearer $CF_TOKEN" "$KV/values/email_domain_verified" >/dev/null; then
+          say '### Изпращане от nutriin.app (Resend)'
+          # Флагът пази кой домейн е потвърден (до прехода — eatologix.com).
+          if [ "$(curl -sf -H "Authorization: Bearer $CF_TOKEN" "$KV/values/email_domain_verified" | jq -r '.domain // empty' 2>/dev/null)" = "$DOMAIN" ]; then
             say "- ✓ Домейнът вече е потвърден — писмата излизат от info@$DOMAIN"; exit 0
           fi
           # Ключът за Resend в worker-а е само за изпращане → автоматичните пускания спират тук (ръчното опитва пак).
@@ -170,7 +171,7 @@ jobs:
             if echo "$err" | grep -qi 'restricted to only send'; then
               curl -sf -X PUT -H "Authorization: Bearer $CF_TOKEN" --data "$(date -u +%FT%TZ)" "$KV/values/email_domain_skip" >/dev/null || true
               say "- Ключът за Resend е само за изпращане — домейнът не може да се регистрира автоматично."
-              say "- Писмата продължават от Eatologix <info@biocode.online> (доказано, не падат в спам). Следващите автоматични пускания спират веднага."
+              say "- Писмата продължават от досегашния подател (доказано, не падат в спам). Следващите автоматични пускания спират веднага."
               exit 0
             fi
             say "- ✗ Worker-ът: $err"; say "  (ако пише forbidden/404 — новата версия на worker-а още не е публикувана)"; exit 1
