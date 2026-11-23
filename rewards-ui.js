@@ -509,6 +509,35 @@
         }, 1500);
     }
 
+    // ── „Как работят наградите“ — всичко, което се проследява и награждава, на едно място ──
+    function howto(srv) {
+        if (doc.querySelector('.rw-how')) return;
+        var rows = function (list) { return '<ul>' + list.map(function (r) { return '<li><b>' + esc(r[0]) + '</b><span>' + esc(r[1]) + '</span></li>'; }).join('') + '</ul>'; };
+        var sec = function (icon, title, body) { return '<section><h4><i class="fas ' + icon + '"></i>' + esc(title) + '</h4>' + body + '</section>'; };
+        var gift = function (t) { return t.rewards.map(function (r) { return giftText(r, srv); }).filter(Boolean).join(' · '); };
+        var html =
+            sec('fa-star', 'Добър ден', '<p>Ден с ангажираност над ' + RE.GOOD + '%: отметнати хранения, сутрешният и вечерният въпрос, без хранения извън плана. На него стои всичко отдолу.</p>') +
+            sec('fa-fire', 'Поредица и жокер', '<p>Поредицата са добрите дни един след друг. На всеки ' + RE.SHIELD_EVERY + ' добри дни получаваш жокер (до ' + RE.SHIELD_MAX + '): той пази поредицата в слаб или пропуснат ден.</p>' +
+                rows(RE.STREAKS.map(function (x) { return [x.days + ' дни поред', '+' + x.bonus + ' точки']; }))) +
+            sec('fa-mountain', 'Нива', '<p>Средната ангажираност за последните дни над прага. Изграденото остава: нивото слиза с едно само след ' + RE.GRACE_DAYS + ' поредни дни под прага.</p>' +
+                rows(RE.TIERS.map(function (t) { return [t.title, t.days + ' дни над ' + t.minEng + '%' + (gift(t) ? ' · ' + gift(t) : '')]; }))) +
+            sec('fa-coins', 'Точки', '<p>10 за добър ден, +5 при ангажираност над 80%, +5 при крачки на целта (до 20 на ден), и бонусите за поредици, нива и предизвикателства. Обръщат се в отстъпки:</p>' +
+                rows(RE.OFFERS.filter(function (o) { return !(o.kind === 'plan' && isApp()) && !(o.kind === 'supplement' && srv && srv.supplements === false); }).map(function (o) { return [o.title, num(o.cost) + ' точки']; }))) +
+            sec('fa-flag-checkered', 'Предизвикателство на месеца', '<p>По избор: ' + RE.CHALLENGE_TARGET + ' дни от приемането, в които успееш — +' + RE.CHALLENGE_BONUS + ' точки. Всеки месец е ново.</p>') +
+            sec('fa-weight-scale', 'Етапи на теглото', '<p>При цел в килограмите: ' + RE.WEIGHT_STEPS.join(', ') + '% от началното тегло. При твърде бързо сваляне (над 1% на седмица) поздрав няма — бързината не е цел.</p>') +
+            (isApp() ? sec('fa-user-plus', 'Покана', '<p>' + esc(RE.text('inviteTextApp')) + '</p>')
+                : sec('fa-user-plus', 'Покана', '<p>' + esc(RE.text('inviteText', { pct: (srv && srv.invite && srv.invite.pct) || 15, reward: (srv && srv.invite && srv.invite.reward) || 20 })) + '</p>'));
+        var ov = doc.createElement('div');
+        ov.className = 'rw-how';
+        ov.setAttribute('role', 'dialog');
+        ov.setAttribute('aria-modal', 'true');
+        ov.setAttribute('aria-label', 'Как работят наградите');
+        ov.innerHTML = '<div class="rw-how-panel"><div class="rw-how-head"><h3>Как работят наградите</h3><button type="button" class="rw-btn rw-btn--main" data-close="1">Разбрах</button></div>' + html + '</div>';
+        doc.body.appendChild(ov);
+        ov.addEventListener('click', function (e) { if (e.target === ov || e.target.closest('[data-close]')) ov.remove(); });
+        setTimeout(function () { var b = ov.querySelector('[data-close]'); if (b) b.focus(); }, 50);
+    }
+
     // ── Картата „Постоянство“ ───────────────────────────────────────────────
     function codeRow(c) {
         var label = c.kind === 'supplement' ? 'Добавки −' + c.pct + '%' : c.kind === 'plan' ? 'План −' + c.pct + '%' : 'Партньор −' + c.pct + '%';
@@ -636,7 +665,8 @@
         // Седмицата е в картата „Тази седмица“ — тук не се повтаря.
         html += challengeCard(st, srv);
 
-        html += '<button type="button" class="rw-toggle" aria-expanded="false" aria-controls="rwDetails"><span>Нива и награди</span><i class="fas fa-chevron-down"></i></button><div id="rwDetails" hidden>';
+        html += '<button type="button" class="rw-toggle" aria-expanded="false" aria-controls="rwDetails"><span>Нива и награди</span><i class="fas fa-chevron-down"></i></button><div id="rwDetails" hidden>' +
+            '<button type="button" class="rw-btn rw-btn--wide rw-howto" data-howto="1"><i class="fas fa-circle-info"></i> Как работят наградите</button>';
 
         // Нивата: име → дни и праг → наградата. Един ред описание.
         var cur = st.tier ? st.tier.index : -1;
@@ -695,6 +725,8 @@
             p.hidden = !open;
             info.setAttribute('aria-expanded', String(open));
         });
+        var how = el.querySelector('[data-howto]');
+        if (how) how.addEventListener('click', function () { howto(srv); });
         var tg = el.querySelector('.rw-toggle');
         tg.addEventListener('click', function () {
             var open = tg.getAttribute('aria-expanded') !== 'true';

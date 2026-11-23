@@ -78,7 +78,14 @@
   "Талия": "Taille",
   "Мускули": "Muscles",
   "Храносмилане": "Digestion",
-  "Иска внимание": "Demande de l'attention"
+  "Иска внимание": "Demande de l'attention",
+  "История": "Historique",
+  "Последните 8 седмици": "8 dernières semaines",
+  "сега": "maint.",
+  "Още няма данни за по-ранни седмици.": "Pas encore de données pour les semaines précédentes.",
+  "Как работят наградите": "Comment fonctionnent les récompenses",
+  "Ангажираност": "Engagement",
+  "Вода": "Eau"
  },
  "keys": {},
  "patterns": []

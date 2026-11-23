@@ -259,9 +259,34 @@
         }
         .game-ring-svg { transform: rotate(-90deg); }
         /* Целта горе в седмицата: лентата казва нивото — числото е в подробностите (докосване) */
-        #gaGoalSlot .gf-index-value { display: none; }
-        #gaGoalSlot .gf-indices { margin-bottom: 12px; }
-        #gaGoalSlot .gf-index-bar.is-empty { background: none; border: 1px dashed var(--ds-line, rgba(15,47,46,.15)); }
+        /* Горе: двете ленти — ангажираност (със звездите на дните) и напредък (само при измерване) */
+        .ga-bars { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+        .ga-bars .gf-index-value { font-variant-numeric: tabular-nums; }
+        .ga-eng { cursor: pointer; }
+        .ga-eng .ga-stars { margin: 12px 0 0; }
+        /* Кръговете: 5 → два реда (3 + 2, долният центриран), 4 и по-малко → един ред */
+        .ga-rings { display: grid; gap: 8px 4px; margin: 4px 0 12px; grid-template-columns: repeat(4, 1fr); }
+        .ga-rings--3 { grid-template-columns: repeat(3, 1fr); }
+        .ga-rings--2 { grid-template-columns: repeat(2, 1fr); }
+        .ga-rings--1 { grid-template-columns: 1fr; }
+        .ga-rings--5 { grid-template-columns: repeat(6, 1fr); }
+        .ga-rings--5 .ga-ring { grid-column: span 2; }
+        .ga-rings--5 .ga-ring:nth-child(4) { grid-column: 2 / span 2; }
+        .ga-ring { min-height: 44px; padding: 6px 0 8px; border: 1px solid transparent; border-radius: 16px; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .ga-ring[aria-pressed="true"] { background: var(--ds-surface-sunken, rgba(15,47,46,.04)); border-color: var(--ds-line, rgba(15,47,46,.08)); }
+        .ga-ring[aria-pressed="true"] .game-ring-label { color: var(--text-dark); }
+        .ga-ring:focus-visible { outline: 2px solid var(--ds-green-text, #03939C); outline-offset: 2px; }
+        #gameMetricsDetails { flex-direction: column; }
+        /* История: 8 седмици като стълбчета */
+        .ga-hist { display: flex; align-items: stretch; gap: 6px; height: 150px; margin: 16px 0 6px; }
+        .ga-hist-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
+        .ga-hist-bar { width: 100%; max-width: 22px; border-radius: 6px 6px 3px 3px; opacity: .55; }
+        .ga-hist-col.is-now .ga-hist-bar { opacity: 1; }
+        .ga-hist-bar.is-none { background: var(--ds-track, rgba(15,47,46,.12)) !important; }
+        .ga-hist-v { font-size: 0.68rem; font-weight: 700; color: var(--text-dark); font-variant-numeric: tabular-nums; }
+        .ga-hist-d { font-size: 0.66rem; color: var(--text-light); white-space: nowrap; }
+        .ga-hist-col.is-now .ga-hist-d { color: var(--ds-green-text, #03939C); font-weight: 700; }
+        .ga-hist-btn { margin-top: 8px; }
         /* Седмицата — 7 звезди: запълването и цветът са ангажираността на деня */
         .ga-stars { display: flex; gap: 4px; margin: 4px 0 14px; }
         .ga-star-col { gap: 4px; padding: 4px 0; border-radius: 10px; }
@@ -753,7 +778,7 @@
     </script>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
-    <link rel="stylesheet" href="./rewards-ui.css?v=10">
+    <link rel="stylesheet" href="./rewards-ui.css?v=11">
     <link rel="stylesheet" href="./widget-layout.css?v=2">
     <script src="./app-ui.js" defer></script>
     <script src="./ambient-glass.js?v=5"></script>
@@ -836,43 +861,53 @@
             updateThemeIcon(t);
         })();
 
-        function toggleDetailedMetrics() {
+        // ── Подробностите: по кръг или всички ─────────────────────────────
+        // Кръгът отваря само своя седмичен ред (под кръговете); няколко избрани — в реда на избора.
+        // „Подробно“ — всички редове заедно с откритията, устройствата и прегледа.
+        var _gaPicked = [], _gaAll = false;
+        function gaApplyView(fresh) {
             var details = document.getElementById('gameMetricsDetails');
             var chevron = document.getElementById('gameMetricsChevron');
             var toggle  = document.getElementById('gameMetricsToggle');
             if (!details) return;
-            var isOpen = details.style.display !== 'block';
-            details.style.display = isOpen ? 'block' : 'none';
-            if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-            if (toggle)  toggle.setAttribute('aria-expanded', String(isOpen));
-
-            if (isOpen) {
-                details.querySelectorAll('.ga-card-enter').forEach(function(el, i) {
-                    el.style.animation = 'none';
-                    void el.offsetWidth;
-                    el.style.animation = '';
-                    el.style.animationDelay = (i * 0.07) + 's';
+            details.style.display = _gaAll || _gaPicked.length ? 'flex' : 'none';
+            Array.prototype.forEach.call(details.children, function (c) {
+                var k = c.classList.contains('game-index-row') ? c.getAttribute('data-explain') : null;
+                var i = k ? _gaPicked.indexOf(k) : -1;
+                c.style.display = _gaAll || i >= 0 ? '' : 'none';
+                c.style.order = !_gaAll && i >= 0 ? String(i) : '';
+            });
+            document.querySelectorAll('.ga-ring').forEach(function (r) {
+                r.setAttribute('aria-pressed', String(_gaAll || _gaPicked.indexOf(r.getAttribute('data-ring')) >= 0));
+            });
+            if (chevron) chevron.style.transform = _gaAll ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (toggle) toggle.setAttribute('aria-expanded', String(_gaAll));
+            // лентите и стълбчетата на току-що показаните редове — отново от нула
+            (fresh || []).forEach(function (row) {
+                row.querySelectorAll('[data-ga-bar]').forEach(function (el, i) {
+                    el.style.width = '0%';
+                    setTimeout(function () { el.style.width = el.getAttribute('data-ga-bar') + '%'; }, 60 + i * 60);
                 });
-                requestAnimationFrame(function() {
-                    requestAnimationFrame(function() {
-                        details.querySelectorAll('[data-ga-bar]').forEach(function(el, i) {
-                            el.style.width = '0%';
-                            setTimeout(function() {
-                                el.style.width = el.getAttribute('data-ga-bar') + '%';
-                            }, 60 + i * 60);
-                        });
-                        function animateBarHeight(selector, baseDelay) {
-                            details.querySelectorAll(selector).forEach(function(el, i) {
-                                el.style.height = '0px';
-                                setTimeout(function() {
-                                    el.style.height = el.getAttribute(selector.slice(1, -1));
-                                }, baseDelay + i * 25);
-                            });
-                        }
-                        animateBarHeight('[data-ga-bar-h]', 100);
-                    });
+                row.querySelectorAll('[data-ga-bar-h]').forEach(function (el, i) {
+                    el.style.height = '0px';
+                    setTimeout(function () { el.style.height = el.getAttribute('data-ga-bar-h'); }, 100 + i * 25);
                 });
-            }
+            });
+        }
+        function gaRow(k) { var d = document.getElementById('gameMetricsDetails'); return d ? d.querySelector(':scope > .game-index-row[data-explain="' + k + '"]') : null; }
+        function gaToggleRing(k) {
+            var row = gaRow(k);
+            if (!row) return;
+            if (_gaAll) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+            var i = _gaPicked.indexOf(k);
+            if (i >= 0) { _gaPicked.splice(i, 1); gaApplyView(); }
+            else { _gaPicked.push(k); gaApplyView([row]); }
+        }
+        function toggleDetailedMetrics() {
+            _gaAll = !_gaAll;
+            if (!_gaAll) _gaPicked = [];
+            var d = document.getElementById('gameMetricsDetails');
+            gaApplyView(_gaAll && d ? Array.prototype.slice.call(d.querySelectorAll(':scope > .game-index-row')) : null);
         }
     </script>
 
@@ -883,8 +918,8 @@
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
     <script src="./rewards-engine.js?v=8"></script>
-    <script src="./rewards-ui.js?v=10"></script>
-    <script src="./widget-layout.js?v=2"></script>
+    <script src="./rewards-ui.js?v=11"></script>
+    <script src="./widget-layout.js?v=3"></script>
     <script>
     (function () {
         function go() { try { NutriPlanRewards.mount(document.getElementById('rewardsBody')); } catch (_) {} }
@@ -909,7 +944,7 @@
                 { id: 'path', title: 'Пътят към успеха', icon: 'fa-seedling', el: document.getElementById('rewardsSection') }
             ];
             try {
-                window.NutriPlanWidgets.mount({ page: 'progress', container: document.querySelector('.container'), widgets: W, hidden: [] });
+                window.NutriPlanWidgets.mount({ page: 'progress', container: document.querySelector('.container'), widgets: W, hidden: [], version: 2 });
             } catch (_) {}
         }
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
@@ -964,16 +999,15 @@
                 var planStart = Date.parse(startRaw) || null;
                 var res = PR.compute({ profile: p, userData: ud, weightLog: rd('np_weight_log', []), checkins: rd('np_checkins', []),
                     metrics: metrics, checks: window._gaChecks || {}, planStart: planStart });
-                var on = res.value != null;
-                indicesHtml = '<div class="gf-indices"><div class="gf-index ga-result" data-tone="good" role="button" tabindex="0" aria-expanded="false" ' +
+                // Само когато има измерване и тенденция — празна лента казва „нищо не се случва“.
+                if (res.value != null) indicesHtml = '<div class="gf-index ga-result" data-tone="good" role="button" tabindex="0" aria-expanded="false" ' +
                     'onclick="gfToggleIndex(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();gfToggleIndex(this);}">' +
                     '<div class="gf-index-head"><span class="gf-index-icon"><i class="fas fa-flag-checkered"></i></span><span class="gf-index-name">Напредък' +
-                    ' <i class="fas fa-circle-info gf-index-info" aria-hidden="true"></i></span></div>' +
-                    '<div class="gf-index-bar' + (on ? '' : ' is-empty') + '"><span style="width:' + (on ? res.value : 0) + '%"></span></div>' +
-                    (on ? '' : '<div class="gf-index-note">' + gfEsc(res.needs.text) + '</div>') +
+                    '</span><span class="gf-index-value">' + res.value + '%</span></div>' +
+                    '<div class="gf-index-bar"><span style="width:' + res.value + '%"></span></div>' +
                     '<div class="gf-index-more"><p>Колко си се приближил/а до целта — по това, което се мери, не по старанието.</p>' +
                     (res.parts.length ? '<ul class="gf-index-parts">' + res.parts.map(function (pt) { return '<li><span>' + gfEsc(pt.label) + '</span><span>' + gfEsc(pt.text) + '</span></li>'; }).join('') + '</ul>' : '') +
-                    (on && res.needs ? '<p>' + gfEsc(res.needs.text) + '</p>' : '') + '</div></div></div>';
+                    (res.needs ? '<p>' + gfEsc(res.needs.text) + '</p>' : '') + '</div></div>';
             }
             top.innerHTML = indicesHtml;
             indicesHtml = '';
@@ -1356,8 +1390,52 @@
                     whyBtn.onclick=function(){ showWhyModal(info.title, info.why); };
                     box.appendChild(whyBtn);
                 }
+                if (HIST[key]) {
+                    var hb = document.createElement('button'); hb.className='game-explain-why-btn ga-hist-btn'; hb.innerHTML='<i class="fas fa-chart-column"></i> История';
+                    hb.onclick=function(){ overlay.remove(); showHistory(key, info.title); };
+                    box.appendChild(hb);
+                }
                 var cb= document.createElement('button'); cb.className='game-explain-close'; cb.textContent='Разбрах';
                 cb.onclick=function(){ overlay.remove(); };
+                box.appendChild(cb);
+                overlay.appendChild(box); document.body.appendChild(overlay);
+            }
+
+            // ── История: последните 8 седмици (около 2 месеца) — седмичните стойности по същите
+            // формули като кръговете (GameScoring.weekSummary, както на сървъра); текущата — от екрана.
+            var HIST = {
+                engagement: { color: '#03939C', now: validScores.length ? engagementPct : null, of: function(w){ return w.daysRecorded ? w.engagementPct : null; } },
+                calories: { color: '#F59E0B', now: calAdherencePct, of: function(w){ return w.calAdherence; } },
+                activity: { color: MC.act.c, now: actPct, of: function(w){ return w.dimensions.act; } },
+                sleep: { color: MC.sleep.c, now: sleepPct, of: function(w){ return w.dimensions.slp; } },
+                stress: { color: MC.mood.c, now: balancePct, of: function(w){ return w.dimensions.bal; } },
+                water: { color: MC.water.c, now: waterPct, of: function(w){ return w.dimensions.wtr; } }
+            };
+            function showHistory(key, title) {
+                var h = HIST[key]; if (!h) return;
+                var old = document.getElementById('gameHistOverlay'); if (old) old.remove();
+                var weeks = [];
+                for (var i = 7; i >= 0; i--) {
+                    var end = new Date(); end.setDate(end.getDate() - i * 7);
+                    var endKey = GS.dateKey(end);
+                    var v = i === 0 ? h.now : h.of(GS.weekSummary(allData, todayKey, endKey));
+                    var st = new Date(end); st.setDate(st.getDate() - 6);
+                    weeks.push({ v: v == null ? null : Math.round(v), label: st.getDate() + '.' + String(st.getMonth() + 1).padStart(2, '0'), now: i === 0 });
+                }
+                var vals = weeks.filter(function(w){ return w.v != null; });
+                var overlay = document.createElement('div');
+                overlay.id = 'gameHistOverlay'; overlay.className = 'game-explain-overlay'; overlay.style.zIndex = '10001';
+                overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
+                var box = document.createElement('div'); box.className = 'game-explain-box';
+                box.innerHTML = '<div class="game-explain-title">' + title + ' · история</div>' +
+                    '<div class="game-explain-text">Последните 8 седмици' + (vals.length >= 2 ? ' · средно ' + Math.round(vals.reduce(function(a, w){ return a + w.v; }, 0) / vals.length) + '%' : '') + '</div>' +
+                    (vals.length ? '<div class="ga-hist" role="img" aria-label="' + title + ' по седмици">' + weeks.map(function(w){
+                        return '<div class="ga-hist-col' + (w.now ? ' is-now' : '') + '"><span class="ga-hist-v">' + (w.v == null ? '' : w.v + '%') + '</span>' +
+                            '<span class="ga-hist-bar' + (w.v == null ? ' is-none' : '') + '" style="height:' + (w.v == null ? 3 : Math.max(3, Math.round(w.v * 0.72))) + '%;background:' + h.color + '"></span>' +
+                            '<span class="ga-hist-d">' + (w.now ? 'сега' : w.label) + '</span></div>';
+                    }).join('') + '</div>' : '<div class="game-explain-text" style="margin-top:12px">Още няма данни за по-ранни седмици.</div>');
+                var cb = document.createElement('button'); cb.className = 'game-explain-close'; cb.textContent = 'Затвори';
+                cb.onclick = function(){ overlay.remove(); };
                 box.appendChild(cb);
                 overlay.appendChild(box); document.body.appendChild(overlay);
             }
@@ -1451,8 +1529,6 @@
 
             // ── Build HTML ────────────────────────────────────────────────────
             var html = '';
-            // Целта — най-отгоре: тя гледа по-дълъг период от седмицата (попълва се от renderGoalFocus).
-            html += '<div id="gaGoalSlot"></div>';
 
             // Седмицата — 7 звезди, по една за ден. Запълването и цветът следват ангажираността на деня
             // (game-scoring.js → engPct): злато — добър ден (≥ 60%, същата мярка като плана и наградите),
@@ -1476,22 +1552,47 @@
                     '<svg class="f" viewBox="0 0 24 24" aria-hidden="true"><path d="' + STAR_PATH + '"/></svg></span>' +
                     '<span class="ga-star-day">' + label + '</span></div>';
             }).join('');
-            html += '<div class="ga-stars ga-card-enter" aria-label="Последните 7 дни">' + starsHtml + '</div>';
-
-            if (actPct!=null || sleepPct!=null || balancePct!=null) html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
-                (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,MC.act.c,22,actRawPct) + '<div class="game-ring-label">Активност</div></div>' : '') +
-                (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,MC.sleep.c,22) + '<div class="game-ring-label">Сън</div></div>' : '') +
-                (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,MC.mood.c,22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
+            // ── Горе: две ленти. Ангажираността (старанието — най-важното за мотивацията) винаги,
+            // със звездите на дните под нея; „Напредък“ (мерими промени по целта) — само когато има
+            // измерване и тенденция (renderGoalFocus → #gaGoalSlot). Без празна лента.
+            var engIcon = '<span class="gf-index-icon"><i class="fas fa-check-double"></i></span>';
+            html += '<div class="gf-indices ga-bars">' +
+                '<div class="gf-index ga-eng" data-tone="good" data-explain="engagement" role="button" tabindex="0">' +
+                    '<div class="gf-index-head">' + engIcon + '<span class="gf-index-name">Ангажираност</span>' +
+                    '<span class="gf-index-value">' + (validScores.length ? engagementPct + '%' : '') + '</span></div>' +
+                    '<div class="gf-index-bar"><span style="width:' + (validScores.length ? engagementPct : 0) + '%"></span></div>' +
+                    '<div class="ga-stars" aria-label="Последните 7 дни">' + starsHtml + '</div>' +
+                '</div>' +
+                '<div id="gaGoalSlot"></div>' +
             '</div>';
 
-            // Едно нещо, върху което да се съсредоточиш: най-важното предупреждение, иначе насърчението.
+
+            // ── Кръговете: всеки показател със седмичния си процент (същите формули като сървъра),
+            // подредени по важност за целта (goal-focus.js → checkOrder). Докосване — обяснение + история.
+            var RINGS = {
+                calories: calAdherencePct!=null ? { v: calAdherencePct, c: '#F59E0B', label: 'Калории' } : null,
+                activity: actPct!=null ? { v: actPct, shown: actRawPct, c: MC.act.c, label: 'Активност' } : null,
+                sleep: sleepPct!=null ? { v: sleepPct, c: MC.sleep.c, label: 'Сън' } : null,
+                stress: balancePct!=null ? { v: balancePct, c: MC.mood.c, label: 'Емоции' } : null,
+                water: waterPct!=null ? { v: waterPct, c: MC.water.c, label: 'Вода' } : null
+            };
+            var ringOrder = ['calories', 'activity', 'sleep', 'stress', 'water'];
+            try {
+                var GFo = window.NutriPlanGoalFocus;
+                if (GFo) { var co = GFo.checkOrder(GFo.profileOf(JSON.parse(localStorage.getItem('userData') || '{}'))); ringOrder.sort(function(a, b){ return (co.indexOf(a) + 99) % 99 - (co.indexOf(b) + 99) % 99; }); }
+            } catch (_) {}
+            var ringsHtml = ringOrder.filter(function(k){ return RINGS[k]; }).map(function(k){
+                var r = RINGS[k];
+                return '<button type="button" class="game-ring-wrap ga-ring" data-ring="' + k + '" aria-pressed="false" aria-controls="gameMetricsDetails">' + ringChart(r.v, r.c, 20, r.shown) + '<span class="game-ring-label">' + r.label + '</span></button>';
+            }).join('');
             if (alerts.length) html += '<div class="game-alert-card ga-card-enter" style="animation-delay:0.2s">'+alerts[0]+'</div>';
             else if (encourageText) html += '<div class="game-encourage-note ga-card-enter" style="animation-delay:0.2s">'+encourageText+'</div>';
+            // 5 кръга → два реда (3 + 2), 4 → един ред; кръгът отваря само своя седмичен ред отдолу.
+            var ringCount = ringOrder.filter(function(k){ return RINGS[k]; }).length;
+            if (ringsHtml) html += '<div class="ga-rings ga-rings--' + ringCount + ' ga-card-enter" style="animation-delay:0.1s">' + ringsHtml + '</div>';
 
-            html += '<div class="game-metrics-toggle ga-card-enter" style="animation-delay:0.28s" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
-                '<div class="game-section-title" style="margin:0">Подробно</div>' +
-                '<i class="fas fa-chevron-down game-metrics-chevron" id="gameMetricsChevron"></i>' +
-            '</div>';
+            // Едно нещо, върху което да се съсредоточиш: най-важното предупреждение, иначе насърчението.
+
             html += '<div id="gameMetricsDetails" style="display:none;">';
 
             html += '<div class="game-index-row" data-explain="engagement">' +
@@ -1560,6 +1661,10 @@
             if(weeklyInfo.nextDue){ var nd=new Date(weeklyInfo.nextDue); html += '<div class="game-weekly-info"><i class="fas fa-calendar-check"></i> Следващ седмичен преглед: '+nd.toLocaleDateString('bg-BG')+'</div>'; }
 
             html += '</div>'; // close gameMetricsDetails
+            html += '<div class="game-metrics-toggle ga-card-enter" style="animation-delay:0.28s" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
+                '<div class="game-section-title" style="margin:0">Подробно</div>' +
+                '<i class="fas fa-chevron-down game-metrics-chevron" id="gameMetricsChevron"></i>' +
+            '</div>';
 
             // Точните числа — само в обясненията (докосване), не на екрана.
             gaNumbers = {
@@ -1656,6 +1761,10 @@
                 var open = function(e){ e.stopPropagation(); showDayTip(col); };
                 col.addEventListener('click', open);
                 col.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(e); } });
+            });
+            _gaPicked = []; _gaAll = false;
+            body.querySelectorAll('.ga-ring').forEach(function(r){
+                r.addEventListener('click', function(){ gaToggleRing(r.getAttribute('data-ring')); });
             });
             body.querySelectorAll('[data-explain]').forEach(function(el){
                 el.addEventListener('click', function(){ showExplanation(el.getAttribute('data-explain')); });

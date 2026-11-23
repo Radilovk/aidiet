@@ -78,7 +78,14 @@
   "Талия": "Talia",
   "Мускули": "Mięśnie",
   "Храносмилане": "Trawienie",
-  "Иска внимание": "Wymaga uwagi"
+  "Иска внимание": "Wymaga uwagi",
+  "История": "Historia",
+  "Последните 8 седмици": "Ostatnie 8 tygodni",
+  "сега": "teraz",
+  "Още няма данни за по-ранни седмици.": "Brak jeszcze danych z wcześniejszych tygodni.",
+  "Как работят наградите": "Jak działają nagrody",
+  "Ангажираност": "Zaangażowanie",
+  "Вода": "Woda"
  },
  "keys": {},
  "patterns": []

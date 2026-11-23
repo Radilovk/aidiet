@@ -78,7 +78,14 @@
   "Талия": "Waist",
   "Мускули": "Muscle",
   "Храносмилане": "Digestion",
-  "Иска внимание": "Needs attention"
+  "Иска внимание": "Needs attention",
+  "История": "History",
+  "Последните 8 седмици": "Last 8 weeks",
+  "сега": "now",
+  "Още няма данни за по-ранни седмици.": "No data for earlier weeks yet.",
+  "Как работят наградите": "How rewards work",
+  "Ангажираност": "Engagement",
+  "Вода": "Water"
  },
  "keys": {},
  "patterns": []

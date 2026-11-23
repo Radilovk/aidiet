@@ -78,7 +78,14 @@
   "Талия": "Girovita",
   "Мускули": "Muscoli",
   "Храносмилане": "Digestione",
-  "Иска внимание": "Richiede attenzione"
+  "Иска внимание": "Richiede attenzione",
+  "История": "Cronologia",
+  "Последните 8 седмици": "Ultime 8 settimane",
+  "сега": "ora",
+  "Още няма данни за по-ранни седмици.": "Ancora nessun dato per le settimane precedenti.",
+  "Как работят наградите": "Come funzionano i premi",
+  "Ангажираност": "Impegno",
+  "Вода": "Acqua"
  },
  "keys": {},
  "patterns": []

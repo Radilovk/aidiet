@@ -78,7 +78,14 @@
   "Талия": "Talie",
   "Мускули": "Mușchi",
   "Храносмилане": "Digestie",
-  "Иска внимание": "Necesită atenție"
+  "Иска внимание": "Necesită atenție",
+  "История": "Istoric",
+  "Последните 8 седмици": "Ultimele 8 săptămâni",
+  "сега": "acum",
+  "Още няма данни за по-ранни седмици.": "Încă nu există date pentru săptămânile anterioare.",
+  "Как работят наградите": "Cum funcționează recompensele",
+  "Ангажираност": "Implicare",
+  "Вода": "Apă"
  },
  "keys": {},
  "patterns": []
