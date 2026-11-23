@@ -66,7 +66,19 @@
   "Пътят към успеха": "The path to success",
   "Първо ниво": "First level",
   "от последните {0} дни": "of the last {0} days",
-  "За твоята цел": "For your goal"
+  "За твоята цел": "For your goal",
+  "Колко си се приближил/а до целта — по това, което се мери, не по старанието.": "How close you've come to your goal — by what can be measured, not by effort.",
+  "Запиши теглото си — в седмичния преглед или в Профил.": "Log your weight — in the weekly review or in Profile.",
+  "Измери талията — пита се в седмичния преглед.": "Measure your waist — it's asked in the weekly review.",
+  "Мускулите се виждат с везна, която мери състава (Профил → устройства).": "Muscle is tracked with a body-composition scale (Profile → devices).",
+  "Нужни са измервания на захарта (Профил → устройства).": "Blood sugar readings are needed (Profile → devices).",
+  "Нужни са измервания на кръвното (Профил → устройства).": "Blood pressure readings are needed (Profile → devices).",
+  "Енергията се пита в седмичния преглед.": "Energy is asked in the weekly review.",
+  "Храносмилането се пита в седмичния преглед.": "Digestion is asked in the weekly review.",
+  "Талия": "Waist",
+  "Мускули": "Muscle",
+  "Храносмилане": "Digestion",
+  "Иска внимание": "Needs attention"
  },
  "keys": {},
  "patterns": []

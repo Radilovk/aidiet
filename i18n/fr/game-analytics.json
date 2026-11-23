@@ -66,7 +66,19 @@
   "Пътят към успеха": "Le chemin du succès",
   "Първо ниво": "Premier niveau",
   "от последните {0} дни": "des {0} derniers jours",
-  "За твоята цел": "Pour ton objectif"
+  "За твоята цел": "Pour ton objectif",
+  "Колко си се приближил/а до целта — по това, което се мери, не по старанието.": "À quel point tu t'es rapproché·e de ton objectif — d'après ce qui se mesure, pas d'après l'effort.",
+  "Запиши теглото си — в седмичния преглед или в Профил.": "Note ton poids — dans le bilan hebdomadaire ou dans Profil.",
+  "Измери талията — пита се в седмичния преглед.": "Mesure ton tour de taille — c'est demandé dans le bilan hebdomadaire.",
+  "Мускулите се виждат с везна, която мери състава (Профил → устройства).": "Les muscles se suivent avec une balance impédancemètre (Profil → appareils).",
+  "Нужни са измервания на захарта (Профил → устройства).": "Des mesures de glycémie sont nécessaires (Profil → appareils).",
+  "Нужни са измервания на кръвното (Профил → устройства).": "Des mesures de tension sont nécessaires (Profil → appareils).",
+  "Енергията се пита в седмичния преглед.": "L'énergie est demandée dans le bilan hebdomadaire.",
+  "Храносмилането се пита в седмичния преглед.": "La digestion est demandée dans le bilan hebdomadaire.",
+  "Талия": "Taille",
+  "Мускули": "Muscles",
+  "Храносмилане": "Digestion",
+  "Иска внимание": "Demande de l'attention"
  },
  "keys": {},
  "patterns": []

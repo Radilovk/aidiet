@@ -66,7 +66,19 @@
   "Пътят към успеха": "Drumul spre succes",
   "Първо ниво": "Primul nivel",
   "от последните {0} дни": "din ultimele {0} zile",
-  "За твоята цел": "Pentru obiectivul tău"
+  "За твоята цел": "Pentru obiectivul tău",
+  "Колко си се приближил/а до целта — по това, което се мери, не по старанието.": "Cât de aproape ai ajuns de obiectiv — după ce se poate măsura, nu după efort.",
+  "Запиши теглото си — в седмичния преглед или в Профил.": "Notează-ți greutatea — în revizuirea săptămânală sau în Profil.",
+  "Измери талията — пита се в седмичния преглед.": "Măsoară-ți talia — se întreabă în revizuirea săptămânală.",
+  "Мускулите се виждат с везна, която мери състава (Профил → устройства).": "Mușchii se văd cu un cântar care măsoară compoziția corporală (Profil → dispozitive).",
+  "Нужни са измервания на захарта (Профил → устройства).": "Sunt necesare măsurători ale glicemiei (Profil → dispozitive).",
+  "Нужни са измервания на кръвното (Профил → устройства).": "Sunt necesare măsurători ale tensiunii (Profil → dispozitive).",
+  "Енергията се пита в седмичния преглед.": "Energia se întreabă în revizuirea săptămânală.",
+  "Храносмилането се пита в седмичния преглед.": "Digestia se întreabă în revizuirea săptămânală.",
+  "Талия": "Talie",
+  "Мускули": "Mușchi",
+  "Храносмилане": "Digestie",
+  "Иска внимание": "Necesită atenție"
  },
  "keys": {},
  "patterns": []

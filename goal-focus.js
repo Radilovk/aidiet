@@ -127,6 +127,7 @@
             stepTarget: stepTargetOf(group, ud, glucose),
             goal: goalText,
             lead: model ? model.lead : [],
+            model: model,
             direction: model ? model.direction : null,
             bp: bp,
             glucose: glucose,
