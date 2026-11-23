@@ -516,12 +516,12 @@
         var sec = function (icon, title, body) { return '<section><h4><i class="fas ' + icon + '"></i>' + esc(title) + '</h4>' + body + '</section>'; };
         var gift = function (t) { return t.rewards.map(function (r) { return giftText(r, srv); }).filter(Boolean).join(' · '); };
         var html =
-            sec('fa-star', 'Добър ден', '<p>Ден с ангажираност над ' + RE.GOOD + '%: отметнати хранения, сутрешният и вечерният въпрос, без хранения извън плана. На него стои всичко отдолу.</p>') +
-            sec('fa-fire', 'Поредица и жокер', '<p>Поредицата са добрите дни един след друг. На всеки ' + RE.SHIELD_EVERY + ' добри дни получаваш жокер (до ' + RE.SHIELD_MAX + '): той пази поредицата в слаб или пропуснат ден.</p>' +
+            sec('fa-star', 'Ден по плана', '<p>Ден с ангажираност над ' + RE.GOOD + '%: отметнати хранения, сутрешният и вечерният въпрос, без хранения извън плана. На него стои всичко отдолу.</p>') +
+            sec('fa-fire', 'Поредица и жокер', '<p>Поредицата са дните по плана един след друг. На всеки ' + RE.SHIELD_EVERY + ' дни по плана получаваш жокер (до ' + RE.SHIELD_MAX + '): той пази поредицата в слаб или пропуснат ден.</p>' +
                 rows(RE.STREAKS.map(function (x) { return [x.days + ' дни поред', '+' + x.bonus + ' точки']; }))) +
             sec('fa-mountain', 'Нива', '<p>Средната ангажираност за последните дни над прага. Изграденото остава: нивото слиза с едно само след ' + RE.GRACE_DAYS + ' поредни дни под прага.</p>' +
                 rows(RE.TIERS.map(function (t) { return [t.title, t.days + ' дни над ' + t.minEng + '%' + (gift(t) ? ' · ' + gift(t) : '')]; }))) +
-            sec('fa-coins', 'Точки', '<p>10 за добър ден, +5 при ангажираност над 80%, +5 при крачки на целта (до 20 на ден), и бонусите за поредици, нива и предизвикателства. Обръщат се в отстъпки:</p>' +
+            sec('fa-coins', 'Точки', '<p>10 за ден по плана, +5 при ангажираност над 80%, +5 при крачки на целта (до 20 на ден), и бонусите за поредици, нива и предизвикателства. Обръщат се в отстъпки:</p>' +
                 rows(RE.OFFERS.filter(function (o) { return !(o.kind === 'plan' && isApp()) && !(o.kind === 'supplement' && srv && srv.supplements === false); }).map(function (o) { return [o.title, num(o.cost) + ' точки']; }))) +
             sec('fa-flag-checkered', 'Предизвикателство на месеца', '<p>По избор: ' + RE.CHALLENGE_TARGET + ' дни от приемането, в които успееш — +' + RE.CHALLENGE_BONUS + ' точки. Всеки месец е ново.</p>') +
             sec('fa-weight-scale', 'Етапи на теглото', '<p>При цел в килограмите: ' + RE.WEIGHT_STEPS.join(', ') + '% от началното тегло. При твърде бързо сваляне (над 1% на седмица) поздрав няма — бързината не е цел.</p>') +
@@ -648,7 +648,7 @@
         else if (nx.daysNeeded == null) hint = RE.text('behind', { title: nx.title });
         else {
             var left = Math.max(1, nx.daysNeeded);
-            hint = RE.text(st.tier ? 'towards' : 'towardsFirst', { n: left, daysWord: plural(left, 'добър ден', 'добри дни'), title: nx.title });
+            hint = RE.text(st.tier ? 'towards' : 'towardsFirst', { n: left, daysWord: left === 1 ? RE.text('dayPlan') : RE.text('daysPlan'), title: nx.title });
         }
         var pts = srv ? srv.wallet.balance : st.points.earned;
 

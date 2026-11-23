@@ -368,11 +368,11 @@
   "Денят приключи": "Gün bitti",
   "Утре е обичаен ден. Без компенсиране — просто следващото хранене.": "Yarın sıradan bir gün. Telafi yok — sadece bir sonraki öğün.",
   "Преглед на плана": "Plan değerlendirmesi",
-  "{0} от последните {1} дни бяха добри.": "Son {1} günün {0} günü iyiydi.",
-  "Добър ден.": "İyi bir gün.",
-  "Силен ден.": "Güçlü bir gün.",
-  "Добър ден · {0} дни поред.": "İyi bir gün · üst üste {0} gün.",
-  "Силен ден · {0} дни поред.": "Güçlü bir gün · üst üste {0} gün."
+  "Денят е по плана.": "Gün plana uygun geçti.",
+  "Денят е изцяло по плана.": "Gün tamamen plana uygun geçti.",
+  "Денят е по плана · {0} поредни.": "Gün plana uygun geçti · üst üste {0}.",
+  "Денят е изцяло по плана · {0} поредни.": "Gün tamamen plana uygun geçti · üst üste {0}.",
+  "{0} от последните {1} дни бяха по плана.": "Son {1} günün {0} günü plana uygun geçti."
  },
  "keys": {},
  "patterns": []

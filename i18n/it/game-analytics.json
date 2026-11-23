@@ -85,7 +85,10 @@
   "Още няма данни за по-ранни седмици.": "Ancora nessun dato per le settimane precedenti.",
   "Как работят наградите": "Come funzionano i premi",
   "Ангажираност": "Impegno",
-  "Вода": "Acqua"
+  "Вода": "Acqua",
+  "Още {0} поредни дни по плана": "Ancora {0} giorni di fila secondo il piano",
+  "Още {0} ден по плана": "Ancora {0} giorno secondo il piano",
+  "Към ниво": "Prossimo livello"
  },
  "keys": {},
  "patterns": []

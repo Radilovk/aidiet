@@ -924,8 +924,8 @@
     <script src="./progress-index.js?v=1"></script>
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
-    <script src="./rewards-engine.js?v=10"></script>
-    <script src="./rewards-ui.js?v=13"></script>
+    <script src="./rewards-engine.js?v=11"></script>
+    <script src="./rewards-ui.js?v=14"></script>
     <script src="./widget-layout.js?v=3"></script>
     <script>
     (function () {
@@ -1203,6 +1203,38 @@
             });
             var waterValid = waterByDay.filter(function(v){return v!==null;});
             var waterPct = waterValid.length>0 ? Math.round(waterValid.reduce(function(a,b){return a+b;},0)/waterValid.length) : null;
+            // ── Седмицата: всеки показател — сборът за дните, разделен на ВСИЧКИ дни от седмицата
+            // (от първия отбелязан ден нататък). Ден без отговор е 0: седмичният процент е седмица,
+            // не средно от двата-трите дни с отговор. Същата сметка — и за историята (минали седмици).
+            function weekMetrics(endKey) {
+                var wd = GS.buildLast7Days(allData, endKey).filter(function(d){ return d.key >= firstKey; });
+                var n = wd.length;
+                var m = { n: n, eng: 0, cal: 0, act: 0, actRaw: 0, sleep: 0, mood: 0, water: 0, has: {} };
+                if (!n) return null;
+                wd.forEach(function(d){
+                    var r = d.rec; if (!r) return;
+                    var mc = r.morningCheck, ec = r.eveningCheck;
+                    m.eng += calcDayScore(r).engPct || 0; m.has.eng = 1;
+                    var cc = GS.dayCalCloseness(r); if (cc != null) { m.cal += cc; m.has.cal = 1; }
+                    var a = GameScoring.activityPctOf(ec), ar = GameScoring.activityRawPctOf(ec);
+                    if (a != null) { m.act += a; m.actRaw += ar; m.has.act = 1; }
+                    if (mc && mc.sleptWell != null) { m.sleep += mc.level === 'mid' ? 50 : mc.level === 'bad' ? 0 : mc.level === 'good' ? 100 : (mc.sleptWell ? 100 : 0); m.has.sleep = 1; }
+                    if (ec && ec.emotionalBalance != null) { m.mood += Math.round((ec.emotionalBalance - 1) / 2 * 100); m.has.mood = 1; }
+                    if (ec && ec.waterIntake != null) { m.water += ec.waterIntake === true ? 100 : 0; m.has.water = 1; }
+                });
+                var out = {};
+                ['eng', 'cal', 'act', 'actRaw', 'sleep', 'mood', 'water'].forEach(function(k){
+                    var hk = k === 'actRaw' ? 'act' : k;
+                    out[k] = m.has[hk] ? Math.round(m[k] / n) : null;
+                });
+                return out;
+            }
+            // Предупрежденията и насърчението — по дните С отговор (липсващ отговор не е лош сън или жажда).
+            var ANS = { sleep: sleepPct, mood: balancePct, water: waterPct };
+            var WM = weekMetrics(weekEndKey) || {};
+            engagementPct = WM.eng || 0;
+            calAdherencePct = WM.cal; actPct = WM.act; actRawPct = WM.actRaw;
+            sleepPct = WM.sleep; balancePct = WM.mood; waterPct = WM.water;
             // Стойността за деня (балончето над стълбчето) — само нивото. Емоциите — със думите от вечерния въпрос.
             // Вариант C: всеки показател — свой оттенък (design-system.css → --ds-metric-*).
             var MC = {
@@ -1308,16 +1340,16 @@
             });
             if(missedLast2.length>=2) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Последните 2 дни имаш ниска ангажираност — провери дали имаш нужда от промяна в плана.');
             if(junkCount7>=4) alerts.push('<i class="fas fa-circle-exclamation" style="color:#ef4444"></i> Тази седмица има доста вредни хранения. Опитай да ги намалиш до едно-две.');
-            if(waterPct!=null&&waterPct<40) alerts.push('<i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратацията ти е ниска тази седмица — достатъчният прием на вода подпомага метаболизма и енергията.');
-            if(sleepPct!=null&&sleepPct<30) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Качеството на съня е ниско тази седмица — това пряко влияе на метаболизма и избора на храна.');
+            if(ANS.water!=null&&ANS.water<40) alerts.push('<i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратацията ти е ниска тази седмица — достатъчният прием на вода подпомага метаболизма и енергията.');
+            if(ANS.sleep!=null&&ANS.sleep<30) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Качеството на съня е ниско тази седмица — това пряко влияе на метаболизма и избора на храна.');
 
             // ── Encouragement ─────────────────────────────────────────────────
             var leadingCriterion='', encourageText='';   // без обща фраза: фокус има само при конкретна причина
             if      (junkCount7>2)                     { leadingCriterion='Вредни храни'; encourageText='<i class="fas fa-leaf" style="color:#10b981"></i> Намали вредните храни — планът работи когато го следваш!'; }
-            else if (waterPct!=null&&waterPct<50)      { leadingCriterion='Хидратация'; encourageText='<i class="fas fa-droplet" style="color:#06B6D4"></i> Пий повече вода през деня — целта ти по плана е ' + waterGoalText + '.'; }
-            else if (sleepPct!=null&&sleepPct<50)      { leadingCriterion='Сън';          encourageText='<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягай по-рано — тялото ти ще ти благодари!'; }
+            else if (ANS.water!=null&&ANS.water<50)      { leadingCriterion='Хидратация'; encourageText='<i class="fas fa-droplet" style="color:#06B6D4"></i> Пий повече вода през деня — целта ти по плана е ' + waterGoalText + '.'; }
+            else if (ANS.sleep!=null&&ANS.sleep<50)      { leadingCriterion='Сън';          encourageText='<i class="fas fa-bed" style="color:#6366f1"></i> Добрият сън е основата. Лягай по-рано — тялото ти ще ти благодари!'; }
             else if (engagementPct<60)                 { leadingCriterion='';             encourageText='<i class="fas fa-check-circle" style="color:#10b981"></i> Спазвай храненията по план — резултатите идват!'; }
-            else if (balancePct!=null&&balancePct<40)  { leadingCriterion='Баланс';       encourageText='<i class="fas fa-heart-pulse" style="color:#10b981"></i> Седмицата е напрегната. Няколко минути спокойно дишане или разходка вечер помагат — и не се наказвай за пропуснато хранене.'; }
+            else if (ANS.mood!=null&&ANS.mood<40)  { leadingCriterion='Баланс';       encourageText='<i class="fas fa-heart-pulse" style="color:#10b981"></i> Седмицата е напрегната. Няколко минути спокойно дишане или разходка вечер помагат — и не се наказвай за пропуснато хранене.'; }
             else if (engagementPct>=90)                { leadingCriterion='Отлично';      encourageText='<i class="fas fa-trophy" style="color:#fbbf24"></i> Страхотно! Продължавай в същия дух — резултатите идват!'; }
             if (badge) badge.textContent = 'последните 7 дни';
 
@@ -1416,24 +1448,20 @@
                 overlay.appendChild(box); document.body.appendChild(overlay);
             }
 
-            // ── История: последните 8 седмици (около 2 месеца) — седмичните стойности по същите
-            // формули като кръговете (GameScoring.weekSummary, както на сървъра); текущата — от екрана.
+            // ── История: последните 8 седмици (около 2 месеца) — със същата сметка като кръговете (weekMetrics).
             var HIST = {
-                engagement: { color: '#03939C', now: validScores.length ? engagementPct : null, of: function(w){ return w.daysRecorded ? w.engagementPct : null; } },
-                calories: { color: '#F59E0B', now: calAdherencePct, of: function(w){ return w.calAdherence; } },
-                activity: { color: MC.act.c, now: actPct, of: function(w){ return w.dimensions.act; } },
-                sleep: { color: MC.sleep.c, now: sleepPct, of: function(w){ return w.dimensions.slp; } },
-                stress: { color: MC.mood.c, now: balancePct, of: function(w){ return w.dimensions.bal; } },
-                water: { color: MC.water.c, now: waterPct, of: function(w){ return w.dimensions.wtr; } }
+                engagement: { color: '#03939C', k: 'eng' }, calories: { color: '#F59E0B', k: 'cal' }, activity: { color: MC.act.c, k: 'act' },
+                sleep: { color: MC.sleep.c, k: 'sleep' }, stress: { color: MC.mood.c, k: 'mood' }, water: { color: MC.water.c, k: 'water' }
             };
             function showHistory(key, title) {
                 var h = HIST[key]; if (!h) return;
                 var old = document.getElementById('gameHistOverlay'); if (old) old.remove();
                 var weeks = [];
                 for (var i = 7; i >= 0; i--) {
-                    var end = new Date(); end.setDate(end.getDate() - i * 7);
+                    var end = new Date(weekEndKey + 'T12:00:00'); end.setDate(end.getDate() - i * 7);
                     var endKey = GS.dateKey(end);
-                    var v = i === 0 ? h.now : h.of(GS.weekSummary(allData, todayKey, endKey));
+                    var wm = weekMetrics(endKey);
+                    var v = wm ? wm[h.k] : null;
                     var st = new Date(end); st.setDate(st.getDate() - 6);
                     weeks.push({ v: v == null ? null : Math.round(v), label: st.getDate() + '.' + String(st.getMonth() + 1).padStart(2, '0'), now: i === 0 });
                 }
@@ -1560,7 +1588,7 @@
                 // Запълване на 4 степени: цяла (≥ 85%), три четвърти (добър ден), половин, четвърт.
                 var fill = !d.rec || eng <= 0 ? 0 : eng >= 85 ? 100 : eng >= 60 ? 75 : eng >= 35 ? 50 : 25;
                 var tone = eng >= 60 ? 'gold' : softView ? 'gold' : isToday ? 'open' : eng >= 35 ? 'mid' : 'low';
-                var tip = !d.rec ? 'Няма отбелязване' : (isToday && eng < 60 ? 'Денят тече' : eng >= 60 ? 'Добър ден' : eng >= 35 ? 'Среден ден' : 'Слаб ден') + ' · ' + eng + '%';
+                var tip = !d.rec ? 'Няма отбелязване' : (isToday && eng < 60 ? 'Денят тече' : eng >= 60 ? 'По плана' : eng >= 35 ? 'Частично' : 'Слабо') + ' · ' + eng + '%';
                 return '<div class="game-day-col ga-star-col" data-tip="' + label + ' · ' + tip + '" tabindex="0" role="button" aria-label="' + label + ': ' + tip + '">' +
                     '<span class="ga-star ga-star--' + tone + (isToday ? ' is-today' : '') + '" style="--fill:' + fill + '%">' +
                     '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="o" d="' + STAR_PATH + '"/></svg>' +
@@ -1584,17 +1612,14 @@
 
             // ── Кръговете: всеки показател със седмичния си процент (същите формули като сървъра),
             // подредени по важност за целта (goal-focus.js → checkOrder). Докосване — обяснение + история.
-            // Седмичен процент — само при поне 3 дни с данни; с по-малко кръгът е празен („—“),
-            // за да не показва един-два дни като седмица.
-            var MIN_DAYS = 3;
-            var calDays = days.filter(function(d){ return GS.dayCalCloseness(d.rec) != null; }).length;
-            var ring = function(v, n, c, label, shown) { return v == null ? null : { v: n >= MIN_DAYS ? v : null, shown: n >= MIN_DAYS ? shown : null, c: c, label: label }; };
+            // Седмичен процент (weekMetrics: дните без отговор — 0); без нито един отговор за седмицата — няма кръг.
+            var ring = function(v, c, label, shown) { return v == null ? null : { v: v, shown: shown, c: c, label: label }; };
             var RINGS = {
-                calories: ring(calAdherencePct, calDays, '#F59E0B', 'Калории'),
-                activity: ring(actPct, actValid.length, MC.act.c, 'Активност', actRawPct),
-                sleep: ring(sleepPct, sleepValid.length, MC.sleep.c, 'Сън'),
-                stress: ring(balancePct, balanceValid.length, MC.mood.c, 'Емоции'),
-                water: ring(waterPct, waterValid.length, MC.water.c, 'Вода')
+                calories: ring(calAdherencePct, '#F59E0B', 'Калории'),
+                activity: ring(actPct, MC.act.c, 'Активност', actRawPct),
+                sleep: ring(sleepPct, MC.sleep.c, 'Сън'),
+                stress: ring(balancePct, MC.mood.c, 'Емоции'),
+                water: ring(waterPct, MC.water.c, 'Вода')
             };
             var ringOrder = ['calories', 'activity', 'sleep', 'stress', 'water'];
             try {

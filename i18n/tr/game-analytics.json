@@ -85,7 +85,10 @@
   "Още няма данни за по-ранни седмици.": "Önceki haftalar için henüz veri yok.",
   "Как работят наградите": "Ödüller nasıl çalışır",
   "Ангажираност": "Bağlılık",
-  "Вода": "Su"
+  "Вода": "Su",
+  "Още {0} поредни дни по плана": "Üst üste {0} gün daha plana uygun",
+  "Още {0} ден по плана": "{0} gün daha plana uygun",
+  "Към ниво": "Sonraki seviye"
  },
  "keys": {},
  "patterns": []

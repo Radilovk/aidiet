@@ -4012,8 +4012,8 @@
     })();</script>
 
     <script src="./game-scoring.js?v=2"></script>
-    <script src="./rewards-engine.js?v=10"></script>
-    <script src="./rewards-ui.js?v=13"></script>
+    <script src="./rewards-engine.js?v=11"></script>
+    <script src="./rewards-ui.js?v=14"></script>
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
@@ -11944,8 +11944,8 @@
             var hp = window.NutriPlanHaptic && window.NutriPlanHaptic.notify;
             if (isGoodDay(ds)) {
                 var streak = soft ? 0 : calcStreak();
-                var word = (ds.engPct || 0) >= 80 && !soft ? 'Силен ден' : 'Добър ден';
-                showEncouragement({ text: '<i class="fas fa-seedling" aria-hidden="true"></i> ' + word + (streak >= 2 ? ' · ' + streak + ' дни поред' : '') + '.', type: 'good' });
+                var word = (ds.engPct || 0) >= 80 && !soft ? 'Денят е изцяло по плана' : 'Денят е по плана';
+                showEncouragement({ text: '<i class="fas fa-seedling" aria-hidden="true"></i> ' + word + (streak >= 2 ? ' · ' + streak + ' поредни' : '') + '.', type: 'good' });
                 if (hp) hp('success');
                 return;
             }
@@ -12009,7 +12009,7 @@
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div class="game-modal-title">Преглед на плана</div>' +
-                '<div class="game-modal-msg">' + good + ' от последните 7 дни бяха добри.</div>';
+                '<div class="game-modal-msg">' + good + ' от последните 7 дни бяха по плана.</div>';
 
             var dotsWrap = document.createElement('div');
             dotsWrap.style.cssText = 'display:flex;gap:6px;justify-content:center;margin:12px 0 20px;';

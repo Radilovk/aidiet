@@ -85,7 +85,10 @@
   "Още няма данни за по-ранни седмици.": "Încă nu există date pentru săptămânile anterioare.",
   "Как работят наградите": "Cum funcționează recompensele",
   "Ангажираност": "Implicare",
-  "Вода": "Apă"
+  "Вода": "Apă",
+  "Още {0} поредни дни по плана": "Încă {0} zile la rând după plan",
+  "Още {0} ден по плана": "Încă {0} zi după plan",
+  "Към ниво": "Următorul nivel"
  },
  "keys": {},
  "patterns": []
