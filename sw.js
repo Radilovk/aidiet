@@ -2,7 +2,7 @@
 // Configure base path - use '/' for a custom domain (nutriin.app, served from GitHub Pages) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v93'; // v91: снимки на ястията; v90: насоки за движение, героят на лендинга; v88: нов екран за изготвяне на плана; v81: визуалният език „Светлина · Стъкло · Спокойствие“ (ambient-glass)
+const CACHE_NAME = 'nutriplan-v94'; // v94: мисъл за деня, мек режим на мотивацията; v91: снимки на ястията; v90: насоки за движение, героят на лендинга; v88: нов екран за изготвяне на плана; v81: визуалният език „Светлина · Стъкло · Спокойствие“ (ambient-glass)
 // Android приложението (Capacitor) е на https://localhost и носи файловете си —
 // там service worker само връща стари версии след обновяване. Самоизключва се.
 const IS_NATIVE_APP_ORIGIN = self.location.origin === 'https://localhost';

@@ -67,6 +67,19 @@ p = P.build({ emoeat: { archetype: 'Махалото', intensity: 'Силно', 
 ok(/Вчера е вчера/.test(p.nudge.bodies[0]), 'след труден ден — първо мекото връщане');
 ok(P.build({ emoeat: { archetype: 'Утехата', intensity: 'Слабо', teen: true }, now: NOW }).noScores, 'непълнолетен — без оценки');
 
+// Мисъл за деня (daily-thoughts.js): една и съща през деня; началото, труден ден, строг глас, род.
+const T = require('../daily-thoughts.js');
+const d1 = new Date('2026-11-24T08:00:00'), d1b = new Date('2026-11-24T21:00:00');
+ok(T.THOUGHTS.length === 364 && T.pick({ date: d1 }).text === T.pick({ date: d1b }).text, 'мисълта е една и съща през целия ден');
+ok(T.pick({ date: d1, daysInApp: 2 }).category === 'Избор и начало', 'първите дни — „Избор и начало“');
+ok(T.pick({ date: d1, daysInApp: 30, hardYesterday: true }).category === 'Устойчивост и преодоляване', 'след труден ден — устойчивост');
+let noDiscipline = true;
+for (let i = 0; i < 400; i++) { const t = T.pick({ date: new Date(d1.getTime() + i * 864e5), traits: ['CRIT'], daysInApp: 30 }); if (t.category === 'Постоянство и дисциплина') noDiscipline = false; }
+ok(noDiscipline, 'строг глас — без „Постоянство и дисциплина“');
+const seen = new Set(); for (let i = 0; i < 60; i++) seen.add(T.pick({ date: new Date(d1.getTime() + i * 864e5), daysInApp: 30 }).index);
+ok(seen.size >= 55, `за 60 дни почти без повторения (${seen.size})`);
+ok(T.feminize('Не си длъжен. Дали си готов? Ценен човек.') === 'Не си длъжна. Дали си готова? Ценен човек.', 'род: само думите за човека');
+
 // Индекси: поне 2 съставки; фокусът от персоната се вдига на второ място.
 const M = { weight: { trendKgWeek: 0.05, days: 10 }, sleep: { avg7: 6.4 }, hrv: { avg7: 40, base: 42 }, restingHr: { avg7: 66, base: 60 }, steps: { avg7: 5200 }, workouts: { perWeek: 1 } };
 const checks = { mealAdherence: 79, engagementPct: 89, balancePct: 50, junkCount: 3 };

@@ -351,6 +351,10 @@
         .persona-sos ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 0.875rem; line-height: 1.45; color: var(--text-dark); }
         .persona-sos-close { position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; border: none; background: none; color: var(--text-light); cursor: pointer; font-size: 1rem; }
         html[data-persona-noscores] .dc-stars { display: none !important; }
+        /* Мисъл за деня (daily-thoughts.js): веднъж на ден, затваря се с едно докосване. */
+        .daily-thought { position: relative; margin: 2px 0 14px; padding: 2px 40px 2px 2px; }
+        .daily-thought-text { font-size: 0.9rem; line-height: 1.5; color: var(--text-light); font-style: italic; }
+        .daily-thought-close { position: absolute; top: -8px; right: -6px; width: 40px; height: 40px; border: none; background: none; color: var(--text-light); opacity: .6; cursor: pointer; font-size: .9rem; }
 
         /* Изядените хранения — сгънати в тънка лента най-горе; следващото остава в центъра. */
         .meals-done-group { margin: 0 0 14px; border-radius: var(--radius); border: 1px solid rgba(3, 147, 156, 0.18); background: rgba(3, 147, 156, 0.06); }
@@ -9978,6 +9982,7 @@
                 // Re-evaluate time locks on all visible check buttons every minute
                 _refreshTimeLocks();
                 try { renderPersonaSos(getCurrentViewDayKey()); } catch (_) {}
+                try { renderDailyThought(getCurrentViewDayKey()); } catch (_) {}
             }, 60000);
         }
 
@@ -10613,7 +10618,10 @@
             var chips = m.flags.map(function(f) {
                 return '<span class="dc-chip"><i class="fas ' + f.icon + '" aria-hidden="true"></i>' + esc(f.text) + '</span>';
             });
-            if (streak >= 2) {
+            if (m.isToday && softMotivation()) {
+                var good7 = goodDaysOf7();
+                if (good7 >= 3) chips.unshift('<span class="dc-chip dc-chip--streak"><i class="fas fa-seedling" aria-hidden="true"></i>' + good7 + ' от последните 7 дни</span>');
+            } else if (streak >= 2) {
                 chips.unshift('<span class="dc-chip dc-chip--streak' + (streak > prevStreak ? ' is-new' : '') + '"><i class="fas fa-fire" aria-hidden="true"></i>' + streak + ' дни поред</span>');
             }
 
@@ -10822,6 +10830,9 @@
             var show = persona && persona.sos && dayKey === today && !dismissed && P.inRiskWindow(persona);
             if (!show) { if (old) old.remove(); return; }
             if (old) return;
+            // Най-много едно поле за подкрепа на екрана: в рисковия час SOS замества мисълта за деня.
+            var thought = container.querySelector('.daily-thought');
+            if (thought) thought.remove();
             var card = document.createElement('div');
             card.className = 'persona-sos';
             card.setAttribute('role', 'note');
@@ -10837,6 +10848,49 @@
             container.insertBefore(card, group ? group.nextSibling : container.firstChild);
         }
         window._gameRenderPersonaSos = renderPersonaSos;
+
+        /**
+         * Мисъл за деня: тих ред (без рамка) над храненията — само днес, докато не е затворен.
+         * Никога заедно със SOS картата: на екрана има най-много едно поле за подкрепа.
+         * Изборът по чертите от EmoEat и по деня — daily-thoughts.js. Засега само на български:
+         * преводите на 364-те мисли идват отделно (без AI превод на живо).
+         */
+        function renderDailyThought(dayKey) {
+            var container = document.getElementById('mealContainer');
+            if (!container) return;
+            var old = container.querySelector('.daily-thought');
+            var T = window.NutriPlanThoughts;
+            var today = getTodayKey();
+            var lang = (window.EatologixI18n && window.EatologixI18n.lang) || 'bg';
+            var dismissed = false;
+            try { dismissed = localStorage.getItem('np_thought_dismissed') === today; } catch (_) {}
+            var sosShown = !!container.querySelector('.persona-sos');
+            if (!T || dayKey !== today || dismissed || lang !== 'bg' || sosShown) { if (old) old.remove(); return; }
+            if (old) return;
+            var P = window.NutriPlanPersona;
+            var persona = P ? P.current() : {};
+            var ud = {};
+            try { ud = JSON.parse(localStorage.getItem('userData') || '{}') || {}; } catch (_) {}
+            var th = T.pick({
+                traits: persona.traits || [],
+                daysInApp: Object.keys(getGameData() || {}).length,
+                hardYesterday: !!persona.hardYesterday,
+                female: /жен|female/i.test(String(ud.gender || '')),
+                lang: lang
+            });
+            var card = document.createElement('div');
+            card.className = 'daily-thought';
+            card.setAttribute('role', 'note');
+            card.setAttribute('data-i18n-skip', '');
+            card.innerHTML = '<div class="daily-thought-text">' + escapeHtml(th.text) + '</div>' +
+                '<button type="button" class="daily-thought-close" aria-label="Скрий за днес"><i class="fas fa-times"></i></button>';
+            card.querySelector('.daily-thought-close').onclick = function () {
+                try { localStorage.setItem('np_thought_dismissed', today); } catch (_) {}
+                card.remove();
+            };
+            container.insertBefore(card, container.firstChild);
+        }
+        window._gameRenderDailyThought = renderDailyThought;
 
         function _triggerMealCheckBurst(btn, card, isDone, isJunk) {
             if (!isDone) return; // only on check, not uncheck
@@ -10860,6 +10914,26 @@
         }
 
         // ── Streak: consecutive days with ≥3 stars (includes today if scored) ─
+        /**
+         * Мек режим на мотивацията (persona.noScores — строг вътрешен глас, „всичко или нищо“
+         * от EmoEat, непълнолетни): без оценки и „Може по-добре“, без серия, която може да се скъса.
+         * При тях прекъсната серия или ниска оценка води към „все тая“ и отказ, а не към усилие.
+         */
+        function softMotivation() {
+            try { var P = window.NutriPlanPersona; var p = P ? P.current() : null; return !!(p && p.noScores); } catch (_) { return false; }
+        }
+        /** Дни с поне 3 звезди от последните 7 (вкл. днес) — серия, която един лош ден не нулира. */
+        function goodDaysOf7() {
+            var GS = window.GameScoring, all = getGameData() || {}, n = 0;
+            for (var i = 0; i < 7; i++) {
+                var d = new Date(); d.setDate(d.getDate() - i);
+                var rec = all[GS.dateKey(d)];
+                var ds = rec ? GS.calcDayScore(rec) : null;
+                if (ds && ds.score != null && ds.score >= 3) n++;
+            }
+            return n;
+        }
+
         function calcStreak() {
             // Поредни отлични дни (4+ звезди) — като в анализа и на сървъра; до 30 дни назад.
             var GS = window.GameScoring;
@@ -11039,6 +11113,7 @@
             recalcAndShowScore(dayKey);
             foldDoneMeals(dayKey);
             renderPersonaSos(dayKey);
+            try { renderDailyThought(dayKey); } catch (_) {}
 
             // ── Photo-added meal check buttons ───────────────────────────────
             // Give each added-meal-card a toggleable consumed button.
@@ -11815,7 +11890,9 @@
         function buildEncouragement(recordKey) {
             var rec = getRecord(recordKey || getTodayKey());
             var ds  = rec.dailyScore || calcDayScore(rec);
-            if (ds.junkCount > 0) return { text: ENC.junk, type: 'warn' };
+            if (ds.junkCount > 0) return softMotivation()
+                ? { text: '<i class="fas fa-leaf" style="color:#10b981"></i> Хранене извън плана е част от живота. Следващото е обичайното.', type: 'good' }
+                : { text: ENC.junk, type: 'warn' };
             if (rec.morningCheck && !rec.morningCheck.sleptWell) return { text: ENC.sleep, type: 'warn' };
             if (rec.eveningCheck && !rec.eveningCheck.waterIntake) return { text: ENC.water, type: 'warn' };
             if (rec.eveningCheck && rec.eveningCheck.activityLevel === 1) return { text: ENC.activity, type: 'warn' };
@@ -11863,6 +11940,15 @@
             for (var i=0; i<DAY_LEVELS.length; i++) {
                 if ((ds.score||0) >= DAY_LEVELS[i].min) { lv = DAY_LEVELS[i]; break; }
             }
+            // Мек режим: без оценка, без степени „добре/зле“, без конфети за резултата.
+            var soft = softMotivation();
+            if (soft) {
+                lv = (ds.score || 0) >= 3
+                    ? { iconClass: 'fas fa-seedling', iconColor: '#10b981', title: 'Денят приключи', confetti: false,
+                        msg: 'Хубав ден. Утре — пак така, без да е нужно повече.' }
+                    : { iconClass: 'fas fa-seedling', iconColor: '#6366f1', title: 'Денят приключи', confetti: false,
+                        msg: 'Утре е обичаен ден. Без компенсиране — просто следващото хранене.' };
+            }
             var overlay = document.createElement('div');
             overlay.id = 'gameDayEndModal';
             overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
@@ -11891,16 +11977,22 @@
             var scoreEl = document.createElement('div');
             scoreEl.className = 'game-modal-score game-modal-score--result';
             scoreEl.innerHTML = '\u041E\u0446\u0435\u043D\u043A\u0430: <strong>' + (ds.stars||'') + '</strong>';
-            modal.appendChild(scoreEl);
+            if (!soft) modal.appendChild(scoreEl);
 
             var engEl = document.createElement('div');
             engEl.className = 'game-modal-score game-modal-score--soft';
             engEl.innerHTML = '<i class="fas fa-chart-bar" aria-hidden="true"></i> Ангажираност: <strong>' + (ds.engPct||0) + '%</strong>';
-            modal.appendChild(engEl);
+            if (!soft) modal.appendChild(engEl);
 
             // Серия: етап само на кръгли стойности, за да остане рядък момент.
             var streakNow = calcStreak();
-            var isMilestone = (ds.score || 0) >= 4 && STREAK_MILESTONES.indexOf(streakNow) !== -1;
+            var isMilestone = !soft && (ds.score || 0) >= 4 && STREAK_MILESTONES.indexOf(streakNow) !== -1;
+            if (soft && goodDaysOf7() >= 3) {
+                var g7 = document.createElement('div');
+                g7.className = 'game-modal-streak';
+                g7.innerHTML = '<i class="fas fa-seedling" aria-hidden="true"></i> ' + goodDaysOf7() + ' добри дни от последните 7';
+                modal.appendChild(g7);
+            }
             if (isMilestone) {
                 var stEl = document.createElement('div');
                 stEl.className = 'game-modal-streak';
@@ -11917,6 +12009,7 @@
             closeBtn.type = 'button';
             closeBtn.className = 'game-modal-btn game-modal-btn--fill';
             closeBtn.textContent = '\u2713 \u0421\u0442\u0440\u0430\u0445\u043E\u0442\u043D\u043E, \u043F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u0439!';
+            if (soft) closeBtn.textContent = 'Добре';
             closeBtn.onclick = function(){ overlay.remove(); };
             modal.appendChild(closeBtn);
 
@@ -11927,7 +12020,7 @@
             var hp = window.NutriPlanHaptic && window.NutriPlanHaptic.notify;
             if (isMilestone) { if (hp) hp('milestone'); }
             else if ((ds.score || 0) >= 4) { if (hp) hp('success'); }
-            if ((ds.score || 0) >= 4) {
+            if (!soft && (ds.score || 0) >= 4) {
                 var dc = document.getElementById('dailyScoreCard');
                 if (dc) setTimeout(function() { _triggerStarBurst(dc, ds.score); }, 200);
             }
@@ -12910,6 +13003,7 @@
     </nav>
     <!-- GameNotifier: gamification-based notification scheduling -->
     <script src="./persona.js"></script>
+    <script src="./daily-thoughts.js"></script>
     <script>
     // Персоната: преизчислява се при всяко отваряне; „без оценки“ скрива звездите.
     (function () {

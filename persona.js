@@ -191,6 +191,7 @@
         if (traits) {
             // Строг вътрешен глас или „всичко или нищо“: оценките, червеното и сериите вредят.
             var selfCritical = expressed(traits, 'CRIT') || expressed(traits, 'DIC');
+            p.selfCritical = selfCritical;
             if (selfCritical) {
                 p.noScores = true;
                 p.flexible = true;
@@ -217,7 +218,9 @@
                 }
             }
         }
-        if (emo && emo.teen) { p.noScores = true; p.flexible = true; }
+        if (emo && emo.teen) { p.noScores = true; p.flexible = true; p.teen = true; }
+        // Вчера — 2+ хранения извън плана (за мисълта за деня и мекото връщане).
+        p.hardYesterday = extraYesterday(inp.gameData, now) >= 2;
 
         // Поведение: при слабо отмятане — по-малко въпроси и по-кратък анализ.
         if (beh.days >= 5 && beh.mealTickRate != null && beh.mealTickRate < 35) {
