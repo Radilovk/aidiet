@@ -201,7 +201,7 @@ export function reanalyze(baseData, enrichedData, energy = {}, sex = 'X') {
     questions: (d.crossCheck?.questions || []).filter(q => q.id === 'steps_source'),
     labs: (d.labs || []).map(l => ({ ...l, range: labRange(l.key, sex) })),
     iris: d.iris ? { ...d.iris, hypotheses } : (hypotheses.length ? { hypotheses } : null),
-    emoeat: d.voice ? { archetype: d.voice.archetype || '', intensity: d.voice.intensity || '', drivers: d.voice.drivers || [], realNeed: d.voice.realNeed || '', at: d.voice.at || null } : null,
+    emoeat: d.voice ? { archetype: d.voice.archetype || '', intensity: d.voice.intensity || '', drivers: d.voice.drivers || [], realNeed: d.voice.realNeed || '', traits: d.voice.traits || null, portrait: d.voice.portrait || [], teen: !!d.voice.context?.teen, at: d.voice.at || null } : null,
     devices: d.essence?.metrics && Object.keys(d.essence.metrics).length ? { metrics: d.essence.metrics, sources: d.essence.sources || [], at: d.essence.at || null } : null,
     documents: (d.documents || []).map(x => ({ title: x.title, at: x.at, impact: x.impact, summary: x.summary })),
   };

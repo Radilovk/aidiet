@@ -72,6 +72,11 @@ export function deriveEmoEat(facts) {
   if (p.v === 3) {
     voice.portrait = Array.isArray(p.portrait) ? p.portrait.slice(0, 3) : [];
     voice.context = p.context && typeof p.context === 'object' ? p.context : null;
+    // Изразените черти (id → ниво) — за тона, известията и текстовете (persona.js, ai-voice.js).
+    voice.traits = {};
+    for (const t of Array.isArray(p.traits) ? p.traits : []) {
+      if (t && /^[A-Z]{3,6}$/.test(t.id || '') && (t.level === 'Силно' || t.level === 'Осезаемо')) voice.traits[t.id] = t.level;
+    }
   }
 
   const reliable = p.reliability?.level !== 'ниска';

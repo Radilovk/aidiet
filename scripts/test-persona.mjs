@@ -56,6 +56,17 @@ for (let k = 1; k <= 7; k++) lazy[day(k)] = { meals: { a: false, b: false, c: k 
 p = P.build({ gameData: lazy, now: NOW });
 ok(p.mealChecks === 'main' && p.density === 'minimal', 'рядко отмятане — основните, кратко');
 
+// EmoEat v3 — черти: строг глас → без оценки и мек тон; текстовете ротират; малко сън → без късни напомняния;
+// след труден ден — меко връщане първо.
+p = P.build({ emoeat: { archetype: 'Импулсът', intensity: 'Силно', traits: { URG: 'Силно', CRIT: 'Осезаемо', LOAD: 'Силно' } }, now: NOW });
+ok(p.noScores && p.flexible && p.tone === 'gentle', 'строг глас — без оценки, мек тон');
+ok(Array.isArray(p.nudge.bodies) && p.nudge.bodies.length >= 3 && p.nudge.bodies.some(t => /десет минути/.test(t)), 'текстовете на напомнянето идват от чертите');
+p = P.build({ emoeat: { archetype: 'Утехата', intensity: 'Силно', traits: { LONE: 'Силно', LOAD: 'Силно' } }, now: NOW });
+ok(p.nudge.minute <= 21 * 60, 'малко сън — напомнянето не е след 21 ч.');
+p = P.build({ emoeat: { archetype: 'Махалото', intensity: 'Силно', traits: { DIC: 'Силно' } }, gameData: { [day(1)]: { extraMeals: [{ time: '21:00' }, { time: '22:00' }] } }, now: NOW });
+ok(/Вчера е вчера/.test(p.nudge.bodies[0]), 'след труден ден — първо мекото връщане');
+ok(P.build({ emoeat: { archetype: 'Утехата', intensity: 'Слабо', teen: true }, now: NOW }).noScores, 'непълнолетен — без оценки');
+
 // Индекси: поне 2 съставки; фокусът от персоната се вдига на второ място.
 const M = { weight: { trendKgWeek: 0.05, days: 10 }, sleep: { avg7: 6.4 }, hrv: { avg7: 40, base: 42 }, restingHr: { avg7: 66, base: 60 }, steps: { avg7: 5200 }, workouts: { perWeek: 1 } };
 const checks = { mealAdherence: 79, engagementPct: 89, balancePct: 50, junkCount: 3 };

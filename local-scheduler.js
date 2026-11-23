@@ -1911,7 +1911,8 @@ const GameNotifier = {
                 id: this.MEAL_ID_BASE + 500 + day,
                 channelId: this.CHANNEL_ID,
                 title: p.nudge.title,
-                body: p.nudge.body,
+                // Текстовете по чертите ротират по дни (persona.js); иначе — един и същ.
+                body: Array.isArray(p.nudge.bodies) && p.nudge.bodies.length ? p.nudge.bodies[day % p.nudge.bodies.length] : p.nudge.body,
                 schedule: { at: new Date(ts), allowWhileIdle: true },
                 extra: { url: '/index.html?app=1&tab=plan', type: 'support_nudge' },
                 iconColor: this.BRAND_TEAL

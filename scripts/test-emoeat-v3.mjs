@@ -158,6 +158,7 @@ ok(!('health' in pl), 'без withHealth здравето не излиза');
 const d = deriveEmoEat([{ kind: 'emoeat', value: pl, at: new Date().toISOString() }]);
 ok(d && d.voice && d.voice.archetype === pl.archetype.name, 'enrichment-emoeat чете обобщението на v3');
 ok(d.hints.cautions.some(c => /ограничаващ/.test(c)), 'ограничаващият модел стига до бележките за плана');
+ok(d.voice.traits && Object.keys(d.voice.traits).length > 0 && Array.isArray(d.voice.portrait), 'чертите и портретът стигат до гласа на плана (persona.js, ai-voice.js)');
 
 // 8. Родът в българския текст.
 ok(V3.genderize('Яж седнал/а, гладен/на ли съм, спокоен/на', 'f') === 'Яж седнала, гладна ли съм, спокойна', 'род: жена');
