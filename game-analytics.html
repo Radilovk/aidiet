@@ -259,9 +259,22 @@
         }
         .game-ring-svg { transform: rotate(-90deg); }
         /* Целта горе в седмицата: лентата казва нивото — числото е в подробностите (докосване) */
-        #gaGoalSlot .gf-index-value { display: none; }
-        #gaGoalSlot .gf-indices { margin-bottom: 12px; }
-        #gaGoalSlot .gf-index-bar.is-empty { background: none; border: 1px dashed var(--ds-line, rgba(15,47,46,.15)); }
+        /* Горе: двете ленти — ангажираност (със звездите на дните) и напредък (само при измерване) */
+        .ga-bars { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+        .ga-bars .gf-index-value { font-variant-numeric: tabular-nums; }
+        .ga-eng { cursor: pointer; }
+        .ga-eng .ga-stars { margin: 12px 0 0; }
+        .ga-rings { flex-wrap: wrap; justify-content: space-around; row-gap: 10px; }
+        /* История: 8 седмици като стълбчета */
+        .ga-hist { display: flex; align-items: stretch; gap: 6px; height: 150px; margin: 16px 0 6px; }
+        .ga-hist-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
+        .ga-hist-bar { width: 100%; max-width: 22px; border-radius: 6px 6px 3px 3px; opacity: .55; }
+        .ga-hist-col.is-now .ga-hist-bar { opacity: 1; }
+        .ga-hist-bar.is-none { background: var(--ds-track, rgba(15,47,46,.12)) !important; }
+        .ga-hist-v { font-size: 0.68rem; font-weight: 700; color: var(--text-dark); font-variant-numeric: tabular-nums; }
+        .ga-hist-d { font-size: 0.66rem; color: var(--text-light); white-space: nowrap; }
+        .ga-hist-col.is-now .ga-hist-d { color: var(--ds-green-text, #03939C); font-weight: 700; }
+        .ga-hist-btn { margin-top: 8px; }
         /* Седмицата — 7 звезди: запълването и цветът са ангажираността на деня */
         .ga-stars { display: flex; gap: 4px; margin: 4px 0 14px; }
         .ga-star-col { gap: 4px; padding: 4px 0; border-radius: 10px; }
@@ -753,7 +766,7 @@
     </script>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
-    <link rel="stylesheet" href="./rewards-ui.css?v=10">
+    <link rel="stylesheet" href="./rewards-ui.css?v=11">
     <link rel="stylesheet" href="./widget-layout.css?v=2">
     <script src="./app-ui.js" defer></script>
     <script src="./ambient-glass.js?v=5"></script>
@@ -883,8 +896,8 @@
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
     <script src="./rewards-engine.js?v=8"></script>
-    <script src="./rewards-ui.js?v=10"></script>
-    <script src="./widget-layout.js?v=2"></script>
+    <script src="./rewards-ui.js?v=11"></script>
+    <script src="./widget-layout.js?v=3"></script>
     <script>
     (function () {
         function go() { try { NutriPlanRewards.mount(document.getElementById('rewardsBody')); } catch (_) {} }
@@ -909,7 +922,7 @@
                 { id: 'path', title: 'Пътят към успеха', icon: 'fa-seedling', el: document.getElementById('rewardsSection') }
             ];
             try {
-                window.NutriPlanWidgets.mount({ page: 'progress', container: document.querySelector('.container'), widgets: W, hidden: [] });
+                window.NutriPlanWidgets.mount({ page: 'progress', container: document.querySelector('.container'), widgets: W, hidden: [], version: 2 });
             } catch (_) {}
         }
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
@@ -964,16 +977,15 @@
                 var planStart = Date.parse(startRaw) || null;
                 var res = PR.compute({ profile: p, userData: ud, weightLog: rd('np_weight_log', []), checkins: rd('np_checkins', []),
                     metrics: metrics, checks: window._gaChecks || {}, planStart: planStart });
-                var on = res.value != null;
-                indicesHtml = '<div class="gf-indices"><div class="gf-index ga-result" data-tone="good" role="button" tabindex="0" aria-expanded="false" ' +
+                // Само когато има измерване и тенденция — празна лента казва „нищо не се случва“.
+                if (res.value != null) indicesHtml = '<div class="gf-index ga-result" data-tone="good" role="button" tabindex="0" aria-expanded="false" ' +
                     'onclick="gfToggleIndex(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();gfToggleIndex(this);}">' +
                     '<div class="gf-index-head"><span class="gf-index-icon"><i class="fas fa-flag-checkered"></i></span><span class="gf-index-name">Напредък' +
-                    ' <i class="fas fa-circle-info gf-index-info" aria-hidden="true"></i></span></div>' +
-                    '<div class="gf-index-bar' + (on ? '' : ' is-empty') + '"><span style="width:' + (on ? res.value : 0) + '%"></span></div>' +
-                    (on ? '' : '<div class="gf-index-note">' + gfEsc(res.needs.text) + '</div>') +
+                    '</span><span class="gf-index-value">' + res.value + '%</span></div>' +
+                    '<div class="gf-index-bar"><span style="width:' + res.value + '%"></span></div>' +
                     '<div class="gf-index-more"><p>Колко си се приближил/а до целта — по това, което се мери, не по старанието.</p>' +
                     (res.parts.length ? '<ul class="gf-index-parts">' + res.parts.map(function (pt) { return '<li><span>' + gfEsc(pt.label) + '</span><span>' + gfEsc(pt.text) + '</span></li>'; }).join('') + '</ul>' : '') +
-                    (on && res.needs ? '<p>' + gfEsc(res.needs.text) + '</p>' : '') + '</div></div></div>';
+                    (res.needs ? '<p>' + gfEsc(res.needs.text) + '</p>' : '') + '</div></div>';
             }
             top.innerHTML = indicesHtml;
             indicesHtml = '';
@@ -1356,8 +1368,52 @@
                     whyBtn.onclick=function(){ showWhyModal(info.title, info.why); };
                     box.appendChild(whyBtn);
                 }
+                if (HIST[key]) {
+                    var hb = document.createElement('button'); hb.className='game-explain-why-btn ga-hist-btn'; hb.innerHTML='<i class="fas fa-chart-column"></i> История';
+                    hb.onclick=function(){ overlay.remove(); showHistory(key, info.title); };
+                    box.appendChild(hb);
+                }
                 var cb= document.createElement('button'); cb.className='game-explain-close'; cb.textContent='Разбрах';
                 cb.onclick=function(){ overlay.remove(); };
+                box.appendChild(cb);
+                overlay.appendChild(box); document.body.appendChild(overlay);
+            }
+
+            // ── История: последните 8 седмици (около 2 месеца) — седмичните стойности по същите
+            // формули като кръговете (GameScoring.weekSummary, както на сървъра); текущата — от екрана.
+            var HIST = {
+                engagement: { color: '#03939C', now: validScores.length ? engagementPct : null, of: function(w){ return w.daysRecorded ? w.engagementPct : null; } },
+                calories: { color: '#F59E0B', now: calAdherencePct, of: function(w){ return w.calAdherence; } },
+                activity: { color: MC.act.c, now: actPct, of: function(w){ return w.dimensions.act; } },
+                sleep: { color: MC.sleep.c, now: sleepPct, of: function(w){ return w.dimensions.slp; } },
+                stress: { color: MC.mood.c, now: balancePct, of: function(w){ return w.dimensions.bal; } },
+                water: { color: MC.water.c, now: waterPct, of: function(w){ return w.dimensions.wtr; } }
+            };
+            function showHistory(key, title) {
+                var h = HIST[key]; if (!h) return;
+                var old = document.getElementById('gameHistOverlay'); if (old) old.remove();
+                var weeks = [];
+                for (var i = 7; i >= 0; i--) {
+                    var end = new Date(); end.setDate(end.getDate() - i * 7);
+                    var endKey = GS.dateKey(end);
+                    var v = i === 0 ? h.now : h.of(GS.weekSummary(allData, todayKey, endKey));
+                    var st = new Date(end); st.setDate(st.getDate() - 6);
+                    weeks.push({ v: v == null ? null : Math.round(v), label: st.getDate() + '.' + String(st.getMonth() + 1).padStart(2, '0'), now: i === 0 });
+                }
+                var vals = weeks.filter(function(w){ return w.v != null; });
+                var overlay = document.createElement('div');
+                overlay.id = 'gameHistOverlay'; overlay.className = 'game-explain-overlay'; overlay.style.zIndex = '10001';
+                overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
+                var box = document.createElement('div'); box.className = 'game-explain-box';
+                box.innerHTML = '<div class="game-explain-title">' + title + ' · история</div>' +
+                    '<div class="game-explain-text">Последните 8 седмици' + (vals.length >= 2 ? ' · средно ' + Math.round(vals.reduce(function(a, w){ return a + w.v; }, 0) / vals.length) + '%' : '') + '</div>' +
+                    (vals.length ? '<div class="ga-hist" role="img" aria-label="' + title + ' по седмици">' + weeks.map(function(w){
+                        return '<div class="ga-hist-col' + (w.now ? ' is-now' : '') + '"><span class="ga-hist-v">' + (w.v == null ? '' : w.v + '%') + '</span>' +
+                            '<span class="ga-hist-bar' + (w.v == null ? ' is-none' : '') + '" style="height:' + (w.v == null ? 3 : Math.max(3, Math.round(w.v * 0.72))) + '%;background:' + h.color + '"></span>' +
+                            '<span class="ga-hist-d">' + (w.now ? 'сега' : w.label) + '</span></div>';
+                    }).join('') + '</div>' : '<div class="game-explain-text" style="margin-top:12px">Още няма данни за по-ранни седмици.</div>');
+                var cb = document.createElement('button'); cb.className = 'game-explain-close'; cb.textContent = 'Затвори';
+                cb.onclick = function(){ overlay.remove(); };
                 box.appendChild(cb);
                 overlay.appendChild(box); document.body.appendChild(overlay);
             }
@@ -1451,8 +1507,6 @@
 
             // ── Build HTML ────────────────────────────────────────────────────
             var html = '';
-            // Целта — най-отгоре: тя гледа по-дълъг период от седмицата (попълва се от renderGoalFocus).
-            html += '<div id="gaGoalSlot"></div>';
 
             // Седмицата — 7 звезди, по една за ден. Запълването и цветът следват ангажираността на деня
             // (game-scoring.js → engPct): злато — добър ден (≥ 60%, същата мярка като плана и наградите),
@@ -1476,13 +1530,40 @@
                     '<svg class="f" viewBox="0 0 24 24" aria-hidden="true"><path d="' + STAR_PATH + '"/></svg></span>' +
                     '<span class="ga-star-day">' + label + '</span></div>';
             }).join('');
-            html += '<div class="ga-stars ga-card-enter" aria-label="Последните 7 дни">' + starsHtml + '</div>';
-
-            if (actPct!=null || sleepPct!=null || balancePct!=null) html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
-                (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,MC.act.c,22,actRawPct) + '<div class="game-ring-label">Активност</div></div>' : '') +
-                (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,MC.sleep.c,22) + '<div class="game-ring-label">Сън</div></div>' : '') +
-                (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,MC.mood.c,22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
+            // ── Горе: две ленти. Ангажираността (старанието — най-важното за мотивацията) винаги,
+            // със звездите на дните под нея; „Напредък“ (мерими промени по целта) — само когато има
+            // измерване и тенденция (renderGoalFocus → #gaGoalSlot). Без празна лента.
+            var engIcon = '<span class="gf-index-icon"><i class="fas fa-check-double"></i></span>';
+            html += '<div class="gf-indices ga-bars">' +
+                '<div class="gf-index ga-eng" data-tone="good" data-explain="engagement" role="button" tabindex="0">' +
+                    '<div class="gf-index-head">' + engIcon + '<span class="gf-index-name">Ангажираност</span>' +
+                    '<span class="gf-index-value">' + (validScores.length ? engagementPct + '%' : '') + '</span></div>' +
+                    '<div class="gf-index-bar"><span style="width:' + (validScores.length ? engagementPct : 0) + '%"></span></div>' +
+                    '<div class="ga-stars" aria-label="Последните 7 дни">' + starsHtml + '</div>' +
+                '</div>' +
+                '<div id="gaGoalSlot"></div>' +
             '</div>';
+
+
+            // ── Кръговете: всеки показател със седмичния си процент (същите формули като сървъра),
+            // подредени по важност за целта (goal-focus.js → checkOrder). Докосване — обяснение + история.
+            var RINGS = {
+                calories: calAdherencePct!=null ? { v: calAdherencePct, c: '#F59E0B', label: 'Калории' } : null,
+                activity: actPct!=null ? { v: actPct, shown: actRawPct, c: MC.act.c, label: 'Активност' } : null,
+                sleep: sleepPct!=null ? { v: sleepPct, c: MC.sleep.c, label: 'Сън' } : null,
+                stress: balancePct!=null ? { v: balancePct, c: MC.mood.c, label: 'Емоции' } : null,
+                water: waterPct!=null ? { v: waterPct, c: MC.water.c, label: 'Вода' } : null
+            };
+            var ringOrder = ['calories', 'activity', 'sleep', 'stress', 'water'];
+            try {
+                var GFo = window.NutriPlanGoalFocus;
+                if (GFo) { var co = GFo.checkOrder(GFo.profileOf(JSON.parse(localStorage.getItem('userData') || '{}'))); ringOrder.sort(function(a, b){ return (co.indexOf(a) + 99) % 99 - (co.indexOf(b) + 99) % 99; }); }
+            } catch (_) {}
+            var ringsHtml = ringOrder.filter(function(k){ return RINGS[k]; }).map(function(k){
+                var r = RINGS[k];
+                return '<div class="game-ring-wrap" data-explain="' + k + '" role="button" tabindex="0" style="cursor:pointer">' + ringChart(r.v, r.c, 20, r.shown) + '<div class="game-ring-label">' + r.label + '</div></div>';
+            }).join('');
+            if (ringsHtml) html += '<div class="game-health-ring-row ga-rings ga-card-enter" style="animation-delay:0.1s">' + ringsHtml + '</div>';
 
             // Едно нещо, върху което да се съсредоточиш: най-важното предупреждение, иначе насърчението.
             if (alerts.length) html += '<div class="game-alert-card ga-card-enter" style="animation-delay:0.2s">'+alerts[0]+'</div>';

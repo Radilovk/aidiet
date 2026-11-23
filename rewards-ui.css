@@ -196,3 +196,26 @@
     .rw-moment, .rw-moment-card, .rw-toast, .rw-bar i { transition: none; }
     .rw-moment-mark, .rw-moment-photo img { animation: none; }
 }
+
+/* ── „Как работят наградите“ ─────────────────────────────────────────────── */
+.rw-howto { margin: 2px 0 10px !important; background: none; }
+.rw-how {
+    position: fixed; inset: 0; z-index: 10055; display: flex; align-items: flex-end; justify-content: center;
+    background: rgba(3, 20, 19, .45);
+}
+.rw-how-panel {
+    width: min(520px, 100%); max-height: 88vh; overflow-y: auto; overscroll-behavior: contain;
+    padding: 16px 16px calc(20px + env(safe-area-inset-bottom, 0px)); border-radius: 24px 24px 0 0;
+    background: var(--ag-surface-solid, var(--bg-color, #fff)); color: var(--ds-text-primary, var(--text-dark));
+    border-top: 1px solid var(--ag-edge, var(--ds-line)); box-shadow: 0 -12px 40px rgba(0,0,0,.25);
+}
+.rw-how-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.rw-how-head h3 { margin: 0; font-size: 18px; }
+.rw-how section { padding: 12px 0; border-top: 1px solid var(--ds-line); }
+.rw-how section:first-of-type { border-top: 0; }
+.rw-how h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 15px; }
+.rw-how h4 i { width: 18px; text-align: center; color: var(--ds-green-text); }
+.rw-how p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ds-text-secondary, var(--text-light)); }
+.rw-how ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.rw-how li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14px; border-top: 1px dashed var(--ds-line); }
+.rw-how li span { text-align: right; color: var(--ds-text-secondary, var(--text-light)); font-variant-numeric: tabular-nums; }

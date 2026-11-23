@@ -78,7 +78,14 @@
   "Талия": "Cintura",
   "Мускули": "Músculo",
   "Храносмилане": "Digestão",
-  "Иска внимание": "Precisa de atenção"
+  "Иска внимание": "Precisa de atenção",
+  "История": "Histórico",
+  "Последните 8 седмици": "Últimas 8 semanas",
+  "сега": "agora",
+  "Още няма данни за по-ранни седмици.": "Ainda não há dados de semanas anteriores.",
+  "Как работят наградите": "Como funcionam as recompensas",
+  "Ангажираност": "Envolvimento",
+  "Вода": "Água"
  },
  "keys": {},
  "patterns": []

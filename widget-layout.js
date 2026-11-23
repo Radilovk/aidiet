@@ -7,7 +7,8 @@
  *     page: 'progress',                       // ключ за паметта
  *     container: el,                          // родителят на картите
  *     widgets: [{ id, title, icon, el }],     // в подредбата по подразбиране
- *     hidden: ['goal']                        // скрити по подразбиране (по профила)
+ *     hidden: ['goal'],                       // скрити по подразбиране (по профила)
+ *     version: 2                              // нова подредба по подразбиране → заменя запазената веднъж
  *   });
  *
  * Картата сама решава дали има какво да покаже (el.hidden); тук само се подреждат и
@@ -26,7 +27,8 @@
     function stateOf(cfg) {
         var ids = cfg.widgets.map(function (w) { return w.id; });
         var saved = read('np_widgets_' + cfg.page);
-        if (!saved || !Array.isArray(saved.order)) return { order: ids.slice(), hidden: (cfg.hidden || []).slice() };
+        // Нова подредба по подразбиране (cfg.version) замества запазената веднъж — при голяма пренаредба на таба.
+        if (!saved || !Array.isArray(saved.order) || (cfg.version || 1) !== (saved.v || 1)) return { order: ids.slice(), hidden: (cfg.hidden || []).slice() };
         var order = saved.order.filter(function (id) { return ids.indexOf(id) >= 0; });
         ids.forEach(function (id, i) {
             if (order.indexOf(id) >= 0) return;
@@ -52,7 +54,7 @@
     }
 
     function save(cfg, st) {
-        write('np_widgets_' + cfg.page, { order: st.order, hidden: st.hidden, known: cfg.widgets.map(function (w) { return w.id; }) });
+        write('np_widgets_' + cfg.page, { v: cfg.version || 1, order: st.order, hidden: st.hidden, known: cfg.widgets.map(function (w) { return w.id; }) });
     }
 
     // ── Листът „Подреди“ ─────────────────────────────────────────────────────
