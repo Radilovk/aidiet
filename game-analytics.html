@@ -785,8 +785,7 @@
     </script>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
-    <link rel="stylesheet" href="./rewards-ui.css?v=12">
-    <link rel="stylesheet" href="./widget-layout.css?v=2">
+    <link rel="stylesheet" href="./rewards-ui.css?v=13">
     <script src="./app-ui.js" defer></script>
     <script src="./ambient-glass.js?v=5"></script>
 </head>
@@ -924,9 +923,8 @@
     <script src="./progress-index.js?v=1"></script>
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
-    <script src="./rewards-engine.js?v=12"></script>
-    <script src="./rewards-ui.js?v=15"></script>
-    <script src="./widget-layout.js?v=3"></script>
+    <script src="./rewards-engine.js?v=13"></script>
+    <script src="./rewards-ui.js?v=16"></script>
     <script>
     (function () {
         function go() { try { NutriPlanRewards.mount(document.getElementById('rewardsBody')); } catch (_) {} }
@@ -940,22 +938,8 @@
             if (p.noScores) document.documentElement.setAttribute('data-persona-noscores', '1');
         } catch (_) {}
     })();
-    // Картите на таба — подредба и скриване от човека (widget-layout.js). По подразбиране: седмицата горе,
-    // наградите най-долу (празнуват се в момента си — тук остават за справка). Целта е в седмицата.
-    (function () {
-        function go() {
-            var p = {};
-            try { p = window.NutriPlanPersona ? window.NutriPlanPersona.current() : {}; } catch (_) {}
-            var W = [
-                { id: 'week', title: 'Тази седмица', icon: 'fa-calendar-week', el: document.getElementById('gameAnalyticsSection') },
-                { id: 'path', title: 'Пътят към успеха', icon: 'fa-seedling', el: document.getElementById('rewardsSection') }
-            ];
-            try {
-                window.NutriPlanWidgets.mount({ page: 'progress', container: document.querySelector('.container'), widgets: W, hidden: [], version: 2 });
-            } catch (_) {}
-        }
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
-    })();
+    // Без подредба на картите: седмицата горе, наградите долу (както в HTML). Старата запазена подредба — изчистена.
+    try { localStorage.removeItem('np_widgets_progress'); } catch (_) {}
     </script>
     <script src="./enrichment-client.js"></script>
     <script>
