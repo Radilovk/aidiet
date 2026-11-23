@@ -70,8 +70,9 @@
     var LOW = 35;    // от тук нататък чертата е „осезаема“
     var HIGH = 60;   // „силна“
     // Прагове за общата склонност — калибрирани в scripts/test-emoeat-v3.mjs.
-    var RISK_LOW = 38;
-    var RISK_HIGH = 55;
+    var RISK_LOW = 35;
+    var RISK_HIGH = 48;
+    var SHRINK = 0.5;
 
     // ── Помощни ──────────────────────────────────────────────────────────────
     // ctx.neutral — текстът е за превод: неутралната форма, но полът остава за въпросите и тълкуването.
@@ -118,37 +119,24 @@
         return null;
     }
 
-    function intakeQuestions(ctx) {
-        var teen = isTeen(ctx);
-        var list = [
-            { id: 201, intake: 'sex', category: 'За теб', icon: 'fa-user', text: 'Ти си…',
-              hint: 'За да ти пишем правилно и да подберем въпросите.',
-              options: [O('F', 'Жена'), O('M', 'Мъж'), O('X', 'Друго или не искам да кажа')] },
-            { id: 202, intake: 'age', category: 'За теб', icon: 'fa-hourglass-half', text: 'На колко години си?',
-              hint: 'Сцените в теста зависят от това.',
+    // Полът и възрастта се избират с бутони на началния екран (не са отделни въпроси); от тях
+    // зависят родът и сцените. Заетостта е един въпрос накрая — само за бележките и съветите.
+    // Държавата се взима от часовата зона, без въпрос. Всеки екран отпред струва отказали се.
+    function welcomeQuestions() {
+        return [
+            { id: 201, intake: 'sex', text: 'Ти си…',
+              options: [O('F', 'Жена'), O('M', 'Мъж'), O('X', 'Друго')] },
+            { id: 202, intake: 'age', text: 'Години',
               options: AGE_BANDS.map(function (b, i) { return O(String.fromCharCode(65 + i), AGE_LABELS[b], null, { value: b }); }) }
         ];
-        if (!teen) {
-            list.push({ id: 203, intake: 'occ', category: 'За теб', icon: 'fa-briefcase', text: 'С какво минават повечето ти дни?',
-                options: [O('A', 'Работа на място', null, { value: 'office' }), O('B', 'Работа от вкъщи', null, { value: 'remote' }),
-                    O('C', 'Работа на смени', null, { value: 'shifts' }), O('D', 'Учене', null, { value: 'study' }),
-                    O('E', 'Вкъщи с децата', null, { value: 'home_kids' }), O('F', 'Пенсия', null, { value: 'retired' }),
-                    O('G', 'Търся работа', null, { value: 'seeking' })] });
-        }
-        list.push({ id: 204, intake: 'home', category: 'За теб', icon: 'fa-house', text: 'С кого живееш?',
-            options: teen
-                ? [O('A', 'С двамата си родители', null, { value: 'parents' }), O('B', 'С единия си родител', null, { value: 'parent' }),
-                   O('C', 'С баба, дядо или други роднини', null, { value: 'relatives' }), O('D', 'Друго', null, { value: 'other' })]
-                : [O('A', g(ctx, 'Сам', 'Сама', 'Без никого'), null, { value: 'alone' }), O('B', 'С партньор', null, { value: 'partner' }),
-                   O('C', 'С партньор и деца', null, { value: 'partner_kids' }), O('D', 'С децата си', null, { value: 'single_parent' }),
-                   O('E', 'С родителите си', null, { value: 'parents' }), O('F', 'С приятели или съквартиранти', null, { value: 'roommates' })] });
-        var now = ctx && ctx.nowCountry;
-        var countries = COUNTRIES.slice();
-        if (now) countries.sort(function (a, b) { return (a[0] === now ? -1 : 0) - (b[0] === now ? -1 : 0); });
-        list.push({ id: 205, intake: 'origin', category: 'За теб', icon: 'fa-earth-europe', text: 'Къде мина детството ти?',
-            hint: 'Хората говорят за чувствата си различно в различните места. Така сравняваме правилно.',
-            options: countries.map(function (c, i) { return O('K' + i, c[1], null, { value: c[0], culture: c[2] }); }) });
-        return list;
+    }
+    function occupationQuestion(ctx) {
+        if (isTeen(ctx)) return [];
+        return [{ id: 203, intake: 'occ', category: 'Последно', icon: 'fa-briefcase', text: 'С какво минават повечето ти дни?',
+            options: [O('A', 'Работа на място', null, { value: 'office' }), O('B', 'Работа от вкъщи', null, { value: 'remote' }),
+                O('C', 'Работа на смени', null, { value: 'shifts' }), O('D', 'Учене', null, { value: 'study' }),
+                O('E', 'Вкъщи с децата', null, { value: 'home_kids' }), O('F', 'Пенсия', null, { value: 'retired' }),
+                O('G', 'Търся работа', null, { value: 'seeking' })] }];
     }
 
     // ── Банката с въпроси ────────────────────────────────────────────────────
@@ -176,16 +164,6 @@
               O('B', 'Казвам му го направо'),
               O('C', 'Не знам. Просто ми е някак', { CLR: 1 }),
               O('D', 'Казвам „нищо“ и сменям темата', { AVO: 0.8, CLR: 0.3 })]; } },
-        { id: 7, cat: C_PLAN, text: function (ctx) {
-              if (isTeen(ctx)) return 'Решаваш всяка вечер да учиш по половин час повече. На третия ден не се получава.';
-              if (ctx.occ === 'home_kids' || ctx.home === 'single_parent') return 'Решаваш всяка сутрин да имаш половин час само за себе си, преди всички да станат. На третия ден не се получава.';
-              if (ctx.age === '55-64' || ctx.age === '65+') return 'Решаваш всяка сутрин да излизаш на разходка. На третия ден не се получава.';
-              return 'Почваш да ставаш по-рано, за да тичаш. На третия ден не се получава.'; },
-          options: function () { return [
-              O('A', 'Утре пак'),
-              O('B', 'Явно не е за мен. Спирам', { DIC: 1 }),
-              O('C', 'Ядосвам се и на другия ден наваксвам двойно', { DIC: 0.7, CRIT: 0.6 }),
-              O('D', 'Сменям часа или плана, както ми е по-удобно')]; } },
         { id: 12, cat: C_PEOPLE, text: function (ctx) {
               return isTeen(ctx)
                   ? 'Пишеш на приятел. Минават часове без отговор, а го виждаш онлайн.'
@@ -201,23 +179,28 @@
               O('B', 'Голямо мъчение', { BOR: 1 }),
               O('C', 'Заговарям някого'),
               O('D', 'Ядосвам се, че си губя времето', { URG: 0.4, BOR: 0.4 })]; } },
+        { id: 7, cat: C_PLAN, text: function (ctx) {
+              if (isTeen(ctx)) return 'Решаваш всяка вечер да учиш по половин час повече. На третия ден не се получава.';
+              if (ctx.occ === 'home_kids' || ctx.home === 'single_parent') return 'Решаваш всяка сутрин да имаш половин час само за себе си, преди всички да станат. На третия ден не се получава.';
+              if (ctx.age === '55-64' || ctx.age === '65+') return 'Решаваш всяка сутрин да излизаш на разходка. На третия ден не се получава.';
+              return 'Почваш да ставаш по-рано, за да тичаш. На третия ден не се получава.'; },
+          options: function () { return [
+              O('A', 'Утре пак'),
+              O('B', 'Явно не е за мен. Спирам', { DIC: 1 }),
+              O('C', 'Ядосвам се и на другия ден наваксвам двойно', { DIC: 0.7, CRIT: 0.6, RIG: 0.3 }),
+              O('D', 'Сменям часа или плана, както ми е по-удобно')]; } },
         { id: 5, cat: C_MIND, text: function () { return 'Неделя вечер се сещаш за нещо неприятно, което те чака в понеделник.'; },
           options: function () { return [
               O('A', 'Помислям малко и си правя план'),
               O('B', 'Пускам си нещо, само и само да не мисля', { AVO: 1 }),
               O('C', 'Не мога да се откъсна от него цяла вечер', { RUM: 1 }),
               O('D', 'Не ми прави особено впечатление')]; } },
-        { id: 10, cat: C_VOICE, text: function () { return 'Приятел прави грешка, каквато ти направи наскоро. Какво му казваш?'; },
+        { id: 31, cat: C_VOICE, text: function () { return 'Нещо дребно не ти се е получило. Как си говориш наум?'; },
           options: function () { return [
-              O('A', '„Случва се, нищо страшно“'),
-              O('B', '„Внимавай следващия път“', { CRIT: 0.3 }),
-              O('C', 'Нищо, не е моя работа')]; } },
-        { id: 11, cat: C_VOICE, text: function () { return 'А на себе си какво каза тогава?'; },
-          options: function () { return [
-              O('A', 'Същото'),
-              O('B', 'Нещо доста по-строго', { CRIT: 1 }),
-              O('C', 'Нищо, бързо го забравих'),
-              O('D', 'Още си го мисля', { CRIT: 0.5, RUM: 0.5 })]; } },
+              O('A', 'Като на приятел: случва се'),
+              O('B', 'По-строго, отколкото на приятел', { CRIT: 1 }),
+              O('C', 'Все едно целият ден е провален', { DIC: 1, CRIT: 0.3 }),
+              O('D', 'Не мога да се успокоя, докато не го оправя', { RIG: 1, CRIT: 0.3 })]; } },
         { id: 16, cat: C_SPARK, text: function (ctx) {
               return isTeen(ctx)
                   ? 'В магазина виждаш нещо готино, а парите ти са събрани за друго.'
@@ -227,25 +210,11 @@
               O('B', 'Взимам го, после ще му намеря място', { REW: 1 }),
               O('C', 'Подминавам, но на излизане се връщам', { REW: 0.6 }),
               O('D', 'Снимам го. Ако след седмица още го искам, ще дойда')]; } },
-        { id: 18, cat: C_SIGNAL, text: function () { return 'Нещо интересно те е погълнало. Кога усещаш, че са ти изтръпнали краката или че те боли глава?'; },
-          options: function () { return [
-              O('A', 'Веднага, като се появи'),
-              O('B', 'Чак когато стане неприятно', { BODY: 0.6 }),
-              O('C', 'Чак когато спра', { BODY: 1 })]; } },
         { id: 2, cat: C_SHAKE, text: function () { return 'Кое ти е по-близо, когато ти е криво?'; },
           hint: 'И двете са нормални. Избери по-близкото.',
           options: function () { return [
               O('A', 'Трябва да направя нещо, само да не стоя така', { URG: 1 }),
               O('B', 'Изчаквам малко и после виждам какво да правя')]; } },
-        { id: 8, cat: C_PLAN, text: function (ctx) {
-              return isTeen(ctx)
-                  ? 'Подреждаш стаята си цял следобед. Накрая един ъгъл още е разхвърлян.'
-                  : 'Подреждаш цял ден вкъщи. Вечерта една стая още е разхвърляна.'; },
-          options: function (ctx) { var t = isTeen(ctx); return [
-              O('A', 'Не ми пречи, другото е готово'),
-              O('B', t ? 'Все едно целият следобед е отишъл напразно' : 'Все едно целият ден е отишъл напразно', { DIC: 1 }),
-              O('C', t ? 'Няма да легна, докато не го оправя' : 'Няма да легна, докато не я оправя', { RIG: 1 }),
-              O('D', t ? 'Утре ще го довърша' : 'Утре ще я довърша')]; } },
         { id: 13, cat: C_PEOPLE, text: function (ctx) {
               if (isTeen(ctx)) return 'Вечер е. У вас всеки е зает със свое, а приятелите не пишат.';
               if (ctx.home === 'alone') return 'Петък вечер е и нямаш планове с никого.';
@@ -261,49 +230,12 @@
               O('A', 'Обикновено да, още докато се случва'),
               O('B', 'Да, но по-късно, като се поуспокоя', { CLR: 0.3 }),
               O('C', 'Често не. Тежко е и толкова', { CLR: 1 })]; } },
-        { id: 17, cat: C_SPARK, text: function () { return 'Печелиш награда. Можеш да я вземеш днес или да изчакаш месец и тя ще е с една трета по-голяма.'; },
-          options: function () { return [
-              O('A', 'Взимам я днес', { REW: 0.5 }),
-              O('B', 'Изчаквам месеца')]; } },
-        { id: 15, cat: C_VOICE, text: function (ctx) {
-              if (isTeen(ctx)) return 'Учителката ти казва: „Добре е, само тук оправи едно нещо.“ Какво ти остава в главата?';
-              if (ctx.occ === 'study') return 'Преподавателят ти казва: „Добре е, само тук оправи едно нещо.“ Какво ти остава в главата?';
-              if (WORK[ctx.occ]) return 'Шефът ти казва: „Добре е, само тук оправи едно нещо.“ Какво ти остава в главата?';
-              return 'Някой поглежда нещо твое и казва: „Добре е, само тук оправи едно нещо.“ Какво ти остава в главата?'; },
-          options: function () { return [
-              O('A', '„Добре е“'),
-              O('B', '„Оправи“', { CRIT: 1 }),
-              O('C', 'И двете горе-долу еднакво', { CRIT: 0.3 })]; } },
-        { id: 19, cat: C_SPARK, text: function () { return 'Неделя, четири следобед, никакви планове.'; },
-          options: function () { return [
-              O('A', 'Точно така я искам'),
-              O('B', 'Обикалям из къщи и не знам какво ми се прави', { BOR: 1 }),
-              O('C', 'Лягам за малко', { LOAD: 0.5 }),
-              O('D', 'Измислям си нещо')]; } },
-        { id: 6, cat: C_MIND, text: function () { return 'Кое ти звучи по-вярно?'; },
-          hint: 'И двете са нормални. Избери по-близкото.',
-          options: function () { return [
-              O('A', 'Неприятната мисъл минава, ако я погледнеш в очите'),
-              O('B', 'Неприятната мисъл е най-добре да я разкараш с нещо друго', { AVO: 1 })]; } },
         { id: 20, cat: C_SIGNAL, text: function () { return 'Кога ти става ясно, че умората те е стигнала?'; },
           options: function () { return [
               O('A', 'Още в началото, по дребни неща'),
               O('B', 'Когато вече не мога да мисля', { BODY: 0.7 }),
               O('C', 'Чак на другия ден', { BODY: 1 }),
               O('D', 'Като ми кажат, че изглеждам изморено', { BODY: 1 })]; } },
-        { id: 9, cat: C_PLAN, text: function () { return 'Плановете ти за седмицата се объркват още в понеделник.'; },
-          options: function () { return [
-              O('A', 'Нагласям ги в движение'),
-              O('B', 'Изнервя ме, докато не ги подредя наново', { RIG: 0.8 }),
-              O('C', 'Махвам с ръка на цялата седмица', { DIC: 0.8 }),
-              O('D', 'Без това рядко правя планове')]; } },
-        { id: 29, cat: C_PEOPLE, text: function (ctx) {
-              return isTeen(ctx) ? 'Приятел е малко по-хладен с теб от обикновено.' : 'Близък човек е малко по-хладен с теб от обикновено.'; },
-          options: function () { return [
-              O('A', 'Сигурно има свой ден'),
-              O('B', 'Питам направо дали всичко е наред', { ATT: 0.3 }),
-              O('C', 'Цял ден премислям какво може да е станало', { ATT: 1 }),
-              O('D', 'Дърпам се и аз', {}, { avoidant: true })]; } },
         { id: 22, cat: C_ROOTS, text: function (ctx) {
               return isTeen(ctx) ? 'Когато ти е тъжно, у вас най-често…' : 'Когато в детството ти е било тъжно, у вас най-често…'; },
           options: function (ctx) { var t = isTeen(ctx); return [
@@ -311,53 +243,12 @@
               O('B', t ? 'Разсейват те: с телевизор, нещо сладко, нова игра' : 'Разсейваха те: с телевизор, нещо сладко, нова играчка', { SOOTHE: 1 }),
               O('C', t ? 'Казват ти, че няма за какво да се тревожиш' : 'Казваха ти, че няма за какво да плачеш', { CLR: 0.5, CRIT: 0.5 }),
               O('D', t ? 'Оставят те да ти мине само' : 'Оставяха те да ти мине само', { AVO: 0.4 })]; } },
-        { id: 23, cat: C_ROOTS, text: function (ctx) {
-              return isTeen(ctx) ? 'Донесеш ли хубава оценка, вкъщи…' : 'Донесеше ли хубава оценка, вкъщи…'; },
-          options: function (ctx) { var t = isTeen(ctx); return [
-              O('A', t ? 'Хвалят ме' : 'Хвалеха ме'),
-              O('B', t ? 'Получавам нещо: пари, нещо вкусно, подарък' : 'Получавах нещо: пари, нещо вкусно, подарък', { SOOTHE: 0.5, REW: 0.3 }),
-              O('C', t ? 'Не е голяма работа, така трябва' : 'Не беше голяма работа, така трябва', { CRIT: 0.6 }),
-              O('D', t ? 'Нищо специално' : 'Не помня да е имало нещо специално')]; } },
-        { id: 21, cat: C_SIGNAL, text: function () { return 'Когато нещо те притеснява, къде го усещаш най-ясно?'; },
-          options: function () { return [
-              O('A', 'В стомаха', { BODY: 0.3 }, { gut: true }),
-              O('B', 'В гърдите или гърлото'),
-              O('C', 'В раменете и врата'),
-              O('D', 'Само в главата, другаде не', { BODY: 0.5, CLR: 0.3 })]; } },
-        { id: 30, cat: C_PEOPLE, text: function (ctx) {
-              return isTeen(ctx)
-                  ? 'Има ли някой, на когото можеш да пишеш късно вечер, просто така?'
-                  : 'Има ли някой, на когото можеш да звъннеш в десет вечерта, просто така?'; },
-          options: function () { return [
-              O('A', 'Да, повече от един'),
-              O('B', 'Един човек', { LONE: 0.3 }),
-              O('C', 'Има, но не ми е удобно', { LONE: 0.7 }),
-              O('D', 'Не точно', { LONE: 1 })]; } },
-        { id: 24, cat: C_SPARK, text: function () { return 'Пак награда. Днес или след половин година, но двойна?'; },
-          options: function () { return [
-              O('A', 'Днес', { REW: 0.5 }),
-              O('B', 'След половин година')]; } },
         { id: 25, cat: C_RHYTHM, text: function () { return 'Колко спиш в обикновена делнична нощ?'; },
           options: function () { return [
               O('A', 'По-малко от 6 часа', { LOAD: 1 }),
               O('B', 'Около 6–7 часа', { LOAD: 0.4 }),
               O('C', '7–8 часа'),
               O('D', 'Повече')]; } },
-        { id: 26, cat: C_RHYTHM, text: function () { return 'Каква ти е седмицата сега?'; },
-          options: function () { return [
-              O('A', 'Спокойна'),
-              O('B', 'Натоварена, но я нося', { LOAD: 0.3 }),
-              O('C', 'Повече, отколкото мога да нося', { LOAD: 1 }),
-              O('D', 'Скучновата', { BOR: 0.5 })]; } },
-        { id: 27, cat: C_RHYTHM, text: function (ctx) {
-              return ctx.occ === 'home_kids' || ctx.home === 'single_parent'
-                  ? 'Докато децата са будни, кога сядаш за пръв път, без да бързаш за нещо?'
-                  : 'Кога през деня сядаш за пръв път, без да бързаш за нещо?'; },
-          options: function () { return [
-              O('A', 'Още сутринта'),
-              O('B', 'Към обед'),
-              O('C', 'Чак вечерта', { LOAD: 0.7 }),
-              O('D', 'Почти не се случва', { LOAD: 1 })]; } },
         { id: 28, realNeed: true, cat: ['Накрая', 'fa-star'],
           text: function () { return 'Ако можеш да имаш едно от тези още тази седмица, кое ще ти помогне най-много?'; },
           options: function () { return [
@@ -370,9 +261,7 @@
 
     // Огледални двойки за последователност. dir: 'any' — различни краища; 'ab' — само a=0 и b=1.
     var MIRRORS = [
-        { a: 1, b: 2, trait: 'URG', dir: 'any' },
-        { a: 18, b: 20, trait: 'BODY', dir: 'any' },
-        { a: 17, b: 24, trait: 'REW', dir: 'ab' }   // изчаква за +⅓, но взима веднага двойното
+        { a: 1, b: 2, trait: 'URG', dir: 'any' }
     ];
 
     // ── Здравето — един въпрос накрая, само 18+ ──────────────────────────────
@@ -387,6 +276,7 @@
         ];
         if (f) opts.push(O('C', 'Поликистозни яйчници', null, { value: 'pcos' }));
         if (fertile) opts.push(O('D', 'Бременност или кърмене', null, { value: 'pregnancy' }));
+        if (fertile) opts.push(O('K', 'Дни от месеца, в които всичко ми идва в повече', null, { value: 'cycle' }));
         if (f && ['35-44', '45-54', '55-64', '65+'].indexOf(ctx.age) >= 0) opts.push(O('E', 'Менопауза', null, { value: 'menopause' }));
         opts.push(
             O('F', 'Лекарства, които влияят на апетита', null, { value: 'meds' }),
@@ -395,14 +285,10 @@
             O('I', 'Работа или сън, които често се объркват', null, { value: 'sleep' }),
             O('J', 'В миналото трудности с храненето, за които е търсена помощ', null, { value: 'past_ed' })
         );
-        var list = [{ id: 301, health: true, type: 'multi', category: 'Последно', icon: 'fa-shield-heart',
+        return [{ id: 301, health: true, type: 'multi', category: 'Последно', icon: 'fa-shield-heart',
             text: 'За да са съветите точни: има ли нещо от тези при теб?',
             hint: 'По избор. Отговорът остава на това устройство и не отива при AI модела.',
             options: opts }];
-        if (fertile) list.push({ id: 302, health: true, category: 'Последно', icon: 'fa-calendar',
-            text: 'Има ли дни от месеца, в които всичко ти идва в повече?',
-            options: [O('A', 'Да', null, { value: 'yes' }), O('B', 'Не', null, { value: 'no' }), O('C', 'Не съм забелязала', null, { value: 'unsure' })] });
-        return list;
     }
 
     // ── Потокът ──────────────────────────────────────────────────────────────
@@ -419,12 +305,12 @@
         return q;
     }
 
-    /** Целият поток за човека: начални въпроси → банката (варианти по ctx) → здраве. */
+    /** Потокът: сцените (варианти по пол и възраст) → сън → истинската нужда → заетост → здраве. */
     function buildFlow(ctx) {
         ctx = ctx || {};
-        var out = intakeQuestions(ctx);
+        var out = [];
         BANK.forEach(function (item) { if (!item.skip || !item.skip(ctx)) out.push(materialize(item, ctx)); });
-        return out.concat(healthQuestions(ctx));
+        return out.concat(occupationQuestion(ctx), healthQuestions(ctx));
     }
 
     function pick(meta, id) {
@@ -442,25 +328,21 @@
         var ageKey = pick(meta, 202)[0];
         if (ageKey) ctx.age = AGE_BANDS[ageKey.charCodeAt(0) - 65] || null;
         ctx.teen = ctx.age === 'u13' || ctx.age === '14-17';
-        var probe = intakeQuestions(ctx);
-        function val(id) {
-            var q = probe.filter(function (x) { return x.id === id; })[0];
-            var k = pick(meta, id)[0];
-            var o = q && q.options.filter(function (x) { return x.key === k; })[0];
-            return o || null;
-        }
         if (ctx.teen) ctx.occ = 'school';
-        else { var occ = val(203); ctx.occ = occ ? occ.value : null; }
-        var home = val(204); ctx.home = home ? home.value : null;
-        var origin = val(205);
-        ctx.origin = origin ? origin.value : null;
-        ctx.culture = origin ? origin.culture : null;
-        ctx.abroad = !!(ctx.origin && ctx.nowCountry && ctx.origin !== ctx.nowCountry && ctx.origin !== 'XX');
+        else {
+            var oq = occupationQuestion(ctx)[0], ok = pick(meta, 203)[0];
+            var oo = oq && oq.options.filter(function (x) { return x.key === ok; })[0];
+            ctx.occ = oo ? oo.value : null;
+        }
+        ctx.home = null;
+        ctx.origin = ctx.nowCountry || null;
+        var cc = COUNTRIES.filter(function (c) { return c[0] === ctx.origin; })[0];
+        ctx.culture = cc ? cc[2] : null;
+        ctx.abroad = false;
         var hq = healthQuestions(ctx)[0];
         var hk = pick(meta, 301);
         ctx.health = hq ? hq.options.filter(function (o) { return hk.indexOf(o.key) >= 0; }).map(function (o) { return o.value; }) : [];
-        var cyc = pick(meta, 302)[0];
-        ctx.cycle = cyc === 'A';
+        ctx.cycle = ctx.health.indexOf('cycle') >= 0;
         return ctx;
     }
     function has(ctx, h) { return !!(ctx && ctx.health && ctx.health.indexOf(h) >= 0); }
@@ -491,7 +373,9 @@
             });
         });
         var s = {};
-        TRAIT_IDS.forEach(function (t) { s[t] = acc[t] && acc[t].max ? Math.round(acc[t].got / acc[t].max * 100) : 0; });
+        // Свиване към нулата (+SHRINK в знаменателя): черта, мерена с един въпрос, не може да стигне
+        // 100 от един отговор. Колкото повече въпроси я потвърждават, толкова по-близо до 100.
+        TRAIT_IDS.forEach(function (t) { s[t] = acc[t] && acc[t].max ? Math.round(acc[t].got / (acc[t].max + SHRINK) * 100) : 0; });
         return s;
     }
 
@@ -701,14 +585,15 @@
         var neutralShare = answered.length ? Math.round(neutral.length / answered.length * 100) : 0;
         var level = 'висока', note = '';
         if (coverage < 60) { level = 'ниска'; note = 'Отговорите са малко — приеми картината като ориентир.'; }
-        else if (inconsistent >= 2) { level = 'средна'; note = 'Някои отговори си противоречат. Може денят днес да е бил различен — приеми картината като ориентир.'; }
+        else if (inconsistent >= 1 && neutralShare < 50) { level = 'средна'; note = 'Някои отговори си противоречат. Може денят днес да е бил различен — приеми картината като ориентир.'; }
         else if (neutralShare > 70) { level = 'средна'; note = 'Повечето отговори са спокойните. Или наистина нищо не тласка, или картината е по-мека от реалната.'; }
         return { answered: answered.length, total: scored.length, coverage: coverage, neutralShare: neutralShare, inconsistent: inconsistent, level: level, note: note };
     }
 
     // ── Безопасност и бележки по контекста ───────────────────────────────────
     function safetyOf(s, ctx) {
-        var combo = s.CRIT >= HIGH && s.DIC >= HIGH && (s.AVO >= 55 || s.RIG >= HIGH);
+        // Праговете са под HIGH, защото след свиването черта с 2–3 въпроса рядко минава 70.
+        var combo = s.CRIT >= 50 && s.DIC >= 55 && (s.AVO >= 50 || s.RIG >= 50);
         var pastEd = has(ctx, 'past_ed');
         if (isTeen(ctx) && combo) return { level: 'teen', reasons: ['combo'] };
         if (pastEd) return { level: 'specialist', reasons: ['past_ed'], hideArchetype: true };
@@ -852,7 +737,7 @@
     var api = {
         SCHEMA: SCHEMA, TRAITS: TRAITS, TRAIT_IDS: TRAIT_IDS, ARCHETYPES: ARCHETYPES, CALM: CALM, PATTERNS: PATTERNS,
         LOW: LOW, HIGH: HIGH, RISK_LOW: RISK_LOW, RISK_HIGH: RISK_HIGH, BANK: BANK, NOTES: NOTES,
-        buildFlow: buildFlow, contextFrom: contextFrom, analyze: analyze, payload: payload, archetypeByName: archetypeByName,
+        buildFlow: buildFlow, welcomeQuestions: welcomeQuestions, contextFrom: contextFrom, analyze: analyze, payload: payload, archetypeByName: archetypeByName,
         genderize: genderize, guessNowCountry: guessNowCountry, traitScores: traitScores, riskScore: riskScore
     };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;

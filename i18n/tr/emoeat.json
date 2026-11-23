@@ -743,7 +743,15 @@
   "После сцени от обикновени дни": "Sonra sıradan günlerden sahneler",
   "Едно докосване на въпрос. Избирай първото, което ти дойде. Около пет минути.": "Her soruya tek dokunuş. Aklına ilk geleni seç. Yaklaşık beş dakika.",
   "Накрая — портрет и план": "Sonunda: bir portre ve bir plan",
-  "Какво се вижда от отговорите, какво значи за храненето и три неща за тази седмица.": "Cevaplarının gösterdiği, bunun yemek için ne anlama geldiği ve bu hafta için üç şey."
+  "Какво се вижда от отговорите, какво значи за храненето и три неща за тази седмица.": "Cevaplarının gösterdiği, bunun yemek için ne anlama geldiği ve bu hafta için üç şey.",
+  "Нещо дребно не ти се е получило. Как си говориш наум?": "Küçük bir şey yolunda gitmedi. İçinden kendinle nasıl konuşuyorsun?",
+  "Като на приятел: случва се": "Bir arkadaşa konuşur gibi: olur böyle şeyler",
+  "По-строго, отколкото на приятел": "Bir arkadaşa olduğundan daha sert",
+  "Все едно целият ден е провален": "Sanki bütün gün mahvolmuş gibi",
+  "Не мога да се успокоя, докато не го оправя": "Düzeltene kadar rahat edemem",
+  "Дни от месеца, в които всичко ми идва в повече": "Ayın her şeyin fazla geldiği günleri",
+  "Около три минути": "Yaklaşık üç dakika",
+  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "On beş kısa sahne, her biri tek dokunuş. Aklına ilk geleni seç."
  },
  "patterns": [
   [

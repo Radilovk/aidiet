@@ -744,7 +744,15 @@
   "После сцени от обикновени дни": "Dann Szenen aus ganz normalen Tagen",
   "Едно докосване на въпрос. Избирай първото, което ти дойде. Около пет минути.": "Ein Tippen pro Frage. Nimm das Erste, was dir einfällt. Etwa fünf Minuten.",
   "Накрая — портрет и план": "Am Ende: ein Porträt und ein Plan",
-  "Какво се вижда от отговорите, какво значи за храненето и три неща за тази седмица.": "Was deine Antworten zeigen, was das fürs Essen bedeutet, und drei Dinge für diese Woche."
+  "Какво се вижда от отговорите, какво значи за храненето и три неща за тази седмица.": "Was deine Antworten zeigen, was das fürs Essen bedeutet, und drei Dinge für diese Woche.",
+  "Нещо дребно не ти се е получило. Как си говориш наум?": "Eine Kleinigkeit hat nicht geklappt. Wie redest du innerlich mit dir?",
+  "Като на приятел: случва се": "Wie mit einem Freund: Kann passieren",
+  "По-строго, отколкото на приятел": "Strenger als mit einem Freund",
+  "Все едно целият ден е провален": "Als wäre der ganze Tag ruiniert",
+  "Не мога да се успокоя, докато не го оправя": "Ich komme nicht zur Ruhe, bis ich es behoben habe",
+  "Дни от месеца, в които всичко ми идва в повече": "Tage im Monat, an denen mir alles zu viel wird",
+  "Около три минути": "Etwa drei Minuten",
+  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Fünfzehn kurze Szenen, je ein Tippen. Nimm das Erste, was dir einfällt."
  },
  "patterns": [
   [

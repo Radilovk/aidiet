@@ -53,14 +53,20 @@ for (const meta of ctxMetas()) {
     else ok(byId.get(q.id) === s, `въпрос ${q.id}: вариантите имат различни ключове или тежести`);
   }
 }
-ok(byId.size >= 25, `банката е твърде малка: ${byId.size}`);
+ok(byId.size >= 13, `банката е твърде малка: ${byId.size}`);
+// Дължината: над ~18 екрана част от хората спират (EMOEAT_V3_CALIBRATION.md, „Дължина“).
+for (const meta of ctxMetas()) {
+  const n = V3.buildFlow(V3.contextFrom(meta, {})).length;
+  ok(n <= 17, `потокът е ${n} екрана — по-дълъг от 17`);
+}
 
-// 3. Всяка черта се мери от поне два въпроса, във всеки контекст.
+// 3. Основните черти (най-силните предиктори) — поне два въпроса; останалите — поне един.
+const CORE = ['URG', 'CLR', 'AVO', 'CRIT', 'DIC', 'RUM'];
 for (const meta of ctxMetas().filter((_, i) => i % 7 === 0)) {
   const flow = V3.buildFlow(V3.contextFrom(meta, {}));
   for (const t of V3.TRAIT_IDS) {
     const n = flow.filter(q => !q.intake && !q.health && q.options.some(o => (o.loads || {})[t])).length;
-    ok(n >= 2, `черта ${t} има само ${n} въпроса`);
+    ok(n >= (CORE.includes(t) ? 2 : 1), `черта ${t} има само ${n} въпроса`);
   }
   ok(new Set(flow.map(q => q.id)).size === flow.length, 'повтарящи се id в потока');
   ok(flow.every(q => Number.isInteger(q.id) && q.id < 1000), 'id трябва да е число до 999 (сървърът приема само такива ключове)');
@@ -72,7 +78,7 @@ const rand = rng(7);
 function simulate(n, bias) {
   const levels = {}, archs = {};
   for (let i = 0; i < n; i++) {
-    const meta = {}; set(meta, 201, SEXES[i % 3]); set(meta, 202, AGES[2 + (i % 6)]); set(meta, 203, OCCS[i % 7]); set(meta, 204, HOMES[i % 6]); set(meta, 205, 'K0');
+    const meta = {}; set(meta, 201, SEXES[i % 3]); set(meta, 202, AGES[2 + (i % 6)]); set(meta, 203, OCCS[i % 7]);
     const flow = V3.buildFlow(V3.contextFrom(meta, {}));
     for (const q of flow) {
       if (q.intake || q.health || q.realNeed) continue;
