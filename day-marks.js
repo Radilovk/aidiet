@@ -41,10 +41,11 @@
         if (x.soft) return v >= 85 ? 'var(--ga-d-best)' : 'var(--ga-d-good)';   // мекият режим — без червено
         return v >= 85 ? 'var(--ga-d-best)' : v >= 60 ? 'var(--ga-d-good)' : v >= 35 ? 'var(--ga-d-mid)' : 'var(--ga-d-low)';
     }
-    // Ябълката: тяло от два заоблени дяла с вдлъбнатина горе и долу, дръжка и листо.
-    var APPLE_BODY = 'M12 7.6C13.7 6.1 17.6 5.6 19.4 8.6C21.1 11.6 20.1 16.5 17.7 19.4C16.5 20.9 15.1 21.7 13.9 21.1C12.6 20.5 11.4 20.5 10.1 21.1C8.9 21.7 7.5 20.9 6.3 19.4C3.9 16.5 2.9 11.6 4.6 8.6C6.4 5.6 10.3 6.1 12 7.6Z';
-    var APPLE_STEM = 'M12 7.6C11.9 5.9 12.4 4.4 13.3 3.3';
-    var APPLE_LEAF = 'M12.9 5.4C13.5 3.4 15.6 2.4 17.7 2.8C17.1 4.8 15 5.9 12.9 5.4Z';
+    // Ябълката — силуетът и листото от логото (brand/nutriin-mark.json, в неговите координати): външният ръб на
+    // знака с гладко дъно (вместо буквите), листото без дръжка, насочено надясно, кухо като в логото.
+    var APPLE_BODY = 'M1042 640C1041 669 1036 699 1028 727C1021 756 1010 783 997 809C985 836 970 860 953 884C937 908 920 932 899 954C879 975 858 1000 831 1011C805 1022 769 1017 740 1019C711 1020 684 1017 657 1019C630 1020 604 1025 576 1028C548 1031 517 1038 488 1036C459 1033 429 1025 403 1011C377 998 353 977 332 956C312 935 294 911 277 887C261 863 247 837 235 810C223 784 212 756 205 728C198 699 193 669 193 640C192 611 196 580 203 552C210 524 223 496 238 471C252 446 271 423 292 404C314 386 340 371 365 361C391 351 420 345 446 344C473 344 500 348 524 356C548 364 571 383 590 392C610 400 623 410 642 406C661 402 682 378 706 368C730 357 760 347 788 345C816 343 847 346 873 356C900 365 926 381 948 400C969 419 987 444 1002 469C1016 494 1027 523 1034 552C1040 580 1043 611 1042 640Z';
+    var APPLE_LEAF = 'M828,194 C818,182 779,188 765,190 C702,201 649,241 621,299 C612,317 607,338 609,358 C610,365 611,375 617,380 C624,386 632,383 639,380 C654,374 667,362 683,356 C705,347 729,343 751,333 C787,316 813,284 825,246 C829,234 838,205 828,194Z M787,236 C791,242 777,262 774,267 C752,298 720,307 687,321 C676,326 665,332 655,340 C652,342 639,355 637,352 C635,350 638,344 639,342 C642,331 648,322 654,312 C675,277 708,251 748,239 C754,237 782,229 787,236Z';
+    var APPLE_TOP = 343, APPLE_BOTTOM = 1036;
     var uid = 0;
     function mark(x, view, size) {
         var c = color(x), f = x.adh ? Math.max(0, Math.min(1, x.adh.pct / 100)) : 0, id = 'gad' + (uid++);
@@ -57,13 +58,12 @@
             return '<svg width="' + size + '" height="' + size + '" aria-hidden="true">' + inner + '<circle cx="' + h + '" cy="' + h + '" r="' + r + '" fill="none" stroke="var(--ga-d-track)" stroke-width="' + st + '"' + (x.today ? ' stroke-dasharray="2 3"' : '') + '/>' +
                 (f > 0 ? '<circle cx="' + h + '" cy="' + h + '" r="' + r + '" fill="none" stroke="' + c + '" stroke-width="' + st + '" stroke-linecap="round" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + (C * (1 - f)).toFixed(1) + '" transform="rotate(-90 ' + h + ' ' + h + ')"/>' : '') + '</svg>';
         }
-        // ябълка: пълни се отдолу (тялото е между y 6,1 и 21,7)
-        var y = 21.7 - 15.6 * f;
-        return '<svg width="' + size + '" height="' + size + '" viewBox="2.6 2.2 18.8 20" aria-hidden="true"><defs><clipPath id="' + id + '"><path d="' + APPLE_BODY + '"/></clipPath></defs>' +
-            (f > 0 ? '<rect x="0" y="' + y.toFixed(2) + '" width="24" height="24" fill="' + c + '" clip-path="url(#' + id + ')"/>' : '') +
-            '<path d="' + APPLE_BODY + '" fill="none" stroke="' + (x.today ? 'var(--ds-green-text, #03939C)' : 'var(--ga-d-line)') + '" stroke-width="1.15" stroke-linejoin="round"/>' +
-            '<path d="' + APPLE_STEM + '" fill="none" stroke="var(--ga-d-line)" stroke-width="1.15" stroke-linecap="round"/>' +
-            '<path d="' + APPLE_LEAF + '" fill="' + (best ? 'var(--ga-d-best)' : 'var(--ga-d-line)') + '"/></svg>';
+        // ябълка: пълни се отдолу; линиите са с постоянна дебелина при всеки размер
+        var y = APPLE_BOTTOM - (APPLE_BOTTOM - APPLE_TOP) * f;
+        return '<svg width="' + size + '" height="' + size + '" viewBox="171 167 892 889" aria-hidden="true"><defs><clipPath id="' + id + '"><path d="' + APPLE_BODY + '"/></clipPath></defs>' +
+            (f > 0 ? '<rect x="171" y="' + y.toFixed(0) + '" width="892" height="889" fill="' + c + '" clip-path="url(#' + id + ')"/>' : '') +
+            '<path d="' + APPLE_BODY + '" fill="none" stroke="' + (x.today ? 'var(--ds-green-text, #03939C)' : 'var(--ga-d-line)') + '" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>' +
+            '<path d="' + APPLE_LEAF + '" fill-rule="evenodd" fill="' + (best ? 'var(--ga-d-best)' : 'var(--ga-d-line)') + '"/></svg>';
     }
 
     // Личните тежести и правилото за движение — веднъж на отваряне (goal-focus.js).
