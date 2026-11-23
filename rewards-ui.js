@@ -276,12 +276,15 @@
             '<div class="rw-moment-card' + (mo.image ? ' has-photo' : '') + '">' +
             (mo.image ? '<div class="rw-moment-photo"><img src="' + photo(mo.image) + '" alt="" onerror="this.closest(\'.rw-moment-card\').classList.remove(\'has-photo\');this.parentNode.remove()"></div>' : '') +
             '<div class="rw-moment-mark"><img src="./brand/nutriin-mark-dark.svg" alt=""></div>' +
+            // тялото се превърта, когато не се събира; знакът и бутоните остават видими
+            '<div class="rw-moment-body">' +
             (mo.kicker ? '<div class="rw-moment-kicker">' + esc(mo.kicker) + '</div>' : '') +
             (mo.num ? '<div class="rw-moment-big">' + esc(mo.num) + '</div><p>' + esc(mo.unit || '') + '</p>' : '') +
             '<h3>' + esc(mo.title) + '</h3>' +
             (mo.text ? '<p>' + esc(mo.text) + '</p>' : '') +
             (mo.gift ? '<div class="rw-moment-gift"><i class="fas fa-gift"></i>' + esc(mo.gift) + '</div>' : '') +
             (mo.fact ? '<p class="rw-moment-fact">' + esc(mo.fact) + '</p>' : '') +
+            '</div>' +
             '<div class="rw-moment-actions"><button type="button" class="rw-close">Продължи</button>' +
             '<button type="button" class="rw-share"><i class="fas fa-share-nodes"></i> Сподели</button></div>' +
             '</div>';
