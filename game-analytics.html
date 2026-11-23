@@ -258,6 +258,24 @@
             gap: 4px;
         }
         .game-ring-svg { transform: rotate(-90deg); }
+        /* Целта горе в седмицата: лентата казва нивото — числото е в подробностите (докосване) */
+        #gaGoalSlot .gf-index-value { display: none; }
+        #gaGoalSlot .gf-indices { margin-bottom: 12px; }
+        /* Седмицата — 7 звезди: запълването и цветът са ангажираността на деня */
+        .ga-stars { display: flex; gap: 4px; margin: 4px 0 14px; }
+        .ga-star-col { gap: 4px; padding: 4px 0; border-radius: 10px; }
+        .ga-star { position: relative; display: block; width: 34px; height: 34px; max-width: 100%; }
+        .ga-star svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+        .ga-star .o { fill: none; stroke: var(--ga-star-line, rgba(15,47,46,.22)); stroke-width: 1.3; stroke-linejoin: round; }
+        [data-theme="dark"] .ga-star .o { stroke: rgba(255,255,255,.24); }
+        .ga-star .f { clip-path: inset(0 calc(100% - var(--fill)) 0 0); }
+        .ga-star .f path { stroke-linejoin: round; }
+        .ga-star--gold .f { fill: #FBBF24; }
+        .ga-star--mid  .f { fill: #F97316; }
+        .ga-star--low  .f { fill: #EF4444; }
+        .ga-star--open .f { fill: var(--ds-track, rgba(15,47,46,.18)); }
+        .ga-star.is-today .o { stroke: var(--ds-green-text, #03939C); stroke-width: 1.8; }
+        .ga-star-day { font-size: 0.7rem; color: var(--text-light); }
         /* Седмицата в един ред: число + думи (същата мярка като плана и наградите) */
         .ga-week-line { display: flex; align-items: baseline; gap: 8px; margin: 2px 2px 14px; }
         .ga-week-line b { font-size: 2.2rem; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ds-green-text, #03939C); }
@@ -746,26 +764,6 @@
 
     <!-- Main Content -->
     <div class="container">
-        <div class="game-analytics-section open" id="goalFocusSection" hidden>
-            <div class="game-analytics-header">
-                <div class="game-analytics-title">
-                    <i class="fas fa-bullseye"></i>
-                    <span>За твоята цел</span>
-                </div>
-                <span id="goalFocusBadge" class="game-analytics-badge"></span>
-            </div>
-            <div class="game-analytics-body" id="goalFocusBody" style="display:block"></div>
-        </div>
-        <!-- Пътят към успеха (rewards-ui.js): стъпала, жокери, точки, отстъпки, покана. -->
-        <div class="game-analytics-section open" id="rewardsSection">
-            <div class="game-analytics-header">
-                <div class="game-analytics-title">
-                    <i class="fas fa-seedling"></i>
-                    <span>Пътят към успеха</span>
-                </div>
-            </div>
-            <div class="game-analytics-body" id="rewardsBody" style="display:block"></div>
-        </div>
         <div class="game-analytics-section open" id="gameAnalyticsSection">
             <div class="game-analytics-header">
                 <div class="game-analytics-title">
@@ -779,6 +777,16 @@
             <div class="game-analytics-body" id="gameAnalyticsBody">
                 <p style="color:var(--text-light);font-style:italic;font-size:0.85rem;">Зареждане…</p>
             </div>
+        </div>
+        <!-- Пътят към успеха (rewards-ui.js): наградите — най-долу; празнуват се в момента си, тук остават за справка. -->
+        <div class="game-analytics-section open" id="rewardsSection">
+            <div class="game-analytics-header">
+                <div class="game-analytics-title">
+                    <i class="fas fa-seedling"></i>
+                    <span>Пътят към успеха</span>
+                </div>
+            </div>
+            <div class="game-analytics-body" id="rewardsBody" style="display:block"></div>
         </div>
     </div>
 
@@ -869,7 +877,7 @@
 
     <script src="./game-scoring.js?v=2"></script>
     <script src="./goal-model.js"></script>
-    <script src="./goal-focus.js"></script>
+    <script src="./goal-focus.js?v=2"></script>
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
     <script src="./rewards-engine.js?v=8"></script>
@@ -888,20 +896,18 @@
             if (p.noScores) document.documentElement.setAttribute('data-persona-noscores', '1');
         } catch (_) {}
     })();
-    // Картите на таба — подредба и скриване от човека (widget-layout.js). По подразбиране — по профила:
-    // мекият режим започва със седмицата (без поредица и нива отгоре), краткият крие „За твоята цел“.
+    // Картите на таба — подредба и скриване от човека (widget-layout.js). По подразбиране: седмицата горе,
+    // наградите най-долу (празнуват се в момента си — тук остават за справка). Целта е в седмицата.
     (function () {
         function go() {
             var p = {};
             try { p = window.NutriPlanPersona ? window.NutriPlanPersona.current() : {}; } catch (_) {}
             var W = [
-                { id: 'path', title: 'Пътят към успеха', icon: 'fa-seedling', el: document.getElementById('rewardsSection') },
                 { id: 'week', title: 'Тази седмица', icon: 'fa-calendar-week', el: document.getElementById('gameAnalyticsSection') },
-                { id: 'goal', title: 'За твоята цел', icon: 'fa-bullseye', el: document.getElementById('goalFocusSection') }
+                { id: 'path', title: 'Пътят към успеха', icon: 'fa-seedling', el: document.getElementById('rewardsSection') }
             ];
-            if (p.noScores) W = [W[1], W[2], W[0]];
             try {
-                window.NutriPlanWidgets.mount({ page: 'progress', container: document.querySelector('.container'), widgets: W, hidden: p.density === 'minimal' ? ['goal'] : [] });
+                window.NutriPlanWidgets.mount({ page: 'progress', container: document.querySelector('.container'), widgets: W, hidden: [] });
             } catch (_) {}
         }
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
@@ -931,9 +937,10 @@
         }
         function renderGoalFocus() {
             var GF = window.NutriPlanGoalFocus;
-            var section = document.getElementById('goalFocusSection');
-            var body = document.getElementById('goalFocusBody');
-            if (!GF || !section || !body) return;
+            // Водещият индекс — най-отгоре в „Тази седмица“; измерванията от устройствата — в „Подробно“.
+            var top = document.getElementById('gaGoalSlot');
+            var body = document.getElementById('gaDeviceSlot');
+            if (!GF || !top || !body) return;
             var ud = {}, plan = {};
             try { ud = JSON.parse(localStorage.getItem('userData') || '{}') || {}; plan = JSON.parse(localStorage.getItem('dietPlan') || '{}') || {}; } catch (_) {}
             var planKcal = Number((plan.analysis && (plan.analysis.Final_Calories || plan.analysis.finalCalories || plan.analysis.totalCalories)) || 0) || null;
@@ -943,12 +950,22 @@
             var persona = P ? P.current() : {};
             var soft = !!persona.noScores;
             var softTone = function (t) { return soft && t === 'bad' ? 'warn' : t; };
-            document.getElementById('goalFocusBadge').textContent = GF.GROUP_LABEL[p.group];
-            var metrics = (src && src.metrics) || {};
-            // „Постоянство“ е „Пътят към успеха“ — тук не се показва втори път.
-            var idx = GF.indices(metrics, window._gaChecks || {}, ud, { planKcal: planKcal, persona: persona })
-                .filter(function (x) { return x.id !== 'consistency'; })
-                .slice(0, persona.density === 'minimal' ? 2 : 3);
+            var metrics = Object.assign({}, (src && src.metrics) || {});
+            // Без везна — тенденцията на теглото от дневника (седмичният преглед и Профил пишат там).
+            if (!metrics.weight) {
+                try {
+                    var wl = (JSON.parse(localStorage.getItem('np_weight_log') || '[]') || []).filter(function (x) { return Date.now() - x.at <= 42 * 86400000; });
+                    if (wl.length >= 2) {
+                        var w0 = wl[0], w1 = wl[wl.length - 1], span = (w1.at - w0.at) / 86400000;
+                        if (span >= 10) metrics.weight = { trendKgWeek: Math.round((w1.kg - w0.kg) / span * 7 * 100) / 100, fromLog: true };
+                    }
+                } catch (_) {}
+            }
+            // Само един индекс — водещият за целта (темп, мускули или метаболитно здраве). Другите
+            // (движение, сън, емоции, постоянство) вече са кръговете и редовете отдолу.
+            var idx = GF.indices(metrics, window._gaChecks || {}, ud, { planKcal: planKcal })
+                .filter(function (x) { return x.id === 'pace' || x.id === 'muscle' || x.id === 'metabolic'; })
+                .slice(0, 1);
             var indicesHtml = idx.length ? '<div class="gf-indices">' + idx.map(function (x) {
                 // На екрана: име, число, лента — и кратка бележка само ако нещо иска внимание.
                 // Какво показва индексът и от какво е съставен — при натискане (иконата „i“).
@@ -962,8 +979,9 @@
                     '<div class="gf-index-more"><p>' + gfEsc(x.about) + '</p><p>' + gfEsc(x.detail) + '</p>' +
                     '<ul class="gf-index-parts">' + x.parts.map(function (pt) { return '<li><span>' + gfEsc(pt.label) + '</span><span>' + gfEsc(pt.text) + '</span></li>'; }).join('') + '</ul></div></div>';
             }).join('') + '</div>' : '';
-            section.hidden = false;
-            if (!Object.keys(metrics).length) {
+            top.innerHTML = indicesHtml;
+            indicesHtml = '';
+            if (!src || !src.metrics || !Object.keys(src.metrics).length) {
                 // Свързано, но още малко дни — казваме какво е дошло, не „Свържи“.
                 var hs = {}, linked = [];
                 try { hs = JSON.parse(localStorage.getItem('np_health_state') || '{}') || {}; linked = JSON.parse(localStorage.getItem('np_links_linked') || '[]') || []; } catch (_) {}
@@ -972,10 +990,8 @@
                 body.innerHTML = indicesHtml + (connected
                     ? '<div class="gf-empty"><span>Устройството е свързано' + (got ? ' · получено: ' + gfEsc(got) : '') + '. Изводите от измерванията се появяват при поне 4 дни данни.</span></div>'
                     : ''); // Поканата за устройство е само в Профил → Клиентски картон.
-                // Без индекси и без устройство няма какво да се покаже — без празна карта.
-                section.hidden = !body.innerHTML;
             } else {
-                var v = GF.deviceView(metrics, ud, { planKcal: planKcal, signals: src.signals || [], insight: src.insight || '' });
+                var v = GF.deviceView(src.metrics, ud, { planKcal: planKcal, signals: src.signals || [], insight: src.insight || '' });
                 v.cards.forEach(function (c) { c.tone = softTone(c.tone); });
                 v.more.forEach(function (c) { c.tone = softTone(c.tone); });
                 var icon = { bad: 'fa-circle-exclamation" style="color:#ef4444', warn: 'fa-triangle-exclamation" style="color:#f59e0b', good: 'fa-circle-check" style="color:#10b981', neutral: 'fa-lightbulb" style="color:#03939C' };
@@ -986,7 +1002,7 @@
                     ? '<details class="gf-more"><summary>Показатели (' + cards.length + ')</summary><div class="gf-grid">' + cards.map(gfCard).join('') + '</div></details>'
                     : '<div class="gf-grid">' + v.cards.map(gfCard).join('') + '</div>' +
                       (v.more.length ? '<details class="gf-more"><summary>Още показатели (' + v.more.length + ')</summary><div class="gf-grid">' + v.more.map(gfCard).join('') + '</div></details>' : '');
-                body.innerHTML = '<div class="gf-sub">Измерено от устройствата · последните 7–14 дни</div>' + indicesHtml + conclusions + cardsHtml;
+                body.innerHTML = '<div class="game-section-title">Измерено от устройствата</div>' + conclusions + cardsHtml;
             }
             // Веднъж на отваряне — свежите данни от сървъра (есенция, сигнали, обобщение).
             var E = window.NutriPlanEnrichment;
@@ -1439,16 +1455,34 @@
 
             // ── Build HTML ────────────────────────────────────────────────────
             var html = '';
-            // Седмицата — със същата мярка като плана и наградите: добър ден = ангажираност ≥ 60%.
-            // Без звезди и оценки; при мекия режим (persona.noScores) броят е в „Пътят към успеха“.
-            var goodDays7 = GS.goodDaysOf(allData, todayKey, 7).good;
+            // Целта — най-отгоре: тя гледа по-дълъг период от седмицата (попълва се от renderGoalFocus).
+            html += '<div id="gaGoalSlot"></div>';
+
+            // Седмицата — 7 звезди, по една за ден. Запълването и цветът следват ангажираността на деня
+            // (game-scoring.js → engPct): злато — добър ден (≥ 60%, същата мярка като плана и наградите),
+            // оранжево — среден, червено — иска внимание. Мекият режим (persona.noScores) — само злато, без червено.
             var softView = false;
             try { softView = !!(window.NutriPlanPersona && window.NutriPlanPersona.current().noScores); } catch (_) {}
-            if (!softView) html += '<div class="ga-week-line ga-card-enter"><b>'+goodDays7+'</b><span>от 7 добри дни' +
-                (trendUp ? ' · ритъмът расте' : trendDown ? ' · леко затихване' : '') + '</span></div>';
+            var STAR_PATH = 'M12 2.6l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z';
+            var DAY_SHORT = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
+            var starsHtml = days.map(function(d){
+                var dt = new Date(d.key + 'T12:00:00');
+                var label = DAY_SHORT[dt.getDay()];
+                var isToday = d.key === todayKey;
+                var eng = d.rec ? (calcDayScore(d.rec).engPct || 0) : 0;
+                // Запълване на 4 степени: цяла (≥ 85%), три четвърти (добър ден), половин, четвърт.
+                var fill = !d.rec || eng <= 0 ? 0 : eng >= 85 ? 100 : eng >= 60 ? 75 : eng >= 35 ? 50 : 25;
+                var tone = eng >= 60 ? 'gold' : softView ? 'gold' : isToday ? 'open' : eng >= 35 ? 'mid' : 'low';
+                var tip = !d.rec ? 'Няма отбелязване' : (isToday && eng < 60 ? 'Денят тече' : eng >= 60 ? 'Добър ден' : eng >= 35 ? 'Среден ден' : 'Слаб ден') + ' · ' + eng + '%';
+                return '<div class="game-day-col ga-star-col" data-tip="' + label + ' · ' + tip + '" tabindex="0" role="button" aria-label="' + label + ': ' + tip + '">' +
+                    '<span class="ga-star ga-star--' + tone + (isToday ? ' is-today' : '') + '" style="--fill:' + fill + '%">' +
+                    '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="o" d="' + STAR_PATH + '"/></svg>' +
+                    '<svg class="f" viewBox="0 0 24 24" aria-hidden="true"><path d="' + STAR_PATH + '"/></svg></span>' +
+                    '<span class="ga-star-day">' + label + '</span></div>';
+            }).join('');
+            html += '<div class="ga-stars ga-card-enter" aria-label="Последните 7 дни">' + starsHtml + '</div>';
 
-            html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
-                '<div class="game-ring-wrap" data-explain="health" style="cursor:pointer">' + ringChart(healthScore,'#03939C',22) + '<div class="game-ring-label">Навици</div></div>' +
+            if (actPct!=null || sleepPct!=null || balancePct!=null) html += '<div class="game-health-ring-row ga-card-enter" style="animation-delay:0.1s">' +
                 (actPct!=null  ? '<div class="game-ring-wrap" data-explain="activity" style="cursor:pointer">' + ringChart(actPct,MC.act.c,22,actRawPct) + '<div class="game-ring-label">Активност</div></div>' : '') +
                 (sleepPct!=null ? '<div class="game-ring-wrap" data-explain="sleep" style="cursor:pointer">' + ringChart(sleepPct,MC.sleep.c,22) + '<div class="game-ring-label">Сън</div></div>' : '') +
                 (balancePct!=null ? '<div class="game-ring-wrap" data-explain="stress" style="cursor:pointer">' + ringChart(balancePct,MC.mood.c,22) + '<div class="game-ring-label">Емоции</div></div>' : '') +
@@ -1524,6 +1558,7 @@
                 insights.forEach(function(ins, ii){ html += '<div class="game-insight-card ga-card-enter" style="animation-delay:'+(0.05+ii*0.08)+'s">'+ins+'</div>'; });
             }
 
+            html += '<div id="gaDeviceSlot"></div>';
             var weeklyInfo={};
             try { weeklyInfo=JSON.parse(localStorage.getItem('gameWeeklyAI')||'{}'); } catch(e) {}
             if(weeklyInfo.nextDue){ var nd=new Date(weeklyInfo.nextDue); html += '<div class="game-weekly-info"><i class="fas fa-calendar-check"></i> Следващ седмичен преглед: '+nd.toLocaleDateString('bg-BG')+'</div>'; }

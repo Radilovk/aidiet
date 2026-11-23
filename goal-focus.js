@@ -326,7 +326,9 @@
         else if (ck.sleepPct != null) c.sleep = { v: ck.sleepPct, label: 'сън', text: ck.sleepPct + '% добри нощи' };
         if (m.hrv && m.hrv.base) c.hrv = { v: curve(m.hrv.avg7 / m.hrv.base, [[0.7, 20], [0.85, 60], [1, 100]]), label: 'вариабилност на пулса', text: m.hrv.avg7 + ' ms' };
         if (m.restingHr && m.restingHr.base) c.rhr = { v: curve(m.restingHr.avg7 - m.restingHr.base, [[0, 100], [5, 55], [10, 15]]), label: 'пулс в покой', text: m.restingHr.avg7 + ' уд/мин' };
-        if (m.weight && isFinite(m.weight.trendKgWeek) && (m.weight.days || 0) >= 4) {
+        // Тенденцията — от везната (≥ 4 измервания) или от дневника на теглото (weight-log.js: седмичният
+        // преглед и Профил; поне 2 записа на ≥ 10 дни разстояние — fromLog).
+        if (m.weight && isFinite(m.weight.trendKgWeek) && ((m.weight.days || 0) >= 4 || m.weight.fromLog)) {
             var t = m.weight.trendKgWeek;
             var pts = lose ? [[-1.4, 45], [-1.0, 85], [-0.25, 100], [-0.1, 55], [0.1, 15], [0.4, 0]]
                 : g === 'gain' ? [[-0.2, 0], [0, 30], [0.1, 85], [0.5, 100], [0.8, 55]]
