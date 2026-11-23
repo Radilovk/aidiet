@@ -14,19 +14,18 @@
     var defaults = null;
 
     var THEME_LABEL = {
-        resolve: 'Решимост (ниво 1)', persist: 'Упоритост (ниво 2)', consistency: 'Постоянство (ниво 3)', inner: 'Вътрешна сила (ниво 4)',
+        persist: 'Упоритост (ниво 1)', consistency: 'Постоянство (ниво 2)', resolve: 'Воля (ниво 3)', inner: 'Вътрешна сила (ниво 4)',
         habit: 'Нов навик (66 дни)', streak: 'Поредица (7, 21, 100 дни)', weight: 'Етап на теглото', invite: 'Покана за приятел', share: 'Споделяне и награда срещу точки'
     };
     var TEXT_LABEL = {
         section: 'Заглавие на картата', empty: 'Преди първия отметнат ден', levelLabel: 'Над нивото', firstLevel: 'Преди първото ниво',
-        towards: 'Лента към следващото ниво ({title} {have} {days} {avg} {min})', top: 'Лента на най-високото ниво',
-        onTrack: 'В ритъм ({n} {daysWord} {title} {titleLower})', rewardLine: 'Наградата ({gifts})', behind: 'Под прага ({title} {min} {avg})',
-        atTop: 'На най-високото ниво', warn: 'Предупреждение ({titleLower} {n} {daysWord})', comparison: 'Сравнение с другите ({p})',
+        towards: 'Под лентата, в ритъм ({n} {daysWord} {title})', top: 'Лента на най-високото ниво',
+        behind: 'Под лентата, под прага ({title} {min} {avg})', warn: 'Предупреждение ({n} {daysWord})', comparison: 'Сравнение с другите ({p})',
         newLevel: 'Надпис над числото при ново ниво', giftReady: 'След наградата в поздрава', shield: 'Спечелен жокер',
         weightLose: 'Етап при сваляне ({pct})', weightGain: 'Етап при качване ({pct})', weightText: 'Текст при етап на теглото',
         weightShareLose: 'Споделяне — сваляне', weightShareGain: 'Споделяне — качване',
-        codesTitle: 'Заглавие: отстъпките', codesEmpty: 'Още без отстъпки', pointsTitle: 'Заглавие: точките', pointsText: 'Обяснение на точките',
-        pathTitle: 'Заглавие: нивата', pathNote: 'Бележка под нивата', inviteTitle: 'Заглавие: покана', inviteText: 'Текст на поканата ({pct} {reward})', inviteTextApp: 'Текст на поканата в приложението (без цени)',
+        codesTitle: 'Заглавие: отстъпките', codesEmpty: 'Още без отстъпки', pointsTitle: 'Заглавие: точките',
+        pathTitle: 'Заглавие: нивата', inviteTitle: 'Заглавие: покана', inviteText: 'Текст на поканата ({pct} {reward})', inviteTextApp: 'Текст на поканата в приложението (без цени)',
         inviteShare: 'Покана — на картата за споделяне', redeemTitle: 'Поздрав при отстъпка срещу точки',
         shareTagline: 'Долу на картата за споделяне', shareInvite: 'Кодът на картата за споделяне ({code})',
         weekTitle: 'Седмицата: заглавие', weekGood: 'Седмицата: добри дни ({good})', weekUp: 'Седмицата: по-силна ({d})',
