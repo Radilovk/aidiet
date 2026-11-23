@@ -321,6 +321,8 @@ jobs:
               '<uses-permission android:name="android.permission.VIBRATE" />',
               # Крачкомерът на телефона (NutriStepsPlugin): брояч на крачки от Android 10.
               '<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />',
+              # Кога телефонът е бил в употреба (NutriScreenPlugin) — за оценката на съня; специален достъп, дава се в настройките.
+              '<uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />',
           ]
           for permission in permissions:
               if permission not in text:

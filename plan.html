@@ -11593,6 +11593,15 @@
             return { sleptWell: true, level: 'mid', hours: h };
         }
 
+        // Отговорът се сверява с използването на телефона през нощта (sleep-signal.js): само сваля оценката.
+        function refineSleepByPhone(recordKey) {
+            try {
+                var S = window.NutriPlanSleepSignal || (window.top && window.top.NutriPlanSleepSignal);
+                if (!S || !S.supported()) return;
+                S.refine(recordKey, { getRecord: getRecord, saveRecord: saveRecord }).then(function (changed) { if (changed) recalcAndShowScore(recordKey); });
+            } catch (_) {}
+        }
+
         function showMorningQuestion(force, recordKey, doneCb) {
             recordKey = recordKey || getTodayKey();
             var rec = getRecord(recordKey);
@@ -11626,6 +11635,7 @@
                     r.morningCheck = { sleptWell: val, ts: new Date().toISOString() };
                     saveRecord(recordKey, r);
                     recalcAndShowScore(recordKey);
+                    refineSleepByPhone(recordKey);
                     gameNotifyCancel('morning_check', recordKey);
                     if (doneCb) { setTimeout(doneCb, 350); }
                     else { setTimeout(function(){ showEncouragement(buildEncouragement(recordKey)); }, 400); }
@@ -12996,6 +13006,7 @@
         } catch (_) {}
     })();
     </script>
+    <script src="./sleep-signal.js"></script>
     <script src="./local-scheduler.js"></script>
     <!-- Notification action handler: shows in-app modal when user taps a notification
          while plan.html is already open – avoids full page reload and index redirect. -->

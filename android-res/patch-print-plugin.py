@@ -36,6 +36,7 @@ PLUGIN_SOURCES = [
     Path("android-res/java/com/biocode/nutriplan/NutriStepsPlugin.java"),
     Path("android-res/java/com/biocode/nutriplan/NutriStepsReceiver.java"),
     Path("android-res/java/com/biocode/nutriplan/NutriStepsRecording.java"),
+    Path("android-res/java/com/biocode/nutriplan/NutriScreenPlugin.java"),
 ]
 MAIN_ACTIVITY = PACKAGE_DIR / "MainActivity.java"
 MANIFEST = Path("android/app/src/main/AndroidManifest.xml")
@@ -83,6 +84,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NutriPrintPlugin.class);
         registerPlugin(NutriSystemUiPlugin.class);
         registerPlugin(NutriStepsPlugin.class);
+        registerPlugin(NutriScreenPlugin.class);
         super.onCreate(savedInstanceState);
         // От край до край на всички версии: отместването за системните ленти е
         // само едно (SystemBars на Capacitor). Без това под Android 15 системата
