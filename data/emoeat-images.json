@@ -65,87 +65,87 @@
   "images": {
     "comfort": {
       "file": "brand/emoeat/comfort.webp",
-      "id": 4597416,
-      "focus": "0.5,0.4",
+      "id": 1975215,
+      "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/coffee-tee-cup-keep-hand-arm-4597416/"
+      "page": "https://pixabay.com/photos/warm-and-cozy-popcorn-coffee-1975215/"
     },
     "pause": {
       "file": "brand/emoeat/pause.webp",
-      "id": 10338948,
-      "focus": "0.5,0.55",
+      "id": 3281583,
+      "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/sunrise-quebec-lake-water-outdoors-10338948/"
+      "page": "https://pixabay.com/photos/people-woman-tv-movies-television-3281583/"
     },
     "pendulum": {
       "file": "brand/emoeat/pendulum.webp",
-      "id": 7905883,
-      "focus": "0.55,0.5",
+      "id": 3236971,
+      "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/sunset-stones-sea-meditation-7905883/"
+      "page": "https://pixabay.com/photos/meal-food-remove-lent-overweight-3236971/"
     },
     "order": {
       "file": "brand/emoeat/order.webp",
-      "id": 1841271,
+      "id": 2724355,
       "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/corn-agriculture-soil-plant-dirt-1841271/"
+      "page": "https://pixabay.com/photos/salad-chickpeas-carrots-peppers-2724355/"
     },
     "critic": {
       "file": "brand/emoeat/critic.webp",
-      "id": 1776746,
+      "id": 4111081,
       "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/valentines-day-background-heart-leaf-1776746/"
+      "page": "https://pixabay.com/photos/dessert-sweet-cake-food-treat-4111081/"
     },
     "spark": {
       "file": "brand/emoeat/spark.webp",
-      "id": 1853624,
-      "focus": "0.4,0.5",
+      "id": 1895165,
+      "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/bright-celebration-dark-fire-1853624/"
+      "page": "https://pixabay.com/photos/notebook-plan-events-coffee-pot-1895165/"
     },
     "impulse": {
       "file": "brand/emoeat/impulse.webp",
-      "id": 4481903,
-      "focus": "0.6,0.4",
+      "id": 1868175,
+      "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/wave-splash-water-sea-lake-wild-4481903/"
+      "page": "https://pixabay.com/photos/bottles-food-gallon-inside-light-1868175/"
     },
     "calm": {
       "file": "brand/emoeat/calm.webp",
-      "id": 6100209,
-      "focus": "0.5,0.45",
+      "id": 5204360,
+      "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/beach-coast-sea-sunrise-seascape-6100209/"
+      "page": "https://pixabay.com/photos/breakfast-breakfast-in-bed-cereal-5204360/"
     },
     "portrait": {
       "file": "brand/emoeat/portrait.webp",
-      "id": 7179046,
+      "id": 7807231,
       "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/forest-trees-sunlight-the-path-7179046/"
+      "page": "https://pixabay.com/photos/reading-tea-teatime-teapot-7807231/"
     },
     "need": {
       "file": "brand/emoeat/need.webp",
-      "id": 8431870,
-      "focus": "0.5,0.55",
+      "id": 1536226,
+      "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/window-pillows-candles-lights-cozy-8431870/"
+      "page": "https://pixabay.com/photos/happy-valentines-day-love-coffe-cup-1536226/"
     },
     "plan": {
       "file": "brand/emoeat/plan.webp",
-      "id": 5819652,
-      "focus": "0.55,0.5",
+      "id": 9132663,
+      "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/mountains-fog-sky-clouds-5819652/"
+      "page": "https://pixabay.com/photos/vegetables-cooking-kitchen-9132663/"
     },
     "welcome": {
       "file": "brand/emoeat/welcome.webp",
-      "id": 5345528,
-      "focus": "0.5,0.6",
+      "id": 2306471,
+      "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/trees-avenue-tree-lined-avenue-path-5345528/"
+      "page": "https://pixabay.com/photos/coffee-pen-notebook-open-notebook-2306471/"
     }
   },
   "picks": {
