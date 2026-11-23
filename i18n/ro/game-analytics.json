@@ -95,7 +95,14 @@
   "Без вечерния въпрос": "Lipsește întrebarea de seară",
   "Хранене извън плана": "Masă în afara planului",
   "Над калориите": "Peste calorii",
-  "Движение над препоръчаното": "Activitate peste cea recomandată"
+  "Движение над препоръчаното": "Activitate peste cea recomandată",
+  "Вид на показателите": "Vizualizarea indicatorilor",
+  "Икони": "Pictograme",
+  "Големи кръгове": "Inele mari",
+  "Пръстени": "Inele",
+  "Ленти": "Bare",
+  "Плочки": "Plăci",
+  "Задръж, за да смениш вида": "Ține apăsat pentru a schimba vizualizarea"
  },
  "keys": {},
  "patterns": []

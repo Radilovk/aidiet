@@ -95,7 +95,14 @@
   "Без вечерния въпрос": "Bilan du soir manquant",
   "Хранене извън плана": "Repas hors plan",
   "Над калориите": "Au-dessus des calories",
-  "Движение над препоръчаното": "Activité au-dessus du recommandé"
+  "Движение над препоръчаното": "Activité au-dessus du recommandé",
+  "Вид на показателите": "Affichage des indicateurs",
+  "Икони": "Icônes",
+  "Големи кръгове": "Grands anneaux",
+  "Пръстени": "Anneaux",
+  "Ленти": "Barres",
+  "Плочки": "Tuiles",
+  "Задръж, за да смениш вида": "Maintiens pour changer l'affichage"
  },
  "keys": {},
  "patterns": []

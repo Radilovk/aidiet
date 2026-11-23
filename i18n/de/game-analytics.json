@@ -95,7 +95,14 @@
   "Без вечерния въпрос": "Abendcheck fehlt",
   "Хранене извън плана": "Essen außerhalb des Plans",
   "Над калориите": "Über den Kalorien",
-  "Движение над препоръчаното": "Bewegung über der Empfehlung"
+  "Движение над препоръчаното": "Bewegung über der Empfehlung",
+  "Вид на показателите": "Ansicht der Werte",
+  "Икони": "Symbole",
+  "Големи кръгове": "Große Ringe",
+  "Пръстени": "Ringe",
+  "Ленти": "Balken",
+  "Плочки": "Kacheln",
+  "Задръж, за да смениш вида": "Gedrückt halten, um die Ansicht zu ändern"
  },
  "keys": {},
  "patterns": []

@@ -95,7 +95,14 @@
   "Без вечерния въпрос": "Akşam sorusu eksik",
   "Хранене извън плана": "Plan dışı öğün",
   "Над калориите": "Kalorinin üstünde",
-  "Движение над препоръчаното": "Önerilenin üzerinde hareket"
+  "Движение над препоръчаното": "Önerilenin üzerinde hareket",
+  "Вид на показателите": "Gösterge görünümü",
+  "Икони": "Simgeler",
+  "Големи кръгове": "Büyük halkalar",
+  "Пръстени": "Halkalar",
+  "Ленти": "Çubuklar",
+  "Плочки": "Kutucuklar",
+  "Задръж, за да смениш вида": "Görünümü değiştirmek için basılı tut"
  },
  "keys": {},
  "patterns": []
