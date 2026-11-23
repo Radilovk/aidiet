@@ -192,8 +192,9 @@
             var t = RE.tierById(m.tier);
             var gifts = t.rewards.map(function (r) { return giftText(r, srv); }).filter(Boolean);
             return {
-                big: true, kicker: RE.text('newLevel'), num: String(t.days), unit: 'дни ' + t.title.toLowerCase(),
-                title: t.moment, shareTitle: t.share, text: t.text,
+                // Наградата е нивото — то е голямото. Дните са как е достигнато, в реда под него.
+                big: true, kicker: RE.text('newLevel'), num: t.title, word: true, unit: t.days + ' добри дни',
+                title: t.text, shareTitle: t.share, text: '',
                 fact: comparison(srv) || (t.id === 'habit' ? RE.FACTS.habit : RE.FACTS.consistency),
                 gift: gifts.length ? gifts.join(' · ') + ' ' + RE.text('giftReady') : '',
                 image: t.image
@@ -285,7 +286,7 @@
             '<div class="rw-moment-mark"><img src="./brand/nutriin-mark-dark.svg" alt=""></div>' +
             // тялото се превърта, когато не се събира; знакът и бутоните остават видими
             '<div class="rw-moment-body">' +
-            (mo.num ? '<div class="rw-moment-big">' + esc(mo.num) + '</div><p>' + esc(mo.unit || '') + '</p>' : '') +
+            (mo.num ? '<div class="rw-moment-big' + (mo.word ? ' rw-moment-big--word' : '') + '">' + esc(mo.num) + '</div><p>' + esc(mo.unit || '') + '</p>' : '') +
             '<h3>' + esc(mo.title) + '</h3>' +
             (mo.text ? '<p>' + esc(mo.text) + '</p>' : '') +
             (mo.gift ? '<div class="rw-moment-gift"><i class="fas fa-gift"></i>' + esc(mo.gift) + '</div>' : '') +
@@ -360,7 +361,7 @@
         x.textAlign = 'left';
         x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = pic ? 18 : 0;
         // Със снимка текстът слиза в долната, тъмна част.
-        var big = String(mo.num || '').length > 3 ? 210 : 260;
+        var big = mo.word ? Math.max(110, Math.min(170, Math.round(1500 / String(mo.num).length))) : String(mo.num || '').length > 3 ? 210 : 260;
         var y0 = pic ? 640 : 420;
         x.fillStyle = '#A0F500';
         x.font = '700 34px ' + font;
@@ -372,7 +373,8 @@
         var numW = x.measureText(mo.num || '★').width;
         x.font = '500 46px ' + font;
         x.fillStyle = 'rgba(255,255,255,.88)';
-        if (pic) x.fillText(mo.unit || '', 110 + numW, ny);   // „30 дни упоритост“ на един ред
+        if (pic && !mo.word) x.fillText(mo.unit || '', 110 + numW, ny);   // „30 дни поред“ на един ред
+        else if (pic) { x.fillText(mo.unit || '', 90, ny + 64); ny += 40; }   // ниво: името голямо, дните под него
         else x.fillText(mo.unit || '', 90, ny + 90);
         x.fillStyle = '#fff';
         x.font = '800 60px ' + font;
