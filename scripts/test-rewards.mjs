@@ -37,14 +37,15 @@ await check('ангажираността на пълен ден е 100%, на �
   assert.ok(calcDayScore(day(0), key(T0)).engPct < RE.GOOD);
 });
 
-await check('стъпалата: 14 добри дни → „Начало“, 30 → „Стабилност“; бонус веднъж', async () => {
-  let r = run(history(14, () => day(3)));
+await check('нивата: 10 от 14 дни, които се броят → „Упоритост“, 24 от 30 → „Постоянство“; бонус веднъж', async () => {
+  assert.equal(run(history(9, () => day(3))).tier, null);
+  let r = run(history(10, () => day(3)));
   assert.equal(r.tier.id, 'start');
   assert.equal(r.next.id, 'steady');
   r = run(history(30, () => day(3)));
   assert.equal(r.tier.id, 'steady');
   assert.deepEqual(r.milestones.filter((m) => m.kind === 'tier').map((m) => m.tier), ['start', 'steady']);
-  assert.equal(r.points.bonus, 100 + 200 + 30 + 70);   // две стъпала + поредици 7 и 21
+  assert.equal(r.points.bonus, 100 + 200 + 30 + 70 + 30 + 70);   // две стъпала + поредици 7 и 21 + активни дни 7 и 21
 });
 
 await check('жокер: 1 на 14 добри дни; покрива ден без отметки и поредицата продължава', async () => {
@@ -393,6 +394,42 @@ await check('събития и отчет: позволените от теле�
 await check('покана във въпросника: само истински код се брои', async () => {
   assert.equal(await noteInviteSignup(env, first.invite.code.toLowerCase()), true);
   assert.equal(await noteInviteSignup(env, 'DUO000'), false);
+});
+
+await check('ден, който се брои: всичко спазено — непълни хранения, липсващ въпрос, вредно, преяждане не се броят', async () => {
+  const ok = (rec) => RE.dayStatus(rec, calcDayScore(rec, key(T0))).ok;
+  assert.equal(ok(day(3)), true);
+  assert.equal(ok(day(2)), false);                                         // 2 от 3 хранения
+  assert.equal(ok({ ...day(3), morningCheck: undefined }), false);         // без сутрешния въпрос
+  assert.equal(ok({ ...day(3), eveningCheck: undefined }), false);         // без вечерния
+  assert.equal(ok({ ...day(3), extraMeals: [{ isJunk: true, calories: 250 }] }), false);
+  const over = { ...day(3), mealCalories: { 'Закуска': 500, 'Обяд': 700, 'Вечеря': 500 }, plannedCalories: 1700, extraMeals: [{ isJunk: false, calories: 400 }] };
+  assert.equal(ok(over), false);                                           // над 110% от калориите
+  // старата логика би броила тези дни: ангажираността им е над 60%
+  assert.ok(calcDayScore(day(2), key(T0)).engPct >= RE.GOOD);
+});
+
+await check('оставащите дни и лентата казват едно и също', async () => {
+  const r = run(history(7, () => day(3)));
+  assert.equal(r.next.id, 'start');
+  assert.equal(r.next.daysNeeded, 3);                    // 7 от нужните 10
+  assert.equal(r.next.progress, 70);
+});
+
+await check('движение: награда само когато е част от целта; над препоръчаното — предупреждение, не награда', async () => {
+  const fit = run(history(21, () => day(3, 9000)), { activity: { reward: true, maxPct: null } });
+  assert.equal(fit.activity.days, 21);
+  assert.ok(fit.milestones.some((m) => m.id === 'active:21'));
+  // кърмене (по-малко движение е целта): 170% → денят не се брои, без точки и етапи за движение
+  const nursing = run(history(21, () => day(3, 13600)), { activity: { reward: false, maxPct: 140 } });
+  assert.equal(nursing.points.earned, 0);
+  assert.equal(nursing.streak, 0);
+  assert.ok(nursing.activity.tooMuch.length > 0);
+  assert.ok(nursing.milestones.every((m) => m.kind !== 'active'));
+  // в нормата — броят се, но без награда за движение
+  const calm = run(history(14, () => day(3, 7000)), { activity: { reward: false, maxPct: 140 } });
+  assert.equal(calm.tier.id, 'start');
+  assert.equal(calm.activity.days, 0);
 });
 
 console.log(`\nВсички ${checks.length} проверки минаха`);

@@ -86,9 +86,16 @@
   "Как работят наградите": "Jak działają nagrody",
   "Ангажираност": "Zaangażowanie",
   "Вода": "Woda",
-  "Още {0} поредни дни по плана": "Jeszcze {0} dni z rzędu zgodnie z planem",
-  "Още {0} ден по плана": "Jeszcze {0} dzień zgodnie z planem",
-  "Към ниво": "Następny poziom"
+  "Към ниво": "Następny poziom",
+  "Още {0} до отключване на наградата": "Jeszcze {0} do odblokowania nagrody",
+  "Брои се": "Liczy się",
+  "Не се брои": "Nie liczy się",
+  "Непълни хранения": "Niepełne posiłki",
+  "Без сутрешния въпрос": "Brak porannego pytania",
+  "Без вечерния въпрос": "Brak wieczornego pytania",
+  "Хранене извън плана": "Jedzenie poza planem",
+  "Над калориите": "Ponad kalorie",
+  "Движение над препоръчаното": "Ruch powyżej zalecanego"
  },
  "keys": {},
  "patterns": []

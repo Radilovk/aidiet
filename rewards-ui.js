@@ -93,6 +93,12 @@
     /** Приетото предизвикателство за месеца (на устройството; сървърът — за точките). */
     function localChallenge() { return read(CHALLENGE_KEY, null); }
 
+    /** Движението спрямо целта (goal-focus.js): награждава ли се и над колко е предупреждение. */
+    function activityPolicy() {
+        try { var GF = global.NutriPlanGoalFocus; if (GF && GF.activityPolicy) return GF.activityPolicy(read('userData', {}) || {}); } catch (_) {}
+        return { reward: true, maxPct: null };
+    }
+
     // ── Състоянието ─────────────────────────────────────────────────────────
     function localStatus() {
         if (!RE || !global.GameScoring) return null;
@@ -105,7 +111,8 @@
             weightLog: read('np_weight_log', []),
             startKg: parseFloat(String(ud.startWeight || ud.weight || '').replace(',', '.')) || null,
             goalDirection: (plan.analysis || {})._goalDirection || '',
-            challenge: localChallenge()
+            challenge: localChallenge(),
+            activity: activityPolicy()
         });
     }
 
@@ -144,7 +151,7 @@
         if (!force && !behind && c && c.uid === userId() && Date.now() - c.at < SRV_TTL) return c.data;
         try {
             var today = global.GameScoring ? GameScoring.dateKey(new Date()) : undefined;
-            var body = { todayKey: today };
+            var body = { todayKey: today, activity: activityPolicy() };
             // Влизанията — веднъж на ден (за резюмето на отчета); дните — само при ново ниво, невидяно от сървъра.
             var wk = read(WEEK_KEY, {}) || {};
             if (wk.opensSent !== today) body.opens = read(OPENS_KEY, null) || undefined;
@@ -197,6 +204,14 @@
                 fact: comparison(srv) || (t.id === 'habit' ? RE.FACTS.habit : RE.FACTS.consistency),
                 gift: gifts.length ? gifts.join(' · ') + ' ' + RE.text('giftReady') : '',
                 image: t.image
+            };
+        }
+        if (m.kind === 'active') {
+            var a = (RE.ACTIVE || []).filter(function (x) { return x.days === m.days; })[0] || {};
+            return {
+                big: m.big, kicker: 'Движение', num: String(m.days), unit: 'активни дни', icon: 'fa-person-walking',
+                title: a.moment || m.days + ' активни дни', shareTitle: a.share, text: a.text || '',
+                fact: m.big ? RE.FACTS.steps : '', image: 'streak'
             };
         }
         if (m.kind === 'habit' || m.kind === 'streak') {
@@ -515,13 +530,19 @@
         var rows = function (list) { return '<ul>' + list.map(function (r) { return '<li><b>' + esc(r[0]) + '</b><span>' + esc(r[1]) + '</span></li>'; }).join('') + '</ul>'; };
         var sec = function (icon, title, body) { return '<section><h4><i class="fas ' + icon + '"></i>' + esc(title) + '</h4>' + body + '</section>'; };
         var gift = function (t) { return t.rewards.map(function (r) { return giftText(r, srv); }).filter(Boolean).join(' · '); };
+        var pol = activityPolicy();
         var html =
-            sec('fa-star', 'Ден по плана', '<p>Ден с ангажираност над ' + RE.GOOD + '%: отметнати хранения, сутрешният и вечерният въпрос, без хранения извън плана. На него стои всичко отдолу.</p>') +
-            sec('fa-fire', 'Поредица и жокер', '<p>Поредицата са дните по плана един след друг. На всеки ' + RE.SHIELD_EVERY + ' дни по плана получаваш жокер (до ' + RE.SHIELD_MAX + '): той пази поредицата в слаб или пропуснат ден.</p>' +
+            sec('fa-star', 'Ден, който се брои', '<p>Всичко за деня е спазено: поне три четвърти от храненията по плана, сутрешният и вечерният въпрос, без хранения извън плана и без преяждане' +
+                (pol.maxPct ? ', без движение над препоръчаното за целта ти' : '') + '. Ден с предупреждение не носи награда. На него стои всичко отдолу.</p>') +
+            sec('fa-fire', 'Поредица и жокер', '<p>Поредицата са дните, които се броят, един след друг. На всеки ' + RE.SHIELD_EVERY + ' такива дни получаваш жокер (до ' + RE.SHIELD_MAX + '): той пази поредицата в един пропуснат ден.</p>' +
                 rows(RE.STREAKS.map(function (x) { return [x.days + ' дни поред', '+' + x.bonus + ' точки']; }))) +
-            sec('fa-mountain', 'Нива', '<p>Средната ангажираност за последните дни над прага. Изграденото остава: нивото слиза с едно само след ' + RE.GRACE_DAYS + ' поредни дни под прага.</p>' +
-                rows(RE.TIERS.map(function (t) { return [t.title, t.days + ' дни над ' + t.minEng + '%' + (gift(t) ? ' · ' + gift(t) : '')]; }))) +
-            sec('fa-coins', 'Точки', '<p>10 за ден по плана, +5 при ангажираност над 80%, +5 при крачки на целта (до 20 на ден), и бонусите за поредици, нива и предизвикателства. Обръщат се в отстъпки:</p>' +
+            sec('fa-mountain', 'Нива', '<p>Отключват се с дни, които се броят, в последните дни. Изграденото остава: нивото слиза с едно само след ' + RE.GRACE_DAYS + ' поредни дни под прага.</p>' +
+                rows(RE.TIERS.map(function (t) { return [t.title, t.need + ' от ' + t.days + ' дни' + (gift(t) ? ' · ' + gift(t) : '')]; }))) +
+            (pol.reward
+                ? sec('fa-person-walking', 'Движение', '<p>Активен ден: крачките до дневната ти цел или тренировка. Етапи:</p>' +
+                    rows((RE.ACTIVE || []).map(function (a) { return [a.days + ' активни дни', '+' + a.bonus + ' точки']; })))
+                : sec('fa-person-walking', 'Движение', '<p>За твоята цел движението е за здраве, не за разход. Над ' + pol.maxPct + '% от дневната цел е предупреждение, не награда — и денят не се брои.</p>')) +
+            sec('fa-coins', 'Точки', '<p>10 за ден, който се брои, +5 при изцяло изпълнен ден' + (pol.reward ? ', +5 при активен ден' : '') + ', и бонусите за поредици, нива и предизвикателства. Обръщат се в отстъпки:</p>' +
                 rows(RE.OFFERS.filter(function (o) { return !(o.kind === 'plan' && isApp()) && !(o.kind === 'supplement' && srv && srv.supplements === false); }).map(function (o) { return [o.title, num(o.cost) + ' точки']; }))) +
             sec('fa-flag-checkered', 'Предизвикателство на месеца', '<p>По избор: ' + RE.CHALLENGE_TARGET + ' дни от приемането, в които успееш — +' + RE.CHALLENGE_BONUS + ' точки. Всеки месец е ново.</p>') +
             sec('fa-weight-scale', 'Етапи на теглото', '<p>При цел в килограмите: ' + RE.WEIGHT_STEPS.join(', ') + '% от началното тегло. При твърде бързо сваляне (над 1% на седмица) поздрав няма — бързината не е цел.</p>') +
@@ -646,10 +667,7 @@
         // Без ниво името на целта е горе вдясно („Към ниво · Упоритост“) — тук не се повтаря.
         if (!nx) hint = RE.text('top');
         else if (nx.daysNeeded == null) hint = RE.text('behind', { title: nx.title });
-        else {
-            var left = Math.max(1, nx.daysNeeded);
-            hint = RE.text(st.tier ? 'towards' : 'towardsFirst', { n: left, daysWord: left === 1 ? RE.text('dayPlan') : RE.text('daysPlan'), title: nx.title });
-        }
+        else hint = RE.text('towards', { n: Math.max(1, nx.daysNeeded), title: nx.title });
         var pts = srv ? srv.wallet.balance : st.points.earned;
 
         // Хиро: поредицата и нивото → лентата → следващата стъпка. Нищо друго.
@@ -676,7 +694,7 @@
         // Нивата: име → дни и праг → наградата. Един ред описание.
         var cur = st.tier ? st.tier.index : -1;
         // Праговете (%) — зад (i), не на екрана (DESIGN_PRINCIPLES.md, т. 5).
-        var about = RE.text('pathAbout', { list: RE.TIERS.map(function (t) { return t.title + ' — ' + t.days + ' дни над ' + t.minEng + '%'; }).join('; ') });
+        var about = RE.text('pathAbout', { list: RE.TIERS.map(function (t) { return t.title + ' — ' + t.need + ' от ' + t.days + ' дни'; }).join('; ') });
         html += '<div class="rw-card"><h4>' + esc(RE.text('pathTitle')) +
             '<button type="button" class="rw-info" aria-expanded="false" aria-controls="rwPathAbout" aria-label="Как се достига ниво"><i class="fas fa-circle-info"></i></button></h4>' +
             '<p class="rw-about" id="rwPathAbout" hidden>' + esc(about) + '</p>' + RE.TIERS.map(function (t, i) {

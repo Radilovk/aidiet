@@ -86,9 +86,16 @@
   "Как работят наградите": "Cum funcționează recompensele",
   "Ангажираност": "Implicare",
   "Вода": "Apă",
-  "Още {0} поредни дни по плана": "Încă {0} zile la rând după plan",
-  "Още {0} ден по плана": "Încă {0} zi după plan",
-  "Към ниво": "Următorul nivel"
+  "Към ниво": "Următorul nivel",
+  "Още {0} до отключване на наградата": "Încă {0} până la deblocarea recompensei",
+  "Брои се": "Contează",
+  "Не се брои": "Nu contează",
+  "Непълни хранения": "Mese incomplete",
+  "Без сутрешния въпрос": "Lipsește întrebarea de dimineață",
+  "Без вечерния въпрос": "Lipsește întrebarea de seară",
+  "Хранене извън плана": "Masă în afara planului",
+  "Над калориите": "Peste calorii",
+  "Движение над препоръчаното": "Activitate peste cea recomandată"
  },
  "keys": {},
  "patterns": []

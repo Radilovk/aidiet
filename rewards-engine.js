@@ -25,6 +25,7 @@
     var DAY = 86400000;
     var GOOD = 60;            // добър ден, %
     var GREAT = 80;
+    var GREAT_DAY = 90;       // изцяло изпълнен ден — +5 точки
     var SHIELD_EVERY = 14;    // добри дни за един жокер
     var SHIELD_MAX = 2;
     var GRACE_DAYS = 14;      // дни под стъпалото преди слизане
@@ -35,13 +36,13 @@
     // (GRIT10): кратък, на латиница, еднакъв за всички, но важи само за спечелилия го (rewards.js).
     // Текстовете, думите на кодовете и снимките се сменят от админ панела (applyContent).
     var TIERS = [
-        { id: 'start', title: 'Упоритост', days: 14, minEng: 60, bonus: 100, image: 'persist', word: 'BOLD', rewards: [{ kind: 'supplement', pct: 5 }],
+        { id: 'start', title: 'Упоритост', days: 14, need: 10, bonus: 100, image: 'persist', word: 'BOLD', rewards: [{ kind: 'supplement', pct: 5 }],
           moment: 'Показа упоритост', text: '14 дни избираш плана си отново и отново — и в лесните, и в трудните дни.', share: 'Избирам себе си — ден след ден.' },
-        { id: 'steady', title: 'Постоянство', days: 30, minEng: 70, bonus: 200, image: 'consistency', word: 'GRIT', rewards: [{ kind: 'supplement', pct: 10 }],
+        { id: 'steady', title: 'Постоянство', days: 30, need: 24, bonus: 200, image: 'consistency', word: 'GRIT', rewards: [{ kind: 'supplement', pct: 10 }],
           moment: 'Създаде постоянство', text: '30 дни. Това вече не е опит, а твоят ритъм.', share: 'Създадох постоянство.' },
-        { id: 'habit', title: 'Воля', days: 60, minEng: 75, bonus: 300, image: 'resolve', word: 'FLOW', rewards: [{ kind: 'supplement', pct: 15 }, { kind: 'plan', pct: 10 }],
+        { id: 'habit', title: 'Воля', days: 60, need: 50, bonus: 300, image: 'resolve', word: 'FLOW', rewards: [{ kind: 'supplement', pct: 15 }, { kind: 'plan', pct: 10 }],
           moment: 'Волята ти удържа', text: '60 дни, в които думата, дадена на себе си, удържа.', share: 'Дадох си дума — и я удържах.' },
-        { id: 'lifestyle', title: 'Вътрешна сила', days: 90, minEng: 80, bonus: 500, image: 'inner', word: 'CORE', rewards: [{ kind: 'supplement', pct: 20 }, { kind: 'plan', pct: 20 }],
+        { id: 'lifestyle', title: 'Вътрешна сила', days: 90, need: 80, bonus: 500, image: 'inner', word: 'CORE', rewards: [{ kind: 'supplement', pct: 20 }, { kind: 'plan', pct: 20 }],
           moment: 'Промяната вече е отвътре', text: '90 дни постоянство. Вече не те води мотивацията, а това, което изгради.', share: 'Промяната вече е отвътре.' }
     ];
 
@@ -74,9 +75,7 @@
         section: 'Пътят към успеха',
         empty: 'Всеки отметнат ден е стъпка. От първия започва пътят ти.',
         levelLabel: 'Ниво', firstLevel: 'Към ниво',
-        towards: 'Още {n} {daysWord} до „{title}“',
-        towardsFirst: 'Още {n} {daysWord}',
-        daysPlan: 'поредни дни по плана', dayPlan: 'ден по плана',
+        towards: 'Още {n} до отключване на наградата',
         top: 'Най-високото ниво. Пазиш го с всеки ден.',
         behind: 'Към „{title}“ — ритъмът още не стига',
         warn: 'Още {n} {daysWord} под прага и нивото слиза. Един ден по плана връща отброяването.',
@@ -89,7 +88,7 @@
         codesTitle: 'Твоите отстъпки', codesEmpty: 'Първата идва с „Упоритост“.',
         pointsTitle: 'Точки за отстъпка',
         pathTitle: 'Нивата',
-        pathAbout: 'Ниво се достига, когато средната ангажираност за последните дни стигне прага: {list}. Изграденото остава — нивото слиза с едно само след 14 поредни дни под прага.',
+        pathAbout: 'Нивото се отключва с дни, в които всичко е спазено: храненията по плана, сутрешният и вечерният въпрос, без хранения извън плана и без преяждане. {list}. Изграденото остава — нивото слиза с едно само след 14 поредни дни под прага.',
         inviteTitle: 'Покани приятел',
         inviteText: 'Приятелят: −{pct}% за първия план. Ти: −{reward}% и 300 точки.',
         inviteTextApp: 'Приятелят: подарък за начало. Ти: награда и 300 точки.',
@@ -181,10 +180,10 @@
         { id: 'morning', title: '10 добри утрини', text: 'Десет сутрини, в които започваш деня с отговор как е минала нощта.' }
     ];
     var CHALLENGE_TEST = {
-        good: function (d) { return d.eng != null && d.eng >= GOOD; },
+        good: function (d) { return d.ok; },
         steps: function (d) { return d.onTarget; },
         evening: function (d) { return d.eve; },
-        great: function (d) { return d.eng != null && d.eng >= GREAT; },
+        great: function (d) { return d.ok && d.eng >= GREAT; },
         morning: function (d) { return d.morn; }
     };
 
@@ -238,28 +237,85 @@
     function localKey(d) { return d.getFullYear() + '-' + zp(d.getMonth() + 1) + '-' + zp(d.getDate()); }
     function isKey(k) { return /^\d{4}-\d{2}-\d{2}$/.test(k); }
 
+    /**
+     * Ден, който се брои (за поредицата, нивата, точките, жокерите, предизвикателството): ВСИЧКО е спазено —
+     *  - храненията по плана: поне 3/4 отметнати (MEAL_MIN);
+     *  - сутрешният и вечерният въпрос — отговорени (нищо не липсва);
+     *  - без вредни хранения извън плана и без преяждане (над 110% от калориите на плана);
+     *  - без предупреждение за движението (над препоръчаното за целта — policy.maxPct).
+     * Ден с предупреждение не носи награда. Ангажираността (engPct) остава за звездите и седмицата.
+     * Движение (active) — само когато е част от целта (policy.reward): крачките до целта или тренировка.
+     * @param {object} rec  записът на деня
+     * @param {object} score  calcDayScore(rec)
+     * @param {{ reward?: boolean, maxPct?: number|null }} [policy]
+     */
+    var MEAL_MIN = 75;
+    function mealAdh(rec) {
+        var meals = (rec && rec.meals) || {};
+        var free = rec && rec.freeMeal && rec.freeMeal.mealKey;
+        var slots = ((rec && rec.mealSlots && rec.mealSlots.length) ? rec.mealSlots : Object.keys(meals))
+            .filter(function (m) { return m !== free && !/^Напитка|^Свободно хранене/.test(m); });
+        if (!slots.length) return null;
+        return Math.round(slots.filter(function (m) { return meals[m] === true; }).length / slots.length * 100);
+    }
+    function activityRaw(ec) {
+        if (!ec) return null;
+        if (ec.equivSteps > 0 && ec.stepTarget > 0) return Math.round(ec.equivSteps / ec.stepTarget * 100);
+        return ec.activityLevel != null ? Math.round((ec.activityLevel - 1) / 2 * 100) : null;
+    }
+    function dayStatus(rec, score, policy) {
+        var p = policy || {};
+        if (!rec) return { ok: false, why: ['empty'], active: false, tooMuch: false };
+        var why = [];
+        var adh = mealAdh(rec);
+        if (adh == null || adh < MEAL_MIN) why.push('meals');
+        var mc = rec.morningCheck, ec = rec.eveningCheck;
+        if (!(mc && typeof mc.sleptWell === 'boolean')) why.push('morning');
+        if (!(ec && (ec.activityLevel != null || ec.emotionalBalance != null || ec.waterIntake != null))) why.push('evening');
+        if (score && score.junkCount > 0) why.push('junk');
+        if (score && score.excessCalories) why.push('calories');
+        var raw = activityRaw(ec);
+        var tooMuch = p.maxPct != null && raw != null && raw >= p.maxPct;
+        if (tooMuch) why.push('activity');
+        var trained = !!(ec && (ec.trained === 'am' || ec.trained === 'pm'));
+        // Награда за движение — само в ден, който се брои: предупреждение и награда не вървят заедно.
+        var active = !why.length && p.reward !== false && ((raw != null && raw >= 100) || trained);
+        return { ok: !why.length, why: why, active: active, tooMuch: tooMuch, adh: adh };
+    }
+    /** Думите за причината ден да не се брои (за балончето на звездата). */
+    var WHY_TEXT = { meals: 'Непълни хранения', morning: 'Без сутрешния въпрос', evening: 'Без вечерния въпрос', junk: 'Хранене извън плана', calories: 'Над калориите', activity: 'Движение над препоръчаното', empty: 'Няма отбелязване' };
+
+    // Движение (само когато е част от целта): активни дни общо → етапи.
+    var ACTIVE = [
+        { days: 7, bonus: 30, big: false, moment: '7 активни дни', text: 'Движението става част от деня ти.' },
+        { days: 21, bonus: 70, big: true, moment: '21 активни дни', text: 'Тялото вече очаква движението.', share: 'Движението е част от мен.' },
+        { days: 50, bonus: 150, big: true, moment: '50 активни дни', text: 'Петдесет дни в движение.', share: 'Петдесет дни в движение.' }
+    ];
+
     function stepsOnTarget(rec) {
         var ec = rec && rec.eveningCheck;
         return !!(ec && ec.equivSteps > 0 && ec.stepTarget > 0 && ec.equivSteps >= ec.stepTarget);
     }
 
     /** Дните от първия запис до днес: [{ key, eng|null, steps, onTarget }]. */
-    function timeline(gameData, calcDayScore, todayKey) {
+    function timeline(gameData, calcDayScore, todayKey, policy) {
         var keys = Object.keys(gameData || {}).filter(function (k) { return isKey(k) && k <= todayKey; }).sort();
         if (!keys.length) return [];
         var out = [];
         for (var ms = keyToMs(keys[0]), end = keyToMs(todayKey); ms <= end; ms += DAY) {
             var k = msToKey(ms);
             var rec = gameData[k];
-            var eng = null;
+            var eng = null, sc = null;
             if (rec) {
-                try { eng = calcDayScore(rec, todayKey).engPct; } catch (_) { eng = null; }
+                try { sc = calcDayScore(rec, todayKey); eng = sc.engPct; } catch (_) { eng = null; }
                 if (!(eng > 0)) eng = 0;
             }
+            var ds = dayStatus(rec, sc, policy);
             var ec = rec && rec.eveningCheck;
             var mc = rec && rec.morningCheck;
             out.push({
-                key: k, shielded: false, rec: !!rec, eng: eng, steps: ec && ec.steps > 0 ? ec.steps : 0, onTarget: stepsOnTarget(rec),
+                key: k, shielded: false, rec: !!rec, eng: eng, ok: ds.ok, why: ds.why, active: ds.active, tooMuch: ds.tooMuch,
+                steps: ec && ec.steps > 0 ? ec.steps : 0, onTarget: stepsOnTarget(rec),
                 eve: !!(ec && (ec.activityLevel != null || ec.emotionalBalance != null || ec.waterIntake != null)),
                 morn: !!(mc && typeof mc.sleptWell === 'boolean')
             });
@@ -268,8 +324,8 @@
     }
 
     function dayPoints(d) {
-        if (d.eng == null || d.eng < GOOD) return 0;
-        var p = 10 + (d.eng >= GREAT ? 5 : 0) + (d.onTarget ? 5 : 0);
+        if (!d.ok) return 0;
+        var p = 10 + (d.eng >= GREAT_DAY ? 5 : 0) + (d.active ? 5 : 0);
         return Math.min(DAY_POINTS_MAX, p);
     }
 
@@ -286,17 +342,21 @@
     }
 
     /**
-     * Колко поредни дни по плана (по GOOD_DAY_SIM — ~80% ангажираност) още трябват за нивото:
-     * всеки нов ден влиза в прозореца, най-старият излиза. До 120, иначе null.
+     * Нивото: поне need дни, които се броят, в последните days дни.
      */
-    var GOOD_DAY_SIM = 80;
+    function windowCount(tl, i, n) {
+        var c = 0;
+        for (var j = Math.max(0, i - n + 1); j <= i; j++) if (tl[j].ok) c++;
+        return c;
+    }
+    /** Колко още дни, които се броят, трябват за нивото (всеки нов влиза в прозореца, най-старият излиза). */
     function daysToTier(tl, end, t) {
         var win = [];
-        for (var j = Math.max(0, end - t.days + 1); j <= end && j < tl.length; j++) if (!tl[j].shielded) win.push(tl[j].eng || 0);
-        var sum = function () { return win.reduce(function (a, b) { return a + b; }, 0); };
+        for (var j = Math.max(0, end - t.days + 1); j <= end && j < tl.length; j++) win.push(tl[j].ok ? 1 : 0);
+        var cnt = function () { return win.reduce(function (a, b) { return a + b; }, 0); };
         for (var k = 0; k <= 120; k++) {
-            if (win.length >= t.days && sum() / win.length >= t.minEng) return k;
-            win.push(GOOD_DAY_SIM);
+            if (cnt() >= t.need) return k;
+            win.push(1);
             if (win.length > t.days) win.shift();
         }
         return null;
@@ -306,8 +366,7 @@
     function qualifiedTier(tl, i) {
         var q = -1;
         for (var t = 0; t < TIERS.length; t++) {
-            var a = windowAvg(tl, i, TIERS[t].days);
-            if (a == null || a < TIERS[t].minEng) break;
+            if (windowCount(tl, i, TIERS[t].days) < TIERS[t].need) break;
             q = t;
         }
         return q;
@@ -352,7 +411,8 @@
     function compute(input) {
         var inp = /** @type {any} */ (input || {});
         var todayKey = inp.todayKey || localKey(new Date());
-        var tl = timeline(inp.gameData, inp.calcDayScore, todayKey);
+        var policy = inp.activity || { reward: true, maxPct: null };
+        var tl = timeline(inp.gameData, inp.calcDayScore, todayKey, policy);
         var milestones = [];
         var res = {
             todayKey: todayKey, daysTracked: 0, firstKey: tl.length ? tl[0].key : null,
@@ -366,10 +426,10 @@
         };
         if (!tl.length) return res;
 
-        var held = 0, goodCount = 0, streak = 0, best = 0;
+        var held = 0, goodCount = 0, streak = 0, best = 0, activeCount = 0;
         var tierIdx = -1, under = 0, firstReach = {};
         var lastIdx = tl.length - 1;
-        var todayGood = tl[lastIdx].eng != null && tl[lastIdx].eng >= GOOD;
+        var todayGood = tl[lastIdx].ok;
         // Днешният ден влиза в стъпалата, щом вече е добър; иначе се оценява до вчера.
         var evalEnd = todayGood ? lastIdx : lastIdx - 1;
 
@@ -377,7 +437,16 @@
             var d = tl[i];
             var isToday = i === lastIdx;
             if (d.rec) res.daysTracked++;
-            var good = d.eng != null && d.eng >= GOOD;
+            var good = d.ok;
+            if (d.active && i <= evalEnd) {
+                activeCount++;
+                ACTIVE.forEach(function (a) {
+                    if (activeCount === a.days) {
+                        res.points.bonus += a.bonus;
+                        milestones.push({ id: 'active:' + a.days, kind: 'active', key: d.key, days: a.days, big: a.big, bonus: a.bonus });
+                    }
+                });
+            }
             if (good) {
                 goodCount++;
                 streak++;
@@ -427,6 +496,11 @@
             }
         }
 
+        res.activity = {
+            reward: policy.reward !== false, maxPct: policy.maxPct == null ? null : policy.maxPct, days: activeCount,
+            next: policy.reward !== false ? (ACTIVE.filter(function (a) { return a.days > activeCount; })[0] || null) : null,
+            tooMuch: tl.slice(-7).filter(function (x) { return x.tooMuch; }).map(function (x) { return x.key; })
+        };
         res.streak = streak;
         res.bestStreak = best;
         res.records.bestStreak = best;
@@ -444,16 +518,15 @@
         if (nx) {
             var end2 = Math.max(0, evalEnd);
             var have = Math.min(nx.days, end2 + 1);
-            var nAvg = windowAvg(tl, end2, have);
+            var counted = windowCount(tl, end2, nx.days);
             res.next = {
-                id: nx.id, title: nx.title, days: nx.days, minEng: nx.minEng, rewards: nx.rewards,
-                daysHave: have, avg: nAvg,
+                id: nx.id, title: nx.title, days: nx.days, need: nx.need, rewards: nx.rewards,
+                daysHave: have, counted: counted,
                 daysNeeded: daysToTier(tl, end2, nx)
             };
-            // Лентата казва същото като текста под нея („Още N поредни дни по плана“): колко от дните,
-            // нужни за нивото, вече са зад гърба ти. Без връзка с поредицата.
-            var need = res.next.daysNeeded;
-            res.next.progress = need == null ? 0 : Math.round((1 - Math.min(1, need / nx.days)) * 100);
+            // Лентата казва същото като текста под нея („Още N до отключване на наградата“).
+            var left = res.next.daysNeeded;
+            res.next.progress = left == null ? 0 : Math.round((1 - Math.min(1, left / nx.need)) * 100);
         }
 
         // Рекорди: най-добрата седмица (средна ангажираност за 7 дни), най-много крачки.
@@ -487,7 +560,7 @@
             var prevAvg = from >= 7 ? windowAvg(tl, from - 1, 7) : null;
             res.week = {
                 startKey: wk[0].key, endKey: wEnd, days: wk.length, tracked: tracked.length,
-                good: wk.filter(function (x) { return x.eng != null && x.eng >= GOOD; }).length,
+                good: wk.filter(function (x) { return x.ok; }).length,
                 avg: avgW, prevAvg: prevAvg, delta: avgW != null && prevAvg != null ? avgW - prevAvg : null,
                 points: wpts, stepsAvg: stepN ? Math.round(stepSum / stepN) : null, stepDays: wk.filter(function (x) { return x.onTarget; }).length,
                 best: bestDay && bestDay.eng > 0 ? { key: bestDay.key, eng: bestDay.eng } : null,
@@ -533,6 +606,7 @@
     var api = {
         GOOD: GOOD, SHIELD_EVERY: SHIELD_EVERY, SHIELD_MAX: SHIELD_MAX, GRACE_DAYS: GRACE_DAYS,
         TIERS: TIERS, STREAKS: STREAKS, WEIGHT_STEPS: WEIGHT_STEPS, OFFERS: OFFERS, FACTS: FACTS,
+        ACTIVE: ACTIVE, MEAL_MIN: MEAL_MIN, GREAT_DAY: GREAT_DAY, dayStatus: dayStatus, WHY_TEXT: WHY_TEXT,
         compute: compute, tierById: tierById, streakOf: streakOf, offerById: offerById, weightProgress: weightProgress,
         WORDS: WORDS, TEXTS: TEXTS, THEMES: THEMES, codeFor: codeFor, normCode: normCode, text: text,
         applyContent: applyContent, imageFor: imageFor,

@@ -86,9 +86,16 @@
   "Как работят наградите": "So funktionieren die Belohnungen",
   "Ангажираност": "Engagement",
   "Вода": "Wasser",
-  "Още {0} поредни дни по плана": "Noch {0} Tage in Folge nach Plan",
-  "Още {0} ден по плана": "Noch {0} Tag nach Plan",
-  "Към ниво": "Nächste Stufe"
+  "Към ниво": "Nächste Stufe",
+  "Още {0} до отключване на наградата": "Noch {0} bis zur Belohnung",
+  "Брои се": "Zählt",
+  "Не се брои": "Zählt nicht",
+  "Непълни хранения": "Mahlzeiten unvollständig",
+  "Без сутрешния въпрос": "Morgencheck fehlt",
+  "Без вечерния въпрос": "Abendcheck fehlt",
+  "Хранене извън плана": "Essen außerhalb des Plans",
+  "Над калориите": "Über den Kalorien",
+  "Движение над препоръчаното": "Bewegung über der Empfehlung"
  },
  "keys": {},
  "patterns": []

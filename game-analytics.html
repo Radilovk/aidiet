@@ -918,14 +918,14 @@
         }
     </script>
 
-    <script src="./game-scoring.js?v=2"></script>
+    <script src="./game-scoring.js?v=3"></script>
     <script src="./goal-model.js"></script>
-    <script src="./goal-focus.js?v=3"></script>
+    <script src="./goal-focus.js?v=4"></script>
     <script src="./progress-index.js?v=1"></script>
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
-    <script src="./rewards-engine.js?v=11"></script>
-    <script src="./rewards-ui.js?v=14"></script>
+    <script src="./rewards-engine.js?v=12"></script>
+    <script src="./rewards-ui.js?v=15"></script>
     <script src="./widget-layout.js?v=3"></script>
     <script>
     (function () {
@@ -1339,6 +1339,14 @@
                 return s.score !== null && s.score < 2;
             });
             if(missedLast2.length>=2) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Последните 2 дни имаш ниска ангажираност — провери дали имаш нужда от промяна в плана.');
+            // Движение над препоръчаното за целта (кърмене, бременност, покачване) — предупреждение, не награда.
+            try {
+                var POLa = window.NutriPlanGoalFocus && window.NutriPlanGoalFocus.activityPolicy(JSON.parse(localStorage.getItem('userData') || '{}'));
+                if (POLa && POLa.maxPct) {
+                    var tooMuchDays = days.filter(function(d){ var r = GameScoring.activityRawPctOf(d.rec && d.rec.eveningCheck); return r != null && r >= POLa.maxPct; }).length;
+                    if (tooMuchDays >= 1) alerts.unshift('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Движението ' + (tooMuchDays === 1 ? 'в един ден' : 'в ' + tooMuchDays + ' дни') + ' е над препоръчаното за целта ти. Повече не е по-добре — тези дни не носят награда.');
+                }
+            } catch (_) {}
             if(junkCount7>=4) alerts.push('<i class="fas fa-circle-exclamation" style="color:#ef4444"></i> Тази седмица има доста вредни хранения. Опитай да ги намалиш до едно-две.');
             if(ANS.water!=null&&ANS.water<40) alerts.push('<i class="fas fa-droplet" style="color:#06B6D4"></i> Хидратацията ти е ниска тази седмица — достатъчният прием на вода подпомага метаболизма и енергията.');
             if(ANS.sleep!=null&&ANS.sleep<30) alerts.push('<i class="fas fa-triangle-exclamation" style="color:#f59e0b"></i> Качеството на съня е ниско тази седмица — това пряко влияе на метаболизма и избора на храна.');
@@ -1573,13 +1581,16 @@
             // ── Build HTML ────────────────────────────────────────────────────
             var html = '';
 
-            // Седмицата — 7 звезди, по една за ден. Запълването и цветът следват ангажираността на деня
-            // (game-scoring.js → engPct): злато — добър ден (≥ 60%, същата мярка като плана и наградите),
-            // оранжево — среден, червено — иска внимание. Мекият режим (persona.noScores) — само злато, без червено.
+            // Седмицата — 7 звезди, по една за ден. Запълването — по ангажираността на деня (game-scoring.js →
+            // engPct); злато — ден, който се брои (всичко спазено), оранжево — частично, червено — слабо.
+            // Мекият режим (persona.noScores) — само злато, без червено.
             var softView = false;
             try { softView = !!(window.NutriPlanPersona && window.NutriPlanPersona.current().noScores); } catch (_) {}
             var STAR_PATH = 'M12 2.6l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z';
             var DAY_SHORT = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
+            var RE0 = window.RewardsEngine;
+            var POL = null;
+            try { POL = window.NutriPlanGoalFocus && window.NutriPlanGoalFocus.activityPolicy(JSON.parse(localStorage.getItem('userData') || '{}')); } catch (_) {}
             var starsHtml = starDays.map(function(d){
                 var dt = new Date(d.key + 'T12:00:00');
                 var label = DAY_SHORT[dt.getDay()];
@@ -1587,8 +1598,12 @@
                 var eng = d.rec ? (calcDayScore(d.rec).engPct || 0) : 0;
                 // Запълване на 4 степени: цяла (≥ 85%), три четвърти (добър ден), половин, четвърт.
                 var fill = !d.rec || eng <= 0 ? 0 : eng >= 85 ? 100 : eng >= 60 ? 75 : eng >= 35 ? 50 : 25;
-                var tone = eng >= 60 ? 'gold' : softView ? 'gold' : isToday ? 'open' : eng >= 35 ? 'mid' : 'low';
-                var tip = !d.rec ? 'Няма отбелязване' : (isToday && eng < 60 ? 'Денят тече' : eng >= 60 ? 'По плана' : eng >= 35 ? 'Частично' : 'Слабо') + ' · ' + eng + '%';
+                // Злато — само ден, който се брои (всичко спазено: rewards-engine.js → dayStatus). Иначе
+                // цветът е по ангажираността, а балончето казва какво липсва.
+                var st = d.rec && RE0 ? RE0.dayStatus(d.rec, calcDayScore(d.rec), POL) : { ok: eng >= 60, why: [] };
+                var tone = st.ok ? 'gold' : softView ? 'gold' : isToday ? 'open' : eng >= 35 ? 'mid' : 'low';
+                var whyText = st.why && st.why.length && RE0 ? RE0.WHY_TEXT[st.why[0]] : '';
+                var tip = !d.rec ? 'Няма отбелязване' : (st.ok ? 'Брои се' : isToday ? 'Денят тече' : whyText || 'Не се брои') + ' · ' + eng + '%';
                 return '<div class="game-day-col ga-star-col" data-tip="' + label + ' · ' + tip + '" tabindex="0" role="button" aria-label="' + label + ': ' + tip + '">' +
                     '<span class="ga-star ga-star--' + tone + (isToday ? ' is-today' : '') + '" style="--fill:' + fill + '%">' +
                     '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="o" d="' + STAR_PATH + '"/></svg>' +

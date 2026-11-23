@@ -349,14 +349,17 @@
      * така числото е едно и също в плана, Напредък и наградите, по всяко време на деня.
      * @returns {{ good: number, days: Array<{ key: string, good: boolean }> }}
      */
-    function goodDaysOf(allData, todayKey, n) {
+    function goodDaysOf(allData, todayKey, n, policy) {
         n = n || 7;
         var out = [], good = 0;
+        // Ден, който се брои — правилото на наградите (rewards-engine.js → dayStatus), ако е заредено.
+        var RE = (typeof window !== 'undefined' && window.RewardsEngine) || null;
         for (var i = n - 1; i >= 0; i--) {
             var d = new Date();
             d.setDate(d.getDate() - i);
             var k = dateKey(d), rec = (allData || {})[k];
-            var ok = !!rec && (calcDayScore(rec, todayKey).engPct || 0) >= GOOD_DAY_PCT;
+            var sc = rec ? calcDayScore(rec, todayKey) : null;
+            var ok = !!rec && (RE && RE.dayStatus ? RE.dayStatus(rec, sc, policy).ok : (sc.engPct || 0) >= GOOD_DAY_PCT);
             if (ok) good++;
             out.push({ key: k, good: ok });
         }

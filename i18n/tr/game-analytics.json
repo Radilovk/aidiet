@@ -86,9 +86,16 @@
   "Как работят наградите": "Ödüller nasıl çalışır",
   "Ангажираност": "Bağlılık",
   "Вода": "Su",
-  "Още {0} поредни дни по плана": "Üst üste {0} gün daha plana uygun",
-  "Още {0} ден по плана": "{0} gün daha plana uygun",
-  "Към ниво": "Sonraki seviye"
+  "Към ниво": "Sonraki seviye",
+  "Още {0} до отключване на наградата": "Ödülün açılmasına {0} kaldı",
+  "Брои се": "Sayılır",
+  "Не се брои": "Sayılmaz",
+  "Непълни хранения": "Öğünler eksik",
+  "Без сутрешния въпрос": "Sabah sorusu eksik",
+  "Без вечерния въпрос": "Akşam sorusu eksik",
+  "Хранене извън плана": "Plan dışı öğün",
+  "Над калориите": "Kalorinin üstünde",
+  "Движение над препоръчаното": "Önerilenin üzerinde hareket"
  },
  "keys": {},
  "patterns": []
