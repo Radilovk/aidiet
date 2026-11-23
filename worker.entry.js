@@ -11990,8 +11990,34 @@ function serializeEmoeatProfile(profile) {
   const list = value => (Array.isArray(value) ? value.slice(0, 8) : []);
 
   const lines = [];
+  const v3 = profile.v === 3;
   const intensity = label(profile.intensity, 12);
-  if (intensity) lines.push(`Колко често храната поема чувства: ${intensity}`);
+  if (intensity) lines.push(v3
+    ? `Склонност храната да поема чувствата (изведена от чертите, не от въпроси за храна): ${intensity}`
+    : `Колко често храната поема чувства: ${intensity}`);
+
+  // v3: тестът не пита за храна — портретът е от обикновените дни; контекстът нагласява тона.
+  if (v3) {
+    const portrait = list(profile.portrait).map(t => label(t, 40)).filter(Boolean);
+    if (portrait.length) lines.push('Портрет (най-изразените черти): ' + portrait.join(', '));
+    const traits = (Array.isArray(profile.traits) ? profile.traits.slice(0, 14) : [])
+      .filter(t => t && t.name && t.level && t.level !== 'Слабо')
+      .map(t => `${label(t.name, 40)} (${label(t.level, 12)})`);
+    if (traits.length) lines.push('Черти: ' + traits.join(', '));
+    const c = profile.context && typeof profile.context === 'object' ? profile.context : {};
+    const ctx = [
+      c.sex === 'f' ? 'жена' : c.sex === 'm' ? 'мъж' : '',
+      c.age ? `възраст ${label(c.age, 8)}` : '',
+      c.teen ? 'НЕПЪЛНОЛЕТЕН' : '',
+      c.occupation ? `дни: ${label(c.occupation, 16)}` : '',
+      c.household ? `живее: ${label(c.household, 16)}` : '',
+      c.culture ? `израснал/а: ${label(c.culture, 16)}` : '',
+      c.abroad ? 'живее в чужбина' : ''
+    ].filter(Boolean);
+    if (ctx.length) lines.push('Контекст: ' + ctx.join(', '));
+    const safety = label(profile.safety, 16);
+    if (safety && safety !== 'none') lines.push(`Безопасност: ${safety}`);
+  }
 
   const archetype = profile.archetype && typeof profile.archetype === 'object' ? profile.archetype : null;
   if (archetype && archetype.name) {

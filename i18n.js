@@ -20,6 +20,8 @@
  * API: window.EatologixI18n = { lang, supported, names, setLang(code), t(bgText), apply(root), ready }.
  *      Елементи <select data-lang-picker> (или data-lang-picker="short") стават избор на език.
  *      data-i18n-skip — поддървото не се превежда (имена, въведен текст и т.н.).
+ *      data-i18n-dict — поддървото се превежда само от речника, без резервния AI превод
+ *                       (въпросите на тест: един и същ текст трябва да е еднакъв за всички).
  */
 /* web-only:start — препращането е само за сайта; сглобяването на APK го маха (build-apk.yml) */
 // Публичният адрес на Nutriin е nutriin.app (EmoEat — emoeat.app). biocode.website е само
@@ -246,12 +248,16 @@
     var META_NAMES = /^(description|apple-mobile-web-app-title|twitter:title|twitter:description|og:title|og:description)$/;
     var SKIP = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1, CODE: 1, PRE: 1, svg: 1, SVG: 1, IFRAME: 1 };
 
+    function dictOnly(el) {
+        return !!(el && el.closest && el.closest('[data-i18n-dict]'));
+    }
     function doElement(el) {
         var key = el.getAttribute('data-i18n');
+        var q = !dictOnly(el);
         if (key && dict.keys[key] != null) { if (el.textContent !== dict.keys[key]) el.textContent = dict.keys[key]; return; }
         for (var i = 0; i < ATTRS.length; i++) {
             var v = el.getAttribute(ATTRS[i]);
-            if (v) { var t = translate(v, true); if (t !== v) el.setAttribute(ATTRS[i], t); }
+            if (v) { var t = translate(v, q); if (t !== v) el.setAttribute(ATTRS[i], t); }
         }
         if (el.tagName === 'META' && META_NAMES.test(el.getAttribute('name') || el.getAttribute('property') || '')) {
             var c = el.getAttribute('content'); var tc = translate(c, false);
@@ -270,7 +276,7 @@
         if (node.nodeType === 3) {
             var p = node.parentNode;
             if (!p || skipped(p)) return;
-            var t = translate(node.nodeValue, true);
+            var t = translate(node.nodeValue, !dictOnly(p));
             if (t !== node.nodeValue) node.nodeValue = t;
             return;
         }
