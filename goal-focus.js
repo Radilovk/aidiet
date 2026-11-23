@@ -425,17 +425,77 @@
      * Бременност и кърмене / възстановяване след раждане: движението е за здраве, не за разход — над 130–140%
      * е твърде много; при покачване на мускулна маса излишните крачки изяждат излишъка — над 160%.
      */
+    function lactatingOf(ud) { return ud.clinicalProtocol === 'postpartum_lactation' && /^Кърмя/.test(String(ud.postpartumStatus || '')); }
     function activityPolicy(userData) {
         var ud = userData || {};
         var p = profileOf(ud);
         var pregnant = ud.clinicalProtocol === 'postpartum_lactation' && /^Бременна/.test(String(ud.postpartumStatus || ''));
         if (pregnant) return { reward: false, maxPct: 130 };
-        if (p.group === 'lose_soft') return { reward: false, maxPct: 140 };
+        // кърмене — по профила, при всяко тегло (групата е „кърмене“ само при излишък)
+        if (p.group === 'lose_soft' || lactatingOf(ud)) return { reward: false, maxPct: 140 };
         if (p.group === 'gain') return { reward: false, maxPct: 160 };
         return { reward: true, maxPct: null };
     }
 
+    /**
+     * Личните тежести за спазването на деня (game-scoring.js → dayAdherence): кое колко е важно ЗА ТОЗИ човек.
+     * Тръгва от общата основа, добавя точки по водещите за целта показатели (goal-model.js → lead, по реда им)
+     * и по отговорите от въпросника (сън, стрес, хранене от напрежение, преяждане, вода, движение, кърмене,
+     * захар, кръвно), после всичко се свежда до 100. reasons — защо нещо тежи повече (за обяснението).
+     * @returns {{ weights: Record<string, number>, reasons: Array<{ k: string, text: string }> }}
+     */
+    var ADH_BASE = { meal: 35, cal: 15, junk: 10, act: 12, sleep: 10, water: 10, mood: 8 };
+    var ADH_LEAD = {
+        weight: { cal: 8, meal: 4 }, waist: { cal: 6, junk: 4 }, composition: { meal: 6, act: 4 }, workouts: { act: 8 },
+        energy: { sleep: 6, meal: 3 }, sleep: { sleep: 8 }, glucose: { junk: 8, cal: 4 }, bp: { act: 5, junk: 4 },
+        digestion: { meal: 4, water: 4 }, water: { water: 8 }
+    };
+    var LEAD_WHY = { weight: 'целта е в килограмите', waist: 'целта е талията', composition: 'целта е съставът на тялото', workouts: 'тренировките са част от целта',
+        energy: 'целта е енергията', sleep: 'сънят е част от целта', glucose: 'кръвната захар', bp: 'кръвното', digestion: 'храносмилането', water: 'водата е част от целта' };
+    function adherenceWeights(userData) {
+        var ud = userData || {};
+        var p = profileOf(ud);
+        var w = {}; Object.keys(ADH_BASE).forEach(function (k) { w[k] = ADH_BASE[k]; });
+        var boost = {};   // точки над основата, по част — за подредбата на причините
+        var why = {};
+        var add = function (k, pts, text) { w[k] += pts; boost[k] = (boost[k] || 0) + pts; if (text && (!why[k] || pts >= why[k].pts)) why[k] = { pts: pts, text: text }; };
+        (p.lead || []).slice(0, 3).forEach(function (m, i) {
+            var f = [1, 0.7, 0.5][i], t = ADH_LEAD[m];
+            if (t) Object.keys(t).forEach(function (k) { add(k, t[k] * f, LEAD_WHY[m]); });
+        });
+        var has = function (v, re) { return re.test(list(v).join(' ')); };
+        if (/Под 5/.test(ud.sleepHours || '')) add('sleep', 12, 'спиш под 5 часа');
+        else if (/5–6/.test(ud.sleepHours || '')) add('sleep', 8, 'спиш 5–6 часа');
+        if (ud.sleepInterrupt === 'Да') add('sleep', 4, 'сънят ти прекъсва');
+        if (ud.stressLevel === 'Високо') { add('mood', 10, 'високо ниво на стрес'); add('sleep', 3); }
+        else if (ud.stressLevel === 'Средно') add('mood', 3, 'средно ниво на стрес');
+        if (has(ud.foodTriggers, /Напрежение|Скука|Тъга/)) { add('mood', 5, 'ядеш при напрежение, скука или тъга'); add('junk', 3); }
+        if (/Постоянно|Често/.test(ud.overeatingFrequency || '')) { add('cal', 5, 'често ядеш повече от планираното'); add('junk', 5, 'често ядеш повече от планираното'); }
+        if (list(ud.foodCravings).filter(Boolean).length) add('junk', 3, 'имаш желание за сладко или тестено');
+        if (/Често|Много често/.test(ud.drinksSweet || '')) add('junk', 4, 'често пиеш сладки напитки');
+        if (/под 1 л/.test(ud.waterIntake || '')) add('water', 8, 'пиеш под 1 л вода');
+        else if (/1–1\.5 л/.test(ud.waterIntake || '')) add('water', 4, 'пиеш под 1,5 л вода');
+        var pol = activityPolicy(ud);
+        if (pol.reward && ud.dailyActivityLevel === 'Ниско' && !/Висока|Средна/.test(ud.sportActivity || '')) add('act', 6, 'денят ти е предимно седящ');
+        if (p.glucose) { add('junk', 6, 'кръвната захар'); add('cal', 4); }
+        if (p.bp) add('act', 4, 'кръвното');
+        if (p.group === 'lose_soft' || lactatingOf(ud)) { add('water', 8, 'кърменето иска повече течности'); add('meal', 5); }
+        if (!pol.reward) w.act = w.act * 0.5;   // движението е за здраве, не за разход
+        // Свеждане до 100 (най-малко 4 на част), с най-голям остатък.
+        Object.keys(w).forEach(function (k) { w[k] = Math.max(4, w[k]); });
+        var sum = Object.keys(w).reduce(function (a, k) { return a + w[k]; }, 0);
+        var raw = Object.keys(w).map(function (k) { var v = w[k] / sum * 100; return { k: k, v: Math.floor(v), r: v - Math.floor(v) }; });
+        var left = 100 - raw.reduce(function (a, x) { return a + x.v; }, 0);
+        raw.sort(function (a, b) { return b.r - a.r; }).forEach(function (x, i) { if (i < left) x.v++; });
+        var out = {}; raw.forEach(function (x) { out[x.k] = x.v; });
+        var reasons = Object.keys(why).filter(function (k) { return (boost[k] || 0) >= 4; })
+            .sort(function (a, b) { return (boost[b] || 0) - (boost[a] || 0); })
+            .map(function (k) { return { k: k, text: why[k].text }; });
+        return { weights: out, reasons: reasons };
+    }
+
     var api = {
+        adherenceWeights: adherenceWeights,
         activityPolicy: activityPolicy,
         profileOf: profileOf,
         /** Дневната цел за крачки по профила и целта. */

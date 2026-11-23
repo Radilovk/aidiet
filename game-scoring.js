@@ -376,7 +376,8 @@
         o = o || {};
         var todayKey = o.todayKey || dateKey(new Date());
         var key = o.key || rec.date || todayKey;
-        var W = ADH_WEIGHTS[o.group] || ADH_WEIGHTS.base;
+        // Личните тежести (goal-focus.js → adherenceWeights), иначе — по групата на целта.
+        var W = o.weights || ADH_WEIGHTS[o.group] || ADH_WEIGHTS.base;
         var ec = rec.eveningCheck || null, mc = rec.morningCheck || null;
         var isToday = key >= todayKey;
         var eveDone = !!(ec && (ec.activityLevel != null || ec.emotionalBalance != null || ec.waterIntake != null));

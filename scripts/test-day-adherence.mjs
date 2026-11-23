@@ -36,5 +36,21 @@ const nurse = GS.dayAdherence(day({ eveningCheck: { waterIntake: true, emotional
 ok(nurse.parts.some((p) => p.k === 'act' && p.got === 0 && /над препоръчаното/.test(p.text)), 'кърмене: над прага — 0 и предупреждение');
 // тежестите по целта — сборът е 100
 Object.entries(GS.ADH_WEIGHTS).forEach(([g, w]) => ok(Object.values(w).reduce((a, b) => a + b, 0) === 100, `тежести „${g}“ — сбор 100`));
+// Личните тежести (goal-focus.js → adherenceWeights): по целта и профила, сбор 100
+require('../goal-model.js');
+const GF = require('../goal-focus.js');
+const W = (ud) => GF.adherenceWeights(ud).weights;
+const sum = (w) => Object.values(w).reduce((a, b) => a + b, 0);
+const stressed = W({ gender: 'Жена', age: '40', height: '165', weight: '90', goal: 'Отслабване', sleepHours: '5–6', stressLevel: 'Високо', foodTriggers: ['Напрежение'] });
+const calm = W({ gender: 'Жена', age: '40', height: '165', weight: '90', goal: 'Отслабване', sleepHours: '7–8', stressLevel: 'Ниско' });
+ok(sum(stressed) === 100 && sum(calm) === 100, 'личните тежести — сбор 100');
+ok(stressed.sleep > calm.sleep && stressed.mood > calm.mood, `стрес и малко сън → сънят и емоциите тежат повече (${stressed.sleep}/${calm.sleep}, ${stressed.mood}/${calm.mood})`);
+const diab = W({ gender: 'Жена', age: '55', height: '160', weight: '82', goal: 'Подобряване на здравето', medicalConditions: ['Диабет тип 2'] });
+ok(diab.junk > calm.junk, 'диабет → храненията извън плана тежат повече');
+const nurseW = W({ gender: 'Жена', age: '30', height: '165', weight: '68', goal: 'Възстановяване на тялото след бременност', clinicalProtocol: 'postpartum_lactation', postpartumStatus: 'Кърмя' });
+ok(nurseW.water > calm.water && nurseW.act < calm.act, 'кърмене → водата нагоре, движението надолу');
+// същият ден — различен процент при различни тежести
+const sleepyDay = day({ morningCheck: { sleptWell: false, level: 'bad' } });
+ok(pct(sleepyDay, { weights: stressed }) < pct(sleepyDay, { weights: calm }), 'лош сън сваля повече, когато сънят е важен за човека');
 console.log(`=== day adherence: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);
