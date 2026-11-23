@@ -2222,9 +2222,9 @@
 
         // Резултатът: първо портретът (какво се вижда от обикновените дни), после мостът към
         // храната като предположение, после планът. Човекът сам разпознава връзката.
-        // Снимките (Pixabay, свободен лиценз — същите като в наградите): по модела.
-        const RX_PHOTO = { 'Утехата': 'invite', 'Паузата': 'resolve', 'Махалото': 'persist', 'Редът': 'consistency',
-            'Строгият глас': 'habit', 'Искрата': 'share', 'Импулсът': 'weight', 'Спокоен апетит': 'inner' };
+        // Снимките (Pixabay, свободен лиценз; data/emoeat-images.json): по смисъла на модела.
+        const RX_PHOTO = { 'Утехата': 'comfort', 'Паузата': 'pause', 'Махалото': 'pendulum', 'Редът': 'order',
+            'Строгият глас': 'critic', 'Искрата': 'spark', 'Импулсът': 'impulse', 'Спокоен апетит': 'calm' };
 
         function renderResults(aiRaw) {
             const ai = isValidAi(aiRaw) ? aiRaw : null;
@@ -2390,8 +2390,8 @@
                 </details>`;
 
             const photoOf = n => './brand/emoeat/' + n + '.webp';
-            const heroPhoto = portraitOnly ? 'resolve' : (RX_PHOTO[base.name] || 'inner');
-            const needPhoto = heroPhoto === 'resolve' ? 'persist' : 'resolve';
+            const heroPhoto = portraitOnly ? 'portrait' : (RX_PHOTO[base.name] || 'calm');
+            const needPhoto = 'need';
             const resultsScreen = document.getElementById('resultsScreen');
             resultsScreen.innerHTML = `
                 <div class="rx" style="--accent:${base.accent}">
