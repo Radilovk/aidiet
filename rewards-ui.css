@@ -161,11 +161,9 @@
     animation: rwGlow 2.4s ease-in-out infinite;
 }
 .rw-moment-mark img { width: 70%; height: 70%; filter: drop-shadow(0 6px 18px rgba(160,245,0,.35)); }
-.rw-moment-kicker { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ds-lime, #A0F500); }
 .rw-moment-big { margin: 4px 0 2px; font-size: clamp(40px, 7.5vh, 56px); line-height: 1; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .rw-moment h3 { margin: 6px 0 8px; font-size: clamp(19px, 3.2vh, 22px); line-height: 1.25; font-weight: 800; }
 .rw-moment p { margin: 0 auto; max-width: 30em; font-size: 15px; line-height: 1.5; color: rgba(255,255,255,.86); }
-.rw-moment-fact { margin-top: 12px !important; font-size: 13px !important; color: rgba(255,255,255,.7) !important; }
 .rw-moment-gift {
     display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 8px 14px; border-radius: 99px;
     background: var(--ds-lime, #A0F500); color: var(--ds-on-lime, #0B2A12); font-size: 14px; font-weight: 800;

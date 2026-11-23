@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <script src="./i18n.js?v=20261123a"></script>
+    <script src="./i18n.js?v=20261123b"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Твоят комплексен 7-дневен план за здраве - хранене, психология, добавки и активности. Създаден от екип специалисти с AI анализ.">
     <meta name="color-scheme" content="light dark">
@@ -3994,7 +3994,7 @@
     </style>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
-    <link rel="stylesheet" href="./rewards-ui.css?v=7">
+    <link rel="stylesheet" href="./rewards-ui.css?v=8">
     <script src="./app-ui.js" defer></script>
     <div id="planAuthOverlay" style="display:none">
         <div class="pa-spinner"></div>
@@ -4013,7 +4013,7 @@
 
     <script src="./game-scoring.js"></script>
     <script src="./rewards-engine.js?v=6"></script>
-    <script src="./rewards-ui.js?v=7"></script>
+    <script src="./rewards-ui.js?v=8"></script>
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
@@ -10456,7 +10456,9 @@
         // проверка, храненията от плана, вечерна проверка. Пълна лента значи
         // „денят е оценен“, не „денят е добър“ — резултатът е звездите.
         var EVENING_UNLOCK_HOUR = 18;
-        var STREAK_MILESTONES = [3, 7, 14, 30];
+        // Добър ден — една мярка навсякъде: ангажираност ≥ 60% (rewards-engine.js → GOOD).
+        var GOOD_DAY_PCT = (window.RewardsEngine && window.RewardsEngine.GOOD) || 60;
+        function isGoodDay(ds) { return !!ds && (ds.engPct || 0) >= GOOD_DAY_PCT; }
 
         function dayStripModel(dayKey, rec, ds) {
             var GS = window.GameScoring;
@@ -10928,20 +10930,25 @@
         function softMotivation() {
             try { var P = window.NutriPlanPersona; var p = P ? P.current() : null; return !!(p && p.noScores); } catch (_) { return false; }
         }
-        /** Дни с поне 3 звезди от последните 7 (вкл. днес) — серия, която един лош ден не нулира. */
+        /** Добри дни от последните 7 (вкл. днес) — серия, която един лош ден не нулира. */
         function goodDaysOf7() {
             var GS = window.GameScoring, all = getGameData() || {}, n = 0;
             for (var i = 0; i < 7; i++) {
                 var d = new Date(); d.setDate(d.getDate() - i);
                 var rec = all[GS.dateKey(d)];
                 var ds = rec ? GS.calcDayScore(rec) : null;
-                if (ds && ds.score != null && ds.score >= 3) n++;
+                if (isGoodDay(ds)) n++;
             }
             return n;
         }
 
         function calcStreak() {
-            // Поредни отлични дни (4+ звезди) — като в анализа и на сървъра; до 30 дни назад.
+            // Една поредица навсякъде — същата като в Напредък: поредни добри дни
+            // (ангажираност ≥ 60%), жокерът я пази (rewards-engine.js).
+            try {
+                var st = window.NutriPlanRewards && window.NutriPlanRewards.status();
+                if (st) return st.streak || 0;
+            } catch (_) {}
             var GS = window.GameScoring;
             return GS.streakOf(getGameData(), GS.dateKey(new Date()), 30);
         }
@@ -11925,111 +11932,46 @@
             });
         }
 
-        // ── Day-end modal ─────────────────────────────────────────────────────
-        var DAY_LEVELS = [
-            { min:5, iconClass:'fas fa-trophy', iconColor:'#fbbf24', title:'Перфектен резултат!',  color:'#fbbf24',
-              msg:'Планът е изпълнен 100%! Ти си шампион. Резултатите ще дойдат!', confetti:true  },
-            { min:4, iconClass:'fas fa-award',  iconColor:'#10b981', title:'Отличен резултат!',    color:'#10b981',
-              msg:'Браво! Почти перфектно. Малко крачки = голям успех!', confetti:true  },
-            { min:3, iconClass:'fas fa-thumbs-up', iconColor:'#03939C', title:'Задоволителен резултат!',   color:'#03939C',
-              msg:'Добре се справи. Утре може дори по-добре!', confetti:false },
-            { min:2, iconClass:'fas fa-dumbbell', iconColor:'#f59e0b', title:'Може по-добре', color:'#f59e0b',
-              msg:'Трудно е понякога, но не се отказвай. Всеки ден е нов шанс!', confetti:false },
-            { min:0, iconClass:'fas fa-seedling', iconColor:'#6366f1', title:'Нов старт утре!', color:'#6366f1',
-              msg:'Днес беше предизвикателно. Малките промени правят голяма разлика!', confetti:false }
-        ];
-
+        // ── Краят на деня ─────────────────────────────────────────────────────
+        /**
+         * След вечерната отметка говори един глас:
+         *  - етап или ниво → само тържеството на наградите (rewards-ui.js), тук — нищо;
+         *  - добър ден → кратко известие отдолу, без конфети;
+         *  - слаб ден → спокоен прозорец, без оценка и без укор.
+         */
         function showDayEndModal(ds) {
             var old = document.getElementById('gameDayEndModal');
             if (old) old.remove();
-            var lv = DAY_LEVELS[DAY_LEVELS.length-1];
-            for (var i=0; i<DAY_LEVELS.length; i++) {
-                if ((ds.score||0) >= DAY_LEVELS[i].min) { lv = DAY_LEVELS[i]; break; }
-            }
-            // Мек режим: без оценка, без степени „добре/зле“, без конфети за резултата.
+            var R = window.NutriPlanRewards;
+            var waiting = '';
+            try { waiting = R && R.pending ? R.pending() : ''; } catch (_) {}
+            if (waiting) return;
             var soft = softMotivation();
-            if (soft) {
-                lv = (ds.score || 0) >= 3
-                    ? { iconClass: 'fas fa-seedling', iconColor: '#10b981', title: 'Денят приключи', confetti: false,
-                        msg: 'Хубав ден. Утре — пак така, без да е нужно повече.' }
-                    : { iconClass: 'fas fa-seedling', iconColor: '#6366f1', title: 'Денят приключи', confetti: false,
-                        msg: 'Утре е обичаен ден. Без компенсиране — просто следващото хранене.' };
+            var hp = window.NutriPlanHaptic && window.NutriPlanHaptic.notify;
+            if (isGoodDay(ds)) {
+                var streak = soft ? 0 : calcStreak();
+                var word = (ds.engPct || 0) >= 80 && !soft ? 'Силен ден' : 'Добър ден';
+                showEncouragement({ text: '<i class="fas fa-seedling" aria-hidden="true"></i> ' + word + (streak >= 2 ? ' · ' + streak + ' дни поред' : '') + '.', type: 'good' });
+                if (hp) hp('success');
+                return;
             }
             var overlay = document.createElement('div');
             overlay.id = 'gameDayEndModal';
             overlay.className = 'game-modal-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
             overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
-
             var modal = document.createElement('div');
             modal.className = 'game-modal';
-
-            if (lv.confetti) {
-                var cf = document.createElement('div');
-                cf.className = 'game-confetti';
-                makeConfetti(cf, 28);
-                modal.appendChild(cf);
-            }
-
-            var emoEl = document.createElement('span');
-            emoEl.className = 'game-modal-emoji';
-            emoEl.innerHTML = '<i class="'+lv.iconClass+'" style="color:'+lv.iconColor+'"></i>';
-            modal.appendChild(emoEl);
-
-            var titleEl = document.createElement('div');
-            titleEl.className = 'game-modal-title';
-            titleEl.textContent = lv.title;
-            modal.appendChild(titleEl);
-
-            var scoreEl = document.createElement('div');
-            scoreEl.className = 'game-modal-score game-modal-score--result';
-            scoreEl.innerHTML = '\u041E\u0446\u0435\u043D\u043A\u0430: <strong>' + (ds.stars||'') + '</strong>';
-            if (!soft) modal.appendChild(scoreEl);
-
-            var engEl = document.createElement('div');
-            engEl.className = 'game-modal-score game-modal-score--soft';
-            engEl.innerHTML = '<i class="fas fa-chart-bar" aria-hidden="true"></i> Ангажираност: <strong>' + (ds.engPct||0) + '%</strong>';
-            if (!soft) modal.appendChild(engEl);
-
-            // Серия: етап само на кръгли стойности, за да остане рядък момент.
-            var streakNow = calcStreak();
-            var isMilestone = !soft && (ds.score || 0) >= 4 && STREAK_MILESTONES.indexOf(streakNow) !== -1;
-            if (soft && goodDaysOf7() >= 3) {
-                var g7 = document.createElement('div');
-                g7.className = 'game-modal-streak';
-                g7.innerHTML = '<i class="fas fa-seedling" aria-hidden="true"></i> ' + goodDaysOf7() + ' добри дни от последните 7';
-                modal.appendChild(g7);
-            }
-            if (isMilestone) {
-                var stEl = document.createElement('div');
-                stEl.className = 'game-modal-streak';
-                stEl.innerHTML = '<i class="fas fa-fire" aria-hidden="true"></i> ' + streakNow + ' поредни дни с 4+ звезди';
-                modal.appendChild(stEl);
-            }
-
-            var msgEl = document.createElement('div');
-            msgEl.className = 'game-modal-msg';
-            msgEl.textContent = lv.msg;
-            modal.appendChild(msgEl);
-
+            modal.innerHTML = '<span class="game-modal-emoji"><i class="fas fa-seedling" style="color:var(--ds-green-text, #10b981)"></i></span>' +
+                '<div class="game-modal-title">Денят приключи</div>' +
+                '<div class="game-modal-msg">Утре е обичаен ден. Без компенсиране — просто следващото хранене.</div>';
             var closeBtn = document.createElement('button');
             closeBtn.type = 'button';
             closeBtn.className = 'game-modal-btn game-modal-btn--fill';
-            closeBtn.textContent = '\u2713 \u0421\u0442\u0440\u0430\u0445\u043E\u0442\u043D\u043E, \u043F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u0439!';
-            if (soft) closeBtn.textContent = 'Добре';
+            closeBtn.textContent = 'Добре';
             closeBtn.onclick = function(){ overlay.remove(); };
             modal.appendChild(closeBtn);
-
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
-
-            // Стълба на наградите: етап > отличен ден > добър ден; слабият ден е спокоен, без празнуване.
-            var hp = window.NutriPlanHaptic && window.NutriPlanHaptic.notify;
-            if (isMilestone) { if (hp) hp('milestone'); }
-            else if ((ds.score || 0) >= 4) { if (hp) hp('success'); }
-            if (!soft && (ds.score || 0) >= 4) {
-                var dc = document.getElementById('dailyScoreCard');
-                if (dc) setTimeout(function() { _triggerStarBurst(dc, ds.score); }, 200);
-            }
         }
 
         // ── Weekly recap ──────────────────────────────────────────────────────
@@ -12059,18 +12001,10 @@
         function showWeeklyRecapModal(wd) {
             var old = document.getElementById('gameWeeklyModal');
             if (old) old.remove();
-            var avg = wd.avgScore;
-            // Оценката е толкова вярна, колкото дни има зад нея: при по-малко от 5
-            // оценени дни най-високото заглавие не се дава.
-            var scoredDays = wd.days.filter(function(day) {
-                return day.rec && window.GameScoring.calcDayScore(day.rec).score !== null;
-            }).length;
-            if (scoredDays < 5 && avg >= 4.5) avg = 4.4;
-            var iconClass, iconColor, title, color;
-            if      (avg>=4.5){ iconClass='fas fa-trophy'; iconColor='#fbbf24'; title='Страхотна седмица!'; color='#fbbf24'; }
-            else if (avg>=3.5){ iconClass='fas fa-bullseye'; iconColor='#10b981'; title='Добра седмица!'; color='#10b981'; }
-            else if (avg>=2.5){ iconClass='fas fa-chart-line'; iconColor='#03939C'; title='Устойчив напредък'; color='#03939C'; }
-            else               { iconClass='fas fa-seedling'; iconColor='#6366f1'; title='Нова седмица'; color='#6366f1'; }
+            // Обобщението на седмицата живее в Напредък („Твоята седмица“). Тук — само входът към
+            // настройката на плана, със същата мярка: добри дни (ангажираност ≥ 60%), без оценка.
+            var good = wd.days.filter(function(day) { return day.rec && isGoodDay(window.GameScoring.calcDayScore(day.rec)); }).length;
+            var color = '#0A6B66';
 
             var overlay = document.createElement('div');
             overlay.id = 'gameWeeklyModal';
@@ -12078,33 +12012,15 @@
 
             var modal = document.createElement('div');
             modal.className = 'game-modal';
-
-            if (avg >= 3.5) {
-                var cf2 = document.createElement('div');
-                cf2.className = 'game-confetti';
-                makeConfetti(cf2, 30);
-                modal.appendChild(cf2);
-            }
-
-            var emoEl2 = document.createElement('span');
-            emoEl2.className = 'game-modal-emoji';
-            emoEl2.innerHTML = '<i class="'+iconClass+'" style="color:'+iconColor+'"></i>';
-            modal.appendChild(emoEl2);
-
-            var titleEl2 = document.createElement('div');
-            titleEl2.className = 'game-modal-title';
-            titleEl2.textContent = title;
-            modal.appendChild(titleEl2);
+            modal.innerHTML = '<div class="game-modal-title">Преглед на плана</div>' +
+                '<div class="game-modal-msg">' + good + ' от последните 7 дни бяха добри.</div>';
 
             var dotsWrap = document.createElement('div');
-            dotsWrap.style.cssText = 'display:flex;gap:5px;justify-content:center;margin:14px 0 20px;';
+            dotsWrap.style.cssText = 'display:flex;gap:6px;justify-content:center;margin:12px 0 20px;';
             wd.days.forEach(function(day) {
                 var dot = document.createElement('div');
-                // Точките — по същата сметка като средното (не по запазената стара оценка).
-                var ds2 = day.rec ? window.GameScoring.calcDayScore(day.rec) : null;
-                var bg = '#e5e7eb';
-                if (ds2 && ds2.score !== null) bg = ds2.score>=4?'#10b981':ds2.score>=3?'#f59e0b':'#f87171';
-                dot.style.cssText = 'width:20px;height:20px;border-radius:50%;background:'+bg+';';
+                var on = day.rec && isGoodDay(window.GameScoring.calcDayScore(day.rec));
+                dot.style.cssText = 'width:14px;height:14px;border-radius:50%;background:' + (on ? 'var(--ds-green-text, #10b981)' : 'var(--ds-track, #e5e7eb)') + ';';
                 dotsWrap.appendChild(dot);
             });
             modal.appendChild(dotsWrap);

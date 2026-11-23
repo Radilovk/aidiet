@@ -364,7 +364,15 @@
   "Отговори на няколко кратки въпроса — планът за следващата седмица се настройва по тях.": "Birkaç kısa soruyu yanıtla — gelecek haftanın planı bunlara göre ayarlanır.",
   "Подготвяме въпросите...": "Sorular hazırlanıyor...",
   "Седмицата вече е настроена по отметките и данните от устройствата. Следващия път отговори на въпросите — така корекцията е по-точна.": "Hafta, işaretlemelerine ve cihaz verilerine göre zaten ayarlandı. Bir dahaki sefere soruları yanıtla — böylece düzeltmeler daha doğru olur.",
-  "Изпращаме...": "Gönderiliyor..."
+  "Изпращаме...": "Gönderiliyor...",
+  "Денят приключи": "Gün bitti",
+  "Утре е обичаен ден. Без компенсиране — просто следващото хранене.": "Yarın sıradan bir gün. Telafi yok — sadece bir sonraki öğün.",
+  "Преглед на плана": "Plan değerlendirmesi",
+  "{0} от последните {1} дни бяха добри.": "Son {1} günün {0} günü iyiydi.",
+  "Добър ден.": "İyi bir gün.",
+  "Силен ден.": "Güçlü bir gün.",
+  "Добър ден · {0} дни поред.": "İyi bir gün · üst üste {0} gün.",
+  "Силен ден · {0} дни поред.": "Güçlü bir gün · üst üste {0} gün."
  },
  "keys": {},
  "patterns": []

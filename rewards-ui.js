@@ -285,12 +285,10 @@
             '<div class="rw-moment-mark"><img src="./brand/nutriin-mark-dark.svg" alt=""></div>' +
             // тялото се превърта, когато не се събира; знакът и бутоните остават видими
             '<div class="rw-moment-body">' +
-            (mo.kicker ? '<div class="rw-moment-kicker">' + esc(mo.kicker) + '</div>' : '') +
             (mo.num ? '<div class="rw-moment-big">' + esc(mo.num) + '</div><p>' + esc(mo.unit || '') + '</p>' : '') +
             '<h3>' + esc(mo.title) + '</h3>' +
             (mo.text ? '<p>' + esc(mo.text) + '</p>' : '') +
             (mo.gift ? '<div class="rw-moment-gift"><i class="fas fa-gift"></i>' + esc(mo.gift) + '</div>' : '') +
-            (mo.fact ? '<p class="rw-moment-fact">' + esc(mo.fact) + '</p>' : '') +
             '</div>' +
             '<div class="rw-moment-actions"><button type="button" class="rw-close">Продължи</button>' +
             '<button type="button" class="rw-share"><i class="fas fa-share-nodes"></i> Сподели</button></div>' +
@@ -480,6 +478,23 @@
             setTimeout(function () { toast(s.text, s.icon); }, delay + (back ? 5000 : 0) + i * 5000);
             toastUsed();
         });
+    }
+
+    /**
+     * Какво чака да се покаже след отметката: 'big' (тържество), 'small' (малък поздрав) или ''.
+     * Планът го пита, за да не празнува отделно — след отметката говори само един глас.
+     */
+    function pending() {
+        var st = localStatus();
+        var seen = read(SEEN_KEY, null);
+        if (!st || !seen) return '';
+        var kind = '';
+        st.milestones.forEach(function (m) {
+            if (seen[m.id] || kind === 'big') return;
+            var mo = momentOf(m, st, null);
+            if (mo) kind = mo.big ? 'big' : (toastAllowed() ? 'small' : kind);
+        });
+        return kind;
     }
 
     var _soon = null;
@@ -761,7 +776,7 @@
     doc.addEventListener('visibilitychange', function () { if (doc.visibilityState === 'visible') trackOpen(); });
 
     global.NutriPlanRewards = {
-        status: localStatus, server: server, mount: mount, checkSoon: checkSoon,
+        status: localStatus, server: server, mount: mount, checkSoon: checkSoon, pending: pending,
         celebrate: celebrate, toast: toast, share: share, shareCard: card, moments: moments,
         event: event, openStats: function () { return RE.openStats(read(OPENS_KEY, null)); }
     };

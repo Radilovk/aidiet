@@ -364,7 +364,15 @@
   "Отговори на няколко кратки въпроса — планът за следващата седмица се настройва по тях.": "Answer a few short questions — next week's plan adjusts to them.",
   "Подготвяме въпросите...": "Preparing the questions...",
   "Седмицата вече е настроена по отметките и данните от устройствата. Следващия път отговори на въпросите — така корекцията е по-точна.": "The week has already been adjusted using your ticks and device data. Next time, answer the questions — that makes the adjustment more accurate.",
-  "Изпращаме...": "Sending..."
+  "Изпращаме...": "Sending...",
+  "Денят приключи": "Day complete",
+  "Утре е обичаен ден. Без компенсиране — просто следващото хранене.": "Tomorrow is an ordinary day. No making up for it — just the next meal.",
+  "Преглед на плана": "Plan review",
+  "{0} от последните {1} дни бяха добри.": "{0} of the last {1} days were good.",
+  "Добър ден.": "A good day.",
+  "Силен ден.": "A strong day.",
+  "Добър ден · {0} дни поред.": "A good day · {0} days in a row.",
+  "Силен ден · {0} дни поред.": "A strong day · {0} days in a row."
  },
  "keys": {},
  "patterns": []

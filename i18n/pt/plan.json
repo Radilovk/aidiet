@@ -364,7 +364,15 @@
   "Отговори на няколко кратки въпроса — планът за следващата седмица се настройва по тях.": "Responda a algumas perguntas rápidas — o plano da próxima semana será ajustado com base nelas.",
   "Подготвяме въпросите...": "Preparando as perguntas...",
   "Седмицата вече е настроена по отметките и данните от устройствата. Следващия път отговори на въпросите — така корекцията е по-точна.": "A semana já foi ajustada com base nos registros e dados dos dispositivos. Da próxima vez, responda às perguntas — assim o ajuste fica mais preciso.",
-  "Изпращаме...": "Enviando..."
+  "Изпращаме...": "Enviando...",
+  "Денят приключи": "O dia terminou",
+  "Утре е обичаен ден. Без компенсиране — просто следващото хранене.": "Amanhã é um dia normal. Sem compensar — apenas a próxima refeição.",
+  "Преглед на плана": "Revisão do plano",
+  "{0} от последните {1} дни бяха добри.": "{0} dos últimos {1} dias foram bons.",
+  "Добър ден.": "Um bom dia.",
+  "Силен ден.": "Um dia forte.",
+  "Добър ден · {0} дни поред.": "Um bom dia · {0} dias seguidos.",
+  "Силен ден · {0} дни поред.": "Um dia forte · {0} dias seguidos."
  },
  "keys": {},
  "patterns": []
