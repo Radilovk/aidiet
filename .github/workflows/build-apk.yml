@@ -145,6 +145,7 @@ jobs:
             --exclude 'access-control.js' \
             --exclude 'billing.js' \
             --exclude 'rewards.js' \
+            --exclude 'review/' \
             --exclude 'spend.js' \
             --exclude 'gemini-models.js' \
             --exclude 'iris-gate.js' \
