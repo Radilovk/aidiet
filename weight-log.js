@@ -1,64 +1,47 @@
 /**
- * Теглото: запис сутрин, на гладно (localStorage np_weight_log) — попълва седмичния преглед и чата.
- * Полето е в „Напредък“ (game-analytics.html, #weightChip); на другите страници (plan.html) остава
- * само window.NPWeight. Без тегло нито едно правило за калориите не може да работи.
+ * Теглото: дневник сутрин, на гладно (localStorage np_weight_log).
+ *
+ * Без постоянно поле на екрана. Теглото влиза по два пътя и двата отиват тук:
+ *  - седмичният преглед на плана го пита в своя момент (plan.html → sendWeeklyAnswers);
+ *  - Профил → „Тегло“ (profile.html → saveChanges), когато човекът сам реши.
+ * Записът не пипа плана веднага: следващият седмичен преглед го използва (попълва въпроса
+ * с последното число), а адаптацията на плана става там — по правилата в nutrition-engine/monitoring.js.
+ *
+ * userData.weight е текущото тегло (профилът го показва), userData.startWeight — началното
+ * (за етапите на теглото в наградите); задава се веднъж, при първия запис след плана.
  */
 (function() {
     var KEY = 'np_weight_log';
     var DAY = 86400000;
     function load() { try { var l = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(l) ? l : []; } catch (_) { return []; } }
-    function fmt(n) { return String(Math.round(n * 10) / 10).replace('.', ','); }
-    function startKg() { try { return parseFloat(String(JSON.parse(localStorage.getItem('userData') || '{}').weight || '').replace(',', '.')) || null; } catch (_) { return null; } }
-    function render(editing) {
-        var el = document.getElementById('weightChip');
-        if (!el) return;
-        // Само когато целта е в килограмите (сваляне или покачване) — при стягане,
-        // здраве и поддържане теглото не е мярката и редът би бил излишен.
-        var dir = '';
-        try { dir = ((JSON.parse(localStorage.getItem('dietPlan') || '{}') || {}).analysis || {})._goalDirection || ''; } catch (_) {}
-        if (dir !== 'lose' && dir !== 'gain') { el.hidden = true; return; }
-        var log = load();
-        var last = log[log.length - 1];
-        var days = last ? Math.floor((Date.now() - last.at) / DAY) : null;
-        var due = !last || days >= 7;
-        el.hidden = false;
-        el.classList.toggle('is-due', due);
-        if (editing) {
-            el.innerHTML = '<i class="fas fa-weight-scale" aria-hidden="true"></i><label class="wc-text" for="wcInput">Тегло сутрин, на гладно (кг)</label>' +
-                '<input id="wcInput" type="text" inputmode="decimal" autocomplete="off" placeholder="' + (last ? fmt(last.kg) : 'напр. 82,4') + '">' +
-                '<button type="button" class="meal-swap-btn" id="wcSave">Запиши</button>';
-            var inp = document.getElementById('wcInput');
-            var save = function() {
-                var v = parseFloat(String(inp.value).replace(',', '.'));
-                if (!(v >= 30 && v <= 300)) { inp.setAttribute('aria-invalid', 'true'); inp.focus(); return; }
-                var l = load().filter(function(x) { return Date.now() - x.at > 12 * 3600000; }); // едно число на ден
-                l.push({ at: Date.now(), kg: Math.round(v * 10) / 10 });
-                localStorage.setItem(KEY, JSON.stringify(l.slice(-60)));
-                render(false);
-            };
-            document.getElementById('wcSave').addEventListener('click', save);
-            inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') save(); });
-            inp.focus();
-            return;
+    function readUd() { try { return JSON.parse(localStorage.getItem('userData') || '{}') || {}; } catch (_) { return {}; } }
+    function num(v) { var n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return n >= 30 && n <= 300 ? Math.round(n * 10) / 10 : null; }
+
+    /** Ново тегло: едно число на ден (по-новото замества записа от последните 12 часа). */
+    function add(kg) {
+        var v = num(kg);
+        if (v == null) return false;
+        var l = load().filter(function(x) { return Date.now() - x.at > 12 * 3600000; });
+        l.push({ at: Date.now(), kg: v });
+        try { localStorage.setItem(KEY, JSON.stringify(l.slice(-60))); } catch (_) {}
+        var ud = readUd();
+        if (Object.keys(ud).length) {
+            if (num(ud.startWeight) == null && num(ud.weight) != null) ud.startWeight = String(num(ud.weight));
+            ud.weight = String(v);
+            try { localStorage.setItem('userData', JSON.stringify(ud)); } catch (_) {}
         }
-        var start = startKg();
-        var delta = last && start ? Math.round((last.kg - start) * 10) / 10 : null;
-        var main = last
-            ? 'Тегло: <b>' + fmt(last.kg) + ' кг</b>' + (delta ? ' · ' + (delta > 0 ? '+' : '−') + fmt(Math.abs(delta)) + ' кг от началото' : '')
-            : '<b>Запиши теглото си</b>';
-        var sub = !last ? 'По него планът се настройва към резултата ти.'
-            : due ? 'Последно преди ' + days + ' дни — време е за ново претегляне.'
-            : days === 0 ? 'Записано днес.' : 'Записано преди ' + days + (days === 1 ? ' ден.' : ' дни.');
-        el.innerHTML = '<i class="fas fa-weight-scale" aria-hidden="true"></i><span class="wc-text">' + main + '<small>' + sub + '</small></span>' +
-            '<button type="button" class="meal-swap-btn" id="wcEdit">' + (last ? 'Ново' : 'Запиши') + '</button>';
-        document.getElementById('wcEdit').addEventListener('click', function() { render(true); });
+        return true;
     }
+
     window.NPWeight = {
+        add: add,
         /** Последното тегло, ако е от последните 3 дни (за седмичния преглед). */
         recent: function() { var l = load(); var x = l[l.length - 1]; return x && Date.now() - x.at <= 3 * DAY ? x.kg : null; },
+        /** Последният запис { at, kg } или null. */
+        last: function() { var l = load(); return l[l.length - 1] || null; },
+        /** Началното тегло — за етапите на теглото. */
+        startKg: function() { var ud = readUd(); return num(ud.startWeight) || num(ud.weight); },
         /** Последните записи за чата: [{ date, kg }]. */
         log: function() { return load().slice(-6).map(function(x) { return { date: new Date(x.at).toISOString().slice(0, 10), kg: x.kg }; }); }
     };
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function() { render(false); });
-    else render(false);
-})();
+}());

@@ -50,7 +50,16 @@
   "+0,5 л вода днес": "+0,5 l apă azi",
   "Добави закуска с белтък": "Adaugă o gustare cu proteine",
   "По-лека седмица: повече сън, по-леки тренировки": "Săptămână mai ușoară: mai mult somn, antrenamente mai ușoare",
-  "Мисъл за деня": "Gândul zilei"
+  "Мисъл за деня": "Gândul zilei",
+  "Подреди картите": "Aranjează cardurile",
+  "Влачи дръжката вдясно, за да смениш реда. Скритите не изчезват — връщаш ги с „+“.": "Trage de mânerul din dreapta ca să schimbi ordinea. Cardurile ascunse nu dispar — le aduci înapoi cu „+”.",
+  "На екрана": "Pe ecran",
+  "Скрити": "Ascunse",
+  "Подредба по подразбиране": "Ordinea implicită",
+  "Нищо не е показано.": "Nu se afișează nimic.",
+  "Няма скрити карти.": "Niciun card ascuns.",
+  "По-нагоре": "Mai sus",
+  "По-надолу": "Mai jos"
  },
  "keys": {},
  "patterns": []

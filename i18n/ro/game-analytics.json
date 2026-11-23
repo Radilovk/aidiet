@@ -56,7 +56,17 @@
   "Няма данни": "Nu există date",
   "· спазени хранения": "· mese respectate",
   "крачки/ден, цел": "pași/zi, obiectiv",
-  "kcal допълнителен разход в": "kcal consum suplimentar în"
+  "kcal допълнителен разход в": "kcal consum suplimentar în",
+  "Тази седмица": "Săptămâna aceasta",
+  "последните 7 дни": "ultimele 7 zile",
+  "от {0} добри дни": "din {0} zile bune",
+  "от {0} добри дни · ритъмът расте": "din {0} zile bune · ritmul crește",
+  "от {0} добри дни · леко затихване": "din {0} zile bune · ușoară scădere",
+  "Подробно": "Detalii",
+  "Пътят към успеха": "Drumul spre succes",
+  "Първо ниво": "Primul nivel",
+  "от последните {0} дни": "din ultimele {0} zile",
+  "За твоята цел": "Pentru obiectivul tău"
  },
  "keys": {},
  "patterns": []

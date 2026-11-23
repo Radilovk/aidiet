@@ -103,7 +103,7 @@
             calcDayScore: global.GameScoring.calcDayScore,
             todayKey: global.GameScoring.dateKey(new Date()),
             weightLog: read('np_weight_log', []),
-            startKg: parseFloat(String(ud.weight || '').replace(',', '.')) || null,
+            startKg: parseFloat(String(ud.startWeight || ud.weight || '').replace(',', '.')) || null,
             goalDirection: (plan.analysis || {})._goalDirection || '',
             challenge: localChallenge()
         });
@@ -521,38 +521,15 @@
             '<button type="button" class="rw-btn" data-copy="' + esc(c.code) + '" aria-label="Копирай кода"><i class="far fa-copy"></i></button>' + action + '</div>';
     }
 
-    // ── Седмицата (неделя вечер – вторник) ──────────────────────────────────
-    function weekVisible(st) {
-        var w = st && st.week;
-        if (!w || !w.tracked) return false;
-        var d = new Date(), dow = d.getDay();
-        if (!((dow === 0 && d.getHours() >= 17) || dow === 1 || dow === 2)) return false;
-        return (read(WEEK_KEY, {}) || {}).dismissed !== w.endKey;
-    }
-    function dayName(key) {
-        try { var p = key.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('bg-BG', { weekday: 'long' }); } catch (_) { return key; }
-    }
-    function shortDate(key) { var p = key.split('-'); return +p[2] + '.' + p[1]; }
-    function weekMoment(st) {
-        var w = st.week;
-        return {
-            kicker: RE.text('weekTitle'), num: w.good + '/7', unit: 'добри дни',
-            title: RE.text('weekGood', { good: w.good }),
-            shareTitle: w.delta > 0 ? RE.text('weekUp', { d: w.delta }) : RE.text('weekGood', { good: w.good }),
-            image: 'streak', source: 'share_week'
-        };
-    }
-    function weekCard(st) {
-        if (!weekVisible(st)) return '';
-        var w = st.week;
-        var trend = w.delta == null ? '' : w.delta >= 3 ? RE.text('weekUp', { d: w.delta }) : w.delta <= -3 ? RE.text('weekDown') : RE.text('weekSame');
-        var wk = read(WEEK_KEY, {}) || {};
-        if (wk.viewed !== w.endKey) { wk.viewed = w.endKey; write(WEEK_KEY, wk); event('week_view'); }
-        return '<div class="rw-card rw-week"><h4>' + esc(RE.text('weekTitle')) + '<small>' + shortDate(w.startKey) + '–' + shortDate(w.endKey) + '</small></h4>' +
-            '<div class="rw-week-big"><b>' + w.good + '</b><span>' + esc(RE.text('weekGood', { good: w.good }).replace(/^\d+\s*/, '')) + '</span></div>' +
-            (trend ? '<p>' + esc(trend) + '</p>' : '') +
-            '<div class="rw-week-actions"><button type="button" class="rw-btn" data-week-hide="1">Видях</button>' +
-            '<button type="button" class="rw-btn rw-btn--main" data-week-share="1"><i class="fas fa-share-nodes"></i> Сподели</button></div></div>';
+    /** Добри дни от последните 7 — за мекия режим вместо поредицата (тя може да се скъса). */
+    function goodOf7() {
+        var GS = global.GameScoring, all = read('gameData', {}) || {}, n = 0;
+        if (!GS) return 0;
+        for (var i = 0; i < 7; i++) {
+            var d = new Date(Date.now() - i * DAY), rec = all[GS.dateKey(d)];
+            if (rec && (GS.calcDayScore(rec).engPct || 0) >= RE.GOOD) n++;
+        }
+        return n;
     }
 
     // ── Предизвикателството на месеца ───────────────────────────────────────
@@ -634,8 +611,10 @@
             el.innerHTML = '<div class="rw-card"><p>' + esc(RE.text('empty')) + '</p></div>';
             return;
         }
-        var tierTitle = st.tier ? st.tier.title : RE.text('firstLevel');
         var nx = st.next;
+        var tierLabel = st.tier ? RE.text('levelLabel') : RE.text('firstLevel');
+        var tierTitle = st.tier ? st.tier.title : (nx ? nx.title : '');
+        var soft = !!persona().noScores;
         var barPct = nx ? nx.progress : 100;
         // Под лентата — само следващата стъпка: колко дни остават или какъв ритъм иска нивото.
         var hint;
@@ -647,8 +626,11 @@
         // Хиро: поредицата и нивото → лентата → следващата стъпка. Нищо друго.
         var heroPic = st.tier ? st.tier.image : 'persist';
         var html = '<div class="rw-hero" style="--rw-photo:url(' + photo(heroPic) + ')">' +
-            '<div class="rw-hero-top"><div class="rw-streak"><b>' + st.streak + '</b><span>' + plural(st.streak, 'ден', 'дни') + ' поред</span></div>' +
-            '<div class="rw-tier"><small>' + esc(RE.text('levelLabel')) + '</small><strong>' + esc(tierTitle) + '</strong></div></div>' +
+            // Мекият режим (persona.noScores) — без поредица, която може да се скъса: добрите дни от последните 7.
+            '<div class="rw-hero-top"><div class="rw-streak">' + (soft
+                ? '<b>' + goodOf7() + '</b><span>от последните 7 дни</span>'
+                : '<b>' + st.streak + '</b><span>' + plural(st.streak, 'ден', 'дни') + ' поред</span>') + '</div>' +
+            '<div class="rw-tier"><small>' + esc(tierLabel) + '</small><strong>' + esc(tierTitle) + '</strong></div></div>' +
             '<div class="rw-bar"><i data-w="' + barPct + '"></i></div>' +
             '<div class="rw-hero-foot"><span>' + esc(hint) + '</span>' +
             (st.shields.held ? '<span class="rw-pts" title="Жокер: пази поредицата в слаб или пропуснат ден"><i class="fas fa-shield-alt"></i>' + st.shields.held + '</span>' : '') +
@@ -656,7 +638,8 @@
             '</div>';
         if (st.warning) html += '<div class="rw-warn"><i class="fas fa-circle-exclamation"></i> ' + esc(RE.text('warn', { title: st.tier.title, titleLower: st.tier.title.toLowerCase(), n: st.warning.daysLeft, daysWord: plural(st.warning.daysLeft, 'ден', 'дни') })) + '</div>';
 
-        html += weekCard(st) + challengeCard(st, srv);
+        // Седмицата е в картата „Тази седмица“ — тук не се повтаря.
+        html += challengeCard(st, srv);
 
         html += '<button type="button" class="rw-toggle" aria-expanded="false" aria-controls="rwDetails"><span>Нива и награди</span><i class="fas fa-chevron-down"></i></button><div id="rwDetails" hidden>';
 
@@ -728,10 +711,6 @@
                 } else { b.disabled = false; toast((d && d.message) || 'Не стана. Опитай пак.', 'fa-circle-exclamation'); }
             });
         });
-        var wh = el.querySelector('[data-week-hide]');
-        if (wh) wh.addEventListener('click', function () { var wk = read(WEEK_KEY, {}) || {}; wk.dismissed = st.week.endKey; write(WEEK_KEY, wk); render(el, st, srv); });
-        var ws = el.querySelector('[data-week-share]');
-        if (ws) ws.addEventListener('click', function () { share(weekMoment(st), srv && srv.invite && srv.invite.code, 'share_week'); });
         var cj = el.querySelector('[data-challenge-join]');
         if (cj) cj.addEventListener('click', async function () {
             cj.disabled = true;

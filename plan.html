@@ -3994,7 +3994,7 @@
     </style>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
-    <link rel="stylesheet" href="./rewards-ui.css?v=8">
+    <link rel="stylesheet" href="./rewards-ui.css?v=9">
     <script src="./app-ui.js" defer></script>
     <div id="planAuthOverlay" style="display:none">
         <div class="pa-spinner"></div>
@@ -4012,14 +4012,14 @@
     })();</script>
 
     <script src="./game-scoring.js"></script>
-    <script src="./rewards-engine.js?v=6"></script>
-    <script src="./rewards-ui.js?v=8"></script>
+    <script src="./rewards-engine.js?v=7"></script>
+    <script src="./rewards-ui.js?v=9"></script>
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script src="./platform-compat.js"></script>
     <script src="./meal-swaps.js"></script>
-    <script src="./weight-log.js"></script>
+    <script src="./weight-log.js?v=2"></script>
     <script src="./plan-sync.js"></script>
     <script src="./pricing-config.js"></script>
     <script src="./access.js"></script>
@@ -8120,7 +8120,7 @@
             }, delay);
         }
 
-        // Теглото: weight-log.js (записът е в „Напредък“; тук остава window.NPWeight за прегледа и чата).
+        // Теглото: weight-log.js — пита се в седмичния преглед, сменя се от Профил; без постоянно поле.
 
         /** Поздравът и готови въпроси за начало — празният чат не оставя човека сам пред полето. */
         function showChatWelcome() {
@@ -12673,6 +12673,11 @@
 
         // Отговорите се пазят до успешно изпращане — „Опитай пак“ не пита наново.
         async function sendWeeklyAnswers(questions, answers, cycleNumber) {
+            // Теглото от прегледа → дневника (weight-log.js): същият път като от профила.
+            try {
+                var wAns = (answers || []).filter(function(a) { return a.questionId === 'weightKg'; })[0];
+                if (wAns && window.NPWeight && window.NPWeight.add) window.NPWeight.add(wAns.value);
+            } catch (_) {}
             var st0 = getWeeklyAIState();
             st0.pendingAnswers = answers;
             saveWeeklyAIState(st0);

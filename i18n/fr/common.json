@@ -50,7 +50,16 @@
   "+0,5 л вода днес": "+0,5 L d'eau aujourd'hui",
   "Добави закуска с белтък": "Ajoute une collation protéinée",
   "По-лека седмица: повече сън, по-леки тренировки": "Semaine plus légère : plus de sommeil, entraînements plus doux",
-  "Мисъл за деня": "Pensée du jour"
+  "Мисъл за деня": "Pensée du jour",
+  "Подреди картите": "Organiser les cartes",
+  "Влачи дръжката вдясно, за да смениш реда. Скритите не изчезват — връщаш ги с „+“.": "Fais glisser la poignée à droite pour changer l'ordre. Les cartes masquées ne disparaissent pas — reviens-les avec « + ».",
+  "На екрана": "À l'écran",
+  "Скрити": "Masquées",
+  "Подредба по подразбиране": "Ordre par défaut",
+  "Нищо не е показано.": "Rien n'est affiché.",
+  "Няма скрити карти.": "Aucune carte masquée.",
+  "По-нагоре": "Monter",
+  "По-надолу": "Descendre"
  },
  "keys": {},
  "patterns": []

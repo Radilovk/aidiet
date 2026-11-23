@@ -56,7 +56,17 @@
   "Няма данни": "Nessun dato",
   "· спазени хранения": "· pasti rispettati",
   "крачки/ден, цел": "passi/giorno, obiettivo",
-  "kcal допълнителен разход в": "kcal extra bruciate in"
+  "kcal допълнителен разход в": "kcal extra bruciate in",
+  "Тази седмица": "Questa settimana",
+  "последните 7 дни": "ultimi 7 giorni",
+  "от {0} добри дни": "su {0} giorni buoni",
+  "от {0} добри дни · ритъмът расте": "su {0} giorni buoni · il ritmo cresce",
+  "от {0} добри дни · леко затихване": "su {0} giorni buoni · lieve calo",
+  "Подробно": "Dettagli",
+  "Пътят към успеха": "La strada verso il successo",
+  "Първо ниво": "Primo livello",
+  "от последните {0} дни": "degli ultimi {0} giorni",
+  "За твоята цел": "Per il tuo obiettivo"
  },
  "keys": {},
  "patterns": []

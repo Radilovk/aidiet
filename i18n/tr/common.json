@@ -50,7 +50,16 @@
   "+0,5 л вода днес": "Bugün +0,5 L su",
   "Добави закуска с белтък": "Proteinli bir ara öğün ekle",
   "По-лека седмица: повече сън, по-леки тренировки": "Daha hafif hafta: daha çok uyku, daha hafif antrenman",
-  "Мисъл за деня": "Günün düşüncesi"
+  "Мисъл за деня": "Günün düşüncesi",
+  "Подреди картите": "Kartları düzenle",
+  "Влачи дръжката вдясно, за да смениш реда. Скритите не изчезват — връщаш ги с „+“.": "Sırayı değiştirmek için sağdaki tutamacı sürükle. Gizlenenler kaybolmaz — “+” ile geri getirirsin.",
+  "На екрана": "Ekranda",
+  "Скрити": "Gizli",
+  "Подредба по подразбиране": "Varsayılan sıra",
+  "Нищо не е показано.": "Hiçbir şey gösterilmiyor.",
+  "Няма скрити карти.": "Gizli kart yok.",
+  "По-нагоре": "Yukarı",
+  "По-надолу": "Aşağı"
  },
  "keys": {},
  "patterns": []

@@ -56,7 +56,17 @@
   "Няма данни": "Veri yok",
   "· спазени хранения": "· uyulan öğünler",
   "крачки/ден, цел": "adım/gün, hedef",
-  "kcal допълнителен разход в": "ek harcanan kcal:"
+  "kcal допълнителен разход в": "ek harcanan kcal:",
+  "Тази седмица": "Bu hafta",
+  "последните 7 дни": "son 7 gün",
+  "от {0} добри дни": "{0} günün iyi geçen kısmı",
+  "от {0} добри дни · ритъмът расте": "{0} günün iyi geçen kısmı · ritim artıyor",
+  "от {0} добри дни · леко затихване": "{0} günün iyi geçen kısmı · hafif düşüş",
+  "Подробно": "Ayrıntılar",
+  "Пътят към успеха": "Başarıya giden yol",
+  "Първо ниво": "İlk seviye",
+  "от последните {0} дни": "son {0} günden",
+  "За твоята цел": "Hedefin için"
  },
  "keys": {},
  "patterns": []

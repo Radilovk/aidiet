@@ -73,7 +73,7 @@
     var TEXTS = {
         section: 'Пътят към успеха',
         empty: 'Всеки отметнат ден е стъпка. От първия започва пътят ти.',
-        levelLabel: 'Ниво', firstLevel: 'Начало',
+        levelLabel: 'Ниво', firstLevel: 'Първо ниво',
         towards: 'Още {n} {daysWord} до „{title}“',
         top: 'Най-високото ниво. Пазиш го с всеки ден.',
         behind: 'Към „{title}“: {avg}% от {min}%',
