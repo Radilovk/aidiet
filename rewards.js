@@ -235,6 +235,14 @@ function clientTodayKey(raw, now) {
   return Math.abs(Date.parse(raw) - Date.parse(server)) <= DAY_MS ? raw : server;
 }
 
+/** Правилото за движение от телефона: { reward: bool, maxPct: 100–300 | null } или null при нещо друго. */
+function activityPolicyOf(a) {
+  if (!a || typeof a !== 'object') return null;
+  const max = a.maxPct == null ? null : Number(a.maxPct);
+  if (max != null && !(max >= 100 && max <= 300)) return null;
+  return { reward: a.reward !== false, maxPct: max };
+}
+
 /**
  * Състоянието и портфейлът: смята наново от сливаните дни, дава кодовете за новите стъпала.
  * POST /api/user/rewards { userId, idToken, todayKey?, gameData? }
@@ -261,7 +269,10 @@ export async function handleRewards(request, env, { respond, checkOwner, now = D
   const before = JSON.stringify(record);
   const month = Rewards.monthOf(todayKey);
   record.challenges = record.challenges || {};
-  const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey, challenge: record.challenges[month] });
+  // Движението спрямо целта (телефонът го смята от профила — goal-focus.js → activityPolicy) — пази се за другите заявки.
+  const policy = activityPolicyOf(b.activity);
+  if (policy) record.activity = policy;
+  const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey, challenge: record.challenges[month], activity: record.activity });
   record.days = record.days || {};
   bankOldDays(record, status.points.days, todayKey);
   record.bonus = Math.max(Number(record.bonus) || 0, status.points.bonus);
@@ -355,10 +366,10 @@ export async function handleRewardsChallenge(request, env, { respond, checkOwner
   await loadContent(env, now);
   const todayKey = clientTodayKey(b.todayKey, now);
   const state = (await getJSON(env, `game_state:${b.userId}`)) || {};
-  const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey });
+  const record = (await getJSON(env, `rewards:${b.userId}`)) || emptyRecord();
+  const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey, activity: record.activity });
   const c = status.challenge || Rewards.compute({ gameData: { [todayKey]: {} }, calcDayScore, todayKey }).challenge;
   if (!c || !c.canJoin) return respond({ error: 'late', message: Rewards.text('challengeLate', { target: Rewards.CHALLENGE_TARGET }) }, 400);
-  const record = (await getJSON(env, `rewards:${b.userId}`)) || emptyRecord();
   record.challenges = record.challenges || {};
   if (!record.challenges[c.month]) {
     record.challenges[c.month] = { id: c.id, joined: todayKey };
@@ -383,7 +394,7 @@ export async function handleRewardsRedeem(request, env, { respond, checkOwner, n
   if (offer.kind === 'supplement' && !supplementsAllowed(countryOf(request))) return respond({ error: 'region', message: 'Добавките се доставят само в България.' }, 400);
   const record = (await getJSON(env, `rewards:${b.userId}`)) || emptyRecord();
   const state = (await getJSON(env, `game_state:${b.userId}`)) || {};
-  const live = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey: clientTodayKey(b.todayKey, now) }).points.days;
+  const live = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey: clientTodayKey(b.todayKey, now), activity: record.activity }).points.days;
   record.days = record.days || {};
   const balance = earnedOf(record, live) - (Number(record.spent) || 0);
   if (balance < offer.cost) return respond({ error: 'points', message: `Нужни са ${offer.cost} точки, имаш ${balance}.`, balance }, 400);

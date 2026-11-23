@@ -4011,9 +4011,9 @@
         }
     })();</script>
 
-    <script src="./game-scoring.js?v=2"></script>
-    <script src="./rewards-engine.js?v=10"></script>
-    <script src="./rewards-ui.js?v=13"></script>
+    <script src="./game-scoring.js?v=3"></script>
+    <script src="./rewards-engine.js?v=12"></script>
+    <script src="./rewards-ui.js?v=15"></script>
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
@@ -4033,7 +4033,7 @@
     <script src="./handoff-client.js"></script>
     <script src="./enrichment-client.js"></script>
     <script src="./goal-model.js"></script>
-    <script src="./goal-focus.js"></script>
+    <script src="./goal-focus.js?v=4"></script>
     <script src="./activity-tracker.js"></script>
     <script src="./crosscheck-modal.js"></script>
     <script type="module">
@@ -10457,8 +10457,15 @@
         // „денят е оценен“, не „денят е добър“ — резултатът е звездите.
         var EVENING_UNLOCK_HOUR = 18;
         // Добър ден — една мярка навсякъде: ангажираност ≥ 60% (rewards-engine.js → GOOD).
-        var GOOD_DAY_PCT = (window.RewardsEngine && window.RewardsEngine.GOOD) || 60;
-        function isGoodDay(ds) { return !!ds && (ds.engPct || 0) >= GOOD_DAY_PCT; }
+        // Ден, който се брои: всичко спазено (rewards-engine.js → dayStatus) — същото правило като наградите.
+        function activityPolicyNow() {
+            try { var GF = window.NutriPlanGoalFocus; return GF && GF.activityPolicy ? GF.activityPolicy(JSON.parse(localStorage.getItem('userData') || '{}')) : null; } catch (_) { return null; }
+        }
+        function isGoodDay(ds, rec) {
+            var RE = window.RewardsEngine;
+            if (RE && RE.dayStatus && rec) return RE.dayStatus(rec, ds, activityPolicyNow()).ok;
+            return !!ds && (ds.engPct || 0) >= 60;
+        }
 
         function dayStripModel(dayKey, rec, ds) {
             var GS = window.GameScoring;
@@ -10933,7 +10940,7 @@
         /** Добри дни от последните 7 (вкл. днес) — серия, която един лош ден не нулира. */
         function goodDaysOf7() {
             var GS = window.GameScoring;
-            return GS.goodDaysOf(getGameData() || {}, GS.dateKey(new Date()), 7).good;
+            return GS.goodDaysOf(getGameData() || {}, GS.dateKey(new Date()), 7, activityPolicyNow()).good;
         }
 
         function calcStreak() {
@@ -11942,10 +11949,10 @@
             if (waiting) return;
             var soft = softMotivation();
             var hp = window.NutriPlanHaptic && window.NutriPlanHaptic.notify;
-            if (isGoodDay(ds)) {
+            if (isGoodDay(ds, getRecord(getTodayKey()))) {
                 var streak = soft ? 0 : calcStreak();
-                var word = (ds.engPct || 0) >= 80 && !soft ? 'Силен ден' : 'Добър ден';
-                showEncouragement({ text: '<i class="fas fa-seedling" aria-hidden="true"></i> ' + word + (streak >= 2 ? ' · ' + streak + ' дни поред' : '') + '.', type: 'good' });
+                var word = (ds.engPct || 0) >= 80 && !soft ? 'Денят е изцяло по плана' : 'Денят е по плана';
+                showEncouragement({ text: '<i class="fas fa-seedling" aria-hidden="true"></i> ' + word + (streak >= 2 ? ' · ' + streak + ' поредни' : '') + '.', type: 'good' });
                 if (hp) hp('success');
                 return;
             }
@@ -11998,7 +12005,7 @@
             // Обобщението на седмицата живее в Напредък („Твоята седмица“). Тук — само входът към
             // настройката на плана, със същата мярка: добри дни (ангажираност ≥ 60%), без оценка.
             // Същият прозорец като в Напредък и наградите (GameScoring.goodDaysOf).
-            var GS7 = window.GameScoring.goodDaysOf(getGameData() || {}, window.GameScoring.dateKey(new Date()), 7);
+            var GS7 = window.GameScoring.goodDaysOf(getGameData() || {}, window.GameScoring.dateKey(new Date()), 7, activityPolicyNow());
             var good = GS7.good;
             var color = '#0A6B66';
 
@@ -12009,7 +12016,7 @@
             var modal = document.createElement('div');
             modal.className = 'game-modal';
             modal.innerHTML = '<div class="game-modal-title">Преглед на плана</div>' +
-                '<div class="game-modal-msg">' + good + ' от последните 7 дни бяха добри.</div>';
+                '<div class="game-modal-msg">' + good + ' от последните 7 дни бяха по плана.</div>';
 
             var dotsWrap = document.createElement('div');
             dotsWrap.style.cssText = 'display:flex;gap:6px;justify-content:center;margin:12px 0 20px;';

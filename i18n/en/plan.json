@@ -368,11 +368,11 @@
   "Денят приключи": "Day complete",
   "Утре е обичаен ден. Без компенсиране — просто следващото хранене.": "Tomorrow is an ordinary day. No making up for it — just the next meal.",
   "Преглед на плана": "Plan review",
-  "{0} от последните {1} дни бяха добри.": "{0} of the last {1} days were good.",
-  "Добър ден.": "A good day.",
-  "Силен ден.": "A strong day.",
-  "Добър ден · {0} дни поред.": "A good day · {0} days in a row.",
-  "Силен ден · {0} дни поред.": "A strong day · {0} days in a row."
+  "Денят е по плана.": "Today went to plan.",
+  "Денят е изцяло по плана.": "Today went fully to plan.",
+  "Денят е по плана · {0} поредни.": "Today went to plan · {0} in a row.",
+  "Денят е изцяло по плана · {0} поредни.": "Today went fully to plan · {0} in a row.",
+  "{0} от последните {1} дни бяха по плана.": "{0} of the last {1} days went to plan."
  },
  "keys": {},
  "patterns": []

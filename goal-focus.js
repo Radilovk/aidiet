@@ -418,7 +418,25 @@
         return list;
     }
 
+    /**
+     * Движението спрямо целта — за наградите (rewards-engine.js → dayStatus):
+     *  - reward: награждава ли се движението (крачки до целта, тренировка) — когато е част от целта;
+     *  - maxPct: над колко % от дневната цел за движение е предупреждение, не награда (и денят не се брои).
+     * Бременност и кърмене / възстановяване след раждане: движението е за здраве, не за разход — над 130–140%
+     * е твърде много; при покачване на мускулна маса излишните крачки изяждат излишъка — над 160%.
+     */
+    function activityPolicy(userData) {
+        var ud = userData || {};
+        var p = profileOf(ud);
+        var pregnant = ud.clinicalProtocol === 'postpartum_lactation' && /^Бременна/.test(String(ud.postpartumStatus || ''));
+        if (pregnant) return { reward: false, maxPct: 130 };
+        if (p.group === 'lose_soft') return { reward: false, maxPct: 140 };
+        if (p.group === 'gain') return { reward: false, maxPct: 160 };
+        return { reward: true, maxPct: null };
+    }
+
     var api = {
+        activityPolicy: activityPolicy,
         profileOf: profileOf,
         /** Дневната цел за крачки по профила и целта. */
         stepTarget: function (userData) { return profileOf(userData).stepTarget; },

@@ -368,11 +368,11 @@
   "Денят приключи": "Ziua s-a încheiat",
   "Утре е обичаен ден. Без компенсиране — просто следващото хранене.": "Mâine e o zi obișnuită. Fără compensări — doar următoarea masă.",
   "Преглед на плана": "Revizuirea planului",
-  "{0} от последните {1} дни бяха добри.": "{0} din ultimele {1} zile au fost bune.",
-  "Добър ден.": "O zi bună.",
-  "Силен ден.": "O zi puternică.",
-  "Добър ден · {0} дни поред.": "O zi bună · {0} zile la rând.",
-  "Силен ден · {0} дни поред.": "O zi puternică · {0} zile la rând."
+  "Денят е по плана.": "Ziua a mers după plan.",
+  "Денят е изцяло по плана.": "Ziua a mers în întregime după plan.",
+  "Денят е по плана · {0} поредни.": "Ziua a mers după plan · {0} la rând.",
+  "Денят е изцяло по плана · {0} поредни.": "Ziua a mers în întregime după plan · {0} la rând.",
+  "{0} от последните {1} дни бяха по плана.": "{0} din ultimele {1} zile au mers după plan."
  },
  "keys": {},
  "patterns": []

@@ -85,7 +85,17 @@
   "Още няма данни за по-ранни седмици.": "Önceki haftalar için henüz veri yok.",
   "Как работят наградите": "Ödüller nasıl çalışır",
   "Ангажираност": "Bağlılık",
-  "Вода": "Su"
+  "Вода": "Su",
+  "Към ниво": "Sonraki seviye",
+  "Още {0} до отключване на наградата": "Ödülün açılmasına {0} kaldı",
+  "Брои се": "Sayılır",
+  "Не се брои": "Sayılmaz",
+  "Непълни хранения": "Öğünler eksik",
+  "Без сутрешния въпрос": "Sabah sorusu eksik",
+  "Без вечерния въпрос": "Akşam sorusu eksik",
+  "Хранене извън плана": "Plan dışı öğün",
+  "Над калориите": "Kalorinin üstünde",
+  "Движение над препоръчаното": "Önerilenin üzerinde hareket"
  },
  "keys": {},
  "patterns": []

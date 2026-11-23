@@ -85,7 +85,17 @@
   "Още няма данни за по-ранни седмици.": "No data for earlier weeks yet.",
   "Как работят наградите": "How rewards work",
   "Ангажираност": "Engagement",
-  "Вода": "Water"
+  "Вода": "Water",
+  "Към ниво": "Next level",
+  "Още {0} до отключване на наградата": "{0} more to unlock the reward",
+  "Брои се": "Counts",
+  "Не се брои": "Doesn't count",
+  "Непълни хранения": "Meals incomplete",
+  "Без сутрешния въпрос": "Morning check missing",
+  "Без вечерния въпрос": "Evening check missing",
+  "Хранене извън плана": "Off-plan eating",
+  "Над калориите": "Over the calories",
+  "Движение над препоръчаното": "Activity above recommended"
  },
  "keys": {},
  "patterns": []
