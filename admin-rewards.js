@@ -89,7 +89,7 @@
                 field(['tiers', t.id, 'moment'], 'Поздрав (голям надпис)', t.moment) +
                 field(['tiers', t.id, 'text'], 'Текст под поздрава', t.text, true) +
                 field(['tiers', t.id, 'share'], 'За споделяне (първо лице)', t.share) +
-                field(['tiers', t.id, 'word'], 'Дума за кода (латиница, до 5 букви) → ' + t.rewards.map(function (r) { return RE.codeFor(get(content, ['tiers', t.id, 'word']) || t.word, r.pct) + (r.kind === 'plan' ? ' за план' : ' за добавки'); }).join(', '), t.word) +
+                field(['tiers', t.id, 'word'], 'Дума за кода (латиница, до 5 букви, без I и L) → ' + t.rewards.map(function (r) { return RE.codeFor(get(content, ['tiers', t.id, 'word']) || t.word, r.pct) + (r.kind === 'plan' ? ' за план' : ' за добавки'); }).join(', '), t.word) +
                 '</div>';
         });
         h += '<div class="card"><h3 style="margin-top:0">Поредици</h3>' + imageBox('streak') + imageBox('habit');

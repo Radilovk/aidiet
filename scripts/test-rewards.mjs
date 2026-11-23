@@ -207,8 +207,8 @@ await check('стъпалата дават кодове веднъж; точки
   assert.equal(first.status.tier, 'steady');
   assert.deepEqual(first.fresh.map((c) => `${c.kind}${c.pct}`), ['supplement5', 'supplement10']);
   assert.ok(first.wallet.balance > 41 * 15);
-  assert.match(first.invite.code, /^(DUO|PAL)\d{3}$/);
-  assert.deepEqual(first.fresh.map((c) => c.code), ['BOLD5', 'GRIT10']);
+  assert.match(first.invite.code, /^(DUO|MATE)[2-9]{3}$/);                 // без 0 и 1
+  assert.deepEqual(first.fresh.map((c) => c.code), ['BRAVE', 'TRUE']);
   const again = await rewards(A, { country: 'BG' });
   assert.equal(again.fresh.length, 0);
   assert.equal(again.codes.length, 2);
@@ -252,7 +252,7 @@ await check('точки → код; недостатъчно точки → от
   const d = await redeem('supp10');
   assert.equal(d.success, true);
   assert.equal(d.code.kind, 'supplement');
-  assert.equal(d.code.code, 'WIN10');
+  assert.equal(d.code.code, 'BONUS');
   assert.equal(d.balance, first.wallet.balance - RE.offerById('supp10').cost);
   const poor = await redeem('plan10');
   assert.equal(poor.error, 'points');
@@ -263,9 +263,9 @@ await check('точки → код; недостатъчно точки → от
   assert.equal((await verify({ code: d.code.code, email: 'A@example.com ' })).valid, true);
   // кодът е еднакъв за всички, но важи само за спечелилия го
   assert.equal((await verify({ code: d.code.code, email: 'b@example.com' })).valid, false);
-  assert.equal((await verify({ code: 'GRIT10', email: 'a@example.com' })).valid, true);
+  assert.equal((await verify({ code: 'TRUE', email: 'a@example.com' })).valid, true);
   // въведен на ръка: малки букви и интервали вместо тирета
-  assert.equal((await verify({ code: 'win 10', email: 'a@example.com' })).valid, true);
+  assert.equal((await verify({ code: 'bo nus', email: 'a@example.com' })).valid, true);
   assert.equal((await verify({ code: d.code.code, email: 'a@example.com', redeem: true, order: 'BC-1' })).redeemed, true);
   assert.equal((await verify({ code: d.code.code, email: 'a@example.com' })).valid, false);
 });
@@ -312,7 +312,8 @@ await check(`покана: −${INVITE_PCT}% за първия план; пок�
   const own = await buy(A, { reward: planCode.code });
   assert.equal(own.price, Math.round(full * (100 - INVITER_PCT)) / 100);
   await confirm(own.url.split('/').pop());
-  assert.equal(planCode.code, 'ALLY20');
+  assert.equal(planCode.code, 'BUDDY');
+  assert.equal(INVITER_PCT, INVITE_PCT);                                      // поравно: 15/15
   const status = await (await handleRewardCodeStatus(new URL(`https://w/x?code=${planCode.code}&userId=${A}`), env, deps(NOW))).json();
   assert.equal(status.valid, false);
 });
@@ -332,7 +333,7 @@ await check('админ панел: текстове и дума на кода �
   const C = 'fb_userDDDDDD';
   kv.set(`game_state:${C}`, JSON.stringify({ gameData: g40 }));
   const r = await (await handleRewards(req({ userId: C, idToken: 'ok', todayKey: today40 }, { country: 'BG' }), env, deps(NOW + 120000))).json();
-  assert.deepEqual(r.fresh.map((c) => c.code), ['BOLD5', 'PUSH10']);
+  assert.deepEqual(r.fresh.map((c) => c.code), ['BRAVE', 'PUSH']);
   const png = 'data:image/png;base64,' + Buffer.from('fake').toString('base64');
   const up = await (await handleAdminRewardsImage(req({ theme: 'persist', data: png }), env, { respond, now: NOW })).json();
   assert.match(up.url, /\/api\/rewards\/image\/persist\?v=/);
@@ -471,6 +472,17 @@ await check('сървърът: личните тежести от телефон
   const rec2 = JSON.parse(kv.get(`rewards:${U}`));
   assert.equal(rec2.activity.weights, undefined);
   assert.equal(rec2.activity.group, undefined);
+});
+
+await check('кодовете: без 0, 1, I и L; старите с число остават валидни', async () => {
+  const all = [...RE.TIERS.map((t) => RE.codeFor(t.word)), ...RE.OFFERS.map((o) => RE.codeFor(o.word)), RE.codeFor(RE.WORDS.thanks), ...RE.WORDS.invite];
+  all.forEach((c) => assert.doesNotMatch(c, /[01IL]/, c));
+  assert.equal(RE.codeFor('flow'), 'FOW');                                    // I и L се махат и от думите от админ панела
+  const U = 'fb_userLEGACY1';
+  kv.set(`rewards:${U}`, JSON.stringify({ grants: [{ code: 'GRIT10', kind: 'supplement', pct: 10, until: NOW + 30 * DAY, left: 1, used: [], region: 'BG' }] }));
+  kv.set('email_index:legacy@example.com', JSON.stringify({ userId: U }));
+  const v = await (await handlePartnerVerify(req({ code: 'grit 10', email: 'legacy@example.com' }, { headers: { 'X-Partner-Key': 'partner-secret' } }), env, deps(NOW))).json();
+  assert.equal(v.valid, true);
 });
 
 console.log(`\nВсички ${checks.length} проверки минаха`);

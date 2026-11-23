@@ -7,7 +7,7 @@
  *   rewards:<userId>     { days: { ден: точки }, bonus, spent, issued: { 'tier:start:supplement': време },
  *                          grants: [{ code, kind, pct, until, source, left, used: [...] }],
  *                          invite, invited: [userId…], inviteBonus, updatedAt }
- *   invite:<КОД>         userId — личният код за покана (DUO482)
+ *   invite:<КОД>         userId — личният код за покана (DUO482 — цифри от 2 до 9)
  *   invite_used:<userId> кодът, с който е купил първия си план (поканата важи веднъж)
  *   rstat:<userId>       '' с metadata { c: постоянство 30 дни (през 5%), sb: поредица (група 0–4), t: ниво,
  *                        d: дни история (до 7), o: дни с отваряне от 14 (група 0–3), h: обичаен час,
@@ -20,7 +20,7 @@
  *   rewards_content      текстове, думи на кодовете и снимки от админ панела (applyContent в rewards-engine.js)
  *   rewards_img:<тема>   качена снимка (data URL) → GET /api/rewards/image/<тема>
  *
- * Кодовете са кратки, на латиница: дума + процент (BOLD5, GRIT10, FLOW15, CORE20, WIN10, ALLY20). Еднакви
+ * Кодовете са кратки думи на латиница, без цифри и без I и L (BRAVE, TRUE, POWER, CORE, BONUS, BUDDY; старите с число — GRIT10 — остават валидни). Еднакви
  * са за всички, но всеки код е „право“ в записа на спечелилия го: при плащане се търси при купуващия
  * (влязъл в акаунта си), а магазинът го проверява заедно с имейла на клиента (email_index).
  *
@@ -39,18 +39,18 @@ const CODE_DAYS = 60;            // срок на кода за отстъпка
 const MIN_COHORT = 200;          // под толкова активни сравнението с другите не се показва
 const HIST_TTL_MS = 12 * 3600000;
 export const INVITE_PCT = 15;    // отстъпка за поканения (първи план)
-export const INVITER_PCT = 20;   // код за поканилия, щом поканеният купи
+export const INVITER_PCT = 15;   // код за поканилия, щом поканеният купи — поравно с поканения
 export const INVITE_POINTS = 300;
 
 const okUser = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ''));
 export const normCode = Rewards.normCode;
-export const okRewardCode = (c) => /^[A-Z]{2,5}\d{1,2}$/.test(String(c || ''));
+export const okRewardCode = (c) => /^[A-Z]{2,5}(\d{1,2})?$/.test(String(c || ''));   // BRAVE; старите — GRIT10
 export const okInvite = (c) => /^[A-Z]{2,5}\d{3,4}$/.test(String(c || ''));
 
+/** n случайни цифри от 2 до 9 — без 0 и 1 (бъркат се с O, I и l). */
 function digits(n) {
-  const b = new Uint32Array(1); crypto.getRandomValues(b);
-  const lo = 10 ** (n - 1);
-  return String(lo + (b[0] % (9 * lo)));
+  const b = new Uint32Array(n); crypto.getRandomValues(b);
+  return Array.from(b, (x) => String(2 + (x % 8))).join('');
 }
 
 const getJSON = async (env, k) => { try { return JSON.parse((await env.page_content.get(k)) || 'null'); } catch (_) { return null; } };
@@ -439,7 +439,7 @@ export async function handleInviteStatus(url, env, { respond }) {
 /**
  * Проверка от партньор (магазина за добавки, по-късно ресторанти и вериги):
  * POST /api/rewards/partner/verify { code, email, redeem?, order? } с X-Partner-Key = REWARDS_PARTNER_KEY.
- * Кодът е еднакъв за всички (GRIT10) — важи само ако клиентът с този имейл го е спечелил.
+ * Кодът е еднакъв за всички (TRUE) — важи само ако клиентът с този имейл го е спечелил.
  * → { valid, kind, pct, until, left } ; при redeem — едно използване по-малко.
  */
 export async function handlePartnerVerify(request, env, { respond, now = Date.now() }) {

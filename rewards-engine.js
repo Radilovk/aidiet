@@ -32,15 +32,15 @@
     var DAY_POINTS_MAX = 20;
 
     // Нивата на постоянството — качества, не етапи — и наградата при първото достигане.
-    // kind: supplement — добавки (само за България), plan — план в сайта. Кодът = word + процент
-    // (GRIT10): кратък, на латиница, еднакъв за всички, но важи само за спечелилия го (rewards.js).
+    // kind: supplement — добавки (само за България), plan — план в сайта. Кодът = думата
+    // (BRAVE): кратък, на латиница, без цифри и без I и L (не се бъркат с 0, 1 и помежду си), еднакъв за всички, но важи само за спечелилия го (rewards.js).
     // Текстовете, думите на кодовете и снимките се сменят от админ панела (applyContent).
     var TIERS = [
-        { id: 'start', title: 'Упоритост', days: 14, need: 10, bonus: 100, image: 'persist', word: 'BOLD', rewards: [{ kind: 'supplement', pct: 5 }],
+        { id: 'start', title: 'Упоритост', days: 14, need: 10, bonus: 100, image: 'persist', word: 'BRAVE', rewards: [{ kind: 'supplement', pct: 5 }],
           moment: 'Показа упоритост', text: '14 дни избираш плана си отново и отново — и в лесните, и в трудните дни.', share: 'Избирам себе си — ден след ден.' },
-        { id: 'steady', title: 'Постоянство', days: 30, need: 24, bonus: 200, image: 'consistency', word: 'GRIT', rewards: [{ kind: 'supplement', pct: 10 }],
+        { id: 'steady', title: 'Постоянство', days: 30, need: 24, bonus: 200, image: 'consistency', word: 'TRUE', rewards: [{ kind: 'supplement', pct: 10 }],
           moment: 'Създаде постоянство', text: '30 дни. Това вече не е опит, а твоят ритъм.', share: 'Създадох постоянство.' },
-        { id: 'habit', title: 'Воля', days: 60, need: 50, bonus: 300, image: 'resolve', word: 'FLOW', rewards: [{ kind: 'supplement', pct: 15 }, { kind: 'plan', pct: 10 }],
+        { id: 'habit', title: 'Воля', days: 60, need: 50, bonus: 300, image: 'resolve', word: 'POWER', rewards: [{ kind: 'supplement', pct: 15 }, { kind: 'plan', pct: 10 }],
           moment: 'Волята ти удържа', text: '60 дни, в които думата, дадена на себе си, удържа.', share: 'Дадох си дума — и я удържах.' },
         { id: 'lifestyle', title: 'Вътрешна сила', days: 90, need: 80, bonus: 500, image: 'inner', word: 'CORE', rewards: [{ kind: 'supplement', pct: 20 }, { kind: 'plan', pct: 20 }],
           moment: 'Промяната вече е отвътре', text: '90 дни постоянство. Вече не те води мотивацията, а това, което изгради.', share: 'Промяната вече е отвътре.' }
@@ -59,15 +59,21 @@
 
     // Точки → отстъпка. Партньорските оферти се добавят тук (kind: 'partner', partner: '<id>').
     var OFFERS = [
-        { id: 'plan10', kind: 'plan', pct: 10, cost: 1500, title: '−10% за план', word: 'WIN' },
-        { id: 'supp10', kind: 'supplement', pct: 10, cost: 1000, title: '−10% за добавки', word: 'WIN', region: 'BG' }
+        { id: 'plan10', kind: 'plan', pct: 10, cost: 1500, title: '−10% за план', word: 'BONUS' },
+        { id: 'supp10', kind: 'supplement', pct: 10, cost: 1000, title: '−10% за добавки', word: 'BONUS', region: 'BG' }
     ];
-    // Думите на другите кодове: благодарност за покана (ALLY20) и личният код за покана (DUO + 3 цифри).
-    var WORDS = { thanks: 'ALLY', invite: ['DUO', 'PAL'] };
+    // Думите на другите кодове: благодарност за покана (BUDDY) и личният код за покана (DUO + 3 цифри от 2 до 9).
+    var WORDS = { thanks: 'BUDDY', invite: ['DUO', 'MATE'] };
 
-    /** Кодът: дума + процент — WIN10, GRIT10, CORE20. */
-    function codeFor(word, pct) { return String(word || 'WIN').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) + pct; }
-    /** Въведеното → кода: латиница, без интервали и тирета („grit 10“ → GRIT10). */
+    /** Думата на кода: само латински букви без I и L (бъркат се с 1 и помежду си), до 5. */
+    function cleanWord(w) { return String(w || '').toUpperCase().replace(/[^A-Z]/g, '').replace(/[IL]/g, '').slice(0, 5); }
+    /**
+     * Кодът — само думата: BRAVE, TRUE, POWER, CORE, BONUS, BUDDY. Без процента — числата 10, 15, 20 носят 0 и 1,
+     * които се бъркат с O, I и l. Процентът се пише до кода; планът и добавките се различават по вида (kind).
+     * Издадените по-рано кодове с число (GRIT10…) остават валидни — пазят се в записа на спечелилия ги.
+     */
+    function codeFor(word, pct) { return cleanWord(word) || 'BONUS'; }
+    /** Въведеното → кода: латиница и цифри, без интервали и тирета („brave“ → BRAVE, „duo 482“ → DUO482). */
     function normCode(c) { return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10); }
 
     // Текстовете на картата и поздравите. {n}, {title}… се попълват. Сменят се от админ панела.
@@ -91,8 +97,8 @@
         pathTitle: 'Нивата',
         pathAbout: 'Нивото се отключва с дни, в които поне 80% от плана е спазен (по твоите тежести), сутрешният и вечерният въпрос са отговорени, без хранения извън плана и без преяждане. {list}. Изграденото остава — нивото слиза с едно само след 14 поредни дни под прага.',
         inviteTitle: 'Покани приятел',
-        inviteText: 'Приятелят: −{pct}% за първия план. Ти: −{reward}% и 300 точки.',
-        inviteTextApp: 'Приятелят: подарък за начало. Ти: награда и 300 точки.',
+        inviteText: 'И двамата получавате −{pct}% за план. Ти — и 300 точки.',
+        inviteTextApp: 'И двамата получавате подарък. Ти — и 300 точки.',
         inviteShare: 'Ела с мен — храненето, видяно отвътре',
         redeemTitle: 'Заслужено. Отстъпката е твоя.',
         shareTagline: 'Започва отвътре. Личи навън.',
@@ -142,7 +148,7 @@
             ['title', 'moment', 'text', 'share', 'word', 'image'].forEach(function (k) { t[k] = d.t[i][k]; });
             var o = c && c.tiers && c.tiers[t.id] || {};
             ['title', 'moment', 'text', 'share', 'image'].forEach(function (k) { if (str(o[k])) t[k] = str(o[k]); });
-            if (str(o.word)) t.word = o.word.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || t.word;
+            if (str(o.word)) t.word = cleanWord(o.word) || t.word;
         });
         STREAKS.forEach(function (s, i) {
             ['moment', 'text', 'share'].forEach(function (k) { s[k] = d.s[i][k]; });
@@ -156,8 +162,8 @@
             if (str(o.text)) ch.text = str(o.text);
         });
         var ow = c && c.words && str(c.words.offer);
-        OFFERS.forEach(function (o, i) { o.word = ow ? ow.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || d.o[i].word : d.o[i].word; });
-        WORDS.thanks = c && c.words && str(c.words.thanks) ? c.words.thanks.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || d.w.thanks : d.w.thanks;
+        OFFERS.forEach(function (o, i) { o.word = ow ? cleanWord(ow) || d.o[i].word : d.o[i].word; });
+        WORDS.thanks = c && c.words && str(c.words.thanks) ? cleanWord(c.words.thanks) || d.w.thanks : d.w.thanks;
         Object.keys(TEXTS).forEach(function (k) { TEXTS[k] = d.x[k]; });
         Object.keys((c && c.texts) || {}).forEach(function (k) { if (k in TEXTS && str(c.texts[k], 600)) TEXTS[k] = str(c.texts[k], 600); });
         Object.keys(IMAGES).forEach(function (k) { delete IMAGES[k]; });
@@ -628,7 +634,7 @@
         TIERS: TIERS, STREAKS: STREAKS, WEIGHT_STEPS: WEIGHT_STEPS, OFFERS: OFFERS, FACTS: FACTS,
         ACTIVE: ACTIVE, MEAL_MIN: MEAL_MIN, ADH_MIN: ADH_MIN, adherenceOf: adherenceOf, GREAT_DAY: GREAT_DAY, dayStatus: dayStatus, WHY_TEXT: WHY_TEXT,
         compute: compute, tierById: tierById, streakOf: streakOf, offerById: offerById, weightProgress: weightProgress,
-        WORDS: WORDS, TEXTS: TEXTS, THEMES: THEMES, codeFor: codeFor, normCode: normCode, text: text,
+        WORDS: WORDS, cleanWord: cleanWord, TEXTS: TEXTS, THEMES: THEMES, codeFor: codeFor, normCode: normCode, text: text,
         applyContent: applyContent, imageFor: imageFor,
         CHALLENGES: CHALLENGES, CHALLENGE_TARGET: CHALLENGE_TARGET, CHALLENGE_BONUS: CHALLENGE_BONUS,
         challengeFor: challengeFor, weekEndKey: weekEndKey, openStats: openStats, monthOf: monthOf

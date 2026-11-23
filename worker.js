@@ -1523,7 +1523,7 @@ var require_rewards_engine = __commonJS({
           need: 10,
           bonus: 100,
           image: "persist",
-          word: "BOLD",
+          word: "BRAVE",
           rewards: [{ kind: "supplement", pct: 5 }],
           moment: "\u041F\u043E\u043A\u0430\u0437\u0430 \u0443\u043F\u043E\u0440\u0438\u0442\u043E\u0441\u0442",
           text: "14 \u0434\u043D\u0438 \u0438\u0437\u0431\u0438\u0440\u0430\u0448 \u043F\u043B\u0430\u043D\u0430 \u0441\u0438 \u043E\u0442\u043D\u043E\u0432\u043E \u0438 \u043E\u0442\u043D\u043E\u0432\u043E \u2014 \u0438 \u0432 \u043B\u0435\u0441\u043D\u0438\u0442\u0435, \u0438 \u0432 \u0442\u0440\u0443\u0434\u043D\u0438\u0442\u0435 \u0434\u043D\u0438.",
@@ -1536,7 +1536,7 @@ var require_rewards_engine = __commonJS({
           need: 24,
           bonus: 200,
           image: "consistency",
-          word: "GRIT",
+          word: "TRUE",
           rewards: [{ kind: "supplement", pct: 10 }],
           moment: "\u0421\u044A\u0437\u0434\u0430\u0434\u0435 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E",
           text: "30 \u0434\u043D\u0438. \u0422\u043E\u0432\u0430 \u0432\u0435\u0447\u0435 \u043D\u0435 \u0435 \u043E\u043F\u0438\u0442, \u0430 \u0442\u0432\u043E\u044F\u0442 \u0440\u0438\u0442\u044A\u043C.",
@@ -1549,7 +1549,7 @@ var require_rewards_engine = __commonJS({
           need: 50,
           bonus: 300,
           image: "resolve",
-          word: "FLOW",
+          word: "POWER",
           rewards: [{ kind: "supplement", pct: 15 }, { kind: "plan", pct: 10 }],
           moment: "\u0412\u043E\u043B\u044F\u0442\u0430 \u0442\u0438 \u0443\u0434\u044A\u0440\u0436\u0430",
           text: "60 \u0434\u043D\u0438, \u0432 \u043A\u043E\u0438\u0442\u043E \u0434\u0443\u043C\u0430\u0442\u0430, \u0434\u0430\u0434\u0435\u043D\u0430 \u043D\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438, \u0443\u0434\u044A\u0440\u0436\u0430.",
@@ -1578,12 +1578,15 @@ var require_rewards_engine = __commonJS({
       var WEIGHT_STEPS = [3, 5, 7, 10];
       var WEIGHT_BIG = { 5: true, 10: true };
       var OFFERS = [
-        { id: "plan10", kind: "plan", pct: 10, cost: 1500, title: "\u221210% \u0437\u0430 \u043F\u043B\u0430\u043D", word: "WIN" },
-        { id: "supp10", kind: "supplement", pct: 10, cost: 1e3, title: "\u221210% \u0437\u0430 \u0434\u043E\u0431\u0430\u0432\u043A\u0438", word: "WIN", region: "BG" }
+        { id: "plan10", kind: "plan", pct: 10, cost: 1500, title: "\u221210% \u0437\u0430 \u043F\u043B\u0430\u043D", word: "BONUS" },
+        { id: "supp10", kind: "supplement", pct: 10, cost: 1e3, title: "\u221210% \u0437\u0430 \u0434\u043E\u0431\u0430\u0432\u043A\u0438", word: "BONUS", region: "BG" }
       ];
-      var WORDS = { thanks: "ALLY", invite: ["DUO", "PAL"] };
+      var WORDS = { thanks: "BUDDY", invite: ["DUO", "MATE"] };
+      function cleanWord(w) {
+        return String(w || "").toUpperCase().replace(/[^A-Z]/g, "").replace(/[IL]/g, "").slice(0, 5);
+      }
       function codeFor(word, pct) {
-        return String(word || "WIN").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5) + pct;
+        return cleanWord(word) || "BONUS";
       }
       function normCode2(c) {
         return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
@@ -1614,8 +1617,8 @@ var require_rewards_engine = __commonJS({
         pathTitle: "\u041D\u0438\u0432\u0430\u0442\u0430",
         pathAbout: "\u041D\u0438\u0432\u043E\u0442\u043E \u0441\u0435 \u043E\u0442\u043A\u043B\u044E\u0447\u0432\u0430 \u0441 \u0434\u043D\u0438, \u0432 \u043A\u043E\u0438\u0442\u043E \u043F\u043E\u043D\u0435 80% \u043E\u0442 \u043F\u043B\u0430\u043D\u0430 \u0435 \u0441\u043F\u0430\u0437\u0435\u043D (\u043F\u043E \u0442\u0432\u043E\u0438\u0442\u0435 \u0442\u0435\u0436\u0435\u0441\u0442\u0438), \u0441\u0443\u0442\u0440\u0435\u0448\u043D\u0438\u044F\u0442 \u0438 \u0432\u0435\u0447\u0435\u0440\u043D\u0438\u044F\u0442 \u0432\u044A\u043F\u0440\u043E\u0441 \u0441\u0430 \u043E\u0442\u0433\u043E\u0432\u043E\u0440\u0435\u043D\u0438, \u0431\u0435\u0437 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u0438\u0437\u0432\u044A\u043D \u043F\u043B\u0430\u043D\u0430 \u0438 \u0431\u0435\u0437 \u043F\u0440\u0435\u044F\u0436\u0434\u0430\u043D\u0435. {list}. \u0418\u0437\u0433\u0440\u0430\u0434\u0435\u043D\u043E\u0442\u043E \u043E\u0441\u0442\u0430\u0432\u0430 \u2014 \u043D\u0438\u0432\u043E\u0442\u043E \u0441\u043B\u0438\u0437\u0430 \u0441 \u0435\u0434\u043D\u043E \u0441\u0430\u043C\u043E \u0441\u043B\u0435\u0434 14 \u043F\u043E\u0440\u0435\u0434\u043D\u0438 \u0434\u043D\u0438 \u043F\u043E\u0434 \u043F\u0440\u0430\u0433\u0430.",
         inviteTitle: "\u041F\u043E\u043A\u0430\u043D\u0438 \u043F\u0440\u0438\u044F\u0442\u0435\u043B",
-        inviteText: "\u041F\u0440\u0438\u044F\u0442\u0435\u043B\u044F\u0442: \u2212{pct}% \u0437\u0430 \u043F\u044A\u0440\u0432\u0438\u044F \u043F\u043B\u0430\u043D. \u0422\u0438: \u2212{reward}% \u0438 300 \u0442\u043E\u0447\u043A\u0438.",
-        inviteTextApp: "\u041F\u0440\u0438\u044F\u0442\u0435\u043B\u044F\u0442: \u043F\u043E\u0434\u0430\u0440\u044A\u043A \u0437\u0430 \u043D\u0430\u0447\u0430\u043B\u043E. \u0422\u0438: \u043D\u0430\u0433\u0440\u0430\u0434\u0430 \u0438 300 \u0442\u043E\u0447\u043A\u0438.",
+        inviteText: "\u0418 \u0434\u0432\u0430\u043C\u0430\u0442\u0430 \u043F\u043E\u043B\u0443\u0447\u0430\u0432\u0430\u0442\u0435 \u2212{pct}% \u0437\u0430 \u043F\u043B\u0430\u043D. \u0422\u0438 \u2014 \u0438 300 \u0442\u043E\u0447\u043A\u0438.",
+        inviteTextApp: "\u0418 \u0434\u0432\u0430\u043C\u0430\u0442\u0430 \u043F\u043E\u043B\u0443\u0447\u0430\u0432\u0430\u0442\u0435 \u043F\u043E\u0434\u0430\u0440\u044A\u043A. \u0422\u0438 \u2014 \u0438 300 \u0442\u043E\u0447\u043A\u0438.",
         inviteShare: "\u0415\u043B\u0430 \u0441 \u043C\u0435\u043D \u2014 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E, \u0432\u0438\u0434\u044F\u043D\u043E \u043E\u0442\u0432\u044A\u0442\u0440\u0435",
         redeemTitle: "\u0417\u0430\u0441\u043B\u0443\u0436\u0435\u043D\u043E. \u041E\u0442\u0441\u0442\u044A\u043F\u043A\u0430\u0442\u0430 \u0435 \u0442\u0432\u043E\u044F.",
         shareTagline: "\u0417\u0430\u043F\u043E\u0447\u0432\u0430 \u043E\u0442\u0432\u044A\u0442\u0440\u0435. \u041B\u0438\u0447\u0438 \u043D\u0430\u0432\u044A\u043D.",
@@ -1665,7 +1668,7 @@ var require_rewards_engine = __commonJS({
           ["title", "moment", "text", "share", "image"].forEach(function(k) {
             if (str3(o[k])) t[k] = str3(o[k]);
           });
-          if (str3(o.word)) t.word = o.word.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5) || t.word;
+          if (str3(o.word)) t.word = cleanWord(o.word) || t.word;
         });
         STREAKS.forEach(function(s, i) {
           ["moment", "text", "share"].forEach(function(k) {
@@ -1685,9 +1688,9 @@ var require_rewards_engine = __commonJS({
         });
         var ow = c && c.words && str3(c.words.offer);
         OFFERS.forEach(function(o, i) {
-          o.word = ow ? ow.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5) || d.o[i].word : d.o[i].word;
+          o.word = ow ? cleanWord(ow) || d.o[i].word : d.o[i].word;
         });
-        WORDS.thanks = c && c.words && str3(c.words.thanks) ? c.words.thanks.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5) || d.w.thanks : d.w.thanks;
+        WORDS.thanks = c && c.words && str3(c.words.thanks) ? cleanWord(c.words.thanks) || d.w.thanks : d.w.thanks;
         Object.keys(TEXTS).forEach(function(k) {
           TEXTS[k] = d.x[k];
         });
@@ -2263,6 +2266,7 @@ var require_rewards_engine = __commonJS({
         offerById,
         weightProgress,
         WORDS,
+        cleanWord,
         TEXTS,
         THEMES,
         codeFor,
@@ -62949,17 +62953,16 @@ var CODE_DAYS = 60;
 var MIN_COHORT = 200;
 var HIST_TTL_MS = 12 * 36e5;
 var INVITE_PCT = 15;
-var INVITER_PCT = 20;
+var INVITER_PCT = 15;
 var INVITE_POINTS = 300;
 var okUser = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ""));
 var normCode = import_rewards_engine.default.normCode;
-var okRewardCode = (c) => /^[A-Z]{2,5}\d{1,2}$/.test(String(c || ""));
+var okRewardCode = (c) => /^[A-Z]{2,5}(\d{1,2})?$/.test(String(c || ""));
 var okInvite = (c) => /^[A-Z]{2,5}\d{3,4}$/.test(String(c || ""));
 function digits2(n) {
-  const b = new Uint32Array(1);
+  const b = new Uint32Array(n);
   crypto.getRandomValues(b);
-  const lo = 10 ** (n - 1);
-  return String(lo + b[0] % (9 * lo));
+  return Array.from(b, (x) => String(2 + x % 8)).join("");
 }
 var getJSON = async (env, k) => {
   try {
