@@ -672,14 +672,21 @@
 
         // Хиро: поредицата и нивото → лентата → следващата стъпка. Нищо друго.
         var heroPic = st.tier ? st.tier.image : 'persist';
+        // При 0 — без нула (демотивира): покана с действие — „Направи 10 последователни дни“,
+        // а под нея „до отключване на наградата“. Празната лента не се показва.
+        var count = soft ? goodOf7() : st.streak;
+        var zero = !count && nx && nx.daysNeeded != null;
         var html = '<div class="rw-hero" style="--rw-photo:url(' + photo(heroPic) + ')">' +
             // Мекият режим (persona.noScores) — без поредица, която може да се скъса: добрите дни от последните 7.
-            '<div class="rw-hero-top"><div class="rw-streak">' + (soft
-                ? '<b>' + goodOf7() + '</b><span>от последните 7 дни</span>'
-                : '<b>' + st.streak + '</b><span>' + plural(st.streak, 'ден', 'дни') + ' поред</span>') + '</div>' +
+            '<div class="rw-hero-top"><div class="rw-streak' + (zero ? ' rw-streak--start' : '') + '">' + (zero
+                // последните две думи — заедно на втория ред („Направи 10 / последователни дни“)
+                ? '<strong>' + esc(RE.text('startCall', { n: Math.max(1, nx.daysNeeded) })).replace(/(\S+ \S+)$/, '<span class="nw">$1</span>') + '</strong>'
+                : soft
+                    ? '<b>' + count + '</b><span>от последните 7 дни</span>'
+                    : '<b>' + count + '</b><span>' + plural(count, 'ден', 'дни') + ' поред</span>') + '</div>' +
             '<div class="rw-tier"><small>' + esc(tierLabel) + '</small><strong>' + esc(tierTitle) + '</strong></div></div>' +
-            '<div class="rw-bar"><i data-w="' + barPct + '"></i></div>' +
-            '<div class="rw-hero-foot"><span>' + esc(hint) + '</span>' +
+            (zero && !barPct ? '' : '<div class="rw-bar"><i data-w="' + barPct + '"></i></div>') +
+            '<div class="rw-hero-foot"><span>' + esc(zero ? RE.text('startCallTail') : hint) + '</span>' +
             (st.shields.held ? '<span class="rw-pts" title="Жокер: пази поредицата в слаб или пропуснат ден"><i class="fas fa-shield-alt"></i>' + st.shields.held + '</span>' : '') +
             '<span class="rw-pts" title="Точки"><i class="fas fa-star"></i>' + num(pts) + '</span></div>' +
             '</div>';

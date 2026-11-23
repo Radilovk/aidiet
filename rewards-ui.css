@@ -33,6 +33,9 @@
 .rw-streak { display: flex; align-items: baseline; gap: 8px; }
 .rw-streak b { font-size: 44px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 .rw-streak span { font-size: 15px; opacity: .92; }
+.rw-streak--start .nw { white-space: nowrap; font-size: inherit; opacity: 1; }
+.rw-streak--start strong { display: block; font-size: 19px; line-height: 1.2; font-weight: 800; text-wrap: balance; }
+.rw-streak--start + .rw-tier { align-self: flex-start; }
 .rw-tier { text-align: right; }
 .rw-tier small { display: block; font-size: 12px; opacity: .8; }
 .rw-tier strong { font-size: 16px; font-weight: 700; }
