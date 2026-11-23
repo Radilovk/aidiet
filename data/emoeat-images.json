@@ -40,6 +40,12 @@
     "need": [
       "open hands sunlight sky",
       "sunrise through window warm light"
+    ],
+    "plan": [
+      "misty hill trail morning"
+    ],
+    "welcome": [
+      "tree lined path soft light morning"
     ]
   },
   "images": {
@@ -120,19 +126,19 @@
       "focus": "0.5,0.4"
     },
     "pause": {
-      "id": 4882027,
-      "focus": "0.4,0.45"
+      "id": 10338948,
+      "focus": "0.5,0.55"
     },
     "pendulum": {
       "id": 7905883,
       "focus": "0.55,0.5"
     },
     "order": {
-      "id": 3076954,
+      "id": 1841271,
       "focus": "0.5,0.5"
     },
     "critic": {
-      "id": 2567679,
+      "id": 1776746,
       "focus": "0.5,0.5"
     },
     "spark": {
@@ -152,8 +158,16 @@
       "focus": "0.5,0.5"
     },
     "need": {
-      "id": 3452582,
-      "focus": "0.5,0.4"
+      "id": 8431870,
+      "focus": "0.5,0.55"
+    },
+    "plan": {
+      "id": 5819652,
+      "focus": "0.55,0.5"
+    },
+    "welcome": {
+      "id": 5345528,
+      "focus": "0.5,0.6"
     }
   }
 }
