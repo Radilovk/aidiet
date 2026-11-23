@@ -11951,7 +11951,15 @@
             var hp = window.NutriPlanHaptic && window.NutriPlanHaptic.notify;
             if (isGoodDay(ds, getRecord(getTodayKey()))) {
                 var streak = soft ? 0 : calcStreak();
-                var word = (ds.engPct || 0) >= 80 && !soft ? 'Денят е изцяло по плана' : 'Денят е по плана';
+                // „изцяло“ — по личното спазване на деня (GameScoring.dayAdherence + личните тежести), не по старата ангажираност
+                var adhPct = (ds.engPct || 0);
+                try {
+                    var udT = JSON.parse(localStorage.getItem('userData') || '{}'), GFt = window.NutriPlanGoalFocus;
+                    var aw = GFt && GFt.adherenceWeights ? GFt.adherenceWeights(udT).weights : null;
+                    var ad = window.GameScoring.dayAdherence(getRecord(getTodayKey()), { weights: aw, policy: activityPolicyNow() });
+                    if (ad) adhPct = ad.pct;
+                } catch (_) {}
+                var word = adhPct >= 85 && !soft ? 'Денят е изцяло по плана' : 'Денят е по плана';
                 showEncouragement({ text: '<i class="fas fa-seedling" aria-hidden="true"></i> ' + word + (streak >= 2 ? ' · ' + streak + ' поредни' : '') + '.', type: 'good' });
                 if (hp) hp('success');
                 return;

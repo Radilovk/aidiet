@@ -121,7 +121,9 @@
   "Всичко по плана.": "Totul după plan.",
   "Дотук — всичко по плана.": "Până acum, totul după plan.",
   "Няма отбелязване за деня.": "Nimic notat pentru ziua respectivă.",
-  "За теб тежат повече:": "Pentru tine contează mai mult:"
+  "За теб тежат повече:": "Pentru tine contează mai mult:",
+  "Кръгчета с процент": "Cercuri cu procent",
+  "Кръгчета с личица": "Cercuri cu fețe"
  },
  "keys": {},
  "patterns": []

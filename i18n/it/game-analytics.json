@@ -121,7 +121,9 @@
   "Всичко по плана.": "Tutto secondo il piano.",
   "Дотук — всичко по плана.": "Finora tutto secondo il piano.",
   "Няма отбелязване за деня.": "Nulla registrato per il giorno.",
-  "За теб тежат повече:": "Per te contano di più:"
+  "За теб тежат повече:": "Per te contano di più:",
+  "Кръгчета с процент": "Cerchi con percentuale",
+  "Кръгчета с личица": "Cerchi con faccine"
  },
  "keys": {},
  "patterns": []
