@@ -1071,7 +1071,7 @@
     </script>
 
     <script src="./day-adherence.js?v=1"></script>
-    <script src="./day-marks.js?v=2"></script>
+    <script src="./day-marks.js?v=3"></script>
     <script src="./game-scoring.js?v=7"></script>
     <script src="./goal-model.js"></script>
     <script src="./goal-focus.js?v=6"></script>
@@ -1589,23 +1589,41 @@
                 var paras = String(info.text || '').split('\n\n');
                 var short = info.short || paras[0];
                 var rest = info.short ? paras : paras.slice(1);
-                var sm = document.createElement('div'); sm.className='game-explain-text'; sm.style.whiteSpace='pre-line'; sm.textContent = short;
+                // Всеки ред — отделен елемент: така речникът на превода (i18n.js) хваща всеки ред поотделно.
+                var setLines = function (el, text) {
+                    String(text || '').split('\n').forEach(function (ln) {
+                        var d = document.createElement('div');
+                        if (ln.trim()) d.textContent = ln; else d.style.height = '8px';
+                        el.appendChild(d);
+                    });
+                };
+                var sm = document.createElement('div'); sm.className='game-explain-text'; setLines(sm, short);
                 scroll.appendChild(sm);
                 if(gaNumbers[key]) {
-                    var nm = document.createElement('div'); nm.className='game-explain-text'; nm.style.cssText='white-space:pre-line;margin-top:8px;font-weight:600';
-                    nm.textContent = gaNumbers[key];
+                    var nm = document.createElement('div'); nm.className='game-explain-text'; nm.style.cssText='margin-top:8px;font-weight:600';
+                    setLines(nm, gaNumbers[key]);
                     scroll.appendChild(nm);
                 }
-                var more = [];
-                if (rest.length) more.push(rest.join('\n\n'));
-                if (key === 'engagement' && window._gaAdhW && window._gaAdhW.reasons.length) {
-                    var NM = { meal: 'храненията', cal: 'калориите', junk: 'храненията извън плана', act: 'движението', sleep: 'сънят', water: 'водата', mood: 'емоциите' };
-                    more.push('За теб тежат повече:\n' + window._gaAdhW.reasons.slice(0, 4).map(function (r) { return '• ' + NM[r.k] + ' — ' + r.text + ' (' + window._gaAdhW.weights[r.k] + ' от 100)'; }).join('\n'));
-                }
-                if (more.length) {
+                var more = rest.length ? rest.join('\n\n') : '';
+                var reasons = key === 'engagement' && window._gaAdhW && window._gaAdhW.reasons.length ? window._gaAdhW.reasons.slice(0, 4) : [];
+                if (more || reasons.length) {
                     var det = document.createElement('details'); det.className = 'ge-more';
                     var su = document.createElement('summary'); su.textContent = 'Подробно';
-                    var dt = document.createElement('div'); dt.className='game-explain-text'; dt.style.whiteSpace='pre-line'; dt.textContent = more.join('\n\n');
+                    var dt = document.createElement('div'); dt.className='game-explain-text'; setLines(dt, more);
+                    if (reasons.length) {
+                        // „За теб тежат повече“: частта, причината и тежестта — отделни парчета (превеждат се поотделно)
+                        var NM = { meal: 'храненията', cal: 'калориите', junk: 'храненията извън плана', act: 'движението', sleep: 'сънят', water: 'водата', mood: 'емоциите' };
+                        if (more) setLines(dt, '');
+                        setLines(dt, 'За теб тежат повече:');
+                        reasons.forEach(function (r) {
+                            var d = document.createElement('div');
+                            var a = document.createElement('span'); a.textContent = NM[r.k];
+                            var b = document.createElement('span'); b.textContent = r.text;
+                            var c = document.createElement('span'); c.textContent = '(' + window._gaAdhW.weights[r.k] + ' от 100)';
+                            d.appendChild(document.createTextNode('• ')); d.appendChild(a); d.appendChild(document.createTextNode(' — ')); d.appendChild(b); d.appendChild(document.createTextNode(' ')); d.appendChild(c);
+                            dt.appendChild(d);
+                        });
+                    }
                     det.appendChild(su); det.appendChild(dt); scroll.appendChild(det);
                 }
                 box.appendChild(t); box.appendChild(scroll);
@@ -1649,9 +1667,9 @@
                 overlay.id = 'gameHistOverlay'; overlay.className = 'game-explain-overlay'; overlay.style.zIndex = '10001';
                 overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
                 var box = document.createElement('div'); box.className = 'game-explain-box';
-                box.innerHTML = '<div class="game-explain-title">' + title + ' · история</div>' +
-                    '<div class="game-explain-text">Последните 8 седмици' + (vals.length >= 2 ? ' · средно ' + Math.round(vals.reduce(function(a, w){ return a + w.v; }, 0) / vals.length) + '%' : '') + '</div>' +
-                    (vals.length ? '<div class="ga-hist" role="img" aria-label="' + title + ' по седмици">' + weeks.map(function(w){
+                box.innerHTML = '<div class="game-explain-title"><span>' + title + '</span> <span>· история</span></div>' +
+                    '<div class="game-explain-text"><span>Последните 8 седмици</span>' + (vals.length >= 2 ? ' <span>· средно ' + Math.round(vals.reduce(function(a, w){ return a + w.v; }, 0) / vals.length) + '%</span>' : '') + '</div>' +
+                    (vals.length ? '<div class="ga-hist" role="img" aria-label="' + title + '">' + weeks.map(function(w){
                         return '<div class="ga-hist-col' + (w.now ? ' is-now' : '') + '"><span class="ga-hist-v">' + (w.v == null ? '' : w.v + '%') + '</span>' +
                             '<span class="ga-hist-bar' + (w.v == null ? ' is-none' : '') + '" style="height:' + (w.v == null ? 3 : Math.max(3, Math.round(w.v * 0.72))) + '%;background:' + h.color + '"></span>' +
                             '<span class="ga-hist-d">' + (w.now ? 'сега' : w.label) + '</span></div>';
