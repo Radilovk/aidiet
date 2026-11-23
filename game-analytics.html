@@ -953,7 +953,7 @@
             var soft = !!persona.noScores;
             var softTone = function (t) { return soft && t === 'bad' ? 'warn' : t; };
             var metrics = (src && src.metrics) || {};
-            // „Резултат“ (progress-index.js): какво реално се е променило по водещите за целта показатели —
+            // „Напредък“ (progress-index.js): какво реално се е променило по водещите за целта показатели —
             // тегло, талия, мускули, енергия, сън, захар… (goal-model.js → lead). Без старанието: то е звездите.
             var PR = window.NutriPlanProgress;
             var indicesHtml = '';
@@ -967,7 +967,7 @@
                 var on = res.value != null;
                 indicesHtml = '<div class="gf-indices"><div class="gf-index ga-result" data-tone="good" role="button" tabindex="0" aria-expanded="false" ' +
                     'onclick="gfToggleIndex(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();gfToggleIndex(this);}">' +
-                    '<div class="gf-index-head"><span class="gf-index-icon"><i class="fas fa-flag-checkered"></i></span><span class="gf-index-name">Резултат' +
+                    '<div class="gf-index-head"><span class="gf-index-icon"><i class="fas fa-flag-checkered"></i></span><span class="gf-index-name">Напредък' +
                     ' <i class="fas fa-circle-info gf-index-info" aria-hidden="true"></i></span></div>' +
                     '<div class="gf-index-bar' + (on ? '' : ' is-empty') + '"><span style="width:' + (on ? res.value : 0) + '%"></span></div>' +
                     (on ? '' : '<div class="gf-index-note">' + gfEsc(res.needs.text) + '</div>') +
@@ -1591,7 +1591,7 @@
                 mealAdherence: mealAdherencePct, calAdherence: calAdherencePct,
                 sleepPct: sleepPct, actPct: actPct, balancePct: balancePct,
                 junkCount: validScores.length ? junkCount7 : null,
-                // дни с тренировка (вечерният въпрос) — за „Резултат“, когато тренировките са водещи
+                // дни с тренировка (вечерният въпрос) — за „Напредък“, когато тренировките са водещи
                 workouts7: days.some(function(d){ return d.rec && d.rec.eveningCheck && d.rec.eveningCheck.trained != null; })
                     ? days.filter(function(d){ var t = d.rec && d.rec.eveningCheck && d.rec.eveningCheck.trained; return t === 'am' || t === 'pm' || t === true; }).length : null
             };

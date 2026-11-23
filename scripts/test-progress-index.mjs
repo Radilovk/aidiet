@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Резултат (progress-index.js): мерими промени по водещите показатели за целта, без старанието.
+ * Напредък (progress-index.js): мерими промени по водещите показатели за целта, без старанието.
  */
 import { createRequire } from 'node:module';
 
