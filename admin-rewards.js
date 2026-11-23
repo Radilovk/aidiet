@@ -25,7 +25,7 @@
         weightLose: 'Етап при сваляне ({pct})', weightGain: 'Етап при качване ({pct})', weightText: 'Текст при етап на теглото',
         weightShareLose: 'Споделяне — сваляне', weightShareGain: 'Споделяне — качване',
         codesTitle: 'Заглавие: отстъпките', codesEmpty: 'Още без отстъпки', pointsTitle: 'Заглавие: точките',
-        pathTitle: 'Заглавие: нивата', inviteTitle: 'Заглавие: покана', inviteText: 'Текст на поканата ({pct} {reward})', inviteTextApp: 'Текст на поканата в приложението (без цени)',
+        pathTitle: 'Заглавие: нивата', pathAbout: 'Обяснение на нивата под (i) ({list})', inviteTitle: 'Заглавие: покана', inviteText: 'Текст на поканата ({pct} {reward})', inviteTextApp: 'Текст на поканата в приложението (без цени)',
         inviteShare: 'Покана — на картата за споделяне', redeemTitle: 'Поздрав при отстъпка срещу точки',
         shareTagline: 'Долу на картата за споделяне', shareInvite: 'Кодът на картата за споделяне ({code})',
         weekTitle: 'Седмицата: заглавие', weekGood: 'Седмицата: добри дни ({good})', weekUp: 'Седмицата: по-силна ({d})',

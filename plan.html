@@ -3994,7 +3994,7 @@
     </style>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
-    <link rel="stylesheet" href="./rewards-ui.css?v=8">
+    <link rel="stylesheet" href="./rewards-ui.css?v=10">
     <script src="./app-ui.js" defer></script>
     <div id="planAuthOverlay" style="display:none">
         <div class="pa-spinner"></div>
@@ -4011,15 +4011,15 @@
         }
     })();</script>
 
-    <script src="./game-scoring.js"></script>
-    <script src="./rewards-engine.js?v=6"></script>
-    <script src="./rewards-ui.js?v=8"></script>
+    <script src="./game-scoring.js?v=2"></script>
+    <script src="./rewards-engine.js?v=8"></script>
+    <script src="./rewards-ui.js?v=10"></script>
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
     <script src="./platform-compat.js"></script>
     <script src="./meal-swaps.js"></script>
-    <script src="./weight-log.js"></script>
+    <script src="./weight-log.js?v=2"></script>
     <script src="./plan-sync.js"></script>
     <script src="./pricing-config.js"></script>
     <script src="./access.js"></script>
@@ -4420,7 +4420,7 @@
         </div>
     </div>
 
-    <script src="./ambient-glass.js?v=4"></script>
+    <script src="./ambient-glass.js?v=5"></script>
     <!-- Skip Navigation Link (Accessibility) -->
     <a href="#main-content" class="ds-skip-link">Премини към съдържанието</a>
     
@@ -8120,7 +8120,7 @@
             }, delay);
         }
 
-        // Теглото: weight-log.js (записът е в „Напредък“; тук остава window.NPWeight за прегледа и чата).
+        // Теглото: weight-log.js — пита се в седмичния преглед, сменя се от Профил; без постоянно поле.
 
         /** Поздравът и готови въпроси за начало — празният чат не оставя човека сам пред полето. */
         function showChatWelcome() {
@@ -10932,14 +10932,8 @@
         }
         /** Добри дни от последните 7 (вкл. днес) — серия, която един лош ден не нулира. */
         function goodDaysOf7() {
-            var GS = window.GameScoring, all = getGameData() || {}, n = 0;
-            for (var i = 0; i < 7; i++) {
-                var d = new Date(); d.setDate(d.getDate() - i);
-                var rec = all[GS.dateKey(d)];
-                var ds = rec ? GS.calcDayScore(rec) : null;
-                if (isGoodDay(ds)) n++;
-            }
-            return n;
+            var GS = window.GameScoring;
+            return GS.goodDaysOf(getGameData() || {}, GS.dateKey(new Date()), 7).good;
         }
 
         function calcStreak() {
@@ -12003,7 +11997,9 @@
             if (old) old.remove();
             // Обобщението на седмицата живее в Напредък („Твоята седмица“). Тук — само входът към
             // настройката на плана, със същата мярка: добри дни (ангажираност ≥ 60%), без оценка.
-            var good = wd.days.filter(function(day) { return day.rec && isGoodDay(window.GameScoring.calcDayScore(day.rec)); }).length;
+            // Същият прозорец като в Напредък и наградите (GameScoring.goodDaysOf).
+            var GS7 = window.GameScoring.goodDaysOf(getGameData() || {}, window.GameScoring.dateKey(new Date()), 7);
+            var good = GS7.good;
             var color = '#0A6B66';
 
             var overlay = document.createElement('div');
@@ -12017,9 +12013,9 @@
 
             var dotsWrap = document.createElement('div');
             dotsWrap.style.cssText = 'display:flex;gap:6px;justify-content:center;margin:12px 0 20px;';
-            wd.days.forEach(function(day) {
+            GS7.days.forEach(function(day) {
                 var dot = document.createElement('div');
-                var on = day.rec && isGoodDay(window.GameScoring.calcDayScore(day.rec));
+                var on = day.good;
                 dot.style.cssText = 'width:14px;height:14px;border-radius:50%;background:' + (on ? 'var(--ds-green-text, #10b981)' : 'var(--ds-track, #e5e7eb)') + ';';
                 dotsWrap.appendChild(dot);
             });
@@ -12673,6 +12669,11 @@
 
         // Отговорите се пазят до успешно изпращане — „Опитай пак“ не пита наново.
         async function sendWeeklyAnswers(questions, answers, cycleNumber) {
+            // Теглото от прегледа → дневника (weight-log.js): същият път като от профила.
+            try {
+                var wAns = (answers || []).filter(function(a) { return a.questionId === 'weightKg'; })[0];
+                if (wAns && window.NPWeight && window.NPWeight.add) window.NPWeight.add(wAns.value);
+            } catch (_) {}
             var st0 = getWeeklyAIState();
             st0.pendingAnswers = answers;
             saveWeeklyAIState(st0);

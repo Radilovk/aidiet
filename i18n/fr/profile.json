@@ -353,7 +353,8 @@
   "Как да инсталирам?": "Comment installer ?",
   "Инструкции за инсталация": "Instructions d'installation",
   "Потребител": "Utilisateur",
-  "Версия": "Version"
+  "Версия": "Version",
+  "Планът се настройва към новото тегло при следващия седмичен преглед.": "Le plan s'adapte à ton nouveau poids lors du prochain bilan hebdomadaire."
  },
  "keys": {},
  "patterns": []

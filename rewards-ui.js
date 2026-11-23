@@ -103,7 +103,7 @@
             calcDayScore: global.GameScoring.calcDayScore,
             todayKey: global.GameScoring.dateKey(new Date()),
             weightLog: read('np_weight_log', []),
-            startKg: parseFloat(String(ud.weight || '').replace(',', '.')) || null,
+            startKg: parseFloat(String(ud.startWeight || ud.weight || '').replace(',', '.')) || null,
             goalDirection: (plan.analysis || {})._goalDirection || '',
             challenge: localChallenge()
         });
@@ -521,38 +521,10 @@
             '<button type="button" class="rw-btn" data-copy="' + esc(c.code) + '" aria-label="Копирай кода"><i class="far fa-copy"></i></button>' + action + '</div>';
     }
 
-    // ── Седмицата (неделя вечер – вторник) ──────────────────────────────────
-    function weekVisible(st) {
-        var w = st && st.week;
-        if (!w || !w.tracked) return false;
-        var d = new Date(), dow = d.getDay();
-        if (!((dow === 0 && d.getHours() >= 17) || dow === 1 || dow === 2)) return false;
-        return (read(WEEK_KEY, {}) || {}).dismissed !== w.endKey;
-    }
-    function dayName(key) {
-        try { var p = key.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('bg-BG', { weekday: 'long' }); } catch (_) { return key; }
-    }
-    function shortDate(key) { var p = key.split('-'); return +p[2] + '.' + p[1]; }
-    function weekMoment(st) {
-        var w = st.week;
-        return {
-            kicker: RE.text('weekTitle'), num: w.good + '/7', unit: 'добри дни',
-            title: RE.text('weekGood', { good: w.good }),
-            shareTitle: w.delta > 0 ? RE.text('weekUp', { d: w.delta }) : RE.text('weekGood', { good: w.good }),
-            image: 'streak', source: 'share_week'
-        };
-    }
-    function weekCard(st) {
-        if (!weekVisible(st)) return '';
-        var w = st.week;
-        var trend = w.delta == null ? '' : w.delta >= 3 ? RE.text('weekUp', { d: w.delta }) : w.delta <= -3 ? RE.text('weekDown') : RE.text('weekSame');
-        var wk = read(WEEK_KEY, {}) || {};
-        if (wk.viewed !== w.endKey) { wk.viewed = w.endKey; write(WEEK_KEY, wk); event('week_view'); }
-        return '<div class="rw-card rw-week"><h4>' + esc(RE.text('weekTitle')) + '<small>' + shortDate(w.startKey) + '–' + shortDate(w.endKey) + '</small></h4>' +
-            '<div class="rw-week-big"><b>' + w.good + '</b><span>' + esc(RE.text('weekGood', { good: w.good }).replace(/^\d+\s*/, '')) + '</span></div>' +
-            (trend ? '<p>' + esc(trend) + '</p>' : '') +
-            '<div class="rw-week-actions"><button type="button" class="rw-btn" data-week-hide="1">Видях</button>' +
-            '<button type="button" class="rw-btn rw-btn--main" data-week-share="1"><i class="fas fa-share-nodes"></i> Сподели</button></div></div>';
+    /** Добри дни от последните 7 — за мекия режим вместо поредицата (тя може да се скъса). */
+    function goodOf7() {
+        var GS = global.GameScoring;
+        return GS && GS.goodDaysOf ? GS.goodDaysOf(read('gameData', {}) || {}, GS.dateKey(new Date()), 7).good : 0;
     }
 
     // ── Предизвикателството на месеца ───────────────────────────────────────
@@ -634,8 +606,10 @@
             el.innerHTML = '<div class="rw-card"><p>' + esc(RE.text('empty')) + '</p></div>';
             return;
         }
-        var tierTitle = st.tier ? st.tier.title : RE.text('firstLevel');
         var nx = st.next;
+        var tierLabel = st.tier ? RE.text('levelLabel') : RE.text('firstLevel');
+        var tierTitle = st.tier ? st.tier.title : (nx ? nx.title : '');
+        var soft = !!persona().noScores;
         var barPct = nx ? nx.progress : 100;
         // Под лентата — само следващата стъпка: колко дни остават или какъв ритъм иска нивото.
         var hint;
@@ -647,8 +621,11 @@
         // Хиро: поредицата и нивото → лентата → следващата стъпка. Нищо друго.
         var heroPic = st.tier ? st.tier.image : 'persist';
         var html = '<div class="rw-hero" style="--rw-photo:url(' + photo(heroPic) + ')">' +
-            '<div class="rw-hero-top"><div class="rw-streak"><b>' + st.streak + '</b><span>' + plural(st.streak, 'ден', 'дни') + ' поред</span></div>' +
-            '<div class="rw-tier"><small>' + esc(RE.text('levelLabel')) + '</small><strong>' + esc(tierTitle) + '</strong></div></div>' +
+            // Мекият режим (persona.noScores) — без поредица, която може да се скъса: добрите дни от последните 7.
+            '<div class="rw-hero-top"><div class="rw-streak">' + (soft
+                ? '<b>' + goodOf7() + '</b><span>от последните 7 дни</span>'
+                : '<b>' + st.streak + '</b><span>' + plural(st.streak, 'ден', 'дни') + ' поред</span>') + '</div>' +
+            '<div class="rw-tier"><small>' + esc(tierLabel) + '</small><strong>' + esc(tierTitle) + '</strong></div></div>' +
             '<div class="rw-bar"><i data-w="' + barPct + '"></i></div>' +
             '<div class="rw-hero-foot"><span>' + esc(hint) + '</span>' +
             (st.shields.held ? '<span class="rw-pts" title="Жокер: пази поредицата в слаб или пропуснат ден"><i class="fas fa-shield-alt"></i>' + st.shields.held + '</span>' : '') +
@@ -656,17 +633,22 @@
             '</div>';
         if (st.warning) html += '<div class="rw-warn"><i class="fas fa-circle-exclamation"></i> ' + esc(RE.text('warn', { title: st.tier.title, titleLower: st.tier.title.toLowerCase(), n: st.warning.daysLeft, daysWord: plural(st.warning.daysLeft, 'ден', 'дни') })) + '</div>';
 
-        html += weekCard(st) + challengeCard(st, srv);
+        // Седмицата е в картата „Тази седмица“ — тук не се повтаря.
+        html += challengeCard(st, srv);
 
         html += '<button type="button" class="rw-toggle" aria-expanded="false" aria-controls="rwDetails"><span>Нива и награди</span><i class="fas fa-chevron-down"></i></button><div id="rwDetails" hidden>';
 
         // Нивата: име → дни и праг → наградата. Един ред описание.
         var cur = st.tier ? st.tier.index : -1;
-        html += '<div class="rw-card"><h4>' + esc(RE.text('pathTitle')) + '</h4>' + RE.TIERS.map(function (t, i) {
+        // Праговете (%) — зад (i), не на екрана (DESIGN_PRINCIPLES.md, т. 5).
+        var about = RE.text('pathAbout', { list: RE.TIERS.map(function (t) { return t.title + ' — ' + t.days + ' дни над ' + t.minEng + '%'; }).join('; ') });
+        html += '<div class="rw-card"><h4>' + esc(RE.text('pathTitle')) +
+            '<button type="button" class="rw-info" aria-expanded="false" aria-controls="rwPathAbout" aria-label="Как се достига ниво"><i class="fas fa-circle-info"></i></button></h4>' +
+            '<p class="rw-about" id="rwPathAbout" hidden>' + esc(about) + '</p>' + RE.TIERS.map(function (t, i) {
             var state = i <= cur ? 'is-done' : i === cur + 1 ? 'is-next' : '';
             var gifts = t.rewards.map(function (r) { return giftShort(r, srv); }).filter(Boolean);
             return '<div class="rw-step ' + state + '"><i class="fas ' + (i <= cur ? 'fa-check' : i === cur + 1 ? 'fa-arrow-up' : 'fa-lock') + '"></i>' +
-                '<div><b>' + esc(t.title) + '</b><span>' + t.days + ' дни · над ' + t.minEng + '%</span></div>' +
+                '<div><b>' + esc(t.title) + '</b><span>' + t.days + ' дни</span></div>' +
                 (gifts.length ? '<em>' + gifts.map(esc).join('<br>') + '</em>' : '') + '</div>';
         }).join('') + '</div>';
 
@@ -696,8 +678,9 @@
         }
 
         var r = st.records;
-        html += '<div class="rw-card"><h4>Лични рекорди</h4><div class="rw-records">' +
-            '<div class="rw-record"><b>' + r.bestStreak + '</b><span>дни поред</span></div>' +
+        html += '<div class="rw-card"><h4>Лични рекорди</h4><div class="rw-records"' + (soft ? ' style="grid-template-columns:repeat(2,1fr)"' : '') + '>' +
+            // Мекият режим — без поредици и тук.
+            (soft ? '' : '<div class="rw-record"><b>' + r.bestStreak + '</b><span>дни поред</span></div>') +
             '<div class="rw-record"><b>' + (r.bestWeek ? r.bestWeek.avg + '%' : '—') + '</b><span>най-добра седмица</span></div>' +
             '<div class="rw-record"><b>' + (r.maxSteps ? num(r.maxSteps.steps) : '—') + '</b><span>крачки за ден</span></div>' +
             '</div><button type="button" class="rw-btn rw-btn--wide" data-share="1"><i class="fas fa-share-nodes"></i> Сподели</button></div>';
@@ -706,6 +689,12 @@
         el.innerHTML = html;
         requestAnimationFrame(function () { var b = el.querySelector('.rw-bar i'); if (b) b.style.width = b.getAttribute('data-w') + '%'; });
 
+        var info = el.querySelector('.rw-info');
+        if (info) info.addEventListener('click', function () {
+            var p = el.querySelector('#rwPathAbout'), open = p.hidden;
+            p.hidden = !open;
+            info.setAttribute('aria-expanded', String(open));
+        });
         var tg = el.querySelector('.rw-toggle');
         tg.addEventListener('click', function () {
             var open = tg.getAttribute('aria-expanded') !== 'true';
@@ -728,10 +717,6 @@
                 } else { b.disabled = false; toast((d && d.message) || 'Не стана. Опитай пак.', 'fa-circle-exclamation'); }
             });
         });
-        var wh = el.querySelector('[data-week-hide]');
-        if (wh) wh.addEventListener('click', function () { var wk = read(WEEK_KEY, {}) || {}; wk.dismissed = st.week.endKey; write(WEEK_KEY, wk); render(el, st, srv); });
-        var ws = el.querySelector('[data-week-share]');
-        if (ws) ws.addEventListener('click', function () { share(weekMoment(st), srv && srv.invite && srv.invite.code, 'share_week'); });
         var cj = el.querySelector('[data-challenge-join]');
         if (cj) cj.addEventListener('click', async function () {
             cj.disabled = true;
@@ -742,9 +727,10 @@
             share({ kicker: 'Покана', title: 'Ела с мен в Nutriin', shareTitle: RE.text('inviteShare'), num: '−' + srv.invite.pct + '%', unit: 'за първия план', image: 'invite' }, srv.invite.code, 'share_invite');
         });
         el.querySelector('[data-share]').addEventListener('click', function () {
+            var num7 = soft ? String(goodOf7()) : String(st.streak), unit7 = soft ? 'от последните 7 дни' : 'дни поред';
             var mo = st.tier
-                ? { kicker: st.tier.title, num: String(st.streak), unit: 'дни поред', title: st.tier.share, image: st.tier.image }
-                : { kicker: 'Постоянство', num: String(st.streak), unit: 'дни поред', title: 'Ден след ден.', image: 'share' };
+                ? { kicker: st.tier.title, num: num7, unit: unit7, title: st.tier.share, image: st.tier.image }
+                : { kicker: 'Пътят към успеха', num: num7, unit: unit7, title: 'Ден след ден.', image: 'share' };
             share(mo, srv && srv.invite && srv.invite.code, 'share_section');
         });
     }

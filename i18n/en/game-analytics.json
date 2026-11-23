@@ -56,7 +56,17 @@
   "Няма данни": "No data",
   "· спазени хранения": "· meals followed",
   "крачки/ден, цел": "steps/day, target",
-  "kcal допълнителен разход в": "kcal extra expenditure in"
+  "kcal допълнителен разход в": "kcal extra expenditure in",
+  "Тази седмица": "This week",
+  "последните 7 дни": "last 7 days",
+  "от {0} добри дни": "of {0} good days",
+  "от {0} добри дни · ритъмът расте": "of {0} good days · the rhythm is growing",
+  "от {0} добри дни · леко затихване": "of {0} good days · a slight dip",
+  "Подробно": "Details",
+  "Пътят към успеха": "The path to success",
+  "Първо ниво": "First level",
+  "от последните {0} дни": "of the last {0} days",
+  "За твоята цел": "For your goal"
  },
  "keys": {},
  "patterns": []

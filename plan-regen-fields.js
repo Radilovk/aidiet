@@ -4,7 +4,9 @@
  */
 export const DIET_RELATED_PROFILE_FIELDS = [
   // Възрастта влиза в разхода (BMR) и в белтъка (60+) — промяната ѝ сменя плана.
-  'gender', 'age', 'height', 'weight', 'goal', 'lossKg',
+  // Теглото не е тук: новото тегло отива в дневника (weight-log.js) и планът се настройва
+  // към него при следващия седмичен преглед, без нов план.
+  'gender', 'age', 'height', 'goal', 'lossKg',
   'sleepHours', 'sleepInterrupt', 'chronotype', 'dailyActivityLevel',
   'stressLevel', 'sportActivity', 'waterIntake', 'drinksSweet', 'drinksAlcohol',
   'weightChange', 'weightChangeDetails',

@@ -50,7 +50,16 @@
   "+0,5 л вода днес": "+0.5 L water today",
   "Добави закуска с белтък": "Add a protein snack",
   "По-лека седмица: повече сън, по-леки тренировки": "Lighter week: more sleep, easier workouts",
-  "Мисъл за деня": "Thought of the day"
+  "Мисъл за деня": "Thought of the day",
+  "Подреди картите": "Arrange cards",
+  "Влачи дръжката вдясно, за да смениш реда. Скритите не изчезват — връщаш ги с „+“.": "Drag the handle on the right to change the order. Hidden cards don't disappear — bring them back with “+”.",
+  "На екрана": "On screen",
+  "Скрити": "Hidden",
+  "Подредба по подразбиране": "Default order",
+  "Нищо не е показано.": "Nothing is shown.",
+  "Няма скрити карти.": "No hidden cards.",
+  "По-нагоре": "Move up",
+  "По-надолу": "Move down"
  },
  "keys": {},
  "patterns": []
