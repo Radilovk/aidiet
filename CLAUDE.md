@@ -53,7 +53,9 @@ biocode.website (`PLAN_APP_BASE_URL`); при изпращане `email-domain.j
 - **EmoEat** (`emoeat.html`, emoeat.app) — тест за емоционалното хранене, без въпроси за храна. Въпросите, вариантите на
   сцените по човека (пол, възраст, ден, дом, детство, здраве), чертите и тълкуването са в `emoeat-v3.js`; основата и
   решенията — `EMOEAT_PSYCH_REVIEW.md`, `EMOEAT_V3_QUESTIONS.md`, `EMOEAT_V3_CALIBRATION.md`. Проверка: `npm run test:emoeat`.
-  Преводите на въпросите: `scripts/emoeat-v3-translate.mjs` (от английския; на живо без AI превод — `data-i18n-dict`).
+  Преводите на въпросите са в `i18n/<език>/emoeat.json` (английският е изходът; на живо без AI превод — `data-i18n-dict`);
+  липсващите показва `node scripts/emoeat-v3-strings.mjs --missing i18n/<език>/emoeat.json`. `scripts/emoeat-v3-translate.mjs`
+  харчи кредити от OpenAI — само по изрично решение.
 - `fitness/` — KA-TRAINER (собствен `package.json`, бекендът е в общия worker).
 - `xbody.html` (+ `xbody-*`, `acuity/`), `studio.html` + `studio-platform/`, `emoeat.html`, `kids.html`,
   `longevity.html`, `protocols.html`, `protocol-landing.html`, `pep*.html`, `reta.html`, `aix.html`,

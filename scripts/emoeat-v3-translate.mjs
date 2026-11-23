@@ -12,6 +12,9 @@
  *        [--model gpt-5.5] [--check-model gpt-5.4] [--only "bg текст"]
  *
  * Списъкът идва от scripts/emoeat-v3-strings.mjs (само липсващите в речника на езика).
+ *
+ * ВНИМАНИЕ: харчи кредити от OpenAI акаунта. Пуска се само по изрично решение на собственика;
+ * по подразбиране преводите се пишат на ръка в i18n/<език>/emoeat.json (така са направени сега).
  */
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -25,7 +28,7 @@ const KEY = process.env.OPENAI_API_KEY || 'sk-dummy';
 if (!which || (which !== 'all' && !LANGS[which])) { console.error('--lang ' + Object.keys(LANGS).join('|') + '|all'); process.exit(2); }
 const dictPath = (l) => new URL(`../i18n/${l}/emoeat.json`, import.meta.url);
 const load = (l) => JSON.parse(fs.readFileSync(dictPath(l), 'utf8'));
-const save = (l, d) => fs.writeFileSync(dictPath(l), JSON.stringify(d, null, 2) + '\n');
+const save = (l, d) => fs.writeFileSync(dictPath(l), JSON.stringify(d, null, 1) + '\n');
 const missing = (l) => JSON.parse(execFileSync('node', [new URL('./emoeat-v3-strings.mjs', import.meta.url).pathname, '--missing', dictPath(l).pathname], { encoding: 'utf8' }))
   .filter(s => !/[<>]/.test(s));
 
