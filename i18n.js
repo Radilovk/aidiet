@@ -251,7 +251,7 @@
         if (hit == null) {
             var nt = numTemplate(core);
             if (nt) {
-                var th = mem[nt.tpl];
+                var th = dict.strings[nt.tpl] != null ? dict.strings[nt.tpl] : mem[nt.tpl];   // шаблон от речника или от паметта
                 if (th == null) { if (queue) want(nt.tpl); return s; }
                 hit = fillTemplate(th, nt.nums);
             }
