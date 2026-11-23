@@ -410,6 +410,13 @@
             box-shadow: 0 15px 35px rgba(13, 148, 136, 0.3);
         }
 
+        .welcome-cover { position: relative; height: 176px; margin: 0 0 22px; border-radius: 28px; overflow: hidden;
+            box-shadow: 0 18px 40px -22px rgba(76, 29, 149, .55); }
+        .welcome-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .welcome-cover::after { content: ''; position: absolute; inset: 0;
+            background: linear-gradient(180deg, rgba(124, 58, 237, .16) 0%, transparent 45%, rgba(0, 0, 0, .12) 100%); }
+        [data-theme="dark"] .welcome-cover img { filter: brightness(.78) saturate(1.05); }
+
         .welcome-title {
             font-size: 1.5rem;
             font-weight: 800;
@@ -1530,9 +1537,7 @@
         <!-- Welcome Screen -->
         <div class="screen active" id="welcomeScreen">
             <div class="welcome-screen">
-                <div class="welcome-icon">
-                    <i class="fas fa-heart-pulse"></i>
-                </div>
+                <div class="welcome-cover" aria-hidden="true"><img src="./brand/emoeat/welcome.webp" alt="" width="900" height="522" decoding="async"></div>
                 <h2 class="welcome-title">Кога храната поема чувствата?</h2>
                 <p class="welcome-subtitle">Тук няма въпроси за храна. Питаме как минават обикновените ти дни: какво те изморява, какво те отпуска, как реагираш, когато нещо се обърка. Какво значи това за храненето ти, ще видиш накрая.</p>
                 <div class="welcome-pick" id="welcomePick" data-i18n-dict></div>
@@ -2468,7 +2473,7 @@
             if (auto) setTimeout(linkEmoEatToPlan, 0);
             return `
                 <section class="rx-plan-link rx-in" id="rxPlanLink">
-                    <div class="rx-strip" aria-hidden="true"><img src="./brand/emoeat/share.webp" alt="" loading="lazy" decoding="async"></div>
+                    <div class="rx-strip" aria-hidden="true"><img src="./brand/emoeat/plan.webp" alt="" loading="lazy" decoding="async"></div>
                     <div class="rx-plan-link-title"><i class="fas fa-link"></i> ${linked ? 'В хранителния ти план' : 'Хранителният план'}</div>
                     <p class="rx-plan-link-text">Към плана отива обобщението (модел, портрет, истинската нужда и здравните отговори, ако си ги дал/а), но не отделните ти отговори. По него се нагаждат насоките, напомнянията и подредбата на приложението.</p>
                     ${linked
@@ -2515,7 +2520,7 @@
         function planInviteHtml() {
             return `
                 <section class="rx-plan-link rx-in" id="rxPlanLink">
-                    <div class="rx-strip" aria-hidden="true"><img src="./brand/emoeat/share.webp" alt="" loading="lazy" decoding="async"></div>
+                    <div class="rx-strip" aria-hidden="true"><img src="./brand/emoeat/plan.webp" alt="" loading="lazy" decoding="async"></div>
                     <div class="rx-plan-link-title"><i class="fas fa-utensils"></i> Хранителен план, съобразен с профила ти</div>
                     <p class="rx-plan-link-text">Nutriin ще вземе модела ти предвид от първия ден: кога и защо идва гладът, какво помага вместо забрани, как да се подредят храненията. Обобщението на профила ти (без отделните отговори) тръгва с теб.</p>
                     <button type="button" class="rx-btn" id="rxPlanInviteBtn" onclick="continueToNutriPlan()"><i class="fas fa-arrow-right"></i> Създай моя план</button>
