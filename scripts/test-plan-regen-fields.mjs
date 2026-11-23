@@ -12,7 +12,10 @@ function assert(cond, msg) {
   else { fail++; console.error(`✗ ${msg}`); }
 }
 
-assert(DIET_RELATED_PROFILE_FIELDS.includes('weight'), 'weight is diet-related');
+// Теглото не иска нов план: новото тегло отива в дневника (weight-log.js), а планът се настройва
+// към него при следващия седмичен преглед.
+assert(!DIET_RELATED_PROFILE_FIELDS.includes('weight'), 'weight is not diet-related (weekly review adapts)');
+assert(DIET_RELATED_PROFILE_FIELDS.includes('height'), 'height is diet-related');
 assert(!DIET_RELATED_PROFILE_FIELDS.includes('name'), 'name is not diet-related');
 
 assert(
@@ -20,8 +23,12 @@ assert(
   'name-only change does not trigger regen'
 );
 assert(
-  hasDietRelatedProfileChanges({ weight: 70 }, { weight: 75 }),
-  'weight change triggers regen'
+  !hasDietRelatedProfileChanges({ weight: 70 }, { weight: 75 }),
+  'weight change does not trigger regen'
+);
+assert(
+  hasDietRelatedProfileChanges({ height: 170 }, { height: 172 }),
+  'height change triggers regen'
 );
 assert(
   classifyDietRelatedProfileChanges(

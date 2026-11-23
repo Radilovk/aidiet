@@ -407,7 +407,8 @@
 
     /**
      * @param {{ gameData: object, calcDayScore: function, todayKey?: string, weightLog?: Array,
-     *           startKg?: number, goalDirection?: string, challenge?: { id: string, joined: string } }} input
+     *           startKg?: number, goalDirection?: string, challenge?: { id: string, joined: string },
+     *           activity?: { reward?: boolean, maxPct?: number|null } }} input
      */
     function compute(input) {
         var inp = /** @type {any} */ (input || {});
@@ -526,8 +527,8 @@
                 daysNeeded: daysToTier(tl, end2, nx)
             };
             // Лентата казва същото като текста под нея („Още N до отключване на наградата“).
-            var left = res.next.daysNeeded;
-            res.next.progress = left == null ? 0 : Math.round((1 - Math.min(1, left / nx.need)) * 100);
+            var leftDays = res.next.daysNeeded;
+            res.next.progress = leftDays == null ? 0 : Math.round((1 - Math.min(1, leftDays / nx.need)) * 100);
         }
 
         // Рекорди: най-добрата седмица (средна ангажираност за 7 дни), най-много крачки.
