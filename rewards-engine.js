@@ -8,11 +8,14 @@
  *
  * Правила (психологията — в PROJECT_NOTES.md, „Награди“):
  *  - добър ден: ангажираност ≥ 60%; поредица = поредни добри дни (пропуск, покрит от жокер, не я къса);
- *  - жокер: 1 на всеки 14 добри дни, най-много 2; покрива сам ден без отметки;
+ *  - жокер: 1 на всеки 14 добри дни, най-много 2; пази поредицата в минал ден под прага — със слаб запис
+ *    или без никакъв (иначе честно отбелязаният слаб ден би бил по-лош от неотбелязания);
  *  - стъпало: средната ангажираност за последните N дни ≥ прага (дните без отметки — 0, с жокер — не се броят);
  *    достигнатото се пази; ако 14 поредни дни е под него — слиза с едно (предупреждение през тези дни);
  *  - точки: 10 за добър ден, +5 при ≥ 80%, +5 при крачки на целта (до 20 на ден) + бонуси за етапи;
- *  - отслабване: етапи 3/5/7/10% от началното тегло; при сваляне над 1% на седмица — без поздрав.
+ *  - отслабване: етапи 3/5/7/10% от началното тегло; при сваляне над 1% на седмица — без поздрав;
+ *  - седмицата (Пн–Нд) за неделния преглед; месечното предизвикателство (по избор, 10 дни от приемането);
+ *  - влизанията в приложението (openStats) — за часа на напомнянията и „добре дошъл обратно“.
  *
  *   RewardsEngine.compute({ gameData, calcDayScore, todayKey, weightLog?, startKg?, goalDirection? })
  */
@@ -80,7 +83,7 @@
         warn: 'Пази своята {titleLower}: след още {n} {daysWord} под прага нивото слиза с едно. Един добър ден връща отброяването.',
         comparison: 'Постоянството ти е по-високо от това на {p}% от хората в Nutriin.',
         newLevel: 'Ново ниво', giftReady: '— кодът те чака в Напредък',
-        shield: 'Спечели жокер: един ден без отметки няма да прекъсне поредицата ти.',
+        shield: 'Спечели жокер: един слаб или пропуснат ден няма да прекъсне поредицата ти.',
         weightLose: 'По-леко с {pct}%. Заслужено.', weightGain: 'С {pct}% по-близо до целта',
         weightText: 'С ежедневни решения, не с крайности.',
         weightShareLose: 'По-леко. Отвътре навън.', weightShareGain: 'По-близо до целта. Ден след ден.',
@@ -91,10 +94,32 @@
         pathNote: 'Изграденото остава твое: нивото слиза с едно само след 14 поредни дни под прага.',
         inviteTitle: 'Покани приятел',
         inviteText: 'Приятелят получава −{pct}% за първия си план, а ти — код −{reward}% и 300 точки, щом започне.',
+        inviteTextApp: 'Сподели кода си: приятелят получава подарък за начало, а ти — награда и 300 точки, щом започне.',
         inviteShare: 'Ела с мен — храненето, видяно отвътре',
         redeemTitle: 'Заслужено. Отстъпката е твоя.',
         shareTagline: 'Започва отвътре. Личи навън.',
-        shareInvite: 'Код {code} → −15% за първия план'
+        shareInvite: 'Код {code} → −15% за първия план',
+        weekTitle: 'Твоята седмица',
+        weekGood: '{good} от 7 добри дни',
+        weekUp: 'С {d}% по-силна от миналата седмица.',
+        weekSame: 'Ритъмът от миналата седмица се държи.',
+        weekDown: 'По-тиха седмица от миналата. Новата започва в понеделник — на чисто.',
+        weekBest: 'Най-силният ти ден: {day} ({eng}%).',
+        weekNotifyTitle: 'Твоята седмица е готова',
+        weekNotifyBody: 'Виж какво изгради за 7 дни — и откъде продължаваш.',
+        challengeTitle: 'Предизвикателството на месеца',
+        challengeJoin: 'Приемам',
+        challengeJoined: 'Прие го. Брои се от днес — всеки ден, в който успееш.',
+        challengeLate: 'За този месец остават по-малко от {target} дни. Новото предизвикателство идва на 1-во число.',
+        challengeBehind: 'Още {n} до целта, остават {left} дни — всеки от тях е шанс.',
+        challengeDone: 'Изпълни предизвикателството на месеца',
+        challengeDoneText: '+{bonus} точки. Новият месец носи ново.',
+        challengeNotifyBody: 'Още {n} до „{title}“ — днес може да е един от тях.',
+        newMonthNotifyTitle: 'Нов месец — ново начало',
+        newMonthNotifyBody: 'Предизвикателството на месеца те чака: „{title}“.',
+        comeback: 'Радваме се, че си тук. Днес е добър ден за ново начало.',
+        inviteLandingTitle: 'Покана от приятел',
+        inviteLandingText: '−{pct}% за първия ти план. Отстъпката се прилага сама при плащането.'
     };
     function text(key, vars) {
         var t = TEXTS[key] == null ? '' : String(TEXTS[key]);
@@ -108,11 +133,11 @@
     /**
      * Промените от админ панела (KV rewards_content) върху стойностите по подразбиране.
      * { tiers: { id: { title, moment, text, share, word, image } }, streaks: { дни: { moment, text, share } },
-     *   texts: { ключ: текст }, images: { тема: адрес }, words: { offer, thanks } }
+     *   challenges: { id: { title, text } }, texts: { ключ: текст }, images: { тема: адрес }, words: { offer, thanks } }
      */
     var DEFAULTS = null;
     function applyContent(c) {
-        if (!DEFAULTS) DEFAULTS = JSON.stringify({ t: TIERS, s: STREAKS, o: OFFERS, x: TEXTS, w: WORDS });
+        if (!DEFAULTS) DEFAULTS = JSON.stringify({ t: TIERS, s: STREAKS, o: OFFERS, x: TEXTS, w: WORDS, c: CHALLENGES });
         var d = JSON.parse(DEFAULTS);
         var str = function (v, n) { return typeof v === 'string' && v.trim() ? v.trim().slice(0, n || 400) : null; };
         TIERS.forEach(function (t, i) {
@@ -126,6 +151,12 @@
             var o = c && c.streaks && c.streaks[s.days] || {};
             ['moment', 'text', 'share'].forEach(function (k) { if (str(o[k])) s[k] = str(o[k]); });
         });
+        CHALLENGES.forEach(function (ch, i) {
+            ch.title = d.c[i].title; ch.text = d.c[i].text;
+            var o = c && c.challenges && c.challenges[ch.id] || {};
+            if (str(o.title)) ch.title = str(o.title);
+            if (str(o.text)) ch.text = str(o.text);
+        });
         var ow = c && c.words && str(c.words.offer);
         OFFERS.forEach(function (o, i) { o.word = ow ? ow.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || d.o[i].word : d.o[i].word; });
         WORDS.thanks = c && c.words && str(c.words.thanks) ? c.words.thanks.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || d.w.thanks : d.w.thanks;
@@ -138,6 +169,61 @@
         });
     }
     function imageFor(theme) { return IMAGES[theme] || './brand/rewards/' + theme + '.webp'; }
+
+    // ── Месечното предизвикателство ───────────────────────────────────────
+    // Едно на месец, еднакво за всички (по реда на месеца), по избор. Брои се от деня на приемане —
+    // всеки месец е ново начало (fresh start, Dai и колеги 2014). Дни, не поредица: пропуск не нулира.
+    var CHALLENGE_TARGET = 10;
+    var CHALLENGE_BONUS = 150;
+    var CHALLENGES = [
+        { id: 'good', title: '10 добри дни', text: 'Десет дни този месец със спазен план над 60%. Не е нужно да са поред.' },
+        { id: 'steps', title: '10 дни с крачки на целта', text: 'Десет дни този месец, в които стигаш дневната си цел за крачки.', needsSteps: true },
+        { id: 'evening', title: '10 вечери за себе си', text: 'Десет вечери, в които отговаряш на вечерния въпрос — вода, движение, усещане.' },
+        { id: 'great', title: '10 силни дни', text: 'Десет дни над 80% — дни, в които планът е изцяло твой.' },
+        { id: 'morning', title: '10 добри утрини', text: 'Десет сутрини, в които започваш деня с отговор как е минала нощта.' }
+    ];
+    var CHALLENGE_TEST = {
+        good: function (d) { return d.eng != null && d.eng >= GOOD; },
+        steps: function (d) { return d.onTarget; },
+        evening: function (d) { return d.eve; },
+        great: function (d) { return d.eng != null && d.eng >= GREAT; },
+        morning: function (d) { return d.morn; }
+    };
+
+    function monthOf(key) { return String(key).slice(0, 7); }
+    function daysInMonth(month) { var p = month.split('-'); return new Date(Date.UTC(+p[0], +p[1], 0)).getUTCDate(); }
+
+    /** Предизвикателството на месеца; „крачки“ — само при измерени крачки през последните 14 дни. */
+    function challengeFor(month, hasSteps) {
+        var p = month.split('-');
+        var c = CHALLENGES[((+p[0]) * 12 + (+p[1])) % CHALLENGES.length];
+        return c.needsSteps && !hasSteps ? CHALLENGES[0] : c;
+    }
+
+    /** Седмицата Пн–Нд: в неделя — текущата (днес влиза), в другите дни — завършилата миналата неделя. */
+    function weekEndKey(todayKey) {
+        var dow = new Date(keyToMs(todayKey)).getUTCDay();
+        return msToKey(keyToMs(todayKey) - (dow === 0 ? 0 : dow) * DAY);
+    }
+
+    /**
+     * Влизанията в приложението (np_opens): { days: { ден: брой }, hours: [24], last, prev }.
+     * → колко дни от последните 14 е отварял, обичайния час, обичайния вечерен час и паузата преди последното.
+     */
+    function openStats(opens, todayKey) {
+        var o = opens || {};
+        var end = keyToMs(todayKey || localKey(new Date()));
+        var days14 = 0;
+        Object.keys(o.days || {}).forEach(function (k) { if (isKey(k) && end - keyToMs(k) < 14 * DAY && keyToMs(k) <= end) days14++; });
+        var h = Array.isArray(o.hours) && o.hours.length === 24 ? o.hours : null;
+        var usual = null, evening = null, best = 0, bestEve = 0;
+        if (h) for (var i = 0; i < 24; i++) {
+            if (h[i] > best) { best = h[i]; usual = i; }
+            if (i >= 17 && i <= 22 && h[i] > bestEve) { bestEve = h[i]; evening = i; }
+        }
+        var gap = o.last && o.prev ? Math.floor((o.last - o.prev) / DAY) : null;
+        return { days14: days14, usualHour: usual, eveningHour: evening, gapDays: gap };
+    }
 
     // Само проверени факти — показват се, когато сравнение с потребителите още няма.
     var FACTS = {
@@ -173,7 +259,12 @@
                 if (!(eng > 0)) eng = 0;
             }
             var ec = rec && rec.eveningCheck;
-            out.push({ key: k, shielded: false, rec: !!rec, eng: eng, steps: ec && ec.steps > 0 ? ec.steps : 0, onTarget: stepsOnTarget(rec) });
+            var mc = rec && rec.morningCheck;
+            out.push({
+                key: k, shielded: false, rec: !!rec, eng: eng, steps: ec && ec.steps > 0 ? ec.steps : 0, onTarget: stepsOnTarget(rec),
+                eve: !!(ec && (ec.activityLevel != null || ec.emotionalBalance != null || ec.waterIntake != null)),
+                morn: !!(mc && typeof mc.sleptWell === 'boolean')
+            });
         }
         return out;
     }
@@ -241,7 +332,7 @@
 
     /**
      * @param {{ gameData: object, calcDayScore: function, todayKey?: string, weightLog?: Array,
-     *           startKg?: number, goalDirection?: string }} input
+     *           startKg?: number, goalDirection?: string, challenge?: { id: string, joined: string } }} input
      */
     function compute(input) {
         var inp = /** @type {any} */ (input || {});
@@ -256,7 +347,7 @@
             consistency: {},
             points: { earned: 0, days: {}, bonus: 0 },
             records: { bestStreak: 0, bestWeek: null, maxSteps: null, stepDays: 0 },
-            milestones: milestones, weight: null
+            milestones: milestones, weight: null, week: null, challenge: null
         };
         if (!tl.length) return res;
 
@@ -287,8 +378,8 @@
                     }
                 });
             } else if (!isToday) {
-                // Ден без нито една отметка — жокерът го покрива и поредицата продължава.
-                if (!d.rec && held > 0 && streak > 0) {
+                // Ден под прага (слаб или без отметки) — жокерът го покрива и поредицата продължава.
+                if (held > 0 && streak > 0) {
                     held--;
                     d.shielded = true;
                     res.shields.used.push(d.key);
@@ -359,6 +450,52 @@
         Object.keys(res.points.days).forEach(function (k) { earned += res.points.days[k]; });
         res.points.earned = earned + res.points.bonus;
 
+        // Седмицата: Пн–Нд (виж weekEndKey), сравнена с предишната.
+        var wEnd = weekEndKey(todayKey);
+        var wIdx = -1;
+        for (var wi = lastIdx; wi >= 0; wi--) if (tl[wi].key === wEnd) { wIdx = wi; break; }
+        if (wIdx >= 0) {
+            var from = Math.max(0, wIdx - 6), wk = tl.slice(from, wIdx + 1);
+            var tracked = wk.filter(function (x) { return x.rec; });
+            var bestDay = /** @type {any} */ (null), stepSum = 0, stepN = 0, wpts = 0;
+            wk.forEach(function (x) {
+                if (x.eng != null && (!bestDay || x.eng >= bestDay.eng)) bestDay = x;
+                if (x.steps > 0) { stepSum += x.steps; stepN++; }
+                wpts += res.points.days[x.key] || 0;
+            });
+            var avgW = tracked.length ? Math.round(wk.reduce(function (a, x) { return a + (x.eng || 0); }, 0) / wk.length) : null;
+            var prevAvg = from >= 7 ? windowAvg(tl, from - 1, 7) : null;
+            res.week = {
+                startKey: wk[0].key, endKey: wEnd, days: wk.length, tracked: tracked.length,
+                good: wk.filter(function (x) { return x.eng != null && x.eng >= GOOD; }).length,
+                avg: avgW, prevAvg: prevAvg, delta: avgW != null && prevAvg != null ? avgW - prevAvg : null,
+                points: wpts, stepsAvg: stepN ? Math.round(stepSum / stepN) : null, stepDays: wk.filter(function (x) { return x.onTarget; }).length,
+                best: bestDay && bestDay.eng > 0 ? { key: bestDay.key, eng: bestDay.eng } : null,
+                milestones: milestones.filter(function (m) { return m.key >= wk[0].key && m.key <= wEnd && m.kind !== 'shield'; }).map(function (m) { return m.id; })
+            };
+        }
+
+        // Месечното предизвикателство (по избор): от деня на приемане до днес.
+        var month = monthOf(todayKey);
+        var hasSteps = tl.slice(-14).some(function (x) { return x.steps > 0; });
+        var ch = challengeFor(month, hasSteps);
+        var joinKey = inp.challenge && monthOf(inp.challenge.joined || '') === month ? inp.challenge.joined : null;
+        if (joinKey && inp.challenge.id && CHALLENGE_TEST[inp.challenge.id]) ch = CHALLENGES.filter(function (c) { return c.id === inp.challenge.id; })[0] || ch;
+        var dim = daysInMonth(month), dayNo = +todayKey.slice(8, 10), left = dim - dayNo + 1;
+        var count = 0, doneKey = null;
+        if (joinKey) tl.forEach(function (x) {
+            if (x.key >= joinKey && monthOf(x.key) === month && CHALLENGE_TEST[ch.id](x)) { count++; if (count === CHALLENGE_TARGET) doneKey = x.key; }
+        });
+        var joinedDay = joinKey ? +joinKey.slice(8, 10) : null;
+        res.challenge = {
+            month: month, id: ch.id, title: ch.title, text: ch.text, target: CHALLENGE_TARGET, bonus: CHALLENGE_BONUS,
+            joined: joinKey, count: Math.min(count, CHALLENGE_TARGET), done: count >= CHALLENGE_TARGET, daysLeft: left,
+            canJoin: !joinKey && left >= CHALLENGE_TARGET,
+            // темпо: колко би трябвало да има досега, ако целта се разпредели равно до края на месеца
+            behind: !!joinKey && count < CHALLENGE_TARGET && left > 0 && (CHALLENGE_TARGET - count) > left * 0.8
+        };
+        if (doneKey) milestones.push({ id: 'challenge:' + month, kind: 'challenge', key: doneKey, big: true, challenge: ch.id, bonus: CHALLENGE_BONUS });
+
         var wp = weightProgress(inp.weightLog, Number(inp.startKg) || 0, inp.goalDirection);
         if (wp) {
             res.weight = wp;
@@ -378,7 +515,9 @@
         TIERS: TIERS, STREAKS: STREAKS, WEIGHT_STEPS: WEIGHT_STEPS, OFFERS: OFFERS, FACTS: FACTS,
         compute: compute, tierById: tierById, streakOf: streakOf, offerById: offerById, weightProgress: weightProgress,
         WORDS: WORDS, TEXTS: TEXTS, THEMES: THEMES, codeFor: codeFor, normCode: normCode, text: text,
-        applyContent: applyContent, imageFor: imageFor
+        applyContent: applyContent, imageFor: imageFor,
+        CHALLENGES: CHALLENGES, CHALLENGE_TARGET: CHALLENGE_TARGET, CHALLENGE_BONUS: CHALLENGE_BONUS,
+        challengeFor: challengeFor, weekEndKey: weekEndKey, openStats: openStats, monthOf: monthOf
     };
     /** @type {any} */ (global).RewardsEngine = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;

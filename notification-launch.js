@@ -191,6 +191,18 @@
             return;
         }
 
+        // Наградите (rewards-ui.js: седмицата, предизвикателството) — направо в „Напредък“.
+        if (extra.url && String(extra.url).indexOf('game-analytics') !== -1) {
+            try {
+                if (localStorage.getItem('dietPlan') && localStorage.getItem('userId')) {
+                    if (revealTimer) clearTimeout(revealTimer);
+                    revealTimer = null;
+                    location.replace('index.html?app=1&tab=analytics');
+                    return;
+                }
+            } catch (_) { /* без памет — обичайното отваряне */ }
+        }
+
         if (extra.url && String(extra.url).indexOf('quick-answer') !== -1) {
             if (revealTimer) clearTimeout(revealTimer);
             revealTimer = null;

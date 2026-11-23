@@ -53,6 +53,7 @@ Rules:
 - Natural, short, friendly ${name}, addressing the reader informally (as the Bulgarian does with "ти"; in Russian — "ты").
 - The source is Bulgarian even where it looks like Russian; translate it fully into ${name}.
 - Keep numbers, units (g, kcal, ml, kg), emoji, punctuation at the edges, and anything inside {curly braces} unchanged.
+- {0}, {1}… stand for numbers: keep every one of them exactly once, in the place the grammar of ${name} needs.
 - Food and dish names: the usual ${name} name; a Bulgarian dish with no equivalent keeps its name in Latin letters with a short gloss only if needed.
 - Bulgarian dairy is specific: "сирене" is white brine cheese (feta-style), never generic cheese; "кашкавал" is kashkaval, a yellow semi-hard cheese; "извара" is quark / cottage cheese; "кисело мляко" is plain yogurt; "прясно мляко" is milk.
 - "Nutriin" stays as is. Do not add quotes, notes or explanations.
@@ -96,6 +97,9 @@ export async function handleI18nTranslate(request, env, deps) {
           const tr = typeof arr[j] === 'string' ? arr[j].trim() : '';
           // Непреведено (кирилица в превод на латиница) — не се пази, ще се опита пак. Руският е на кирилица.
           if (!tr || (lang !== 'ru' && CYR.test(tr))) return;
+          // Шаблон с числа ({0}, {1}… — i18n.js): всяко място трябва да остане, иначе не се пази.
+          const holes = src.match(/\{\d\}/g) || [];
+          if (holes.some((h) => !tr.includes(h))) return;
           translations[src] = tr;
           if (kv) puts.push(kv.put(keys[missing[j]], tr).catch(() => {}));
         });

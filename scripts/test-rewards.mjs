@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import RE from '../rewards-engine.js';
 import { calcDayScore } from '../analytics-compression.js';
-import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInviteStatus, handlePartnerVerify, handleAdminRewardsContent, handleAdminRewardsImage, handleRewardsImage, handleRewardsContent, percentileOf, INVITE_PCT, INVITER_PCT, INVITE_POINTS } from '../rewards.js';
+import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInviteStatus, handlePartnerVerify, handleAdminRewardsContent, handleAdminRewardsImage, handleRewardsImage, handleRewardsContent, handleRewardsChallenge, handleRewardsEvent, handleAdminRewardsReport, noteInviteSignup, percentileOf, INVITE_PCT, INVITER_PCT, INVITE_POINTS } from '../rewards.js';
 import { handleBillingCheckout, handleBillingConfirm } from '../billing.js';
 
 const DAY = 86400000;
@@ -58,10 +58,12 @@ await check('жокер: 1 на 14 добри дни; покрива ден бе
   assert.ok(r2.milestones.every((m) => m.kind !== 'shield'));
 });
 
-await check('слаб ден със записи къса поредицата (жокерът е само за ден без отметки)', async () => {
+await check('жокерът пази и честно отбелязан слаб ден; без жокер слабият ден къса поредицата', async () => {
   const r = run(history(20, (i) => (i === 16 ? day(0) : day(3))));
-  assert.equal(r.streak, 3);
-  assert.equal(r.shields.held, 1);
+  assert.equal(r.streak, 19);
+  assert.equal(r.shields.used.length, 1);
+  const r2 = run(history(10, (i) => (i === 5 ? day(0) : day(3))));
+  assert.equal(r2.streak, 4);
 });
 
 await check('стъпалото се пази 14 дни под прага, после слиза с едно (с предупреждение преди това)', async () => {
@@ -116,6 +118,55 @@ await check('сравнение: под 200 души — няма; иначе д
   assert.equal(percentileOf({ n: 199, c }, 90), null);
 });
 
+/** Дни по дата: from..to включително, pattern(key) → ден или null. */
+function range(from, to, pattern) {
+  const g = {};
+  for (let t = Date.parse(from + 'T00:00:00Z'); t <= Date.parse(to + 'T00:00:00Z'); t += DAY) { const k = key(t); const d = pattern(k); if (d) g[k] = d; }
+  return g;
+}
+
+await check('седмицата: Пн–Нд, в неделя — текущата; сравнение с предишната', async () => {
+  assert.equal(RE.weekEndKey('2026-11-22'), '2026-11-22');   // неделя
+  assert.equal(RE.weekEndKey('2026-11-24'), '2026-11-22');   // вторник → миналата неделя
+  const g = range('2026-11-09', '2026-11-23', (k) => (k < '2026-11-16' ? day(0) : day(3, 9000)));
+  const r = RE.compute({ gameData: g, calcDayScore, todayKey: '2026-11-23' });
+  assert.equal(r.week.startKey, '2026-11-16');
+  assert.equal(r.week.endKey, '2026-11-22');
+  assert.equal(r.week.good, 7);
+  assert.equal(r.week.avg, 100);
+  assert.equal(r.week.prevAvg, 50);
+  assert.equal(r.week.delta, 50);
+  assert.equal(r.week.stepsAvg, 9000);
+  assert.equal(r.week.points, 7 * 20);
+});
+
+await check('месечно предизвикателство: от деня на приемане, 10 дни (не поред), бонус и етап; късно → не се приема', async () => {
+  const g = range('2026-11-01', '2026-11-20', (k) => (k === '2026-11-08' ? day(0) : day(3, 9000)));
+  const open = RE.compute({ gameData: g, calcDayScore, todayKey: '2026-11-15' });
+  assert.equal(open.challenge.canJoin, true);
+  assert.equal(open.challenge.joined, null);
+  const ch = open.challenge;
+  const r = RE.compute({ gameData: g, calcDayScore, todayKey: '2026-11-20', challenge: { id: ch.id, joined: '2026-11-05' } });
+  assert.equal(r.challenge.count, 10);            // 5…20 без 8-ми = 15 дни, броят спира на 10
+  assert.equal(r.challenge.done, true);
+  assert.ok(r.milestones.some((m) => m.id === 'challenge:2026-11' && m.big));
+  const late = RE.compute({ gameData: g, calcDayScore, todayKey: '2026-11-25' });
+  assert.equal(late.challenge.canJoin, false);    // остават 6 дни < 10
+  // приетото през миналия месец не се пренася
+  const dec = RE.compute({ gameData: { ...g, '2026-12-02': day(3) }, calcDayScore, todayKey: '2026-12-02', challenge: { id: ch.id, joined: '2026-11-05' } });
+  assert.equal(dec.challenge.joined, null);
+  // „крачки“ без измерени крачки → „добри дни“
+  const stepsMonth = ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'].find((m) => RE.challengeFor(m, true).id === 'steps');
+  assert.equal(RE.challengeFor(stepsMonth, false).id, 'good');
+});
+
+await check('влизанията: дни от 14, обичаен и вечерен час, пауза', async () => {
+  const hours = new Array(24).fill(0); hours[8] = 5; hours[20] = 3; hours[18] = 1;
+  const o = { days: { '2026-11-20': 2, '2026-11-15': 1, '2026-10-01': 1 }, hours, last: Date.parse('2026-11-20T08:00:00Z'), prev: Date.parse('2026-11-15T08:00:00Z') };
+  const st = RE.openStats(o, '2026-11-21');
+  assert.deepEqual(st, { days14: 2, usualHour: 8, eveningHour: 20, gapDays: 5 });
+});
+
 // ── Сървърът ────────────────────────────────────────────────────────────────
 const kv = new Map();
 const meta = new Map();
@@ -163,12 +214,26 @@ await check('стъпалата дават кодове веднъж; точки
   assert.equal(again.wallet.earned, first.wallet.earned);
 });
 
-await check('точките остават, когато старите дни изчезнат от gameData (пази се най-високото)', async () => {
-  const trimmed = Object.fromEntries(Object.entries(g40).slice(-10));
-  kv.set(`game_state:${A}`, JSON.stringify({ gameData: trimmed }));
-  const r = await rewards(A, { country: 'BG' });
-  assert.equal(r.wallet.earned, first.wallet.earned);
-  kv.set(`game_state:${A}`, JSON.stringify({ gameData: g40 }));
+await check('обичайната заявка не пише в KV; дните се банкират преди да изтекат и точките остават', async () => {
+  // повторна заявка без промяна → нито един запис
+  let puts = 0;
+  const realPut = env.page_content.put;
+  env.page_content.put = async (...x) => { puts++; return realPut(...x); };
+  await rewards(A, { country: 'BG' });
+  assert.equal(puts, 0);
+  env.page_content.put = realPut;
+  // 115 дни история → дните по-стари от 100 се банкират; после сливането ги изтрива (120+ дни) — точките остават
+  const U = 'fb_userBANKED1';
+  const nowB = Date.UTC(2026, 10, 20, 12);
+  const full = range('2026-07-28', '2026-11-20', () => day(3, 9000));
+  kv.set(`game_state:${U}`, JSON.stringify({ gameData: full }));
+  const call = async () => (await handleRewards(req({ userId: U, idToken: 'ok', todayKey: '2026-11-20' }, { country: 'BG' }), env, deps(nowB))).json();
+  const before = await call();
+  const rec = JSON.parse(kv.get(`rewards:${U}`));
+  assert.ok(Object.keys(rec.days).length >= 14 && Object.keys(rec.days).every((k) => k < '2026-08-12'));
+  kv.set(`game_state:${U}`, JSON.stringify({ gameData: range('2026-08-12', '2026-11-20', () => day(3, 9000)) }));
+  const after = await call();
+  assert.equal(after.wallet.earned, before.wallet.earned);
 });
 
 await check('добавки — само за България: от друга държава няма код и оферта за тях', async () => {
@@ -253,7 +318,8 @@ await check(`покана: −${INVITE_PCT}% за първия план; пок�
 await check('сравнението се появява при поне 200 активни', async () => {
   for (let i = 0; i < 210; i++) { const k = `rstat:fb_x${i}`; kv.set(k, ''); meta.set(k, { c: i % 100, s: 1 }); }
   kv.delete('rewards_hist');
-  const r = await rewards(A, { country: 'BG' });
+  // разпределението се пази 12 часа (в паметта и в KV) — заявката е след срока
+  const r = await (await handleRewards(req({ userId: A, idToken: 'ok', todayKey: today40 }, { country: 'BG' }), env, deps(NOW + 13 * 3600000))).json();
   assert.ok(r.percentile >= 90, `percentile ${r.percentile}`);
   assert.ok(r.cohort >= 200);
 });
@@ -277,6 +343,56 @@ await check('админ панел: текстове и дума на кода �
   assert.equal((await (await handleAdminRewardsImage(req({ theme: 'nope', data: png }), env, { respond })).json()).error, 'theme');
   await save({});
   RE.applyContent(null);
+});
+
+await check('предизвикателство на сървъра: приемане, изпълнение, бонус веднъж', async () => {
+  const U = 'fb_userCHALL02';
+  const nowJ = Date.UTC(2026, 10, 3, 12);
+  kv.set(`game_state:${U}`, JSON.stringify({ gameData: range('2026-11-01', '2026-11-03', () => day(3, 9000)) }));
+  const j = await (await handleRewardsChallenge(req({ userId: U, idToken: 'ok', todayKey: '2026-11-03' }), env, deps(nowJ))).json();
+  assert.equal(j.success, true);
+  assert.equal(j.challenge.joined, '2026-11-03');
+  const nowD = Date.UTC(2026, 10, 14, 12);
+  kv.set(`game_state:${U}`, JSON.stringify({ gameData: range('2026-11-01', '2026-11-14', () => day(3, 9000)) }));
+  const r1 = await (await handleRewards(req({ userId: U, idToken: 'ok', todayKey: '2026-11-14' }), env, deps(nowD))).json();
+  assert.equal(r1.challenge.done, true);
+  const rec = JSON.parse(kv.get(`rewards:${U}`));
+  assert.equal(rec.challengeBonus, RE.CHALLENGE_BONUS);
+  const r2 = await (await handleRewards(req({ userId: U, idToken: 'ok', todayKey: '2026-11-14' }), env, deps(nowD))).json();
+  assert.equal(r2.wallet.earned, r1.wallet.earned);         // бонусът — веднъж
+  const all = {};
+  for (let i = 0; i < 4; i++) Object.entries(JSON.parse(kv.get(`rev:2026-11-14:${i}`) || '{}')).forEach(([k, v]) => { all[k] = (all[k] || 0) + v; });
+  assert.equal(all.challenge_done, 1);
+});
+
+await check('събития и отчет: позволените от телефона се броят; отчетът събира дни и хората (без лични данни)', async () => {
+  const nowE = Date.UTC(2026, 10, 21, 10);
+  const ev = async (type) => (await handleRewardsEvent(req({ type }), env, deps(nowE))).json();
+  assert.equal((await ev('share_week')).success, true);
+  assert.equal((await ev('invite_visit')).success, true);
+  assert.equal((await ev('drop_table')).error, 'type');
+  // влизанията — само в резюмето (група 1–3 дни → 1), не в записа
+  const U = 'fb_userOPENS1';
+  kv.set(`game_state:${U}`, JSON.stringify({ gameData: range('2026-11-01', '2026-11-21', () => day(3)) }));
+  const hours = new Array(24).fill(0); hours[21] = 4;
+  await handleRewards(req({ userId: U, idToken: 'ok', todayKey: '2026-11-21', opens: { days: { '2026-11-20': 1, '2026-11-21': 2 }, hours, last: nowE, prev: nowE - DAY } }), env, deps(nowE));
+  assert.equal(JSON.parse(kv.get(`rewards:${U}`)).opens, undefined);
+  assert.equal(meta.get(`rstat:${U}`).h, 21);
+  assert.equal(meta.get(`rstat:${U}`).o, 1);
+  const rep = await (await handleAdminRewardsReport(new URL('https://w/x?days=7'), env, { respond, now: nowE })).json();
+  const last = rep.days[rep.days.length - 1];
+  assert.equal(last.day, '2026-11-21');
+  assert.equal(last.counts.share_week, 1);
+  assert.equal(last.counts.invite_visit, 1);
+  assert.ok(rep.people.users >= 1);
+  assert.equal(rep.people.tiers.length, 5);
+  assert.equal(rep.people.opens['1-3'] >= 1, true);
+  assert.ok(!JSON.stringify(rep).includes('fb_'));         // без идентификатори
+});
+
+await check('покана във въпросника: само истински код се брои', async () => {
+  assert.equal(await noteInviteSignup(env, first.invite.code.toLowerCase()), true);
+  assert.equal(await noteInviteSignup(env, 'DUO000'), false);
 });
 
 console.log(`\nВсички ${checks.length} проверки минаха`);

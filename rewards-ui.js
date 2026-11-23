@@ -22,10 +22,14 @@
     var TOAST_KEY = 'np_rewards_toasts';
     var SRV_KEY = 'np_rewards_srv';
     var REC_KEY = 'np_rewards_records';
-    var SRV_TTL = 10 * 60 * 1000;
+    var SRV_TTL = 30 * 60 * 1000;   // портфейлът се мени рядко; новото ниво и действията го обновяват веднага
+    var CONTENT_TTL = 6 * 3600 * 1000;
     var DAY = 86400000;
     var RE = global.RewardsEngine;
     var CONTENT_KEY = 'np_rewards_content';
+    var OPENS_KEY = 'np_opens';
+    var CHALLENGE_KEY = 'np_challenge';
+    var WEEK_KEY = 'np_rewards_week';
 
     // Текстовете, думите на кодовете и снимките от админ панела (/api/rewards/content): веднага от
     // паметта на устройството, после се обновяват (до 10 мин.) — стойностите по подразбиране са в ядрото.
@@ -33,7 +37,7 @@
     var contentLoad = null;
     function loadContent() {
         var c = applyCached();
-        if (c && Date.now() - c.at < 10 * 60 * 1000) return Promise.resolve();
+        if (c && Date.now() - c.at < CONTENT_TTL) return Promise.resolve();
         if (contentLoad) return contentLoad;
         contentLoad = fetch(WORKER + '/api/rewards/content').then(function (r) { return r.json(); }).then(function (d) {
             if (d && d.success) { write(CONTENT_KEY, { at: Date.now(), content: d.content || {} }); applyCached(); }
@@ -53,6 +57,42 @@
     function userId() { try { return localStorage.getItem('userId') || ''; } catch (_) { return ''; } }
     function base(path) { return /^https?:/.test(location.protocol) && /nutriin\.app|eatologix\.com|biocode\.website|localhost|127\.0\.0\.1/.test(location.host) ? path : SITE + '/' + path; }
 
+    // ── Влизанията и събитията ──────────────────────────────────────────────
+    /**
+     * Отваряне на приложението (np_opens): ново, ако е минал повече от половин час от предишното.
+     * Пазят се дните (60) и часовете (24 брояча) — за часа на напомнянията, „добре дошъл обратно“,
+     * персоната (persona.js) и отчета; на сървъра отива само това резюме.
+     */
+    function trackOpen() {
+        var o = read(OPENS_KEY, null) || { days: {}, hours: new Array(24).fill(0) };
+        var now = Date.now();
+        if (o.last && now - o.last < 30 * 60 * 1000) return o;
+        var d = new Date(now);
+        var key = global.GameScoring ? GameScoring.dateKey(d) : d.toISOString().slice(0, 10);
+        o.days = o.days || {};
+        o.days[key] = (o.days[key] || 0) + 1;
+        if (!Array.isArray(o.hours) || o.hours.length !== 24) o.hours = new Array(24).fill(0);
+        o.hours[d.getHours()]++;
+        o.prev = o.last || null;
+        o.last = now;
+        var cut = new Date(now - 60 * DAY);
+        var cutKey = global.GameScoring ? GameScoring.dateKey(cut) : cut.toISOString().slice(0, 10);
+        Object.keys(o.days).forEach(function (k) { if (k < cutKey) delete o.days[k]; });
+        // Връщане след 3+ дни, при вече започнат път — топло посрещане, без укор (веднъж за връщането).
+        if (o.prev && now - o.prev >= 3 * DAY) { try { sessionStorage.setItem('np_comeback', '1'); } catch (_) {} }
+        write(OPENS_KEY, o);
+        return o;
+    }
+
+    function event(type) {
+        try {
+            fetch(WORKER + '/api/rewards/event', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: type }) }).catch(function () {});
+        } catch (_) {}
+    }
+
+    /** Приетото предизвикателство за месеца (на устройството; сървърът — за точките). */
+    function localChallenge() { return read(CHALLENGE_KEY, null); }
+
     // ── Състоянието ─────────────────────────────────────────────────────────
     function localStatus() {
         if (!RE || !global.GameScoring) return null;
@@ -64,7 +104,8 @@
             todayKey: global.GameScoring.dateKey(new Date()),
             weightLog: read('np_weight_log', []),
             startKg: parseFloat(String(ud.weight || '').replace(',', '.')) || null,
-            goalDirection: (plan.analysis || {})._goalDirection || ''
+            goalDirection: (plan.analysis || {})._goalDirection || '',
+            challenge: localChallenge()
         });
     }
 
@@ -97,10 +138,27 @@
     /** Портфейлът от сървъра (кеш 10 мин.). null без акаунт или без връзка. */
     async function server(force) {
         var c = read(SRV_KEY, null);
-        if (!force && c && c.uid === userId() && Date.now() - c.at < SRV_TTL) return c.data;
+        // Ново ниво на устройството, което сървърът още не е видял → кодът му е при сървъра, без кеш.
+        var st = localStatus();
+        var behind = st && st.tier && c && c.data && c.data.status && c.data.status.tier !== st.tier.id;
+        if (!force && !behind && c && c.uid === userId() && Date.now() - c.at < SRV_TTL) return c.data;
         try {
-            var d = await post('/api/user/rewards', { todayKey: global.GameScoring ? GameScoring.dateKey(new Date()) : undefined });
-            if (d && d.success) { write(SRV_KEY, { at: Date.now(), uid: userId(), data: d }); return d; }
+            var today = global.GameScoring ? GameScoring.dateKey(new Date()) : undefined;
+            var body = { todayKey: today };
+            // Влизанията — веднъж на ден (за резюмето на отчета); дните — само при ново ниво, невидяно от сървъра.
+            var wk = read(WEEK_KEY, {}) || {};
+            if (wk.opensSent !== today) body.opens = read(OPENS_KEY, null) || undefined;
+            if (behind) body.gameData = read('gameData', {});
+            var d = await post('/api/user/rewards', body);
+            if (d && d.success) {
+                if (body.opens) { wk = read(WEEK_KEY, {}) || {}; wk.opensSent = today; write(WEEK_KEY, wk); }
+                // Текстовете от админ панела идват с отговора — без отделна заявка.
+                if (d.content) { write(CONTENT_KEY, { at: Date.now(), content: d.content }); applyCached(); delete d.content; }
+                write(SRV_KEY, { at: Date.now(), uid: userId(), data: d });
+                // Приетото предизвикателство идва и от другото устройство.
+                if (d.challenge && (!localChallenge() || localChallenge().month !== d.challenge.month)) write(CHALLENGE_KEY, { month: d.challenge.month, id: d.challenge.id, joined: d.challenge.joined });
+                return d;
+            }
         } catch (_) {}
         return c && c.uid === userId() ? c.data : null;
     }
@@ -152,6 +210,14 @@
                 text: RE.text('weightText'),
                 fact: lose && m.pct >= 7 ? RE.FACTS.weight7 : lose && m.pct >= 5 ? RE.FACTS.weight5 : '',
                 image: 'weight'
+            };
+        }
+        if (m.kind === 'challenge') {
+            var cdef = RE.CHALLENGES.filter(function (c) { return c.id === m.challenge; })[0] || {};
+            return {
+                big: true, kicker: RE.text('challengeTitle'), num: String(RE.CHALLENGE_TARGET), unit: 'дни · ' + (cdef.title || ''),
+                title: RE.text('challengeDone'), shareTitle: cdef.title, text: RE.text('challengeDoneText', { bonus: m.bonus || RE.CHALLENGE_BONUS }),
+                image: 'share', source: 'share_challenge'
             };
         }
         if (m.kind === 'shield') return { big: false, icon: 'fa-shield-alt', title: RE.text('shield') };
@@ -210,12 +276,15 @@
             '<div class="rw-moment-card' + (mo.image ? ' has-photo' : '') + '">' +
             (mo.image ? '<div class="rw-moment-photo"><img src="' + photo(mo.image) + '" alt="" onerror="this.closest(\'.rw-moment-card\').classList.remove(\'has-photo\');this.parentNode.remove()"></div>' : '') +
             '<div class="rw-moment-mark"><img src="./brand/nutriin-mark-dark.svg" alt=""></div>' +
+            // тялото се превърта, когато не се събира; знакът и бутоните остават видими
+            '<div class="rw-moment-body">' +
             (mo.kicker ? '<div class="rw-moment-kicker">' + esc(mo.kicker) + '</div>' : '') +
             (mo.num ? '<div class="rw-moment-big">' + esc(mo.num) + '</div><p>' + esc(mo.unit || '') + '</p>' : '') +
             '<h3>' + esc(mo.title) + '</h3>' +
             (mo.text ? '<p>' + esc(mo.text) + '</p>' : '') +
             (mo.gift ? '<div class="rw-moment-gift"><i class="fas fa-gift"></i>' + esc(mo.gift) + '</div>' : '') +
             (mo.fact ? '<p class="rw-moment-fact">' + esc(mo.fact) + '</p>' : '') +
+            '</div>' +
             '<div class="rw-moment-actions"><button type="button" class="rw-close">Продължи</button>' +
             '<button type="button" class="rw-share"><i class="fas fa-share-nodes"></i> Сподели</button></div>' +
             '</div>';
@@ -325,7 +394,8 @@
         x.fillText(line, left, y);
     }
 
-    async function share(mo, invite) {
+    async function share(mo, invite, source) {
+        event(source || mo.source || 'share_moment');
         var srvInv = (((read(SRV_KEY, {}) || {}).data || {}).invite || {}).code;
         var code = invite || srvInv || '';
         var link = SITE + '/' + (code ? '?invite=' + code : '');
@@ -384,6 +454,11 @@
         write(REC_KEY, rec);
         write(SEEN_KEY, seen);
 
+        // Връщане след пауза — първо топлото посрещане (не се брои в седмичния таван на поздравите).
+        var back = false;
+        try { back = sessionStorage.getItem('np_comeback') === '1'; if (back) sessionStorage.removeItem('np_comeback'); } catch (_) {}
+        if (back && st.daysTracked >= 3) { setTimeout(function () { toast(RE.text('comeback'), 'fa-seedling'); }, 900); event('comeback'); }
+
         var big = null;
         fresh.forEach(function (m) {
             var mo = momentOf(m, st, srv);
@@ -395,7 +470,7 @@
         var delay = big ? 0 : 600;
         smalls.slice(0, 2).forEach(function (s, i) {
             if (big || !toastAllowed()) return;
-            setTimeout(function () { toast(s.text, s.icon); }, delay + i * 5000);
+            setTimeout(function () { toast(s.text, s.icon); }, delay + (back ? 5000 : 0) + i * 5000);
             toastUsed();
         });
     }
@@ -403,7 +478,13 @@
     var _soon = null;
     function checkSoon() {
         clearTimeout(_soon);
-        _soon = setTimeout(function () { loadContent().then(function () { moments(localStatus(), (read(SRV_KEY, {}) || {}).data || null); }); }, 1500);
+        _soon = setTimeout(function () {
+            loadContent().then(function () {
+                var st = localStatus();
+                moments(st, (read(SRV_KEY, {}) || {}).data || null);
+                try { scheduleReminders(st); } catch (_) {}
+            });
+        }, 1500);
     }
 
     // ── Картата „Постоянство“ ───────────────────────────────────────────────
@@ -416,6 +497,119 @@
         return '<div class="rw-code"><div class="rw-code-main"><b>' + esc(label) + '</b><code>' + esc(c.code) + '</code><span>' + until +
             (c.kind === 'supplement' ? ' · в магазина — с имейла на профила' : c.kind === 'plan' && isApp() ? ' · в сайта nutriin.app' : '') + '</span></div>' +
             '<button type="button" class="rw-btn" data-copy="' + esc(c.code) + '" aria-label="Копирай кода"><i class="far fa-copy"></i></button>' + action + '</div>';
+    }
+
+    // ── Седмицата (неделя вечер – вторник) ──────────────────────────────────
+    function weekVisible(st) {
+        var w = st && st.week;
+        if (!w || !w.tracked) return false;
+        var d = new Date(), dow = d.getDay();
+        if (!((dow === 0 && d.getHours() >= 17) || dow === 1 || dow === 2)) return false;
+        return (read(WEEK_KEY, {}) || {}).dismissed !== w.endKey;
+    }
+    function dayName(key) {
+        try { var p = key.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('bg-BG', { weekday: 'long' }); } catch (_) { return key; }
+    }
+    function shortDate(key) { var p = key.split('-'); return +p[2] + '.' + p[1]; }
+    function weekMoment(st) {
+        var w = st.week;
+        return {
+            kicker: RE.text('weekTitle'), num: w.good + '/7', unit: 'добри дни',
+            title: RE.text('weekGood', { good: w.good }),
+            shareTitle: w.delta > 0 ? RE.text('weekUp', { d: w.delta }) : RE.text('weekGood', { good: w.good }),
+            image: 'streak', source: 'share_week'
+        };
+    }
+    function weekCard(st) {
+        if (!weekVisible(st)) return '';
+        var w = st.week;
+        var trend = w.delta == null ? '' : w.delta >= 3 ? RE.text('weekUp', { d: w.delta }) : w.delta <= -3 ? RE.text('weekDown') : RE.text('weekSame');
+        var chips = ['средно ' + (w.avg || 0) + '%', '+' + num(w.points) + ' точки'];
+        if (w.stepsAvg) chips.push(num(w.stepsAvg) + ' крачки на ден');
+        if (w.milestones.length) chips.push(w.milestones.length + (w.milestones.length === 1 ? ' етап' : ' етапа'));
+        var wk = read(WEEK_KEY, {}) || {};
+        if (wk.viewed !== w.endKey) { wk.viewed = w.endKey; write(WEEK_KEY, wk); event('week_view'); }
+        return '<div class="rw-card rw-week"><h4><i class="fas fa-calendar-check"></i>' + esc(RE.text('weekTitle')) + ' · ' + shortDate(w.startKey) + '–' + shortDate(w.endKey) + '</h4>' +
+            '<div class="rw-week-big"><b>' + w.good + '</b><span>' + esc(RE.text('weekGood', { good: w.good }).replace(/^\d+\s*/, '')) + '</span></div>' +
+            (trend ? '<p>' + esc(trend) + '</p>' : '') +
+            (w.best ? '<p>' + esc(RE.text('weekBest', { day: dayName(w.best.key), eng: w.best.eng })) + '</p>' : '') +
+            '<div class="rw-week-chips">' + chips.map(function (c) { return '<span>' + esc(c) + '</span>'; }).join('') + '</div>' +
+            '<div class="rw-week-actions"><button type="button" class="rw-btn" data-week-hide="1">Видях</button>' +
+            '<button type="button" class="rw-btn rw-btn--main" data-week-share="1"><i class="fas fa-share-nodes"></i> Сподели седмицата</button></div></div>';
+    }
+
+    // ── Предизвикателството на месеца ───────────────────────────────────────
+    function challengeCard(st, srv) {
+        var c = st && st.challenge;
+        if (!c) return '';
+        var head = '<h4><i class="fas fa-flag-checkered"></i>' + esc(RE.text('challengeTitle')) + '</h4>';
+        if (c.done) {
+            return '<div class="rw-card rw-challenge is-done">' + head + '<b class="rw-ch-title">' + esc(c.title) + ' ✓</b><p>' + esc(RE.text('challengeDoneText', { bonus: c.bonus })) + '</p></div>';
+        }
+        if (c.joined) {
+            var dots = '';
+            for (var i = 0; i < c.target; i++) dots += '<i class="' + (i < c.count ? 'on' : '') + '"></i>';
+            var need = c.target - c.count;
+            return '<div class="rw-card rw-challenge">' + head + '<b class="rw-ch-title">' + esc(c.title) + '</b>' +
+                '<div class="rw-ch-dots" aria-label="' + c.count + ' от ' + c.target + '">' + dots + '</div>' +
+                '<p>' + esc(c.behind ? RE.text('challengeBehind', { n: need, left: c.daysLeft }) : c.count + ' от ' + c.target + ' · ' + c.text) + '</p></div>';
+        }
+        if (!c.canJoin) return '';
+        return '<div class="rw-card rw-challenge">' + head + '<b class="rw-ch-title">' + esc(c.title) + '</b><p>' + esc(c.text) + ' +' + c.bonus + ' точки.</p>' +
+            '<button type="button" class="rw-btn rw-btn--main rw-btn--wide" data-challenge-join="1">' + esc(RE.text('challengeJoin')) + '</button></div>';
+    }
+
+    async function joinChallenge(st) {
+        var c = st.challenge;
+        var today = GameScoring.dateKey(new Date());
+        if (userId().indexOf('fb_') === 0) {
+            var d = await post('/api/user/rewards/challenge', { todayKey: today }).catch(function () { return null; });
+            if (!d || !d.success) { toast((d && d.message) || 'Не стана. Опитай пак.', 'fa-circle-exclamation'); return false; }
+            write(CHALLENGE_KEY, { month: d.challenge.month, id: d.challenge.id, joined: d.challenge.joined });
+        } else {
+            write(CHALLENGE_KEY, { month: c.month, id: c.id, joined: today });
+        }
+        toast(RE.text('challengeJoined'), 'fa-flag-checkered');
+        return true;
+    }
+
+    // ── Напомнянията (local-scheduler.js, без сървър) ───────────────────────
+    /**
+     * Неделя вечер — „Твоята седмица“, в обичайния вечерен час на човека (по влизанията; иначе 19:30).
+     * Предизвикателство: при изоставане — напомняне на другия ден в обичайния час (най-много веднъж
+     * седмично); без прието — на 1-во число „Нов месец — ново начало“. Само при отметки последната седмица.
+     */
+    function scheduleReminders(st) {
+        var gn = global.GameNotifier;
+        if (!gn || typeof gn.addPlanReminder !== 'function' || !st || !st.firstKey) return;
+        var recent = Object.keys(read('gameData', {}) || {}).some(function (k) { return Date.now() - Date.parse(k) < 8 * DAY; });
+        if (!recent) return;
+        var os = RE.openStats(read(OPENS_KEY, null), GameScoring.dateKey(new Date()));
+        var eveH = os.eveningHour != null ? os.eveningHour : 19;
+        var dayH = os.usualHour != null ? Math.min(21, Math.max(9, os.usualHour)) : 18;
+        var planned = read('np_plan_reminders', []) || [];
+        function has(key, ts) { return planned.some(function (r) { return r.key === key && r.ts === ts; }); }
+        function add(key, ts, title, body) {
+            if (ts <= Date.now() || has(key, ts)) return;
+            gn.addPlanReminder({ key: key, ts: ts, title: title, body: body, url: '/game-analytics.html' }).catch(function () {});
+        }
+        var sun = new Date(); sun.setHours(eveH, 30, 0, 0);
+        sun.setDate(sun.getDate() + ((7 - sun.getDay()) % 7));
+        if (sun.getTime() <= Date.now()) sun.setDate(sun.getDate() + 7);
+        add('rewards_week', sun.getTime(), RE.text('weekNotifyTitle'), RE.text('weekNotifyBody'));
+        var c = st.challenge;
+        if (c && c.joined && c.behind && !c.done && c.daysLeft >= 3) {
+            var last = (read(WEEK_KEY, {}) || {}).chNudge || 0;
+            if (Date.now() - last > 7 * DAY) {
+                var t = new Date(); t.setDate(t.getDate() + 1); t.setHours(dayH, 0, 0, 0);
+                add('rewards_challenge', t.getTime(), RE.text('challengeTitle'), RE.text('challengeNotifyBody', { n: c.target - c.count, title: c.title }));
+                var wk = read(WEEK_KEY, {}) || {}; wk.chNudge = Date.now(); write(WEEK_KEY, wk);
+            }
+        } else if (c) {
+            var first = new Date(); first.setMonth(first.getMonth() + 1, 1); first.setHours(dayH, 0, 0, 0);
+            var nextMonth = first.getFullYear() + '-' + String(first.getMonth() + 1).padStart(2, '0');
+            add('rewards_challenge', first.getTime(), RE.text('newMonthNotifyTitle'), RE.text('newMonthNotifyBody', { title: RE.challengeFor(nextMonth, c.id === 'steps' || st.records.stepDays > 0).title }));
+        }
     }
 
     function render(el, st, srv) {
@@ -450,11 +644,13 @@
             '<div class="rw-hero-top"><div class="rw-streak"><b>' + st.streak + '</b><span>' + plural(st.streak, 'ден', 'дни') + ' поред</span></div>' +
             '<div class="rw-tier"><small>' + esc(RE.text('levelLabel')) + '</small><strong>' + esc(tierTitle) + '</strong></div></div>' +
             '<div class="rw-bar"><i data-w="' + barPct + '"></i></div><div class="rw-bar-label">' + esc(barLabel) + '</div>' +
-            '<div class="rw-chips"><span class="rw-chip" title="Жокери: пазят поредицата в ден без отметки">' + shields + ' ' + st.shields.held + ' ' + plural(st.shields.held, 'жокер', 'жокера') + '</span>' +
+            '<div class="rw-chips"><span class="rw-chip" title="Жокери: пазят поредицата в слаб или пропуснат ден">' + shields + ' ' + st.shields.held + ' ' + plural(st.shields.held, 'жокер', 'жокера') + '</span>' +
             '<span class="rw-chip"><i class="fas fa-star"></i>' + num(pts) + ' точки</span></div>' +
             '</div>' +
             '<p class="rw-summary">' + esc(summary) + '</p>';
         if (st.warning) html += '<div class="rw-warn"><i class="fas fa-circle-exclamation"></i> ' + esc(RE.text('warn', { title: st.tier.title, titleLower: st.tier.title.toLowerCase(), n: st.warning.daysLeft, daysWord: plural(st.warning.daysLeft, 'ден', 'дни') })) + '</div>';
+
+        html += weekCard(st) + challengeCard(st, srv);
 
         html += '<button type="button" class="rw-toggle" aria-expanded="false" aria-controls="rwDetails"><span>Награди, нива и покана</span><i class="fas fa-chevron-down"></i></button><div id="rwDetails" hidden>';
 
@@ -483,7 +679,8 @@
         // Покана
         if (srv && srv.invite && srv.invite.code) {
             html += '<div class="rw-card"><h4><i class="fas fa-user-plus"></i>' + esc(RE.text('inviteTitle')) + '</h4>' +
-                '<p>' + esc(RE.text('inviteText', { pct: srv.invite.pct, reward: srv.invite.reward })) +
+                // В приложението без цени и проценти за плана (правилата на магазините)
+                '<p>' + esc(isApp() ? RE.text('inviteTextApp') : RE.text('inviteText', { pct: srv.invite.pct, reward: srv.invite.reward })) +
                 (srv.invite.count ? ' Досега: ' + srv.invite.count + ' ' + plural(srv.invite.count, 'приятел', 'приятели') + '.' : '') + '</p>' +
                 '<div class="rw-code" style="margin-top:10px"><div class="rw-code-main"><code style="font-size:18px;white-space:nowrap;letter-spacing:.02em">' + esc(srv.invite.code) + '</code></div>' +
                 '<button type="button" class="rw-btn" data-copy="' + esc(SITE + '/?invite=' + srv.invite.code) + '" aria-label="Копирай връзката"><i class="fas fa-link"></i></button>' +
@@ -517,22 +714,31 @@
         el.querySelectorAll('[data-redeem]').forEach(function (b) {
             b.addEventListener('click', async function () {
                 b.disabled = true;
-                var d = await post('/api/user/rewards/redeem', { offer: b.getAttribute('data-redeem') }).catch(function () { return null; });
+                var d = await post('/api/user/rewards/redeem', { offer: b.getAttribute('data-redeem'), todayKey: GameScoring.dateKey(new Date()) }).catch(function () { return null; });
                 if (d && d.success) {
                     celebrate({ big: true, kicker: 'Плод на труда', title: RE.text('redeemTitle'), num: '−' + d.code.pct + '%', unit: d.code.kind === 'plan' ? 'за план' : 'за добавки', text: 'Кодът ти: ' + d.code.code + '. Пази се в „Твоите отстъпки“.', image: 'share' });
                     mount(el, true);
                 } else { b.disabled = false; toast((d && d.message) || 'Не стана. Опитай пак.', 'fa-circle-exclamation'); }
             });
         });
+        var wh = el.querySelector('[data-week-hide]');
+        if (wh) wh.addEventListener('click', function () { var wk = read(WEEK_KEY, {}) || {}; wk.dismissed = st.week.endKey; write(WEEK_KEY, wk); render(el, st, srv); });
+        var ws = el.querySelector('[data-week-share]');
+        if (ws) ws.addEventListener('click', function () { share(weekMoment(st), srv && srv.invite && srv.invite.code, 'share_week'); });
+        var cj = el.querySelector('[data-challenge-join]');
+        if (cj) cj.addEventListener('click', async function () {
+            cj.disabled = true;
+            if (await joinChallenge(st)) mount(el, true); else cj.disabled = false;
+        });
         var inv = el.querySelector('[data-invite]');
         if (inv) inv.addEventListener('click', function () {
-            share({ kicker: 'Покана', title: 'Ела с мен в Nutriin', shareTitle: RE.text('inviteShare'), num: '−' + srv.invite.pct + '%', unit: 'за първия план', image: 'invite' }, srv.invite.code);
+            share({ kicker: 'Покана', title: 'Ела с мен в Nutriin', shareTitle: RE.text('inviteShare'), num: '−' + srv.invite.pct + '%', unit: 'за първия план', image: 'invite' }, srv.invite.code, 'share_invite');
         });
         el.querySelector('[data-share]').addEventListener('click', function () {
             var mo = st.tier
                 ? { kicker: st.tier.title, num: String(st.streak), unit: 'дни поред', title: st.tier.share, image: st.tier.image }
                 : { kicker: 'Постоянство', num: String(st.streak), unit: 'дни поред', title: 'Ден след ден.', image: 'share' };
-            share(mo, srv && srv.invite && srv.invite.code);
+            share(mo, srv && srv.invite && srv.invite.code, 'share_section');
         });
     }
 
@@ -545,10 +751,26 @@
         var srv = await server(!!force);
         if (srv) render(el, st, srv);
         if (!force) moments(st, srv);
+        try { scheduleReminders(st); } catch (_) {}
     }
+
+    // Отваряне: при зареждане и при връщане към приложението (на телефона страницата остава жива).
+    trackOpen();
+    // Напомнянията се подреждат и без отметка днес — веднъж на ден, щом local-scheduler.js е на страницата.
+    setTimeout(function () {
+        var wk = read(WEEK_KEY, {}) || {};
+        var today = global.GameScoring ? GameScoring.dateKey(new Date()) : '';
+        if (!global.GameNotifier || !RE || !today || wk.sched === today) return;
+        loadContent().then(function () {
+            try { scheduleReminders(localStatus()); } catch (_) {}
+            wk = read(WEEK_KEY, {}) || {}; wk.sched = today; write(WEEK_KEY, wk);
+        });
+    }, 4000);
+    doc.addEventListener('visibilitychange', function () { if (doc.visibilityState === 'visible') trackOpen(); });
 
     global.NutriPlanRewards = {
         status: localStatus, server: server, mount: mount, checkSoon: checkSoon,
-        celebrate: celebrate, toast: toast, share: share, shareCard: card, moments: moments
+        celebrate: celebrate, toast: toast, share: share, shareCard: card, moments: moments,
+        event: event, openStats: function () { return RE.openStats(read(OPENS_KEY, null)); }
     };
 }(window));
