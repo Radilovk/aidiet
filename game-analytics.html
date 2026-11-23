@@ -1028,15 +1028,22 @@
         function gaDayView() { try { var v = localStorage.getItem('np_day_view'); return v === 'apple' || v === 'face' ? v : 'pct'; } catch (_) { return 'pct'; } }
         // Личицето по процента: под 35 — тъжно, 35–59 — неутрално, 60–84 — усмивка, от 85 — широка усмивка.
         // Мекият режим — без тъжно лице. Днес, докато денят тече — неутрално и бледо.
-        function gaFace(x, h, col) {
+        function gaFace(x, h, col, R) {
             var v = x.adh ? x.adh.pct : null, open = x.today && x.adh && !x.adh.closed;
             if (v == null || v <= 0) return '';
             var mood = open ? 1 : v >= 85 ? 3 : v >= 60 ? 2 : v >= 35 ? 1 : (x.soft ? 1 : 0);
-            var eyes = '<circle cx="' + (h - 4) + '" cy="' + (h - 2.6) + '" r="1.35" fill="' + col + '"/><circle cx="' + (h + 4) + '" cy="' + (h - 2.6) + '" r="1.35" fill="' + col + '"/>';
-            var mouth = mood === 3 ? '<path d="M' + (h - 5) + ' ' + (h + 1.4) + 'Q' + h + ' ' + (h + 8) + ' ' + (h + 5) + ' ' + (h + 1.4) + 'Z" fill="' + col + '"/>'
-                : mood === 2 ? '<path d="M' + (h - 4.6) + ' ' + (h + 2.2) + 'Q' + h + ' ' + (h + 6.4) + ' ' + (h + 4.6) + ' ' + (h + 2.2) + '" fill="none" stroke="' + col + '" stroke-width="1.6" stroke-linecap="round"/>'
-                : mood === 1 ? '<path d="M' + (h - 4) + ' ' + (h + 3.8) + 'L' + (h + 4) + ' ' + (h + 3.8) + '" fill="none" stroke="' + col + '" stroke-width="1.6" stroke-linecap="round"/>'
-                : '<path d="M' + (h - 4.6) + ' ' + (h + 5.6) + 'Q' + h + ' ' + (h + 1.6) + ' ' + (h + 4.6) + ' ' + (h + 5.6) + '" fill="none" stroke="' + col + '" stroke-width="1.6" stroke-linecap="round"/>';
+            // Пропорциите на емотикон спрямо вътрешния радиус R: очите — 0,36 R встрани и 0,3 R нагоре
+            // (леко овални), устата — широка 1,1 R и под центъра.
+            var f = function (n) { return (Math.round(n * 100) / 100); };
+            var ex = R * 0.36, ey = h - R * 0.3, erx = R * 0.1, ery = R * 0.13, sw = Math.max(1.4, R * 0.11);
+            var eyes = '<ellipse cx="' + f(h - ex) + '" cy="' + f(ey) + '" rx="' + f(erx) + '" ry="' + f(ery) + '" fill="' + col + '"/>' +
+                '<ellipse cx="' + f(h + ex) + '" cy="' + f(ey) + '" rx="' + f(erx) + '" ry="' + f(ery) + '" fill="' + col + '"/>';
+            var mx = R * 0.55, my = h + R * 0.22;
+            var mouth = mood === 3
+                ? '<path d="M' + f(h - mx) + ' ' + f(my) + 'Q' + h + ' ' + f(my + R * 0.75) + ' ' + f(h + mx) + ' ' + f(my) + 'Z" fill="' + col + '"/>'
+                : mood === 2 ? '<path d="M' + f(h - mx) + ' ' + f(my + R * 0.04) + 'Q' + h + ' ' + f(my + R * 0.5) + ' ' + f(h + mx) + ' ' + f(my + R * 0.04) + '" fill="none" stroke="' + col + '" stroke-width="' + f(sw) + '" stroke-linecap="round"/>'
+                : mood === 1 ? '<path d="M' + f(h - mx * 0.8) + ' ' + f(my + R * 0.2) + 'L' + f(h + mx * 0.8) + ' ' + f(my + R * 0.2) + '" fill="none" stroke="' + col + '" stroke-width="' + f(sw) + '" stroke-linecap="round"/>'
+                : '<path d="M' + f(h - mx) + ' ' + f(my + R * 0.42) + 'Q' + h + ' ' + f(my - R * 0.05) + ' ' + f(h + mx) + ' ' + f(my + R * 0.42) + '" fill="none" stroke="' + col + '" stroke-width="' + f(sw) + '" stroke-linecap="round"/>';
             return '<g' + (open ? ' opacity=".5"' : '') + '>' + eyes + mouth + '</g>';
         }
         // Скалата: сиво (няма) → червено → оранжево → жълто → зеленото на марката (оптимално).
@@ -1058,7 +1065,7 @@
             if (view === 'pct' || view === 'face') {
                 // вътре — процентът (или личице); без отметки — празно кръгче
                 var st = 3.5, r = (size - st) / 2, C = 2 * Math.PI * r, h = size / 2;
-                var inner = view === 'face' ? gaFace(x, h, 'var(--text-dark)')
+                var inner = view === 'face' ? gaFace(x, h, 'var(--text-dark)', r - st / 2 - 0.6)
                     : (x.adh && x.adh.pct > 0 ? '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" class="ga-day-n' + (x.today && !x.adh.closed ? ' is-open' : '') + '">' + x.adh.pct + '<tspan class="u">%</tspan></text>' : '');
                 return '<svg width="' + size + '" height="' + size + '" aria-hidden="true">' + inner + '<circle cx="' + h + '" cy="' + h + '" r="' + r + '" fill="none" stroke="var(--ga-d-track)" stroke-width="' + st + '"' + (x.today ? ' stroke-dasharray="2 3"' : '') + '/>' +
                     (f > 0 ? '<circle cx="' + h + '" cy="' + h + '" r="' + r + '" fill="none" stroke="' + c + '" stroke-width="' + st + '" stroke-linecap="round" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + (C * (1 - f)).toFixed(1) + '" transform="rotate(-90 ' + h + ' ' + h + ')"/>' : '') + '</svg>';
