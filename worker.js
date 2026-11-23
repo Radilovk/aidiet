@@ -749,6 +749,7 @@ var require_rewards_engine = __commonJS({
           minEng: 60,
           bonus: 100,
           image: "resolve",
+          word: "BOLD",
           rewards: [{ kind: "supplement", pct: 5 }],
           moment: "\u041F\u043E\u043A\u0430\u0437\u0430 \u0440\u0435\u0448\u0438\u043C\u043E\u0441\u0442",
           text: "14 \u0434\u043D\u0438, \u0432 \u043A\u043E\u0438\u0442\u043E \u0434\u0443\u043C\u0430\u0442\u0430, \u0434\u0430\u0434\u0435\u043D\u0430 \u043D\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438, \u0443\u0434\u044A\u0440\u0436\u0430. \u0422\u0430\u043A\u0430 \u0437\u0430\u043F\u043E\u0447\u0432\u0430 \u0432\u0441\u044F\u043A\u0430 \u0438\u0441\u0442\u0438\u043D\u0441\u043A\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430.",
@@ -761,6 +762,7 @@ var require_rewards_engine = __commonJS({
           minEng: 70,
           bonus: 200,
           image: "persist",
+          word: "GRIT",
           rewards: [{ kind: "supplement", pct: 10 }],
           moment: "\u0423\u043F\u043E\u0440\u0438\u0442\u043E\u0441\u0442\u0442\u0430 \u0442\u0438 \u043B\u0438\u0447\u0438",
           text: "30 \u0434\u043D\u0438 \u0438\u0437\u0431\u0438\u0440\u0430\u0448 \u043F\u043B\u0430\u043D\u0430 \u0441\u0438 \u043E\u0442\u043D\u043E\u0432\u043E \u0438 \u043E\u0442\u043D\u043E\u0432\u043E \u2014 \u0438 \u0432 \u043B\u0435\u0441\u043D\u0438\u0442\u0435, \u0438 \u0432 \u0442\u0440\u0443\u0434\u043D\u0438\u0442\u0435 \u0434\u043D\u0438.",
@@ -773,6 +775,7 @@ var require_rewards_engine = __commonJS({
           minEng: 75,
           bonus: 300,
           image: "consistency",
+          word: "FLOW",
           rewards: [{ kind: "supplement", pct: 15 }, { kind: "plan", pct: 10 }],
           moment: "\u0421\u044A\u0437\u0434\u0430\u0434\u0435 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E",
           text: "60 \u0434\u043D\u0438. \u0422\u043E\u0432\u0430 \u0432\u0435\u0447\u0435 \u043D\u0435 \u0435 \u043E\u043F\u0438\u0442, \u0430 \u0442\u0432\u043E\u044F\u0442 \u0440\u0438\u0442\u044A\u043C.",
@@ -785,6 +788,7 @@ var require_rewards_engine = __commonJS({
           minEng: 80,
           bonus: 500,
           image: "inner",
+          word: "CORE",
           rewards: [{ kind: "supplement", pct: 20 }, { kind: "plan", pct: 20 }],
           moment: "\u041F\u0440\u043E\u043C\u044F\u043D\u0430\u0442\u0430 \u0432\u0435\u0447\u0435 \u0435 \u043E\u0442\u0432\u044A\u0442\u0440\u0435",
           text: "90 \u0434\u043D\u0438 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E. \u0412\u0435\u0447\u0435 \u043D\u0435 \u0442\u0435 \u0432\u043E\u0434\u0438 \u043C\u043E\u0442\u0438\u0432\u0430\u0446\u0438\u044F\u0442\u0430, \u0430 \u0442\u043E\u0432\u0430, \u043A\u043E\u0435\u0442\u043E \u0438\u0437\u0433\u0440\u0430\u0434\u0438.",
@@ -800,9 +804,106 @@ var require_rewards_engine = __commonJS({
       var WEIGHT_STEPS = [3, 5, 7, 10];
       var WEIGHT_BIG = { 5: true, 10: true };
       var OFFERS = [
-        { id: "plan10", kind: "plan", pct: 10, cost: 1500, title: "\u221210% \u0437\u0430 \u043F\u043B\u0430\u043D" },
-        { id: "supp10", kind: "supplement", pct: 10, cost: 1e3, title: "\u221210% \u0437\u0430 \u0434\u043E\u0431\u0430\u0432\u043A\u0438", region: "BG" }
+        { id: "plan10", kind: "plan", pct: 10, cost: 1500, title: "\u221210% \u0437\u0430 \u043F\u043B\u0430\u043D", word: "WIN" },
+        { id: "supp10", kind: "supplement", pct: 10, cost: 1e3, title: "\u221210% \u0437\u0430 \u0434\u043E\u0431\u0430\u0432\u043A\u0438", word: "WIN", region: "BG" }
       ];
+      var WORDS = { thanks: "ALLY", invite: ["DUO", "PAL"] };
+      function codeFor(word, pct) {
+        return String(word || "WIN").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5) + pct;
+      }
+      function normCode2(c) {
+        return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+      }
+      var TEXTS = {
+        section: "\u041F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E",
+        empty: "\u0412\u0441\u0435\u043A\u0438 \u043E\u0442\u043C\u0435\u0442\u043D\u0430\u0442 \u0434\u0435\u043D \u0435 \u0441\u0442\u044A\u043F\u043A\u0430. \u041E\u0442 \u043F\u044A\u0440\u0432\u0438\u044F \u0437\u0430\u043F\u043E\u0447\u0432\u0430 \u043F\u043E\u0440\u0435\u0434\u0438\u0446\u0430\u0442\u0430 \u0442\u0438, \u0430 \u0441 \u043D\u0435\u044F \u2014 \u0440\u0435\u0448\u0438\u043C\u043E\u0441\u0442, \u0443\u043F\u043E\u0440\u0438\u0442\u043E\u0441\u0442, \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E \u0438 \u043D\u0430\u0433\u0440\u0430\u0434\u0438\u0442\u0435 \u0437\u0430 \u0442\u044F\u0445.",
+        levelLabel: "\u0422\u0432\u043E\u0435\u0442\u043E \u043D\u0438\u0432\u043E",
+        firstLevel: "\u041F\u044A\u0440\u0432\u0430 \u043A\u0440\u0430\u0447\u043A\u0430",
+        towards: "\u041A\u044A\u043C \u201E{title}\u201C \xB7 {have} \u043E\u0442 {days} \u0434\u043D\u0438 \xB7 \u0441\u0440\u0435\u0434\u043D\u043E {avg}% (\u043D\u0443\u0436\u043D\u0438 {min}%)",
+        top: "\u0412\u044A\u0442\u0440\u0435\u0448\u043D\u0430 \u0441\u0438\u043B\u0430 \u2014 \u043F\u0430\u0437\u0438\u0448 \u044F \u0441 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D.",
+        onTrack: "\u041E\u0449\u0435 {n} {daysWord} \u0432 \u0442\u043E\u0437\u0438 \u0440\u0438\u0442\u044A\u043C \u2014 \u0438 \u0449\u0435 \u043F\u043E\u043A\u0430\u0436\u0435\u0448 {titleLower}.",
+        rewardLine: "\u041D\u0430\u0433\u0440\u0430\u0434\u0430\u0442\u0430: {gifts}.",
+        behind: "\u201E{title}\u201C \u0438\u0441\u043A\u0430 \u0441\u0440\u0435\u0434\u043D\u043E {min}% \u2014 \u0441\u0435\u0433\u0430 \u0441\u0438 \u043D\u0430 {avg}%. \u0412\u0441\u0435\u043A\u0438 \u043E\u0442\u043C\u0435\u0442\u043D\u0430\u0442 \u0434\u0435\u043D \u0442\u0435 \u043F\u0440\u0438\u0431\u043B\u0438\u0436\u0430\u0432\u0430.",
+        atTop: "\u041F\u0440\u043E\u043C\u044F\u043D\u0430\u0442\u0430 \u0432\u0435\u0447\u0435 \u0435 \u043E\u0442\u0432\u044A\u0442\u0440\u0435. \u041F\u0430\u0437\u0438\u0448 \u044F \u0441 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D, \u0430 \u0442\u043E\u0447\u043A\u0438\u0442\u0435 \u0442\u0438 \u043F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u0442 \u0434\u0430 \u0440\u0430\u0441\u0442\u0430\u0442.",
+        warn: "\u041F\u0430\u0437\u0438 \u0441\u0432\u043E\u044F\u0442\u0430 {titleLower}: \u0441\u043B\u0435\u0434 \u043E\u0449\u0435 {n} {daysWord} \u043F\u043E\u0434 \u043F\u0440\u0430\u0433\u0430 \u043D\u0438\u0432\u043E\u0442\u043E \u0441\u043B\u0438\u0437\u0430 \u0441 \u0435\u0434\u043D\u043E. \u0415\u0434\u0438\u043D \u0434\u043E\u0431\u044A\u0440 \u0434\u0435\u043D \u0432\u0440\u044A\u0449\u0430 \u043E\u0442\u0431\u0440\u043E\u044F\u0432\u0430\u043D\u0435\u0442\u043E.",
+        comparison: "\u041F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E\u0442\u043E \u0442\u0438 \u0435 \u043F\u043E-\u0432\u0438\u0441\u043E\u043A\u043E \u043E\u0442 \u0442\u043E\u0432\u0430 \u043D\u0430 {p}% \u043E\u0442 \u0445\u043E\u0440\u0430\u0442\u0430 \u0432 Nutriin.",
+        newLevel: "\u041D\u043E\u0432\u043E \u043D\u0438\u0432\u043E",
+        giftReady: "\u2014 \u043A\u043E\u0434\u044A\u0442 \u0442\u0435 \u0447\u0430\u043A\u0430 \u0432 \u041D\u0430\u043F\u0440\u0435\u0434\u044A\u043A",
+        shield: "\u0421\u043F\u0435\u0447\u0435\u043B\u0438 \u0436\u043E\u043A\u0435\u0440: \u0435\u0434\u0438\u043D \u0434\u0435\u043D \u0431\u0435\u0437 \u043E\u0442\u043C\u0435\u0442\u043A\u0438 \u043D\u044F\u043C\u0430 \u0434\u0430 \u043F\u0440\u0435\u043A\u044A\u0441\u043D\u0435 \u043F\u043E\u0440\u0435\u0434\u0438\u0446\u0430\u0442\u0430 \u0442\u0438.",
+        weightLose: "\u041F\u043E-\u043B\u0435\u043A\u043E \u0441 {pct}%. \u0417\u0430\u0441\u043B\u0443\u0436\u0435\u043D\u043E.",
+        weightGain: "\u0421 {pct}% \u043F\u043E-\u0431\u043B\u0438\u0437\u043E \u0434\u043E \u0446\u0435\u043B\u0442\u0430",
+        weightText: "\u0421 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0438 \u0440\u0435\u0448\u0435\u043D\u0438\u044F, \u043D\u0435 \u0441 \u043A\u0440\u0430\u0439\u043D\u043E\u0441\u0442\u0438.",
+        weightShareLose: "\u041F\u043E-\u043B\u0435\u043A\u043E. \u041E\u0442\u0432\u044A\u0442\u0440\u0435 \u043D\u0430\u0432\u044A\u043D.",
+        weightShareGain: "\u041F\u043E-\u0431\u043B\u0438\u0437\u043E \u0434\u043E \u0446\u0435\u043B\u0442\u0430. \u0414\u0435\u043D \u0441\u043B\u0435\u0434 \u0434\u0435\u043D.",
+        codesTitle: "\u0422\u0432\u043E\u0438\u0442\u0435 \u043E\u0442\u0441\u0442\u044A\u043F\u043A\u0438",
+        codesEmpty: "\u041F\u044A\u0440\u0432\u0430\u0442\u0430 \u043D\u0430\u0433\u0440\u0430\u0434\u0430 \u0438\u0434\u0432\u0430 \u0441 \u201E\u0420\u0435\u0448\u0438\u043C\u043E\u0441\u0442\u201C \u2014 14 \u0434\u043D\u0438 \u0441\u0440\u0435\u0434\u043D\u043E \u043D\u0430\u0434 60%.",
+        pointsTitle: "\u041F\u043B\u043E\u0434\u044A\u0442 \u043D\u0430 \u0442\u0440\u0443\u0434\u0430 \u0442\u0438",
+        pointsText: "\u0422\u043E\u0447\u043A\u0438 \u0437\u0430 \u0432\u0441\u0435\u043A\u0438 \u0434\u043E\u0431\u044A\u0440 \u0434\u0435\u043D (10, +5 \u043D\u0430\u0434 80%, +5 \u043F\u0440\u0438 \u043A\u0440\u0430\u0447\u043A\u0438 \u043D\u0430 \u0446\u0435\u043B\u0442\u0430) \u0438 \u0431\u043E\u043D\u0443\u0441\u0438 \u0437\u0430 \u043D\u0438\u0432\u0430\u0442\u0430 \u0438 \u043F\u043E\u0440\u0435\u0434\u0438\u0446\u0438\u0442\u0435. \u041E\u0431\u044A\u0440\u043D\u0438 \u0433\u0438 \u0432 \u043E\u0442\u0441\u0442\u044A\u043F\u043A\u0430.",
+        pathTitle: "\u041F\u044A\u0442\u044F\u0442 \u043D\u0430 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E\u0442\u043E",
+        pathNote: "\u0418\u0437\u0433\u0440\u0430\u0434\u0435\u043D\u043E\u0442\u043E \u043E\u0441\u0442\u0430\u0432\u0430 \u0442\u0432\u043E\u0435: \u043D\u0438\u0432\u043E\u0442\u043E \u0441\u043B\u0438\u0437\u0430 \u0441 \u0435\u0434\u043D\u043E \u0441\u0430\u043C\u043E \u0441\u043B\u0435\u0434 14 \u043F\u043E\u0440\u0435\u0434\u043D\u0438 \u0434\u043D\u0438 \u043F\u043E\u0434 \u043F\u0440\u0430\u0433\u0430.",
+        inviteTitle: "\u041F\u043E\u043A\u0430\u043D\u0438 \u043F\u0440\u0438\u044F\u0442\u0435\u043B",
+        inviteText: "\u041F\u0440\u0438\u044F\u0442\u0435\u043B\u044F\u0442 \u043F\u043E\u043B\u0443\u0447\u0430\u0432\u0430 \u2212{pct}% \u0437\u0430 \u043F\u044A\u0440\u0432\u0438\u044F \u0441\u0438 \u043F\u043B\u0430\u043D, \u0430 \u0442\u0438 \u2014 \u043A\u043E\u0434 \u2212{reward}% \u0438 300 \u0442\u043E\u0447\u043A\u0438, \u0449\u043E\u043C \u0437\u0430\u043F\u043E\u0447\u043D\u0435.",
+        inviteShare: "\u0415\u043B\u0430 \u0441 \u043C\u0435\u043D \u2014 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E, \u0432\u0438\u0434\u044F\u043D\u043E \u043E\u0442\u0432\u044A\u0442\u0440\u0435",
+        redeemTitle: "\u0417\u0430\u0441\u043B\u0443\u0436\u0435\u043D\u043E. \u041E\u0442\u0441\u0442\u044A\u043F\u043A\u0430\u0442\u0430 \u0435 \u0442\u0432\u043E\u044F.",
+        shareTagline: "\u0417\u0430\u043F\u043E\u0447\u0432\u0430 \u043E\u0442\u0432\u044A\u0442\u0440\u0435. \u041B\u0438\u0447\u0438 \u043D\u0430\u0432\u044A\u043D.",
+        shareInvite: "\u041A\u043E\u0434 {code} \u2192 \u221215% \u0437\u0430 \u043F\u044A\u0440\u0432\u0438\u044F \u043F\u043B\u0430\u043D"
+      };
+      function text2(key, vars) {
+        var t = TEXTS[key] == null ? "" : String(TEXTS[key]);
+        return t.replace(/\{(\w+)\}/g, function(_, k) {
+          return vars && vars[k] != null ? vars[k] : "";
+        });
+      }
+      var IMAGES = {};
+      var THEMES = ["resolve", "persist", "consistency", "inner", "habit", "streak", "weight", "invite", "share"];
+      var DEFAULTS = null;
+      function applyContent(c) {
+        if (!DEFAULTS) DEFAULTS = JSON.stringify({ t: TIERS, s: STREAKS, o: OFFERS, x: TEXTS, w: WORDS });
+        var d = JSON.parse(DEFAULTS);
+        var str3 = function(v, n) {
+          return typeof v === "string" && v.trim() ? v.trim().slice(0, n || 400) : null;
+        };
+        TIERS.forEach(function(t, i) {
+          ["title", "moment", "text", "share", "word", "image"].forEach(function(k) {
+            t[k] = d.t[i][k];
+          });
+          var o = c && c.tiers && c.tiers[t.id] || {};
+          ["title", "moment", "text", "share", "image"].forEach(function(k) {
+            if (str3(o[k])) t[k] = str3(o[k]);
+          });
+          if (str3(o.word)) t.word = o.word.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5) || t.word;
+        });
+        STREAKS.forEach(function(s, i) {
+          ["moment", "text", "share"].forEach(function(k) {
+            s[k] = d.s[i][k];
+          });
+          var o = c && c.streaks && c.streaks[s.days] || {};
+          ["moment", "text", "share"].forEach(function(k) {
+            if (str3(o[k])) s[k] = str3(o[k]);
+          });
+        });
+        var ow = c && c.words && str3(c.words.offer);
+        OFFERS.forEach(function(o, i) {
+          o.word = ow ? ow.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5) || d.o[i].word : d.o[i].word;
+        });
+        WORDS.thanks = c && c.words && str3(c.words.thanks) ? c.words.thanks.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5) || d.w.thanks : d.w.thanks;
+        Object.keys(TEXTS).forEach(function(k) {
+          TEXTS[k] = d.x[k];
+        });
+        Object.keys(c && c.texts || {}).forEach(function(k) {
+          if (k in TEXTS && str3(c.texts[k], 600)) TEXTS[k] = str3(c.texts[k], 600);
+        });
+        Object.keys(IMAGES).forEach(function(k) {
+          delete IMAGES[k];
+        });
+        Object.keys(c && c.images || {}).forEach(function(k) {
+          var u = c.images[k];
+          if (THEMES.indexOf(k) >= 0 && typeof u === "string" && /^(https:\/\/|\.\/brand\/)/.test(u)) IMAGES[k] = u;
+        });
+      }
+      function imageFor(theme) {
+        return IMAGES[theme] || "./brand/rewards/" + theme + ".webp";
+      }
       var FACTS = {
         habit: "\u0412 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 \u043D\u0430 University College London (Lally \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, 2010) \u0435\u0434\u0438\u043D \u043D\u043E\u0432 \u043D\u0430\u0432\u0438\u043A \u0441\u0442\u0430\u0432\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u043D \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 66 \u0434\u043D\u0438 \u2014 \u0438 \u0435\u0434\u0438\u043D \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0430\u0442 \u0434\u0435\u043D \u043D\u0435 \u0433\u043E \u0440\u0430\u0437\u0432\u0430\u043B\u044F.",
         weight5: "\u041E\u043A\u043E\u043B\u043E 5% \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0442\u0435\u0433\u043B\u043E \u0432\u0435\u0447\u0435 \u043F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442\u0442\u0430 \u043A\u044A\u043C \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u0430, \u043A\u0440\u044A\u0432\u043D\u043E\u0442\u043E \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438\u0442\u0435 \u0432 \u043A\u0440\u044A\u0432\u0442\u0430 (Magkos \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, Cell Metabolism, 2016).",
@@ -1082,7 +1183,15 @@ var require_rewards_engine = __commonJS({
         tierById,
         streakOf,
         offerById,
-        weightProgress
+        weightProgress,
+        WORDS,
+        TEXTS,
+        THEMES,
+        codeFor,
+        normCode: normCode2,
+        text: text2,
+        applyContent,
+        imageFor
       };
       global2.RewardsEngine = api;
       if (typeof module !== "undefined" && module.exports) module.exports = api;
@@ -61668,37 +61777,15 @@ var HIST_TTL_MS = 12 * 36e5;
 var INVITE_PCT = 15;
 var INVITER_PCT = 20;
 var INVITE_POINTS = 300;
-var CODE_WORDS = {
-  "tier:start": ["\u0420\u0415\u0428\u0418\u041C\u041E\u0421\u0422", "\u041F\u042A\u0420\u0412\u0410-\u041A\u0420\u0410\u0427\u041A\u0410", "\u0414\u0410\u0414\u0415\u041D\u0410-\u0414\u0423\u041C\u0410", "\u0421\u041C\u0415\u041B\u041E-\u041D\u0410\u0427\u0410\u041B\u041E"],
-  "tier:steady": ["\u0423\u041F\u041E\u0420\u0418\u0422\u041E\u0421\u0422", "\u0414\u0415\u041D-\u0421\u041B\u0415\u0414-\u0414\u0415\u041D", "\u0421\u0418\u041B\u041D\u0410-\u0412\u041E\u041B\u042F", "\u041D\u0415-\u0421\u0415-\u041E\u0422\u041A\u0410\u0417\u0412\u0410\u041C"],
-  "tier:habit": ["\u041F\u041E\u0421\u0422\u041E\u042F\u041D\u0421\u0422\u0412\u041E", "\u041C\u041E\u042F\u0422-\u0420\u0418\u0422\u042A\u041C", "\u041D\u041E\u0412-\u041D\u0410\u0412\u0418\u041A", "\u0412\u0415\u0420\u0415\u041D-\u041A\u0423\u0420\u0421"],
-  "tier:lifestyle": ["\u0412\u042A\u0422\u0420\u0415\u0428\u041D\u0410-\u0421\u0418\u041B\u0410", "\u041E\u0422\u0412\u042A\u0422\u0420\u0415", "\u0416\u0415\u041B\u042F\u0417\u041D\u0410-\u0412\u041E\u041B\u042F", "\u041B\u0418\u0427\u0418-\u041D\u0410\u0412\u042A\u041D"],
-  offer: ["\u041F\u041B\u041E\u0414-\u041D\u0410-\u0422\u0420\u0423\u0414\u0410", "\u0417\u0410\u0421\u041B\u0423\u0416\u0415\u041D\u041E", "\u0421\u041F\u0415\u0427\u0415\u041B\u0415\u041D\u041E", "\u0427\u0415\u0421\u0422\u041D\u0410-\u041D\u0410\u0413\u0420\u0410\u0414\u0410"],
-  invite: ["\u0411\u041B\u0410\u0413\u041E\u0414\u0410\u0420\u042F", "\u0414\u041E\u0411\u042A\u0420-\u041F\u0420\u0418\u042F\u0422\u0415\u041B", "\u0417\u0410\u0415\u0414\u041D\u041E-\u0421\u041C\u0415"],
-  invitation: ["\u0415\u041B\u0410-\u0421-\u041C\u0415\u041D", "\u041E\u0411\u0429\u0410-\u0426\u0415\u041B", "\u0414\u0412\u0410\u041C\u0410-\u0421\u041C\u0415", "\u0417\u0410\u0415\u0414\u041D\u041E"]
-};
 var okUser = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ""));
-var CODE_RE = /^[А-Я]{2,}(?:-[А-Я]{1,})*-\d{3,4}$/;
-var normCode = (c) => String(c || "").trim().toLocaleUpperCase("bg").replace(/[\s_–—]+/g, "-").replace(/-+/g, "-").slice(0, 40);
-var okRewardCode = (c) => CODE_RE.test(String(c || ""));
-var okInvite = okRewardCode;
-function pickFrom(list4) {
-  const b = new Uint32Array(2);
-  crypto.getRandomValues(b);
-  return list4[b[0] % list4.length];
-}
+var normCode = import_rewards_engine.default.normCode;
+var okRewardCode = (c) => /^[A-Z]{2,5}\d{1,2}$/.test(String(c || ""));
+var okInvite = (c) => /^[A-Z]{2,5}\d{3,4}$/.test(String(c || ""));
 function digits2(n) {
   const b = new Uint32Array(1);
   crypto.getRandomValues(b);
   const lo = 10 ** (n - 1);
   return String(lo + b[0] % (9 * lo));
-}
-async function freeCode(env, prefix, words2) {
-  for (let i = 0; i < 12; i++) {
-    const code = `${pickFrom(words2)}-${digits2(i < 8 ? 3 : 4)}`;
-    if (!await env.page_content.get(`${prefix}${code}`)) return code;
-  }
-  throw new Error("no free code");
 }
 var getJSON = async (env, k) => {
   try {
@@ -61708,29 +61795,47 @@ var getJSON = async (env, k) => {
   }
 };
 var putJSON = (env, k, v, ttlSec) => env.page_content.put(k, JSON.stringify(v), ttlSec ? { expirationTtl: ttlSec } : void 0);
+var contentCache = { at: 0, value: null };
+async function loadContent(env, now = Date.now()) {
+  if (now - contentCache.at > 6e4) contentCache = { at: now, value: await getJSON(env, "rewards_content") };
+  import_rewards_engine.default.applyContent(contentCache.value);
+  return contentCache.value;
+}
+var emptyRecord = () => ({ days: {}, bonus: 0, spent: 0, issued: {}, grants: [], invited: [], inviteBonus: 0 });
 function countryOf(request) {
   const c = request?.cf?.country || request?.headers?.get?.("CF-IPCountry") || "";
   return /^[A-Z]{2}$/.test(c) && c !== "XX" && c !== "T1" ? c : "";
 }
 var supplementsAllowed = (country) => !country || country === "BG";
-async function issueCode(env, userId, { kind, pct, source, partner = "", now = Date.now() }) {
-  const words2 = CODE_WORDS[source] || (source === "invite" ? CODE_WORDS.invite : CODE_WORDS.offer);
-  const code = await freeCode(env, "reward_code:", words2);
-  const rec = { userId, kind, pct, source, until: now + CODE_DAYS * DAY_MS4, createdAt: now, ...kind === "supplement" ? { region: "BG" } : {}, ...partner ? { partner } : {} };
-  await putJSON(env, `reward_code:${code}`, rec, (CODE_DAYS + 60) * 86400);
-  return { code, ...rec };
+function grant(record, { code, kind, pct, source, now = Date.now() }) {
+  record.grants = Array.isArray(record.grants) ? record.grants : [];
+  let g = record.grants.find((x) => x.code === code && x.kind === kind && x.until > now && x.left > 0);
+  if (g) {
+    g.left += 1;
+    g.until = now + CODE_DAYS * DAY_MS4;
+  } else {
+    g = { code, kind, pct, source, until: now + CODE_DAYS * DAY_MS4, left: 1, used: [], ...kind === "supplement" ? { region: "BG" } : {} };
+    record.grants.push(g);
+  }
+  record.grants = record.grants.filter((x) => x.until > now - 30 * DAY_MS4).slice(-40);
+  return g;
 }
-async function readRewardCode(env, code, now = Date.now()) {
-  if (!okRewardCode(code)) return null;
-  const r = await getJSON(env, `reward_code:${code}`);
-  return r && !r.usedAt && r.until > now ? r : null;
+function findGrant(record, code, kind, now = Date.now()) {
+  const c = normCode(code);
+  return (record?.grants || []).find((x) => x.code === c && x.kind === kind && x.left > 0 && x.until > now) || null;
 }
 async function ensureInvite(env, userId, record) {
   if (okInvite(record.invite)) return record.invite;
-  const c = await freeCode(env, "invite:", CODE_WORDS.invitation);
-  await env.page_content.put(`invite:${c}`, userId);
-  record.invite = c;
-  return c;
+  const words2 = import_rewards_engine.default.WORDS.invite;
+  for (let i = 0; i < 16; i++) {
+    const c = words2[i % words2.length] + digits2(i < 10 ? 3 : 4);
+    if (!await env.page_content.get(`invite:${c}`)) {
+      await env.page_content.put(`invite:${c}`, userId);
+      record.invite = c;
+      return c;
+    }
+  }
+  return "";
 }
 async function cohort(env, now) {
   const cached = await getJSON(env, "rewards_hist");
@@ -61758,8 +61863,8 @@ function percentileOf(hist, value) {
   for (let i = 0; i < Math.min(101, Math.round(value)); i++) below += hist.c[i] || 0;
   return Math.min(99, Math.floor(below / Math.max(1, hist.n - 1) * 100));
 }
-function publicCode(code, r) {
-  return { code, kind: r.kind, pct: r.pct, until: r.until, source: r.source, used: !!r.usedAt, ...r.partner ? { partner: r.partner } : {} };
+function publicCode(g) {
+  return { code: g.code, kind: g.kind, pct: g.pct, until: g.until, source: g.source, left: g.left, used: !(g.left > 0) };
 }
 function clientTodayKey(raw, now) {
   const server = dateKey(new Date(now));
@@ -61772,25 +61877,24 @@ async function handleRewards(request, env, { respond, checkOwner, now = Date.now
   const authError = await checkOwner(b.userId, b.idToken, env, request);
   if (authError) return authError;
   const userId = b.userId;
+  await loadContent(env, now);
   const state = await getJSON(env, `game_state:${userId}`) || {};
   const status = import_rewards_engine.default.compute({ gameData: state.gameData || {}, calcDayScore, todayKey: clientTodayKey(b.todayKey, now) });
-  const record = await getJSON(env, `rewards:${userId}`) || { days: {}, bonus: 0, spent: 0, issued: {}, codes: [], invited: [], inviteBonus: 0 };
+  const record = await getJSON(env, `rewards:${userId}`) || emptyRecord();
   const before = JSON.stringify(record);
   record.days = record.days || {};
   for (const [k, p] of Object.entries(status.points.days)) if (!(record.days[k] >= p)) record.days[k] = p;
   record.bonus = Math.max(Number(record.bonus) || 0, status.points.bonus);
   record.issued = record.issued || {};
-  record.codes = Array.isArray(record.codes) ? record.codes : [];
   const country = countryOf(request);
   const fresh = [];
   for (const m of status.milestones) {
     if (m.kind !== "tier" || record.issued[m.id]) continue;
     record.issued[m.id] = now;
-    for (const r of import_rewards_engine.default.tierById(m.tier).rewards) {
+    const tier = import_rewards_engine.default.tierById(m.tier);
+    for (const r of tier.rewards) {
       if (r.kind === "supplement" && !supplementsAllowed(country)) continue;
-      const c = await issueCode(env, userId, { kind: r.kind, pct: r.pct, source: m.id, now });
-      record.codes.push(c.code);
-      fresh.push(publicCode(c.code, c));
+      fresh.push(publicCode(grant(record, { code: import_rewards_engine.default.codeFor(tier.word, r.pct), kind: r.kind, pct: r.pct, source: m.id, now })));
     }
   }
   await ensureInvite(env, userId, record);
@@ -61807,11 +61911,7 @@ async function handleRewards(request, env, { respond, checkOwner, now = Date.now
     }
   }
   const hist = status.daysTracked >= 7 ? await cohort(env, now).catch(() => null) : null;
-  const codes = [];
-  for (const code of record.codes.slice(-20)) {
-    const r = await getJSON(env, `reward_code:${code}`);
-    if (r && r.until > now) codes.push(publicCode(code, r));
-  }
+  const codes = (record.grants || []).filter((g) => g.until > now && g.left > 0).map(publicCode);
   return respond({
     success: true,
     wallet: { earned, spent: Number(record.spent) || 0, balance: earned - (Number(record.spent) || 0) },
@@ -61830,6 +61930,7 @@ async function handleRewardsRedeem(request, env, { respond, checkOwner, now = Da
   if (!okUser(b.userId)) return respond({ error: "account" }, 400);
   const authError = await checkOwner(b.userId, b.idToken, env, request);
   if (authError) return authError;
+  await loadContent(env, now);
   const offer = import_rewards_engine.default.offerById(String(b.offer || ""));
   if (!offer) return respond({ error: "bad_request" }, 400);
   if (offer.kind === "supplement" && !supplementsAllowed(countryOf(request))) return respond({ error: "region", message: "\u0414\u043E\u0431\u0430\u0432\u043A\u0438\u0442\u0435 \u0441\u0435 \u0434\u043E\u0441\u0442\u0430\u0432\u044F\u0442 \u0441\u0430\u043C\u043E \u0432 \u0411\u044A\u043B\u0433\u0430\u0440\u0438\u044F." }, 400);
@@ -61838,17 +61939,18 @@ async function handleRewardsRedeem(request, env, { respond, checkOwner, now = Da
   const earned = Object.values(record.days || {}).reduce((s, p) => s + (Number(p) || 0), 0) + (Number(record.bonus) || 0) + (Number(record.inviteBonus) || 0);
   const balance = earned - (Number(record.spent) || 0);
   if (balance < offer.cost) return respond({ error: "points", message: `\u041D\u0443\u0436\u043D\u0438 \u0441\u0430 ${offer.cost} \u0442\u043E\u0447\u043A\u0438, \u0438\u043C\u0430\u0448 ${balance}.`, balance }, 400);
-  const c = await issueCode(env, b.userId, { kind: offer.kind, pct: offer.pct, source: `offer:${offer.id}`, partner: offer.partner, now });
+  const g = grant(record, { code: import_rewards_engine.default.codeFor(offer.word, offer.pct), kind: offer.kind, pct: offer.pct, source: `offer:${offer.id}`, now });
   record.spent = (Number(record.spent) || 0) + offer.cost;
-  record.codes = [...record.codes || [], c.code];
   record.updatedAt = new Date(now).toISOString();
   await putJSON(env, `rewards:${b.userId}`, record);
-  return respond({ success: true, code: publicCode(c.code, c), balance: balance - offer.cost });
+  return respond({ success: true, code: publicCode(g), balance: balance - offer.cost });
 }
 async function handleRewardCodeStatus(url, env, { respond, now = Date.now() }) {
+  const userId = url.searchParams.get("userId") || "";
   const code = normCode(url.searchParams.get("code"));
-  const r = await readRewardCode(env, code, now);
-  return respond(r ? { valid: true, kind: r.kind, pct: r.pct, until: r.until } : { valid: false });
+  const record = okUser(userId) && okRewardCode(code) ? await getJSON(env, `rewards:${userId}`) : null;
+  const g = findGrant(record, code, "plan", now) || findGrant(record, code, "supplement", now);
+  return respond(g ? { valid: true, kind: g.kind, pct: g.pct, until: g.until } : { valid: false });
 }
 async function handleInviteStatus(url, env, { respond }) {
   const code = normCode(url.searchParams.get("code"));
@@ -61859,17 +61961,28 @@ async function handlePartnerVerify(request, env, { respond, now = Date.now() }) 
   const key = request.headers.get("X-Partner-Key") || "";
   if (!env.REWARDS_PARTNER_KEY || key !== env.REWARDS_PARTNER_KEY) return respond({ error: "unauthorized" }, 401);
   const b = await request.json().catch(() => ({}));
-  const code = normCode(b.code);
-  const r = await readRewardCode(env, code, now);
-  if (!r || r.kind === "plan") return respond({ valid: false });
-  if (b.redeem) await putJSON(env, `reward_code:${code}`, { ...r, usedAt: now, usedBy: "partner", order: String(b.order || "").slice(0, 64) }, 60 * 86400);
-  return respond({ valid: true, kind: r.kind, pct: r.pct, until: r.until, region: r.region || null, redeemed: !!b.redeem });
+  const email = String(b.email || "").trim().toLowerCase();
+  const idx = email ? await getJSON(env, `email_index:${email}`) : null;
+  const userId = idx?.userId;
+  if (!okUser(userId)) return respond({ valid: false, reason: "email" });
+  const record = await getJSON(env, `rewards:${userId}`);
+  const kind = b.kind === "partner" ? "partner" : "supplement";
+  const g = findGrant(record, b.code, kind, now);
+  if (!g) return respond({ valid: false, reason: "code" });
+  if (b.redeem) {
+    g.left -= 1;
+    g.used = [...g.used || [], { at: now, by: "partner", order: String(b.order || "").slice(0, 64) }].slice(-10);
+    await putJSON(env, `rewards:${userId}`, record);
+  }
+  return respond({ valid: true, kind: g.kind, pct: g.pct, until: g.until, left: g.left, region: g.region || null, redeemed: !!b.redeem });
 }
 async function planDiscount(env, userId, { reward = "", invite = "" } = {}, now = Date.now()) {
   let best = null;
   const rc = normCode(reward);
-  const r = await readRewardCode(env, rc, now);
-  if (r && r.kind === "plan" && r.userId === userId) best = { pct: r.pct, reward: rc, label: `\u2212${r.pct}% \u043D\u0430\u0433\u0440\u0430\u0434\u0430 \u0437\u0430 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E` };
+  if (okRewardCode(rc)) {
+    const g = findGrant(await getJSON(env, `rewards:${userId}`), rc, "plan", now);
+    if (g) best = { pct: g.pct, reward: rc, label: `\u2212${g.pct}% \u043D\u0430\u0433\u0440\u0430\u0434\u0430 \u0437\u0430 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E` };
+  }
   const inv = normCode(invite);
   if (okInvite(inv) && (!best || best.pct < INVITE_PCT)) {
     const owner = await env.page_content.get(`invite:${inv}`);
@@ -61880,23 +61993,74 @@ async function planDiscount(env, userId, { reward = "", invite = "" } = {}, now 
 }
 async function applyPlanDiscount(env, userId, meta, now = Date.now()) {
   if (okRewardCode(meta.reward)) {
-    const r = await getJSON(env, `reward_code:${meta.reward}`);
-    if (r && !r.usedAt) await putJSON(env, `reward_code:${meta.reward}`, { ...r, usedAt: now, usedBy: userId }, 60 * 86400);
+    const record = await getJSON(env, `rewards:${userId}`);
+    const g = findGrant(record, meta.reward, "plan", now);
+    if (g) {
+      g.left -= 1;
+      g.used = [...g.used || [], { at: now, by: "plan" }].slice(-10);
+      await putJSON(env, `rewards:${userId}`, record);
+    }
   }
   if (okInvite(meta.invite)) {
     if (await env.page_content.get(`invite_used:${userId}`)) return;
     const owner = await env.page_content.get(`invite:${meta.invite}`);
     await env.page_content.put(`invite_used:${userId}`, meta.invite);
     if (!owner || owner === userId) return;
-    const rec = await getJSON(env, `rewards:${owner}`) || { days: {}, bonus: 0, spent: 0, issued: {}, codes: [], invited: [], inviteBonus: 0, invite: meta.invite };
+    await loadContent(env, now);
+    const rec = await getJSON(env, `rewards:${owner}`) || { ...emptyRecord(), invite: meta.invite };
     if ((rec.invited || []).includes(userId)) return;
-    const c = await issueCode(env, owner, { kind: "plan", pct: INVITER_PCT, source: "invite", now });
+    grant(rec, { code: import_rewards_engine.default.codeFor(import_rewards_engine.default.WORDS.thanks, INVITER_PCT), kind: "plan", pct: INVITER_PCT, source: "invite", now });
     rec.invited = [...rec.invited || [], userId].slice(-200);
     rec.inviteBonus = (Number(rec.inviteBonus) || 0) + INVITE_POINTS;
-    rec.codes = [...rec.codes || [], c.code];
     rec.updatedAt = new Date(now).toISOString();
     await putJSON(env, `rewards:${owner}`, rec);
   }
+}
+async function handleRewardsContent(env, { respond }) {
+  const c = await getJSON(env, "rewards_content") || {};
+  const r = respond({ success: true, content: c });
+  try {
+    r.headers.set("Cache-Control", "public, max-age=300");
+  } catch (_) {
+  }
+  return r;
+}
+async function handleAdminRewardsContent(request, env, { respond }) {
+  const b = await request.json().catch(() => ({}));
+  const c = b.content && typeof b.content === "object" ? b.content : {};
+  const prev = await getJSON(env, "rewards_content") || {};
+  const clean = { tiers: c.tiers || {}, streaks: c.streaks || {}, texts: c.texts || {}, words: c.words || {}, images: prev.images || {} };
+  const size = JSON.stringify(clean).length;
+  if (size > 6e4) return respond({ error: "too_big" }, 400);
+  import_rewards_engine.default.applyContent(clean);
+  await putJSON(env, "rewards_content", { ...clean, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+  contentCache = { at: 0, value: null };
+  return respond({ success: true });
+}
+async function handleAdminRewardsImage(request, env, { respond, now = Date.now() }) {
+  const b = await request.json().catch(() => ({}));
+  const theme = String(b.theme || "");
+  if (!import_rewards_engine.default.THEMES.includes(theme)) return respond({ error: "theme" }, 400);
+  const c = await getJSON(env, "rewards_content") || {};
+  c.images = c.images || {};
+  if (!b.data) {
+    await env.page_content.delete(`rewards_img:${theme}`);
+    delete c.images[theme];
+  } else {
+    if (!/^data:image\/(webp|jpeg|png);base64,/.test(b.data) || b.data.length > 4e6) return respond({ error: "image" }, 400);
+    await env.page_content.put(`rewards_img:${theme}`, b.data);
+    c.images[theme] = `${new URL(request.url).origin}/api/rewards/image/${theme}?v=${now}`;
+  }
+  await putJSON(env, "rewards_content", { ...c, updatedAt: new Date(now).toISOString() });
+  contentCache = { at: 0, value: null };
+  return respond({ success: true, url: c.images[theme] || null });
+}
+async function handleRewardsImage(theme, env) {
+  const data = import_rewards_engine.default.THEMES.includes(theme) ? await env.page_content.get(`rewards_img:${theme}`) : null;
+  if (!data) return new Response("Not found", { status: 404, headers: { "Access-Control-Allow-Origin": "*" } });
+  const type = data.slice(5, data.indexOf(";"));
+  const bin = Uint8Array.from(atob(data.slice(data.indexOf(",") + 1)), (ch) => ch.charCodeAt(0));
+  return new Response(bin, { headers: { "Content-Type": type, "Cache-Control": "public, max-age=31536000, immutable", "Access-Control-Allow-Origin": "*" } });
 }
 
 // billing.js
@@ -103891,6 +104055,14 @@ var worker_entry_default = {
         return await handleBillingWebhook(request, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/billing/confirm" && request.method === "POST") {
         return await handleBillingConfirm(request, env, { respond: jsonResponse2 });
+      } else if (url.pathname === "/api/rewards/content" && request.method === "GET") {
+        return await handleRewardsContent(env, { respond: jsonResponse2 });
+      } else if (url.pathname.startsWith("/api/rewards/image/") && request.method === "GET") {
+        return await handleRewardsImage(url.pathname.split("/").pop(), env);
+      } else if (url.pathname === "/api/admin/rewards/content" && request.method === "POST") {
+        return await handleAdminRewardsContent(request, env, { respond: jsonResponse2 });
+      } else if (url.pathname === "/api/admin/rewards/image" && request.method === "POST") {
+        return await handleAdminRewardsImage(request, env, { respond: jsonResponse2 });
       } else if (url.pathname.startsWith("/api/user/rewards") || url.pathname.startsWith("/api/rewards/")) {
         const rlErr = await checkRateLimit(env, request, "REWARDS");
         if (rlErr) return rlErr;

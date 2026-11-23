@@ -138,7 +138,7 @@ import { crossCheckText } from './cross-check.js';
 import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
 import Pricing from './pricing-config.js';
 import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUsage, quotaMap, normalizeAccess, paywallEnabled, PAYWALL_KEY, usageWindow } from './access-control.js';
-import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInviteStatus, handlePartnerVerify } from './rewards.js';
+import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInviteStatus, handlePartnerVerify, handleRewardsContent, handleRewardsImage, handleAdminRewardsContent, handleAdminRewardsImage } from './rewards.js';
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
@@ -18598,6 +18598,14 @@ export default {
         return await handleBillingWebhook(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/billing/confirm' && request.method === 'POST') {
         return await handleBillingConfirm(request, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/rewards/content' && request.method === 'GET') {
+        return await handleRewardsContent(env, { respond: jsonResponse });
+      } else if (url.pathname.startsWith('/api/rewards/image/') && request.method === 'GET') {
+        return await handleRewardsImage(url.pathname.split('/').pop(), env);
+      } else if (url.pathname === '/api/admin/rewards/content' && request.method === 'POST') {
+        return await handleAdminRewardsContent(request, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/admin/rewards/image' && request.method === 'POST') {
+        return await handleAdminRewardsImage(request, env, { respond: jsonResponse });
       } else if (url.pathname.startsWith('/api/user/rewards') || url.pathname.startsWith('/api/rewards/')) {
         const rlErr = await checkRateLimit(env, request, 'REWARDS');
         if (rlErr) return rlErr;

@@ -27,17 +27,18 @@
     var GRACE_DAYS = 14;      // дни под стъпалото преди слизане
     var DAY_POINTS_MAX = 20;
 
-    // Стъпалата на постоянството и наградата при първото достигане.
-    // kind: supplement — добавки (само за България), plan — план в сайта.
-    // Нивата на постоянството — качества, не етапи; думите са частта от наградата (думи: rewards-ui.js).
+    // Нивата на постоянството — качества, не етапи — и наградата при първото достигане.
+    // kind: supplement — добавки (само за България), plan — план в сайта. Кодът = word + процент
+    // (GRIT10): кратък, на латиница, еднакъв за всички, но важи само за спечелилия го (rewards.js).
+    // Текстовете, думите на кодовете и снимките се сменят от админ панела (applyContent).
     var TIERS = [
-        { id: 'start', title: 'Решимост', days: 14, minEng: 60, bonus: 100, image: 'resolve', rewards: [{ kind: 'supplement', pct: 5 }],
+        { id: 'start', title: 'Решимост', days: 14, minEng: 60, bonus: 100, image: 'resolve', word: 'BOLD', rewards: [{ kind: 'supplement', pct: 5 }],
           moment: 'Показа решимост', text: '14 дни, в които думата, дадена на себе си, удържа. Така започва всяка истинска промяна.', share: 'Дадох си дума — и я удържах.' },
-        { id: 'steady', title: 'Упоритост', days: 30, minEng: 70, bonus: 200, image: 'persist', rewards: [{ kind: 'supplement', pct: 10 }],
+        { id: 'steady', title: 'Упоритост', days: 30, minEng: 70, bonus: 200, image: 'persist', word: 'GRIT', rewards: [{ kind: 'supplement', pct: 10 }],
           moment: 'Упоритостта ти личи', text: '30 дни избираш плана си отново и отново — и в лесните, и в трудните дни.', share: 'Избирам себе си — ден след ден.' },
-        { id: 'habit', title: 'Постоянство', days: 60, minEng: 75, bonus: 300, image: 'consistency', rewards: [{ kind: 'supplement', pct: 15 }, { kind: 'plan', pct: 10 }],
+        { id: 'habit', title: 'Постоянство', days: 60, minEng: 75, bonus: 300, image: 'consistency', word: 'FLOW', rewards: [{ kind: 'supplement', pct: 15 }, { kind: 'plan', pct: 10 }],
           moment: 'Създаде постоянство', text: '60 дни. Това вече не е опит, а твоят ритъм.', share: 'Създадох постоянство.' },
-        { id: 'lifestyle', title: 'Вътрешна сила', days: 90, minEng: 80, bonus: 500, image: 'inner', rewards: [{ kind: 'supplement', pct: 20 }, { kind: 'plan', pct: 20 }],
+        { id: 'lifestyle', title: 'Вътрешна сила', days: 90, minEng: 80, bonus: 500, image: 'inner', word: 'CORE', rewards: [{ kind: 'supplement', pct: 20 }, { kind: 'plan', pct: 20 }],
           moment: 'Промяната вече е отвътре', text: '90 дни постоянство. Вече не те води мотивацията, а това, което изгради.', share: 'Промяната вече е отвътре.' }
     ];
 
@@ -54,9 +55,89 @@
 
     // Точки → отстъпка. Партньорските оферти се добавят тук (kind: 'partner', partner: '<id>').
     var OFFERS = [
-        { id: 'plan10', kind: 'plan', pct: 10, cost: 1500, title: '−10% за план' },
-        { id: 'supp10', kind: 'supplement', pct: 10, cost: 1000, title: '−10% за добавки', region: 'BG' }
+        { id: 'plan10', kind: 'plan', pct: 10, cost: 1500, title: '−10% за план', word: 'WIN' },
+        { id: 'supp10', kind: 'supplement', pct: 10, cost: 1000, title: '−10% за добавки', word: 'WIN', region: 'BG' }
     ];
+    // Думите на другите кодове: благодарност за покана (ALLY20) и личният код за покана (DUO + 3 цифри).
+    var WORDS = { thanks: 'ALLY', invite: ['DUO', 'PAL'] };
+
+    /** Кодът: дума + процент — WIN10, GRIT10, CORE20. */
+    function codeFor(word, pct) { return String(word || 'WIN').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) + pct; }
+    /** Въведеното → кода: латиница, без интервали и тирета („grit 10“ → GRIT10). */
+    function normCode(c) { return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10); }
+
+    // Текстовете на картата и поздравите. {n}, {title}… се попълват. Сменят се от админ панела.
+    var TEXTS = {
+        section: 'Постоянство',
+        empty: 'Всеки отметнат ден е стъпка. От първия започва поредицата ти, а с нея — решимост, упоритост, постоянство и наградите за тях.',
+        levelLabel: 'Твоето ниво', firstLevel: 'Първа крачка',
+        towards: 'Към „{title}“ · {have} от {days} дни · средно {avg}% (нужни {min}%)',
+        top: 'Вътрешна сила — пазиш я с всеки ден.',
+        onTrack: 'Още {n} {daysWord} в този ритъм — и ще покажеш {titleLower}.',
+        rewardLine: 'Наградата: {gifts}.',
+        behind: '„{title}“ иска средно {min}% — сега си на {avg}%. Всеки отметнат ден те приближава.',
+        atTop: 'Промяната вече е отвътре. Пазиш я с всеки ден, а точките ти продължават да растат.',
+        warn: 'Пази своята {titleLower}: след още {n} {daysWord} под прага нивото слиза с едно. Един добър ден връща отброяването.',
+        comparison: 'Постоянството ти е по-високо от това на {p}% от хората в Nutriin.',
+        newLevel: 'Ново ниво', giftReady: '— кодът те чака в Напредък',
+        shield: 'Спечели жокер: един ден без отметки няма да прекъсне поредицата ти.',
+        weightLose: 'По-леко с {pct}%. Заслужено.', weightGain: 'С {pct}% по-близо до целта',
+        weightText: 'С ежедневни решения, не с крайности.',
+        weightShareLose: 'По-леко. Отвътре навън.', weightShareGain: 'По-близо до целта. Ден след ден.',
+        codesTitle: 'Твоите отстъпки', codesEmpty: 'Първата награда идва с „Решимост“ — 14 дни средно над 60%.',
+        pointsTitle: 'Плодът на труда ти',
+        pointsText: 'Точки за всеки добър ден (10, +5 над 80%, +5 при крачки на целта) и бонуси за нивата и поредиците. Обърни ги в отстъпка.',
+        pathTitle: 'Пътят на постоянството',
+        pathNote: 'Изграденото остава твое: нивото слиза с едно само след 14 поредни дни под прага.',
+        inviteTitle: 'Покани приятел',
+        inviteText: 'Приятелят получава −{pct}% за първия си план, а ти — код −{reward}% и 300 точки, щом започне.',
+        inviteShare: 'Ела с мен — храненето, видяно отвътре',
+        redeemTitle: 'Заслужено. Отстъпката е твоя.',
+        shareTagline: 'Започва отвътре. Личи навън.',
+        shareInvite: 'Код {code} → −15% за първия план'
+    };
+    function text(key, vars) {
+        var t = TEXTS[key] == null ? '' : String(TEXTS[key]);
+        return t.replace(/\{(\w+)\}/g, function (_, k) { return vars && vars[k] != null ? vars[k] : ''; });
+    }
+
+    // Снимките по теми: снимка от админ панела (адрес) или brand/rewards/<тема>.webp.
+    var IMAGES = {};
+    var THEMES = ['resolve', 'persist', 'consistency', 'inner', 'habit', 'streak', 'weight', 'invite', 'share'];
+
+    /**
+     * Промените от админ панела (KV rewards_content) върху стойностите по подразбиране.
+     * { tiers: { id: { title, moment, text, share, word, image } }, streaks: { дни: { moment, text, share } },
+     *   texts: { ключ: текст }, images: { тема: адрес }, words: { offer, thanks } }
+     */
+    var DEFAULTS = null;
+    function applyContent(c) {
+        if (!DEFAULTS) DEFAULTS = JSON.stringify({ t: TIERS, s: STREAKS, o: OFFERS, x: TEXTS, w: WORDS });
+        var d = JSON.parse(DEFAULTS);
+        var str = function (v, n) { return typeof v === 'string' && v.trim() ? v.trim().slice(0, n || 400) : null; };
+        TIERS.forEach(function (t, i) {
+            ['title', 'moment', 'text', 'share', 'word', 'image'].forEach(function (k) { t[k] = d.t[i][k]; });
+            var o = c && c.tiers && c.tiers[t.id] || {};
+            ['title', 'moment', 'text', 'share', 'image'].forEach(function (k) { if (str(o[k])) t[k] = str(o[k]); });
+            if (str(o.word)) t.word = o.word.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || t.word;
+        });
+        STREAKS.forEach(function (s, i) {
+            ['moment', 'text', 'share'].forEach(function (k) { s[k] = d.s[i][k]; });
+            var o = c && c.streaks && c.streaks[s.days] || {};
+            ['moment', 'text', 'share'].forEach(function (k) { if (str(o[k])) s[k] = str(o[k]); });
+        });
+        var ow = c && c.words && str(c.words.offer);
+        OFFERS.forEach(function (o, i) { o.word = ow ? ow.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || d.o[i].word : d.o[i].word; });
+        WORDS.thanks = c && c.words && str(c.words.thanks) ? c.words.thanks.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || d.w.thanks : d.w.thanks;
+        Object.keys(TEXTS).forEach(function (k) { TEXTS[k] = d.x[k]; });
+        Object.keys((c && c.texts) || {}).forEach(function (k) { if (k in TEXTS && str(c.texts[k], 600)) TEXTS[k] = str(c.texts[k], 600); });
+        Object.keys(IMAGES).forEach(function (k) { delete IMAGES[k]; });
+        Object.keys((c && c.images) || {}).forEach(function (k) {
+            var u = c.images[k];
+            if (THEMES.indexOf(k) >= 0 && typeof u === 'string' && /^(https:\/\/|\.\/brand\/)/.test(u)) IMAGES[k] = u;
+        });
+    }
+    function imageFor(theme) { return IMAGES[theme] || './brand/rewards/' + theme + '.webp'; }
 
     // Само проверени факти — показват се, когато сравнение с потребителите още няма.
     var FACTS = {
@@ -295,7 +376,9 @@
     var api = {
         GOOD: GOOD, SHIELD_EVERY: SHIELD_EVERY, SHIELD_MAX: SHIELD_MAX, GRACE_DAYS: GRACE_DAYS,
         TIERS: TIERS, STREAKS: STREAKS, WEIGHT_STEPS: WEIGHT_STEPS, OFFERS: OFFERS, FACTS: FACTS,
-        compute: compute, tierById: tierById, streakOf: streakOf, offerById: offerById, weightProgress: weightProgress
+        compute: compute, tierById: tierById, streakOf: streakOf, offerById: offerById, weightProgress: weightProgress,
+        WORDS: WORDS, TEXTS: TEXTS, THEMES: THEMES, codeFor: codeFor, normCode: normCode, text: text,
+        applyContent: applyContent, imageFor: imageFor
     };
     /** @type {any} */ (global).RewardsEngine = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;

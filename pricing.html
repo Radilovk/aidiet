@@ -92,7 +92,7 @@
             <p class="price-note" id="rewardNote" hidden></p>
             <form class="code-form" id="codeForm" autocomplete="off">
                 <label for="codeInput">Имаш код за отстъпка или покана?</label>
-                <div><input id="codeInput" type="text" placeholder="напр. УПОРИТОСТ-417" autocapitalize="characters" spellcheck="false"><button type="submit">Приложи</button></div>
+                <div><input id="codeInput" type="text" placeholder="напр. GRIT10" autocapitalize="characters" spellcheck="false"><button type="submit">Приложи</button></div>
                 <p id="codeMsg" role="status"></p>
             </form>
         </section>
@@ -265,8 +265,9 @@
         // Награда за постоянство (?reward=NI-…) или покана от приятел (?invite=…) — по-голямата, след ваучера (rewards.js).
         var reward = null, invite = null;
         (function () {
-            // Кодовете са думи и число (rewards.js): „упоритост 417“ → „УПОРИТОСТ-417“.
-            function norm(c) { return String(c || '').trim().toLocaleUpperCase('bg').replace(/[\s_–—]+/g, '-').replace(/-+/g, '-'); }
+            // Кодовете са дума и процент на латиница (rewards.js): „grit 10“ → GRIT10. Наградата важи само за
+            // спечелилия я — проверява се с акаунта, с който си влязъл.
+            function norm(c) { return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10); }
             var code = norm(params.get('reward'));
             try {
                 if (code) localStorage.setItem('np_reward_code', code);
@@ -278,7 +279,7 @@
                 var r = reward && (!invite || reward.pct >= invite.pct) ? 'Твоята награда за постоянство: −' + reward.pct + '% за плана.' : invite ? 'Покана от приятел: −' + invite.pct + '% за първия план.' : '';
                 n.textContent = r; n.hidden = !r; render();
             }
-            function get(path, c) { return fetch(WORKER + path + '?code=' + encodeURIComponent(c)).then(function (r) { return r.json(); }); }
+            function get(path, c) { return fetch(WORKER + path + '?code=' + encodeURIComponent(c) + '&userId=' + encodeURIComponent(uid())).then(function (r) { return r.json(); }); }
             function tryReward(c) {
                 return get('/api/rewards/code', c).then(function (d) {
                     if (d && d.valid && d.kind === 'plan') { reward = { code: c, pct: d.pct }; try { localStorage.setItem('np_reward_code', c); } catch (e) {} note(); return 'plan'; }
@@ -302,7 +303,7 @@
                 tryReward(c).then(function (k) {
                     if (k === 'plan') { msg.textContent = 'Кодът е приложен.'; return; }
                     if (k === 'supplement') { msg.textContent = 'Това е код за добавки — използвай го в магазина BIOCODE.'; return; }
-                    return tryInvite(c).then(function (ok) { msg.textContent = ok ? 'Поканата е приложена — отстъпка за първия план.' : 'Не намираме такъв код. Провери думите и числото.'; });
+                    return tryInvite(c).then(function (ok) { msg.textContent = ok ? 'Поканата е приложена — отстъпка за първия план.' : (uid().indexOf('fb_') === 0 ? 'Не намираме този код в твоя профил.' : 'Влез в акаунта си — наградите са към профила.'); });
                 }).catch(function () { msg.textContent = 'Няма връзка. Опитай пак.'; });
             });
         })();

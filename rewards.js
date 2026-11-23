@@ -4,13 +4,19 @@
  * трябва да е на едно място: точките, кодовете за отстъпка и поканите.
  *
  * KV:
- *   rewards:<userId>     { days: { ден: точки }, bonus, spent, issued: { 'tier:start': true },
- *                          codes: [код…], invite, invited: [userId…], inviteBonus, updatedAt }
- *   reward_code:<КОД>    (напр. УПОРИТОСТ-417) { userId, kind: plan|supplement|partner, pct, until, source, region?, usedAt?, usedBy? }
- *   invite:<КОД>         userId — кодът за покана на клиента
+ *   rewards:<userId>     { days: { ден: точки }, bonus, spent, issued: { 'tier:start': време },
+ *                          grants: [{ code, kind, pct, until, source, left, used: [...] }],
+ *                          invite, invited: [userId…], inviteBonus, updatedAt }
+ *   invite:<КОД>         userId — личният код за покана (DUO482)
  *   invite_used:<userId> кодът, с който е купил първия си план (поканата важи веднъж)
  *   rstat:<userId>       '' с metadata { c: постоянство за 30 дни, s: поредица } — за сравнението
  *   rewards_hist         { n, c: [брой по 0…100], at } — разпределението, наново на 12 часа
+ *   rewards_content      текстове, думи на кодовете и снимки от админ панела (applyContent в rewards-engine.js)
+ *   rewards_img:<тема>   качена снимка (data URL) → GET /api/rewards/image/<тема>
+ *
+ * Кодовете са кратки, на латиница: дума + процент (BOLD5, GRIT10, FLOW15, CORE20, WIN10, ALLY20). Еднакви
+ * са за всички, но всеки код е „право“ в записа на спечелилия го: при плащане се търси при купуващия
+ * (влязъл в акаунта си), а магазинът го проверява заедно с имейла на клиента (email_index).
  *
  * Точките са за дни (gameData, сливан на сървъра — sync-analytics); всеки ден пази най-високото
  * си число, затова изтритите след 120 дни записи не взимат спечеленото.
@@ -27,45 +33,28 @@ export const INVITE_PCT = 15;    // отстъпка за поканения (п
 export const INVITER_PCT = 20;   // код за поканилия, щом поканеният купи
 export const INVITE_POINTS = 300;
 
-// Кодовете са думи, които се помнят и казват нещо: „УПОРИТОСТ-417“, „ПЛОД-НА-ТРУДА-205“, покана „ЕЛА-С-МЕН-318“.
-// Думите са по повода (нивото, точките, поканата); числото ги прави лични. Въвежда се с малки или главни букви,
-// с интервали или тирета (normCode).
-export const CODE_WORDS = {
-  'tier:start': ['РЕШИМОСТ', 'ПЪРВА-КРАЧКА', 'ДАДЕНА-ДУМА', 'СМЕЛО-НАЧАЛО'],
-  'tier:steady': ['УПОРИТОСТ', 'ДЕН-СЛЕД-ДЕН', 'СИЛНА-ВОЛЯ', 'НЕ-СЕ-ОТКАЗВАМ'],
-  'tier:habit': ['ПОСТОЯНСТВО', 'МОЯТ-РИТЪМ', 'НОВ-НАВИК', 'ВЕРЕН-КУРС'],
-  'tier:lifestyle': ['ВЪТРЕШНА-СИЛА', 'ОТВЪТРЕ', 'ЖЕЛЯЗНА-ВОЛЯ', 'ЛИЧИ-НАВЪН'],
-  offer: ['ПЛОД-НА-ТРУДА', 'ЗАСЛУЖЕНО', 'СПЕЧЕЛЕНО', 'ЧЕСТНА-НАГРАДА'],
-  invite: ['БЛАГОДАРЯ', 'ДОБЪР-ПРИЯТЕЛ', 'ЗАЕДНО-СМЕ'],
-  invitation: ['ЕЛА-С-МЕН', 'ОБЩА-ЦЕЛ', 'ДВАМА-СМЕ', 'ЗАЕДНО'],
-};
 const okUser = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ''));
-const CODE_RE = /^[А-Я]{2,}(?:-[А-Я]{1,})*-\d{3,4}$/;
-/** Каквото е въведено → кода: главни букви, тирета вместо интервали. */
-export const normCode = (c) => String(c || '').trim().toLocaleUpperCase('bg').replace(/[\s_–—]+/g, '-').replace(/-+/g, '-').slice(0, 40);
-export const okRewardCode = (c) => CODE_RE.test(String(c || ''));
-export const okInvite = okRewardCode;
+export const normCode = Rewards.normCode;
+export const okRewardCode = (c) => /^[A-Z]{2,5}\d{1,2}$/.test(String(c || ''));
+export const okInvite = (c) => /^[A-Z]{2,5}\d{3,4}$/.test(String(c || ''));
 
-function pickFrom(list) {
-  const b = new Uint32Array(2); crypto.getRandomValues(b);
-  return list[b[0] % list.length];
-}
 function digits(n) {
   const b = new Uint32Array(1); crypto.getRandomValues(b);
   const lo = 10 ** (n - 1);
   return String(lo + (b[0] % (9 * lo)));
 }
-/** Свободен код от думите на повода: 3 цифри, при теснота — 4. */
-async function freeCode(env, prefix, words) {
-  for (let i = 0; i < 12; i++) {
-    const code = `${pickFrom(words)}-${digits(i < 8 ? 3 : 4)}`;
-    if (!(await env.page_content.get(`${prefix}${code}`))) return code;
-  }
-  throw new Error('no free code');
-}
 
 const getJSON = async (env, k) => { try { return JSON.parse((await env.page_content.get(k)) || 'null'); } catch (_) { return null; } };
 const putJSON = (env, k, v, ttlSec) => env.page_content.put(k, JSON.stringify(v), ttlSec ? { expirationTtl: ttlSec } : undefined);
+
+// Текстовете и думите от админ панела — в паметта за минута, за да не се чете KV при всяка заявка.
+let contentCache = { at: 0, value: null };
+export async function loadContent(env, now = Date.now()) {
+  if (now - contentCache.at > 60000) contentCache = { at: now, value: await getJSON(env, 'rewards_content') };
+  Rewards.applyContent(contentCache.value);
+  return contentCache.value;
+}
+const emptyRecord = () => ({ days: {}, bonus: 0, spent: 0, issued: {}, grants: [], invited: [], inviteBonus: 0 });
 
 function countryOf(request) {
   const c = request?.cf?.country || request?.headers?.get?.('CF-IPCountry') || '';
@@ -74,27 +63,37 @@ function countryOf(request) {
 /** Добавки — само в България; непозната държава не спира (магазинът проверява адреса). */
 const supplementsAllowed = (country) => !country || country === 'BG';
 
-/** Нов код за отстъпка → записът му. */
-async function issueCode(env, userId, /** @type {{ kind: string, pct: number, source: string, partner?: string, now?: number }} */ { kind, pct, source, partner = '', now = Date.now() }) {
-  const words = CODE_WORDS[source] || (source === 'invite' ? CODE_WORDS.invite : CODE_WORDS.offer);
-  const code = await freeCode(env, 'reward_code:', words);
-  const rec = { userId, kind, pct, source, until: now + CODE_DAYS * DAY_MS, createdAt: now, ...(kind === 'supplement' ? { region: 'BG' } : {}), ...(partner ? { partner } : {}) };
-  await putJSON(env, `reward_code:${code}`, rec, (CODE_DAYS + 60) * 86400);
-  return { code, ...rec };
+/** Право на код в записа: нов или още едно използване на същия (срокът се подновява). */
+function grant(record, { code, kind, pct, source, now = Date.now() }) {
+  record.grants = Array.isArray(record.grants) ? record.grants : [];
+  let g = record.grants.find((x) => x.code === code && x.kind === kind && x.until > now && x.left > 0);
+  if (g) { g.left += 1; g.until = now + CODE_DAYS * DAY_MS; }
+  else {
+    g = { code, kind, pct, source, until: now + CODE_DAYS * DAY_MS, left: 1, used: [], ...(kind === 'supplement' ? { region: 'BG' } : {}) };
+    record.grants.push(g);
+  }
+  record.grants = record.grants.filter((x) => x.until > now - 30 * DAY_MS).slice(-40);
+  return g;
 }
 
-export async function readRewardCode(env, code, now = Date.now()) {
-  if (!okRewardCode(code)) return null;
-  const r = await getJSON(env, `reward_code:${code}`);
-  return r && !r.usedAt && r.until > now ? r : null;
+/** Валидният код на човека от този вид или null. */
+export function findGrant(record, code, kind, now = Date.now()) {
+  const c = normCode(code);
+  return (record?.grants || []).find((x) => x.code === c && x.kind === kind && x.left > 0 && x.until > now) || null;
 }
 
 async function ensureInvite(env, userId, record) {
   if (okInvite(record.invite)) return record.invite;
-  const c = await freeCode(env, 'invite:', CODE_WORDS.invitation);
-  await env.page_content.put(`invite:${c}`, userId);
-  record.invite = c;
-  return c;
+  const words = Rewards.WORDS.invite;
+  for (let i = 0; i < 16; i++) {
+    const c = words[i % words.length] + digits(i < 10 ? 3 : 4);
+    if (!(await env.page_content.get(`invite:${c}`))) {
+      await env.page_content.put(`invite:${c}`, userId);
+      record.invite = c;
+      return c;
+    }
+  }
+  return '';
 }
 
 /** Разпределението на постоянството при активните (KV list с metadata — без четене на всеки запис). */
@@ -126,8 +125,8 @@ export function percentileOf(hist, value) {
   return Math.min(99, Math.floor(below / Math.max(1, hist.n - 1) * 100));
 }
 
-function publicCode(code, r) {
-  return { code, kind: r.kind, pct: r.pct, until: r.until, source: r.source, used: !!r.usedAt, ...(r.partner ? { partner: r.partner } : {}) };
+function publicCode(g) {
+  return { code: g.code, kind: g.kind, pct: g.pct, until: g.until, source: g.source, left: g.left, used: !(g.left > 0) };
 }
 
 function clientTodayKey(raw, now) {
@@ -146,27 +145,26 @@ export async function handleRewards(request, env, { respond, checkOwner, now = D
   const authError = await checkOwner(b.userId, b.idToken, env, request);
   if (authError) return authError;
   const userId = b.userId;
+  await loadContent(env, now);
   const state = (await getJSON(env, `game_state:${userId}`)) || {};
   const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey: clientTodayKey(b.todayKey, now) });
-  const record = (await getJSON(env, `rewards:${userId}`)) || { days: {}, bonus: 0, spent: 0, issued: {}, codes: [], invited: [], inviteBonus: 0 };
+  const record = (await getJSON(env, `rewards:${userId}`)) || emptyRecord();
   const before = JSON.stringify(record);
   record.days = record.days || {};
   for (const [k, p] of Object.entries(status.points.days)) if (!(record.days[k] >= p)) record.days[k] = p;
   record.bonus = Math.max(Number(record.bonus) || 0, status.points.bonus);
   record.issued = record.issued || {};
-  record.codes = Array.isArray(record.codes) ? record.codes : [];
 
-  // Кодовете за стъпалата — веднъж за стъпало.
+  // Кодовете за нивата — веднъж за ниво.
   const country = countryOf(request);
   const fresh = [];
   for (const m of status.milestones) {
     if (m.kind !== 'tier' || record.issued[m.id]) continue;
     record.issued[m.id] = now;
-    for (const r of Rewards.tierById(m.tier).rewards) {
+    const tier = Rewards.tierById(m.tier);
+    for (const r of tier.rewards) {
       if (r.kind === 'supplement' && !supplementsAllowed(country)) continue;
-      const c = await issueCode(env, userId, { kind: r.kind, pct: r.pct, source: m.id, now });
-      record.codes.push(c.code);
-      fresh.push(publicCode(c.code, c));
+      fresh.push(publicCode(grant(record, { code: Rewards.codeFor(tier.word, r.pct), kind: r.kind, pct: r.pct, source: m.id, now })));
     }
   }
   await ensureInvite(env, userId, record);
@@ -188,11 +186,7 @@ export async function handleRewards(request, env, { respond, checkOwner, now = D
   }
   const hist = status.daysTracked >= 7 ? await cohort(env, now).catch(() => null) : null;
 
-  const codes = [];
-  for (const code of record.codes.slice(-20)) {
-    const r = await getJSON(env, `reward_code:${code}`);
-    if (r && r.until > now) codes.push(publicCode(code, r));
-  }
+  const codes = (record.grants || []).filter((g) => g.until > now && g.left > 0).map(publicCode);
   return respond({
     success: true,
     wallet: { earned, spent: Number(record.spent) || 0, balance: earned - (Number(record.spent) || 0) },
@@ -212,6 +206,7 @@ export async function handleRewardsRedeem(request, env, { respond, checkOwner, n
   if (!okUser(b.userId)) return respond({ error: 'account' }, 400);
   const authError = await checkOwner(b.userId, b.idToken, env, request);
   if (authError) return authError;
+  await loadContent(env, now);
   const offer = Rewards.offerById(String(b.offer || ''));
   if (!offer) return respond({ error: 'bad_request' }, 400);
   if (offer.kind === 'supplement' && !supplementsAllowed(countryOf(request))) return respond({ error: 'region', message: 'Добавките се доставят само в България.' }, 400);
@@ -220,19 +215,20 @@ export async function handleRewardsRedeem(request, env, { respond, checkOwner, n
   const earned = Object.values(record.days || {}).reduce((s, p) => s + (Number(p) || 0), 0) + (Number(record.bonus) || 0) + (Number(record.inviteBonus) || 0);
   const balance = earned - (Number(record.spent) || 0);
   if (balance < offer.cost) return respond({ error: 'points', message: `Нужни са ${offer.cost} точки, имаш ${balance}.`, balance }, 400);
-  const c = await issueCode(env, b.userId, { kind: offer.kind, pct: offer.pct, source: `offer:${offer.id}`, partner: offer.partner, now });
+  const g = grant(record, { code: Rewards.codeFor(offer.word, offer.pct), kind: offer.kind, pct: offer.pct, source: `offer:${offer.id}`, now });
   record.spent = (Number(record.spent) || 0) + offer.cost;
-  record.codes = [...(record.codes || []), c.code];
   record.updatedAt = new Date(now).toISOString();
   await putJSON(env, `rewards:${b.userId}`, record);
-  return respond({ success: true, code: publicCode(c.code, c), balance: balance - offer.cost });
+  return respond({ success: true, code: publicCode(g), balance: balance - offer.cost });
 }
 
-/** GET /api/rewards/code?code= → { valid, kind, pct, until } — за страницата с цените. */
+/** GET /api/rewards/code?code=&userId= → { valid, kind, pct, until } — кодът за план на този акаунт (страницата с цените). */
 export async function handleRewardCodeStatus(url, env, { respond, now = Date.now() }) {
+  const userId = url.searchParams.get('userId') || '';
   const code = normCode(url.searchParams.get('code'));
-  const r = await readRewardCode(env, code, now);
-  return respond(r ? { valid: true, kind: r.kind, pct: r.pct, until: r.until } : { valid: false });
+  const record = okUser(userId) && okRewardCode(code) ? await getJSON(env, `rewards:${userId}`) : null;
+  const g = findGrant(record, code, 'plan', now) || findGrant(record, code, 'supplement', now);
+  return respond(g ? { valid: true, kind: g.kind, pct: g.pct, until: g.until } : { valid: false });
 }
 
 /** GET /api/rewards/invite?code= → { valid, pct } */
@@ -244,18 +240,28 @@ export async function handleInviteStatus(url, env, { respond }) {
 
 /**
  * Проверка от партньор (магазина за добавки, по-късно ресторанти и вериги):
- * POST /api/rewards/partner/verify { code, redeem?, order? } с X-Partner-Key = REWARDS_PARTNER_KEY.
- * → { valid, kind, pct, until } ; при redeem — кодът се маркира като използван.
+ * POST /api/rewards/partner/verify { code, email, redeem?, order? } с X-Partner-Key = REWARDS_PARTNER_KEY.
+ * Кодът е еднакъв за всички (GRIT10) — важи само ако клиентът с този имейл го е спечелил.
+ * → { valid, kind, pct, until, left } ; при redeem — едно използване по-малко.
  */
 export async function handlePartnerVerify(request, env, { respond, now = Date.now() }) {
   const key = request.headers.get('X-Partner-Key') || '';
   if (!env.REWARDS_PARTNER_KEY || key !== env.REWARDS_PARTNER_KEY) return respond({ error: 'unauthorized' }, 401);
   const b = await request.json().catch(() => ({}));
-  const code = normCode(b.code);
-  const r = await readRewardCode(env, code, now);
-  if (!r || r.kind === 'plan') return respond({ valid: false });
-  if (b.redeem) await putJSON(env, `reward_code:${code}`, { ...r, usedAt: now, usedBy: 'partner', order: String(b.order || '').slice(0, 64) }, 60 * 86400);
-  return respond({ valid: true, kind: r.kind, pct: r.pct, until: r.until, region: r.region || null, redeemed: !!b.redeem });
+  const email = String(b.email || '').trim().toLowerCase();
+  const idx = email ? await getJSON(env, `email_index:${email}`) : null;
+  const userId = idx?.userId;
+  if (!okUser(userId)) return respond({ valid: false, reason: 'email' });
+  const record = await getJSON(env, `rewards:${userId}`);
+  const kind = b.kind === 'partner' ? 'partner' : 'supplement';
+  const g = findGrant(record, b.code, kind, now);
+  if (!g) return respond({ valid: false, reason: 'code' });
+  if (b.redeem) {
+    g.left -= 1;
+    g.used = [...(g.used || []), { at: now, by: 'partner', order: String(b.order || '').slice(0, 64) }].slice(-10);
+    await putJSON(env, `rewards:${userId}`, record);
+  }
+  return respond({ valid: true, kind: g.kind, pct: g.pct, until: g.until, left: g.left, region: g.region || null, redeemed: !!b.redeem });
 }
 
 /**
@@ -265,8 +271,10 @@ export async function handlePartnerVerify(request, env, { respond, now = Date.no
 export async function planDiscount(env, userId, /** @type {{ reward?: string, invite?: string }} */ { reward = '', invite = '' } = {}, now = Date.now()) {
   let best = null;
   const rc = normCode(reward);
-  const r = await readRewardCode(env, rc, now);
-  if (r && r.kind === 'plan' && r.userId === userId) best = { pct: r.pct, reward: rc, label: `−${r.pct}% награда за постоянство` };
+  if (okRewardCode(rc)) {
+    const g = findGrant(await getJSON(env, `rewards:${userId}`), rc, 'plan', now);
+    if (g) best = { pct: g.pct, reward: rc, label: `−${g.pct}% награда за постоянство` };
+  }
   const inv = normCode(invite);
   if (okInvite(inv) && (!best || best.pct < INVITE_PCT)) {
     const owner = await env.page_content.get(`invite:${inv}`);
@@ -276,24 +284,81 @@ export async function planDiscount(env, userId, /** @type {{ reward?: string, in
   return best;
 }
 
-/** След платен план: кодът — използван; поканата — веднъж, поканилият получава код и точки. */
+/** След платен план: кодът — едно използване по-малко; поканата — веднъж, поканилият получава код и точки. */
 export async function applyPlanDiscount(env, userId, meta, now = Date.now()) {
   if (okRewardCode(meta.reward)) {
-    const r = await getJSON(env, `reward_code:${meta.reward}`);
-    if (r && !r.usedAt) await putJSON(env, `reward_code:${meta.reward}`, { ...r, usedAt: now, usedBy: userId }, 60 * 86400);
+    const record = await getJSON(env, `rewards:${userId}`);
+    const g = findGrant(record, meta.reward, 'plan', now);
+    if (g) { g.left -= 1; g.used = [...(g.used || []), { at: now, by: 'plan' }].slice(-10); await putJSON(env, `rewards:${userId}`, record); }
   }
   if (okInvite(meta.invite)) {
     if (await env.page_content.get(`invite_used:${userId}`)) return;
     const owner = await env.page_content.get(`invite:${meta.invite}`);
     await env.page_content.put(`invite_used:${userId}`, meta.invite);
     if (!owner || owner === userId) return;
-    const rec = (await getJSON(env, `rewards:${owner}`)) || { days: {}, bonus: 0, spent: 0, issued: {}, codes: [], invited: [], inviteBonus: 0, invite: meta.invite };
+    await loadContent(env, now);
+    const rec = (await getJSON(env, `rewards:${owner}`)) || { ...emptyRecord(), invite: meta.invite };
     if ((rec.invited || []).includes(userId)) return;
-    const c = await issueCode(env, owner, { kind: 'plan', pct: INVITER_PCT, source: 'invite', now });
+    grant(rec, { code: Rewards.codeFor(Rewards.WORDS.thanks, INVITER_PCT), kind: 'plan', pct: INVITER_PCT, source: 'invite', now });
     rec.invited = [...(rec.invited || []), userId].slice(-200);
     rec.inviteBonus = (Number(rec.inviteBonus) || 0) + INVITE_POINTS;
-    rec.codes = [...(rec.codes || []), c.code];
     rec.updatedAt = new Date(now).toISOString();
     await putJSON(env, `rewards:${owner}`, rec);
   }
+}
+
+// ── Съдържанието от админ панела ─────────────────────────────────────────────
+
+/** GET /api/rewards/content → промените (текстове, думи, снимки); телефонът ги слага върху стойностите по подразбиране. */
+export async function handleRewardsContent(env, { respond }) {
+  const c = (await getJSON(env, 'rewards_content')) || {};
+  const r = respond({ success: true, content: c });
+  try { r.headers.set('Cache-Control', 'public, max-age=300'); } catch (_) { /* неизменими заглавки */ }
+  return r;
+}
+
+/** POST /api/admin/rewards/content { content } — записва промените (празно поле = по подразбиране). */
+export async function handleAdminRewardsContent(request, env, { respond }) {
+  const b = await request.json().catch(() => ({}));
+  const c = b.content && typeof b.content === 'object' ? b.content : {};
+  const prev = (await getJSON(env, 'rewards_content')) || {};
+  const clean = { tiers: c.tiers || {}, streaks: c.streaks || {}, texts: c.texts || {}, words: c.words || {}, images: prev.images || {} };
+  const size = JSON.stringify(clean).length;
+  if (size > 60000) return respond({ error: 'too_big' }, 400);
+  Rewards.applyContent(clean);   // проверка: хвърля ли нещо
+  await putJSON(env, 'rewards_content', { ...clean, updatedAt: new Date().toISOString() });
+  contentCache = { at: 0, value: null };
+  return respond({ success: true });
+}
+
+/**
+ * POST /api/admin/rewards/image { theme, data } — снимка за тема (data URL, смалена в админ панела);
+ * data: '' — връща снимката по подразбиране (brand/rewards).
+ */
+export async function handleAdminRewardsImage(request, env, { respond, now = Date.now() }) {
+  const b = await request.json().catch(() => ({}));
+  const theme = String(b.theme || '');
+  if (!Rewards.THEMES.includes(theme)) return respond({ error: 'theme' }, 400);
+  const c = (await getJSON(env, 'rewards_content')) || {};
+  c.images = c.images || {};
+  if (!b.data) {
+    await env.page_content.delete(`rewards_img:${theme}`);
+    delete c.images[theme];
+  } else {
+    if (!/^data:image\/(webp|jpeg|png);base64,/.test(b.data) || b.data.length > 4e6) return respond({ error: 'image' }, 400);
+    await env.page_content.put(`rewards_img:${theme}`, b.data);
+    c.images[theme] = `${new URL(request.url).origin}/api/rewards/image/${theme}?v=${now}`;
+  }
+  await putJSON(env, 'rewards_content', { ...c, updatedAt: new Date(now).toISOString() });
+  contentCache = { at: 0, value: null };
+  return respond({ success: true, url: c.images[theme] || null });
+}
+
+/** GET /api/rewards/image/<тема> — качената снимка (адресът носи ?v=, затова се кешира дълго). */
+export async function handleRewardsImage(theme, env) {
+  const data = Rewards.THEMES.includes(theme) ? await env.page_content.get(`rewards_img:${theme}`) : null;
+  if (!data) return new Response('Not found', { status: 404, headers: { 'Access-Control-Allow-Origin': '*' } });
+  const type = data.slice(5, data.indexOf(';'));
+  const bin = Uint8Array.from(atob(data.slice(data.indexOf(',') + 1)), (ch) => ch.charCodeAt(0));
+  return new Response(bin, { headers: { 'Content-Type': type, 'Cache-Control': 'public, max-age=31536000, immutable', 'Access-Control-Allow-Origin': '*' } });
 }

@@ -1553,6 +1553,8 @@
 <script src="./platform.js"></script>
 <script src="./gn-actions-ui.js"></script>
 <script src="./local-scheduler.js"></script>
+<script src="./rewards-engine.js"></script>
+<script src="./admin-rewards.js"></script>
 </head>
 <body>
     <!-- PWA Install Banner -->
@@ -1699,6 +1701,9 @@
                 </button>
                 <button class="tab-btn" onclick="switchTab('ui-images', event)">
                     <i class="fas fa-images"></i> UI Изображения
+                </button>
+                <button class="tab-btn" onclick="switchTab('rewards', event)">
+                    <i class="fas fa-seedling"></i> Награди
                 </button>
             </div>
 
@@ -3779,6 +3784,20 @@
             </div>
             <!-- End UI Images Tab -->
 
+            <!-- Rewards Tab (admin-rewards.js) -->
+            <div id="tab-rewards" class="tab-content">
+                <div class="card">
+                    <h2><i class="fas fa-seedling"></i> Награди за постоянство — думи и снимки</h2>
+                    <div class="info-box" style="background: #e8f5e9; border-left: 4px solid #43a047;">
+                        Тук сменяш имената на нивата, поздравите, текстовете за споделяне, думите на кодовете и снимките.
+                        Празно поле = текстът по подразбиране (виждаш го в полето). Промените влизат в приложението до 10 минути, без нова версия.
+                    </div>
+                    <button type="button" class="btn" id="rewardsSave" onclick="NutriinRewardsAdmin.save()" style="margin-top:12px"><i class="fas fa-save"></i> Запази текстовете</button>
+                </div>
+                <div id="rewardsAdmin"><p style="text-align:center;padding:20px"><i class="fas fa-spinner fa-spin"></i> Зареждане…</p></div>
+                <div class="card"><button type="button" class="btn" onclick="NutriinRewardsAdmin.save()"><i class="fas fa-save"></i> Запази текстовете</button></div>
+            </div>
+
         </div>
 
         <!-- Mobile Bottom Navigation -->
@@ -3810,6 +3829,10 @@
             <button class="mobile-nav-btn" id="mbn-ui-images" onclick="switchTab('ui-images', event)" aria-label="UI Изображения">
                 <i class="fas fa-images" aria-hidden="true"></i>
                 <span>Образи</span>
+            </button>
+            <button class="mobile-nav-btn" id="mbn-rewards" onclick="switchTab('rewards', event)" aria-label="Награди">
+                <i class="fas fa-seedling" aria-hidden="true"></i>
+                <span>Награди</span>
             </button>
         </nav>
     </div>
@@ -4059,6 +4082,12 @@
                 tab: 'ui-images',
                 icon: 'fa-images',
                 keywords: ['изображение', 'снимки', 'картинки', 'ui', 'страница', 'банер', 'фон', 'header', 'background', 'визуализация', 'интерфейс']
+            },
+            {
+                title: 'Награди за постоянство — думи и снимки',
+                tab: 'rewards',
+                icon: 'fa-seedling',
+                keywords: ['награди', 'постоянство', 'нива', 'кодове', 'отстъпки', 'покана', 'уординг', 'текст', 'снимки', 'rewards']
             }
         ];
 
@@ -4068,7 +4097,8 @@
             'monitoring': 'Мониторинг',
             'features': 'Функции',
             'protocols': 'Протоколи',
-            'ui-images': 'UI Изображения'
+            'ui-images': 'UI Изображения',
+            'rewards': 'Награди'
         };
 
         let suggestionsActiveIndex = -1;
@@ -4137,7 +4167,7 @@
 
         function goToSetting(tabName, cardTitle) {
             hideSuggestions();
-            const validTabs = ['configuration', 'ai-prompts', 'fitplan', 'monitoring', 'features', 'protocols', 'ui-images'];
+            const validTabs = ['configuration', 'ai-prompts', 'fitplan', 'monitoring', 'features', 'protocols', 'ui-images', 'rewards'];
             if (!validTabs.includes(tabName)) return;
             switchTab(tabName, null);
             const input = document.getElementById('settingsSearchInput');
@@ -4488,7 +4518,7 @@
 
         function switchTab(tabName, evt) {
             // Validate tabName to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'fitplan', 'monitoring', 'features', 'protocols', 'ui-images'];
+            const validTabs = ['configuration', 'ai-prompts', 'fitplan', 'monitoring', 'features', 'protocols', 'ui-images', 'rewards'];
             if (!validTabs.includes(tabName)) {
                 console.error('Invalid tab name:', tabName);
                 return;
@@ -4551,6 +4581,9 @@
             if (tabName === 'ui-images') {
                 loadAllUIImages();
             }
+            if (tabName === 'rewards' && window.NutriinRewardsAdmin) {
+                NutriinRewardsAdmin.load();
+            }
             if (tabName === 'fitplan' && typeof loadFitplanGuidelines === 'function') {
                 loadFitplanGuidelines();
                 if (typeof loadFitplanConsultConfig === 'function') loadFitplanConsultConfig();
@@ -4569,7 +4602,7 @@
         function initializeTab() {
             const savedTab = localStorage.getItem('selectedTab') || 'configuration';
             // Validate saved tab to prevent XSS
-            const validTabs = ['configuration', 'ai-prompts', 'fitplan', 'monitoring', 'features', 'protocols', 'ui-images'];
+            const validTabs = ['configuration', 'ai-prompts', 'fitplan', 'monitoring', 'features', 'protocols', 'ui-images', 'rewards'];
             const tabToLoad = validTabs.includes(savedTab) ? savedTab : 'configuration';
             
             const tabContents = document.querySelectorAll('.tab-content');
@@ -4598,6 +4631,9 @@
             // Load UI images if ui-images tab is active on page load
             if (tabToLoad === 'ui-images') {
                 loadAllUIImages();
+            }
+            if (tabToLoad === 'rewards' && window.NutriinRewardsAdmin) {
+                NutriinRewardsAdmin.load();
             }
         }
 

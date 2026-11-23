@@ -47,9 +47,9 @@
 
     // Покана от приятел (?invite=…): −15% за първия план (rewards.js); пази се 60 дни.
     try {
-        // Кодът е от думи и число (rewards.js): „ела с мен 318“ → „ЕЛА-С-МЕН-318“.
-        var invite = String(new URLSearchParams(global.location.search).get('invite') || '').trim().toLocaleUpperCase('bg').replace(/[\s_]+/g, '-');
-        if (/^[А-Я]{2,}(?:-[А-Я]+)*-\d{3,4}$/.test(invite)) localStorage.setItem('np_invite', JSON.stringify({ code: invite, at: Date.now() }));
+        // Личният код за покана: дума и число на латиница (DUO482); „duo 482“ също става.
+        var invite = String(new URLSearchParams(global.location.search).get('invite') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (/^[A-Z]{2,5}\d{3,4}$/.test(invite)) localStorage.setItem('np_invite', JSON.stringify({ code: invite, at: Date.now() }));
     } catch (_) { /* частен режим */ }
 
     global.NutriPlanPartnerRef = {

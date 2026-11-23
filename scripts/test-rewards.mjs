@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import RE from '../rewards-engine.js';
 import { calcDayScore } from '../analytics-compression.js';
-import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInviteStatus, handlePartnerVerify, percentileOf, INVITE_PCT, INVITER_PCT, INVITE_POINTS } from '../rewards.js';
+import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInviteStatus, handlePartnerVerify, handleAdminRewardsContent, handleAdminRewardsImage, handleRewardsImage, handleRewardsContent, percentileOf, INVITE_PCT, INVITER_PCT, INVITE_POINTS } from '../rewards.js';
 import { handleBillingCheckout, handleBillingConfirm } from '../billing.js';
 
 const DAY = 86400000;
@@ -154,8 +154,8 @@ await check('стъпалата дават кодове веднъж; точки
   assert.equal(first.status.tier, 'steady');
   assert.deepEqual(first.fresh.map((c) => `${c.kind}${c.pct}`), ['supplement5', 'supplement10']);
   assert.ok(first.wallet.balance > 41 * 15);
-  assert.match(first.invite.code, /^(ЕЛА-С-МЕН|ОБЩА-ЦЕЛ|ДВАМА-СМЕ|ЗАЕДНО)-\d{3}$/);
-  assert.ok(first.fresh.every((c) => /^(РЕШИМОСТ|ПЪРВА-КРАЧКА|ДАДЕНА-ДУМА|СМЕЛО-НАЧАЛО|УПОРИТОСТ|ДЕН-СЛЕД-ДЕН|СИЛНА-ВОЛЯ|НЕ-СЕ-ОТКАЗВАМ)-\d{3}$/.test(c.code)), first.fresh.map((c) => c.code).join());
+  assert.match(first.invite.code, /^(DUO|PAL)\d{3}$/);
+  assert.deepEqual(first.fresh.map((c) => c.code), ['BOLD5', 'GRIT10']);
   const again = await rewards(A, { country: 'BG' });
   assert.equal(again.fresh.length, 0);
   assert.equal(again.codes.length, 2);
@@ -185,17 +185,22 @@ await check('точки → код; недостатъчно точки → от
   const d = await redeem('supp10');
   assert.equal(d.success, true);
   assert.equal(d.code.kind, 'supplement');
-  assert.match(d.code.code, /^(ПЛОД-НА-ТРУДА|ЗАСЛУЖЕНО|СПЕЧЕЛЕНО|ЧЕСТНА-НАГРАДА)-\d{3}$/);
+  assert.equal(d.code.code, 'WIN10');
   assert.equal(d.balance, first.wallet.balance - RE.offerById('supp10').cost);
   const poor = await redeem('plan10');
   assert.equal(poor.error, 'points');
   const verify = async (body, key = 'partner-secret') => (await handlePartnerVerify(req(body, { headers: { 'X-Partner-Key': key } }), env, deps(NOW))).json();
-  assert.equal((await verify({ code: d.code.code }, 'wrong')).error, 'unauthorized');
-  assert.equal((await verify({ code: d.code.code })).valid, true);
+  kv.set('email_index:a@example.com', JSON.stringify({ userId: A }));
+  kv.set('email_index:b@example.com', JSON.stringify({ userId: B }));
+  assert.equal((await verify({ code: d.code.code, email: 'a@example.com' }, 'wrong')).error, 'unauthorized');
+  assert.equal((await verify({ code: d.code.code, email: 'A@example.com ' })).valid, true);
+  // кодът е еднакъв за всички, но важи само за спечелилия го
+  assert.equal((await verify({ code: d.code.code, email: 'b@example.com' })).valid, false);
+  assert.equal((await verify({ code: 'GRIT10', email: 'a@example.com' })).valid, true);
   // въведен на ръка: малки букви и интервали вместо тирета
-  assert.equal((await verify({ code: d.code.code.toLowerCase().replace(/-/g, ' ') })).valid, true);
-  assert.equal((await verify({ code: d.code.code, redeem: true, order: 'BC-1' })).redeemed, true);
-  assert.equal((await verify({ code: d.code.code })).valid, false);
+  assert.equal((await verify({ code: 'win 10', email: 'a@example.com' })).valid, true);
+  assert.equal((await verify({ code: d.code.code, email: 'a@example.com', redeem: true, order: 'BC-1' })).redeemed, true);
+  assert.equal((await verify({ code: d.code.code, email: 'a@example.com' })).valid, false);
 });
 
 // подменен Stripe за покупката с покана
@@ -240,7 +245,8 @@ await check(`покана: −${INVITE_PCT}% за първия план; пок�
   const own = await buy(A, { reward: planCode.code });
   assert.equal(own.price, Math.round(full * (100 - INVITER_PCT)) / 100);
   await confirm(own.url.split('/').pop());
-  const status = await (await handleRewardCodeStatus(new URL(`https://w/x?code=${planCode.code}`), env, deps(NOW))).json();
+  assert.equal(planCode.code, 'ALLY20');
+  const status = await (await handleRewardCodeStatus(new URL(`https://w/x?code=${planCode.code}&userId=${A}`), env, deps(NOW))).json();
   assert.equal(status.valid, false);
 });
 
@@ -250,6 +256,27 @@ await check('сравнението се появява при поне 200 ак
   const r = await rewards(A, { country: 'BG' });
   assert.ok(r.percentile >= 90, `percentile ${r.percentile}`);
   assert.ok(r.cohort >= 200);
+});
+
+await check('админ панел: текстове и дума на кода се сменят; снимка за тема се качва и сервира', async () => {
+  const save = async (content) => (await handleAdminRewardsContent(req({ content }), env, { respond })).json();
+  assert.equal((await save({ tiers: { steady: { title: 'Упорство', word: 'push' } }, texts: { section: 'Сила' } })).success, true);
+  const C = 'fb_userDDDDDD';
+  kv.set(`game_state:${C}`, JSON.stringify({ gameData: g40 }));
+  const r = await (await handleRewards(req({ userId: C, idToken: 'ok', todayKey: today40 }, { country: 'BG' }), env, deps(NOW + 120000))).json();
+  assert.deepEqual(r.fresh.map((c) => c.code), ['BOLD5', 'PUSH10']);
+  const png = 'data:image/png;base64,' + Buffer.from('fake').toString('base64');
+  const up = await (await handleAdminRewardsImage(req({ theme: 'persist', data: png }), env, { respond, now: NOW })).json();
+  assert.match(up.url, /\/api\/rewards\/image\/persist\?v=/);
+  const img = await handleRewardsImage('persist', env);
+  assert.equal(img.headers.get('Content-Type'), 'image/png');
+  assert.equal(Buffer.from(await img.arrayBuffer()).toString(), 'fake');
+  const content = (await (await handleRewardsContent(env, { respond })).json()).content;
+  assert.equal(content.tiers.steady.title, 'Упорство');
+  assert.ok(content.images.persist);
+  assert.equal((await (await handleAdminRewardsImage(req({ theme: 'nope', data: png }), env, { respond })).json()).error, 'theme');
+  await save({});
+  RE.applyContent(null);
 });
 
 console.log(`\nВсички ${checks.length} проверки минаха`);
