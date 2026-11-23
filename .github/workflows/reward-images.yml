@@ -1,0 +1,37 @@
+name: Reward images (candidates)
+
+# Кандидати за снимките на наградите (scripts/reward-images.mjs collect): търсене в Pixabay с ключа
+# от тайните. Тръгва при промяна на темите в data/reward-images.json; резултатът (само адреси и
+# етикети, без снимки) се записва в същия клон. Изборът и обработката са ръчни (pick).
+on:
+  push:
+    paths: ['data/reward-images.json']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reward-images-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Search Pixabay
+        env:
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+        run: node scripts/reward-images.mjs collect
+      - name: Commit candidates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/reward-image-candidates.json
+          git diff --staged --quiet && exit 0
+          git commit -m "chore(reward-images): кандидати за преглед"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
