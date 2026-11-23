@@ -738,7 +738,7 @@
     </script>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
-    <link rel="stylesheet" href="./rewards-ui.css?v=6">
+    <link rel="stylesheet" href="./rewards-ui.css?v=7">
     <script src="./app-ui.js" defer></script>
     <script src="./ambient-glass.js?v=4"></script>
 </head>
@@ -761,12 +761,12 @@
             </div>
             <div class="game-analytics-body" id="goalFocusBody" style="display:block"></div>
         </div>
-        <!-- Постоянство и награди (rewards-ui.js): стъпала, жокери, точки, отстъпки, покана. -->
+        <!-- Пътят към успеха (rewards-ui.js): стъпала, жокери, точки, отстъпки, покана. -->
         <div class="game-analytics-section open" id="rewardsSection">
             <div class="game-analytics-header">
                 <div class="game-analytics-title">
                     <i class="fas fa-seedling"></i>
-                    <span>Постоянство</span>
+                    <span>Пътят към успеха</span>
                 </div>
             </div>
             <div class="game-analytics-body" id="rewardsBody" style="display:block"></div>
@@ -878,8 +878,8 @@
     <script src="./goal-focus.js"></script>
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
-    <script src="./rewards-engine.js?v=5"></script>
-    <script src="./rewards-ui.js?v=6"></script>
+    <script src="./rewards-engine.js?v=6"></script>
+    <script src="./rewards-ui.js?v=7"></script>
     <script>
     (function () {
         function go() { try { NutriPlanRewards.mount(document.getElementById('rewardsBody')); } catch (_) {} }

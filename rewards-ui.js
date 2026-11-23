@@ -1,5 +1,5 @@
 /**
- * Награди за постоянство — телефонът: картата „Постоянство“ в Напредък, тържеството при етап,
+ * Награди за постоянство — телефонът: картата „Пътят към успеха“ в Напредък, тържеството при етап,
  * малките поздрави и картата за споделяне. Правилата — rewards-engine.js; портфейлът и кодовете —
  * сървърът (rewards.js, /api/user/rewards).
  *
@@ -170,6 +170,13 @@
         return '−' + r.pct + '%';
     }
 
+    /** За реда на нивото: „−5% добавки“, „−10% план“. */
+    function giftShort(r, srv) {
+        if (r.kind === 'supplement') return (srv && srv.supplements === false) ? '' : '−' + r.pct + '% добавки';
+        if (r.kind === 'plan') return '−' + r.pct + '% план';
+        return '−' + r.pct + '%';
+    }
+
     function comparison(srv) {
         if (!srv || srv.percentile == null || srv.percentile < 50 || persona().noScores) return '';
         return RE.text('comparison', { p: srv.percentile });
@@ -177,7 +184,7 @@
 
     /**
      * Етап → { big, kicker, num, unit, title, shareTitle, text, fact, gift, image }.
-     * Думите са за качеството, което човекът е показал (решимост, упоритост, постоянство),
+     * Думите са за качеството, което човекът е показал (упоритост, постоянство, воля),
      * не за „постигнато ниво“: наградата е признанието, отстъпката идва след него.
      */
     function momentOf(m, st, srv) {
@@ -495,7 +502,7 @@
         if (c.kind === 'supplement') action = '<a class="rw-btn" href="' + SHOP + '" target="_blank" rel="noopener">Магазин</a>';
         else if (c.kind === 'plan' && !isApp()) action = '<a class="rw-btn" href="' + base('pricing.html') + '?reward=' + esc(c.code) + '">Използвай</a>';
         return '<div class="rw-code"><div class="rw-code-main"><b>' + esc(label) + '</b><code>' + esc(c.code) + '</code><span>' + until +
-            (c.kind === 'supplement' ? ' · в магазина — с имейла на профила' : c.kind === 'plan' && isApp() ? ' · в сайта nutriin.app' : '') + '</span></div>' +
+            (c.kind === 'plan' && isApp() ? ' · в сайта' : '') + '</span></div>' +
             '<button type="button" class="rw-btn" data-copy="' + esc(c.code) + '" aria-label="Копирай кода"><i class="far fa-copy"></i></button>' + action + '</div>';
     }
 
@@ -524,25 +531,20 @@
         if (!weekVisible(st)) return '';
         var w = st.week;
         var trend = w.delta == null ? '' : w.delta >= 3 ? RE.text('weekUp', { d: w.delta }) : w.delta <= -3 ? RE.text('weekDown') : RE.text('weekSame');
-        var chips = ['средно ' + (w.avg || 0) + '%', '+' + num(w.points) + ' точки'];
-        if (w.stepsAvg) chips.push(num(w.stepsAvg) + ' крачки на ден');
-        if (w.milestones.length) chips.push(w.milestones.length + (w.milestones.length === 1 ? ' етап' : ' етапа'));
         var wk = read(WEEK_KEY, {}) || {};
         if (wk.viewed !== w.endKey) { wk.viewed = w.endKey; write(WEEK_KEY, wk); event('week_view'); }
-        return '<div class="rw-card rw-week"><h4><i class="fas fa-calendar-check"></i>' + esc(RE.text('weekTitle')) + ' · ' + shortDate(w.startKey) + '–' + shortDate(w.endKey) + '</h4>' +
+        return '<div class="rw-card rw-week"><h4>' + esc(RE.text('weekTitle')) + '<small>' + shortDate(w.startKey) + '–' + shortDate(w.endKey) + '</small></h4>' +
             '<div class="rw-week-big"><b>' + w.good + '</b><span>' + esc(RE.text('weekGood', { good: w.good }).replace(/^\d+\s*/, '')) + '</span></div>' +
             (trend ? '<p>' + esc(trend) + '</p>' : '') +
-            (w.best ? '<p>' + esc(RE.text('weekBest', { day: dayName(w.best.key), eng: w.best.eng })) + '</p>' : '') +
-            '<div class="rw-week-chips">' + chips.map(function (c) { return '<span>' + esc(c) + '</span>'; }).join('') + '</div>' +
             '<div class="rw-week-actions"><button type="button" class="rw-btn" data-week-hide="1">Видях</button>' +
-            '<button type="button" class="rw-btn rw-btn--main" data-week-share="1"><i class="fas fa-share-nodes"></i> Сподели седмицата</button></div></div>';
+            '<button type="button" class="rw-btn rw-btn--main" data-week-share="1"><i class="fas fa-share-nodes"></i> Сподели</button></div></div>';
     }
 
     // ── Предизвикателството на месеца ───────────────────────────────────────
     function challengeCard(st, srv) {
         var c = st && st.challenge;
         if (!c) return '';
-        var head = '<h4><i class="fas fa-flag-checkered"></i>' + esc(RE.text('challengeTitle')) + '</h4>';
+        var head = '<h4>' + esc(RE.text('challengeTitle')) + '</h4>';
         if (c.done) {
             return '<div class="rw-card rw-challenge is-done">' + head + '<b class="rw-ch-title">' + esc(c.title) + ' ✓</b><p>' + esc(RE.text('challengeDoneText', { bonus: c.bonus })) + '</p></div>';
         }
@@ -620,80 +622,70 @@
         var tierTitle = st.tier ? st.tier.title : RE.text('firstLevel');
         var nx = st.next;
         var barPct = nx ? nx.progress : 100;
-        var barLabel = nx
-            ? RE.text('towards', { title: nx.title, have: nx.daysHave, days: nx.days, avg: nx.avg || 0, min: nx.minEng })
-            : RE.text('top');
+        // Под лентата — само следващата стъпка: колко дни остават или какъв ритъм иска нивото.
+        var hint;
+        if (!nx) hint = RE.text('top');
+        else if (nx.avg != null && nx.avg < nx.minEng) hint = RE.text('behind', { title: nx.title, min: nx.minEng, avg: nx.avg });
+        else { var left = Math.max(1, nx.days - nx.daysHave); hint = RE.text('towards', { n: left, daysWord: plural(left, 'ден', 'дни'), title: nx.title }); }
         var pts = srv ? srv.wallet.balance : st.points.earned;
-        var shields = '';
-        for (var i = 0; i < st.shields.max; i++) shields += '<i class="fas fa-shield-alt" style="' + (i < st.shields.held ? '' : 'opacity:.3') + '"></i>';
 
-        var summary;
-        if (nx && nx.avg != null && nx.avg >= nx.minEng) {
-            var left = nx.days - nx.daysHave;
-            var gifts = nx.rewards.map(function (r) { return giftText(r, srv); }).filter(Boolean).join(' и ');
-            summary = RE.text('onTrack', { n: left, daysWord: plural(left, 'ден', 'дни'), title: nx.title, titleLower: nx.title.toLowerCase() }) +
-                (gifts ? ' ' + RE.text('rewardLine', { gifts: gifts }) : '');
-        } else if (nx && nx.avg != null) summary = RE.text('behind', { title: nx.title, min: nx.minEng, avg: nx.avg });
-        else summary = RE.text('atTop');
-        var cmp = comparison(srv);
-        if (cmp) summary += ' ' + cmp;
-
-        // Снимката на нивото — тихо зад градиента (brand/rewards, без нея остава само градиентът).
-        var heroPic = st.tier ? st.tier.image : 'resolve';
+        // Хиро: поредицата и нивото → лентата → следващата стъпка. Нищо друго.
+        var heroPic = st.tier ? st.tier.image : 'persist';
         var html = '<div class="rw-hero" style="--rw-photo:url(' + photo(heroPic) + ')">' +
             '<div class="rw-hero-top"><div class="rw-streak"><b>' + st.streak + '</b><span>' + plural(st.streak, 'ден', 'дни') + ' поред</span></div>' +
             '<div class="rw-tier"><small>' + esc(RE.text('levelLabel')) + '</small><strong>' + esc(tierTitle) + '</strong></div></div>' +
-            '<div class="rw-bar"><i data-w="' + barPct + '"></i></div><div class="rw-bar-label">' + esc(barLabel) + '</div>' +
-            '<div class="rw-chips"><span class="rw-chip" title="Жокери: пазят поредицата в слаб или пропуснат ден">' + shields + ' ' + st.shields.held + ' ' + plural(st.shields.held, 'жокер', 'жокера') + '</span>' +
-            '<span class="rw-chip"><i class="fas fa-star"></i>' + num(pts) + ' точки</span></div>' +
-            '</div>' +
-            '<p class="rw-summary">' + esc(summary) + '</p>';
+            '<div class="rw-bar"><i data-w="' + barPct + '"></i></div>' +
+            '<div class="rw-hero-foot"><span>' + esc(hint) + '</span>' +
+            (st.shields.held ? '<span class="rw-pts" title="Жокер: пази поредицата в слаб или пропуснат ден"><i class="fas fa-shield-alt"></i>' + st.shields.held + '</span>' : '') +
+            '<span class="rw-pts" title="Точки"><i class="fas fa-star"></i>' + num(pts) + '</span></div>' +
+            '</div>';
         if (st.warning) html += '<div class="rw-warn"><i class="fas fa-circle-exclamation"></i> ' + esc(RE.text('warn', { title: st.tier.title, titleLower: st.tier.title.toLowerCase(), n: st.warning.daysLeft, daysWord: plural(st.warning.daysLeft, 'ден', 'дни') })) + '</div>';
 
         html += weekCard(st) + challengeCard(st, srv);
 
-        html += '<button type="button" class="rw-toggle" aria-expanded="false" aria-controls="rwDetails"><span>Награди, нива и покана</span><i class="fas fa-chevron-down"></i></button><div id="rwDetails" hidden>';
+        html += '<button type="button" class="rw-toggle" aria-expanded="false" aria-controls="rwDetails"><span>Нива и награди</span><i class="fas fa-chevron-down"></i></button><div id="rwDetails" hidden>';
 
-        // Кодовете
+        // Нивата: име → дни и праг → наградата. Един ред описание.
+        var cur = st.tier ? st.tier.index : -1;
+        html += '<div class="rw-card"><h4>' + esc(RE.text('pathTitle')) + '</h4>' + RE.TIERS.map(function (t, i) {
+            var state = i <= cur ? 'is-done' : i === cur + 1 ? 'is-next' : '';
+            var gifts = t.rewards.map(function (r) { return giftShort(r, srv); }).filter(Boolean);
+            return '<div class="rw-step ' + state + '"><i class="fas ' + (i <= cur ? 'fa-check' : i === cur + 1 ? 'fa-arrow-up' : 'fa-lock') + '"></i>' +
+                '<div><b>' + esc(t.title) + '</b><span>' + t.days + ' дни · над ' + t.minEng + '%</span></div>' +
+                (gifts.length ? '<em>' + gifts.map(esc).join('<br>') + '</em>' : '') + '</div>';
+        }).join('') + '</div>';
+
+        // Отстъпките — само ако има; без акаунт — една подсказка.
         var codes = (srv && srv.codes || []).filter(function (c) { return !c.used; });
-        html += '<div class="rw-card"><h4><i class="fas fa-gift"></i>' + esc(RE.text('codesTitle')) + '</h4>' +
-            (codes.length ? codes.map(codeRow).join('') : '<p>' + (srv ? esc(RE.text('codesEmpty')) : 'Влез в акаунта си, за да събираш точки и отстъпки.') + '</p>') + '</div>';
+        if (codes.length) html += '<div class="rw-card"><h4>' + esc(RE.text('codesTitle')) + '</h4>' + codes.map(codeRow).join('') + '</div>';
+        else if (!srv) html += '<div class="rw-card"><p>Влез в акаунта си, за да събираш точки и отстъпки.</p></div>';
 
         // Точки → отстъпка
-        if (srv && srv.offers && srv.offers.length) {
-            html += '<div class="rw-card"><h4><i class="fas fa-star"></i>' + esc(RE.text('pointsTitle')) + '</h4><p>' + esc(RE.text('pointsText')) + '</p>' +
-                srv.offers.filter(function (o) { return !(o.kind === 'plan' && isApp()); }).map(function (o) {
+        var offers = srv && srv.offers ? srv.offers.filter(function (o) { return !(o.kind === 'plan' && isApp()); }) : [];
+        if (offers.length) {
+            html += '<div class="rw-card"><h4>' + esc(RE.text('pointsTitle')) + '<small><i class="fas fa-star"></i> ' + num(srv.wallet.balance) + '</small></h4>' +
+                offers.map(function (o) {
                     return '<div class="rw-code"><div class="rw-code-main"><b>' + esc(o.title) + '</b><span>' + num(o.cost) + ' точки</span></div>' +
                         '<button type="button" class="rw-btn rw-btn--main" data-redeem="' + esc(o.id) + '"' + (srv.wallet.balance < o.cost ? ' disabled' : '') + '>Вземи</button></div>';
                 }).join('') + '</div>';
         }
 
-        // Стъпалата
-        html += '<div class="rw-card"><h4><i class="fas fa-stairs"></i>' + esc(RE.text('pathTitle')) + '</h4>' + RE.TIERS.map(function (t, i) {
-            var done = st.tier && st.tier.index >= i;
-            var isNext = !done && (st.tier ? st.tier.index + 1 : 0) === i;
-            return '<div class="rw-step' + (done ? ' is-done' : isNext ? ' is-next' : '') + '"><i class="fas ' + (done ? 'fa-check' : isNext ? 'fa-arrow-up' : 'fa-lock') + '"></i><div><b>' + esc(t.title) + '</b>' +
-                '<span>' + t.days + ' дни · средно над ' + t.minEng + '%</span><div>' + t.rewards.map(function (r) { var g = giftText(r, srv); return g ? '<span class="rw-gift">' + esc(g) + '</span>' : ''; }).join('') + '</div></div></div>';
-        }).join('') + '<p style="margin-top:8px">' + esc(RE.text('pathNote')) + '</p></div>';
-
         // Покана
         if (srv && srv.invite && srv.invite.code) {
-            html += '<div class="rw-card"><h4><i class="fas fa-user-plus"></i>' + esc(RE.text('inviteTitle')) + '</h4>' +
+            html += '<div class="rw-card"><h4>' + esc(RE.text('inviteTitle')) + (srv.invite.count ? '<small>' + srv.invite.count + ' ' + plural(srv.invite.count, 'приятел', 'приятели') + '</small>' : '') + '</h4>' +
                 // В приложението без цени и проценти за плана (правилата на магазините)
-                '<p>' + esc(isApp() ? RE.text('inviteTextApp') : RE.text('inviteText', { pct: srv.invite.pct, reward: srv.invite.reward })) +
-                (srv.invite.count ? ' Досега: ' + srv.invite.count + ' ' + plural(srv.invite.count, 'приятел', 'приятели') + '.' : '') + '</p>' +
-                '<div class="rw-code" style="margin-top:10px"><div class="rw-code-main"><code style="font-size:18px;white-space:nowrap;letter-spacing:.02em">' + esc(srv.invite.code) + '</code></div>' +
+                '<p>' + esc(isApp() ? RE.text('inviteTextApp') : RE.text('inviteText', { pct: srv.invite.pct, reward: srv.invite.reward })) + '</p>' +
+                '<div class="rw-code rw-invite"><div class="rw-code-main"><code>' + esc(srv.invite.code) + '</code></div>' +
                 '<button type="button" class="rw-btn" data-copy="' + esc(SITE + '/?invite=' + srv.invite.code) + '" aria-label="Копирай връзката"><i class="fas fa-link"></i></button>' +
                 '<button type="button" class="rw-btn rw-btn--main" data-invite="1"><i class="fas fa-share-nodes"></i> Покани</button></div></div>';
         }
 
-        // Рекорди
         var r = st.records;
-        html += '<div class="rw-card"><h4><i class="fas fa-medal"></i>Лични рекорди</h4><div class="rw-records">' +
+        html += '<div class="rw-card"><h4>Лични рекорди</h4><div class="rw-records">' +
             '<div class="rw-record"><b>' + r.bestStreak + '</b><span>дни поред</span></div>' +
             '<div class="rw-record"><b>' + (r.bestWeek ? r.bestWeek.avg + '%' : '—') + '</b><span>най-добра седмица</span></div>' +
             '<div class="rw-record"><b>' + (r.maxSteps ? num(r.maxSteps.steps) : '—') + '</b><span>крачки за ден</span></div>' +
-            '</div><button type="button" class="rw-btn rw-btn--main rw-btn--wide" data-share="1"><i class="fas fa-share-nodes"></i> Сподели постижението</button></div>';
+            '</div><button type="button" class="rw-btn rw-btn--wide" data-share="1"><i class="fas fa-share-nodes"></i> Сподели</button></div>';
 
         html += '</div>';
         el.innerHTML = html;
