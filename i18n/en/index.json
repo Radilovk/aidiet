@@ -195,8 +195,8 @@
   "Хранене": "Nutrition",
   "Психология": "Psychology",
   "Суплементация": "Supplementation",
-  "Активности": "Activities",
-  "Какво включва планът": "What the plan includes"
+  "Какво включва планът": "What the plan includes",
+  "Активност": "Activity"
  },
  "keys": {
   "day.mock.0": "M",

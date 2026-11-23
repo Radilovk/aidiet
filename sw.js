@@ -2,7 +2,7 @@
 // Configure base path - use '/' for a custom domain (nutriin.app, served from GitHub Pages) or '/aidiet' for GitHub Pages
 const BASE_PATH = '';
 
-const CACHE_NAME = 'nutriplan-v95'; // v95: мисълта за деня на 10 езика; v94: мисъл за деня, мек режим на мотивацията; v91: снимки на ястията; v90: насоки за движение, героят на лендинга; v88: нов екран за изготвяне на плана; v81: визуалният език „Светлина · Стъкло · Спокойствие“ (ambient-glass)
+const CACHE_NAME = 'nutriplan-v101'; // v101: мисъл за деня (10 езика), мек режим на мотивацията по EmoEat; v100: тържеството се събира в екрана; v99: икономия — преводи по шаблон за текст с числа, награди без излишни записи; v98: награди — седмица, предизвикателство, влизания, покана; v96: награди — кодове на латиница, текстове и снимки от админ панела; v95: награди — думи, кодове от думи, снимки; v94: награди за постоянство; v91: снимки на ястията; v90: насоки за движение, героят на лендинга; v88: нов екран за изготвяне на плана; v81: визуалният език „Светлина · Стъкло · Спокойствие“ (ambient-glass)
 // Android приложението (Capacitor) е на https://localhost и носи файловете си —
 // там service worker само връща стари версии след обновяване. Самоизключва се.
 const IS_NATIVE_APP_ORIGIN = self.location.origin === 'https://localhost';
@@ -53,6 +53,9 @@ const STATIC_CACHE = [
   `${BASE_PATH}/session-utils.js`,
   `${BASE_PATH}/auth-guard.js`,
   `${BASE_PATH}/game-scoring.js`,
+  `${BASE_PATH}/rewards-engine.js`,
+  `${BASE_PATH}/rewards-ui.js`,
+  `${BASE_PATH}/rewards-ui.css`,
   `${BASE_PATH}/goal-model.js`,
   `${BASE_PATH}/goal-focus.js`,
   `${BASE_PATH}/activity-guide.js`,

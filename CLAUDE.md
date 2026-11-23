@@ -17,7 +17,7 @@ biocode.website (`PLAN_APP_BASE_URL`); при изпращане `email-domain.j
   `npm run build:protocol-pages` (проверка: `test:protocol-pages`). Стил: `protocol-page.css`. Футърът не се редактира на ръка.
 - Общ фронтенд JS: `app.js`, `app-ui.js`/`app-ui.css`, `design-system.css`, `platform.js`, `platform-compat.js`,
   `session-utils.js`, `auth-guard.js`, `plan-sync.js`, `local-scheduler.js`, `notification-launch.js`,
-  `health-sync.js`, `daily-thoughts.js` + `thoughts/<език>.js` (мисъл за деня: тих ред в плана, известие само при отсъствие; преводите — ръчни, по един файл на език), `activity-tracker.js` (крачкомер + въпрос за тренировка; дневните цели — `nutrition-engine/metabolic.js`), `native-backup.js`, `drive-backup.js`, `meal-swaps.js`, `game-scoring.js`, `sw.js`, `manifest.json`.
+  `health-sync.js`, `daily-thoughts.js` + `thoughts/<език>.js` (мисъл за деня: тих ред в плана, известие само при отсъствие; преводите — ръчни, по един файл на език), `activity-tracker.js` (крачкомер + въпрос за тренировка; дневните цели — `nutrition-engine/metabolic.js`), `native-backup.js`, `drive-backup.js`, `meal-swaps.js`, `game-scoring.js`, `rewards-engine.js` + `rewards-ui.js`/`.css` (награди за постоянство, седмица, месечно предизвикателство; сървърът — `rewards.js`, лендинг за поканени — `invite-welcome.js`, админ — `admin-rewards.js`; виж PROJECT_NOTES), `sw.js`, `manifest.json`.
 - Марка **Nutriin** (nutri + **in** — вътре, отвътре; преди Eatologix, още преди NutriPlan): знакът е ябълка, нарисувана
   с една линия, която вътре изписва „in“, + листо. Лого/икони в `brand/nutriin-*` + `icon-*.png|svg`, `favicon.svg` —
   генерират се с `npm run build:brand` (`scripts/build-brand.mjs`; източници `brand/nutriin-mark.json` и

@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <script src="./i18n.js?v=20261122a"></script>
+    <script src="./i18n.js?v=20261123a"></script>
     <script src="media-slot.js?v=3" defer></script>
     <script src="wording-editor.js?v=6" defer></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -87,6 +87,8 @@
     <script src="./platform.js"></script>
     <script src="./platform-compat.js"></script>
     <script src="./meal-swaps.js"></script>
+    <script src="./partner-ref.js"></script>
+    <script src="./invite-welcome.js" defer></script>
     <script src="./plan-sync.js"></script>
     <script src="./enrichment-client.js"></script>
     <script src="./health-apps.js"></script>
@@ -736,6 +738,17 @@
             letter-spacing: 0.02em;
             margin-bottom: 26px;
         }
+        /* Покана от приятел (invite-welcome.js) — над надписа, в цветовете на акцента */
+        .lp-invite {
+            display: flex; align-items: center; gap: 10px;
+            margin: 0 0 16px; padding: 10px 14px; border-radius: 16px;
+            background: var(--lp-accent-soft); color: var(--lp-ink);
+            border: 1px solid color-mix(in srgb, var(--lp-accent) 28%, transparent);
+            font-size: 0.92rem; line-height: 1.4;
+        }
+        .lp-invite[hidden] { display: none; }
+        .lp-invite i { color: var(--lp-leaf, var(--lp-accent)); font-size: 1.05rem; }
+        .lp-invite b { color: var(--lp-accent); }
         .lp-pulse {
             width: 8px; height: 8px; border-radius: 50%;
             color: var(--lp-leaf, currentColor);
@@ -2265,6 +2278,7 @@
         <div class="lp-hero-inner">
             <div class="hero-content lp-hero-copy">
                 <figure class="lp-hero-photo lp-enter" style="--d:0" data-slot="hero" data-fx="kenburns" data-every="6"><img src="brand/photos/index-hero-4c4ab10e-1280.webp" srcset="brand/photos/index-hero-4c4ab10e-640.webp 640w, brand/photos/index-hero-4c4ab10e-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Усмихната двойка в кухнята с ябълка и здравословни храни" width="1280" height="543" decoding="async" fetchpriority="high" data-x="77.6" data-y="28.9" data-z="1.02"><img src="brand/photos/index-hero-263d3a8b-1280.webp" srcset="brand/photos/index-hero-263d3a8b-640.webp 640w, brand/photos/index-hero-263d3a8b-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Силует на жена сред природата с вдигнати палци" width="1280" height="720" decoding="async" loading="lazy" data-x="100" data-y="100" data-z="1"><img src="brand/photos/index-hero-77ffdaff-626.webp" alt="Усмихната жена в спортно облекло с разперени ръце край морето" width="626" height="417" decoding="async" loading="lazy" data-only="mobile"><img src="brand/photos/index-hero-1e91daf1-1280.webp" srcset="brand/photos/index-hero-1e91daf1-640.webp 640w, brand/photos/index-hero-1e91daf1-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Мъж измерва талията си с жълт шивашки метър" width="1280" height="853" decoding="async" loading="lazy"><img src="brand/photos/index-hero-ef4932ad-640.webp" alt="Боси крака върху кантар и зелен сантиметър" width="640" height="426" decoding="async" loading="lazy" data-only="mobile"><img src="brand/photos/index-hero-0f9be665-1280.webp" srcset="brand/photos/index-hero-0f9be665-640.webp 640w, brand/photos/index-hero-0f9be665-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Жена измерва обиколката на талията си с метър" width="1280" height="853" decoding="async" loading="lazy"><img src="brand/photos/index-hero-23c3a2b7-612.webp" alt="Жена на кантар държи зелена ябълка и поничка" width="612" height="383" decoding="async" loading="lazy" data-only="mobile"></figure>
+                <p class="lp-invite" id="lpInvite" role="status" hidden></p>
                 <p class="lp-eyebrow lp-enter" style="--d:0"><span class="lp-pulse" aria-hidden="true"></span> Храненето, видяно отвътре</p>
                 <h1 id="lpHeroTitle" class="lp-h1">
                     <span class="lp-line lp-enter" style="--d:1">Храната е в основата на</span>
@@ -2276,7 +2290,7 @@
                     <li style="--i:0"><svg class="lp-pillar-ic" viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M12 7.6c-1.6-1.1-4.2-1.3-5.8.4-1.9 2-1.6 5.6-.1 8.4 1.3 2.4 3.2 4.4 4.8 4.1.5-.1.7-.4 1.1-.4s.6.3 1.1.4c1.6.3 3.5-1.7 4.8-4.1 1.5-2.8 1.8-6.4-.1-8.4-1.6-1.7-4.2-1.5-5.8-.4Z"/><path pathLength="1" d="M12 7.6c0-1.7.6-3 1.7-3.9"/><path class="lf" pathLength="1" d="M13.4 5c1.4-1.3 3.4-1.5 4.6-.9-.5 1.6-2.3 2.6-4.6 2.1"/></svg><span>Хранене</span></li>
                     <li style="--i:1"><svg class="lp-pillar-ic" viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M8.6 20.5v-3.3C6.4 16 5 13.7 5 11.1 5 7.2 8.1 4 12 4c3.6 0 6.5 2.7 6.5 6.1l1.6 2.9c.2.4-.1.9-.5.9h-1.1v2.3c0 1.1-.9 2-2 2h-1.9v1.3"/><path class="lf" pathLength="1" d="M11.2 14.6v-2.1m0 0c0-1.8 1.3-3.2 3.1-3.2 0 1.8-1.3 3.2-3.1 3.2Zm0 0c-1.4 0-2.4-1-2.4-2.4 1.4 0 2.4 1 2.4 2.4"/></svg><span>Психология</span></li>
                     <li style="--i:2"><svg class="lp-pillar-ic" viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M10.2 19.4a4.2 4.2 0 0 1-5.9-5.9l9.2-9.2a4.2 4.2 0 0 1 5.9 5.9Z"/><path pathLength="1" d="m8.9 8.9 6.2 6.2"/><path pathLength="1" d="M15.4 6.4l1.1 1.1"/></svg><span>Суплементация</span></li>
-                    <li style="--i:3"><svg class="lp-pillar-ic" viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M3 12.5h3.6l2-5.2 3.6 10.4 2.3-6.6 1.4 1.4H21"/></svg><span>Активности</span></li>
+                    <li style="--i:3"><svg class="lp-pillar-ic" viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M3 12.5h3.6l2-5.2 3.6 10.4 2.3-6.6 1.4 1.4H21"/></svg><span>Активност</span></li>
                 </ul>
                 <svg class="lp-pillar-defs" width="0" height="0" aria-hidden="true" focusable="false"><defs><linearGradient id="lpPillarInk" x1="0" y1="1" x2="1" y2="0"><stop offset="0" class="lp-pi-a"/><stop offset="1" class="lp-pi-b"/></linearGradient><linearGradient id="lpPillarLeaf" x1="0" y1="1" x2="1" y2="0"><stop offset="0" class="lp-pl-a"/><stop offset="1" class="lp-pl-b"/></linearGradient></defs></svg>
                 <div class="cta-group lp-enter" style="--d:4">

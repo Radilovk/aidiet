@@ -5,7 +5,7 @@
  *  - въпросника (цел, стрес, сън, навици, преяждане);
  *  - EmoEat (архетип, интензитет, двигатели) — кога и защо идва гладът без глад;
  *  - устройствата (сън, възстановяване, движение);
- *  - поведението в приложението (колко редовно отмята, кога, отговаря ли на въпросите).
+ *  - поведението в приложението (колко редовно отмята, кога, отговаря ли на въпросите, колко често отваря).
  *
  * Резултатът насочва (само правила, без AI):
  *  - тона на текстовете и на нотификациите;
@@ -221,6 +221,21 @@
         if (emo && emo.teen) { p.noScores = true; p.flexible = true; p.teen = true; }
         // Вчера — 2+ хранения извън плана (за мисълта за деня и мекото връщане).
         p.hardYesterday = extraYesterday(inp.gameData, now) >= 2;
+
+        // Влизанията в приложението (rewards-ui.js → np_opens): колко дни от последните 14 и в кой час.
+        var opens = read('np_opens');
+        if (opens && opens.days) {
+            var from14 = now.getTime() - 14 * DAY_MS;
+            beh.openDays14 = Object.keys(opens.days).filter(function (k) { return Date.parse(k) >= from14; }).length;
+            if (Array.isArray(opens.hours) && opens.hours.length === 24) {
+                var mx = 0; opens.hours.forEach(function (v, h) { if (v > mx) { mx = v; beh.usualHour = h; } });
+            }
+            // Отваря рядко (под 4 от 14 дни) при поне седмица история — кратко и само същественото.
+            if (beh.days >= 7 && beh.openDays14 < 4 && p.density !== 'minimal') {
+                p.density = 'minimal';
+                p.reasons.push('рядко отваряне — кратък анализ');
+            }
+        }
 
         // Поведение: при слабо отмятане — по-малко въпроси и по-кратък анализ.
         if (beh.days >= 5 && beh.mealTickRate != null && beh.mealTickRate < 35) {

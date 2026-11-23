@@ -62,7 +62,15 @@
             var i18n = window.EatologixI18n;
             if (i18n && i18n.lang && i18n.lang !== 'bg') { i18n.setLang('bg'); return; } // редакциите — на български
             enable();
-        }).catch(function () { alert('Няма връзка със сървъра.'); });
+        }).catch(function (e) { alert(why(e)); });
+    }
+    // „Няма връзка“ само когато наистина няма: паролата с кирилица/интервал не може да тръгне в заглавката
+    // (браузърът спира заявката преди сървъра) — тогава се пита наново; иначе — истинската причина.
+    function why(e) {
+        var m = String(e && e.message || e || '');
+        if (/ISO-8859|header|Headers|code point/i.test(m)) { store(KEY, null); return 'Паролата съдържа знак, който браузърът не може да изпрати (напр. кирилица или интервал). Въведи я пак.'; }
+        if (navigator.onLine === false) return 'Няма интернет.';
+        return 'Сървърът не отговори (' + (m || 'мрежова грешка') + '). Опитай пак след малко; ако се повтаря — изпрати ми това съобщение.';
     }
 
     // ── Режим на редакция ─────────────────────────────────────────────────
@@ -438,14 +446,14 @@
         // keepalive има таван ~64KB — при затваряне се пращат само текстовете; снимките — с „Запази“ / „Изход“.
         if (onExit) { if (!edits.length && !note) return Promise.resolve(); delete body.slots; }
         if (sd.length && !onExit) render('Записвам…');
-        return req('POST', '/api/admin/wording', body, onExit).then(function (r) { return r.json().then(function (d) { return { r: r, d: d }; }); })
+        return req('POST', '/api/admin/wording', body, onExit).then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { r: r, d: d }; }); })
             .then(function (x) {
-                if (!x.r.ok) { render('Не е записано: ' + (x.d && x.d.error || x.r.status)); return; }
+                if (!x.r.ok) { if (x.r.status === 401 || x.r.status === 403) store(KEY, null); render('Не е записано: ' + (x.d && x.d.error || ('отговор ' + x.r.status)) + (x.r.status === 401 ? ' — паролата не е приета, влез пак.' : '')); return; }
                 edits.forEach(function (e) { e.el.removeAttribute('data-wed-changed'); });
                 edits = []; note = '';
                 if (!onExit) { slots.forEach(function (r) { r.slot.removeAttribute('data-wed-changed'); }); slots = []; if (sel) slotRec(sel); }
                 render('Записано ✓ — ' + (x.d && x.d.auto ? 'влиза на сайта автоматично до няколко минути (с преводите).' : 'влиза на сайта автоматично до ~20 минути (с преводите).'));
-            }).catch(function () { if (!onExit) render('Няма връзка — опитай пак.'); });
+            }).catch(function (e) { if (!onExit) render('Не е записано: ' + why(e)); });
     }
     function stop() {
         var go = function () { ss(FLAG, null); location.href = location.href.replace(/([?&])edit(=[^&#]*)?&?/, '$1').replace(/[?&]$/, '').replace('#edit', ''); };
