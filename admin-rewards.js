@@ -162,7 +162,7 @@
         var pct = function (a, b) { return b ? Math.round(a / b * 100) + '%' : '—'; };
         var h = '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">' +
             kpi(p.users, 'с история') + kpi(p.active7 + ' · ' + pct(p.active7, p.users), 'активни 7 дни') + kpi(p.active30, 'активни 30 дни') +
-            kpi(p.openDays14, 'средно дни с отваряне от 14') + kpi(p.challenge.joined + ' / ' + p.challenge.done, 'предизвикателство: приели / изпълнили') +
+            kpi(p.challenge.joined + ' / ' + p.challenge.done, 'предизвикателство: приели / изпълнили') +
             kpi(pct(tot30.invite_buy || 0, tot30.invite_visit || 0), 'покана: посещение → покупка (30 дни)') + '</div>';
         var bar = function (obj, labels) {
             var max = Math.max.apply(null, Object.keys(obj).map(function (k) { return obj[k]; }).concat([1]));
@@ -176,6 +176,7 @@
             '<div><h4>Нива</h4>' + bar(tiers) + '</div>' +
             '<div><h4>Поредица (дни)</h4>' + bar(p.streaks) + '</div>' +
             '<div><h4>Постоянство за 30 дни</h4>' + bar(p.consistency) + '</div>' +
+            '<div><h4>Дни с отваряне (от последните 14)</h4>' + bar(p.opens || {}) + '</div>' +
             '<div><h4>Обичаен час на отваряне</h4>' + bar((function () { var o = {}; p.hours.forEach(function (v, i) { if (v) o[(i < 10 ? '0' : '') + i + ':00'] = v; }); return o; })()) + '</div></div>';
         var keys = Object.keys(EVENT_LABEL).filter(function (k) { return tot30[k]; }).concat(Object.keys(tot30).filter(function (k) { return !EVENT_LABEL[k]; }));
         h += '<h4 style="margin-top:18px">Събития</h4>' + (keys.length

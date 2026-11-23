@@ -229,12 +229,31 @@
         hit = mem[core];
         return hit != null ? hit : null;
     }
+    // Текст с числа („41 от 60 дни“, „до 12.01.2027 г.“): AI превежда шаблона веднъж („{0} от {1} дни“),
+    // числата се връщат на мястото си. Иначе всяко ново число е нов низ — нов AI превод и нов запис.
+    var NUM = /\d(?:[\d\u00a0 .,]*\d)?/g;
+    function numTemplate(core) {
+        var nums = [];
+        var tpl = core.replace(NUM, function (m) { nums.push(m); return '{' + (nums.length - 1) + '}'; });
+        return nums.length && nums.length <= 9 ? { tpl: tpl, nums: nums } : null;
+    }
+    function fillTemplate(t, nums) {
+        return String(t).replace(/\{(\d)\}/g, function (m, i) { return nums[+i] != null ? nums[+i] : m; });
+    }
     function translate(s, queue) {
         if (!s) return s;
         var core = s.replace(/\s+/g, ' ').trim();
         if (!core || !CYR.test(core)) return s;
         if (lang === 'ru' && RU_ONLY.test(core)) return s;
         var hit = lookup(core);
+        if (hit == null) {
+            var nt = numTemplate(core);
+            if (nt) {
+                var th = mem[nt.tpl];
+                if (th == null) { if (queue) want(nt.tpl); return s; }
+                hit = fillTemplate(th, nt.nums);
+            }
+        }
         if (hit == null) { if (queue) want(core); return s; }
         if (hit === core) return s;
         outputs[hit.replace(/\s+/g, ' ').trim()] = 1;

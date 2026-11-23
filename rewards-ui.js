@@ -22,7 +22,8 @@
     var TOAST_KEY = 'np_rewards_toasts';
     var SRV_KEY = 'np_rewards_srv';
     var REC_KEY = 'np_rewards_records';
-    var SRV_TTL = 10 * 60 * 1000;
+    var SRV_TTL = 30 * 60 * 1000;   // портфейлът се мени рядко; новото ниво и действията го обновяват веднага
+    var CONTENT_TTL = 6 * 3600 * 1000;
     var DAY = 86400000;
     var RE = global.RewardsEngine;
     var CONTENT_KEY = 'np_rewards_content';
@@ -36,7 +37,7 @@
     var contentLoad = null;
     function loadContent() {
         var c = applyCached();
-        if (c && Date.now() - c.at < 10 * 60 * 1000) return Promise.resolve();
+        if (c && Date.now() - c.at < CONTENT_TTL) return Promise.resolve();
         if (contentLoad) return contentLoad;
         contentLoad = fetch(WORKER + '/api/rewards/content').then(function (r) { return r.json(); }).then(function (d) {
             if (d && d.success) { write(CONTENT_KEY, { at: Date.now(), content: d.content || {} }); applyCached(); }
@@ -142,10 +143,17 @@
         var behind = st && st.tier && c && c.data && c.data.status && c.data.status.tier !== st.tier.id;
         if (!force && !behind && c && c.uid === userId() && Date.now() - c.at < SRV_TTL) return c.data;
         try {
-            var body = { todayKey: global.GameScoring ? GameScoring.dateKey(new Date()) : undefined, opens: read(OPENS_KEY, null) || undefined };
-            if (behind || (st && st.tier && !c)) body.gameData = read('gameData', {});
+            var today = global.GameScoring ? GameScoring.dateKey(new Date()) : undefined;
+            var body = { todayKey: today };
+            // Влизанията — веднъж на ден (за резюмето на отчета); дните — само при ново ниво, невидяно от сървъра.
+            var wk = read(WEEK_KEY, {}) || {};
+            if (wk.opensSent !== today) body.opens = read(OPENS_KEY, null) || undefined;
+            if (behind) body.gameData = read('gameData', {});
             var d = await post('/api/user/rewards', body);
             if (d && d.success) {
+                if (body.opens) { wk = read(WEEK_KEY, {}) || {}; wk.opensSent = today; write(WEEK_KEY, wk); }
+                // Текстовете от админ панела идват с отговора — без отделна заявка.
+                if (d.content) { write(CONTENT_KEY, { at: Date.now(), content: d.content }); applyCached(); delete d.content; }
                 write(SRV_KEY, { at: Date.now(), uid: userId(), data: d });
                 // Приетото предизвикателство идва и от другото устройство.
                 if (d.challenge && (!localChallenge() || localChallenge().month !== d.challenge.month)) write(CHALLENGE_KEY, { month: d.challenge.month, id: d.challenge.id, joined: d.challenge.joined });
@@ -703,7 +711,7 @@
         el.querySelectorAll('[data-redeem]').forEach(function (b) {
             b.addEventListener('click', async function () {
                 b.disabled = true;
-                var d = await post('/api/user/rewards/redeem', { offer: b.getAttribute('data-redeem') }).catch(function () { return null; });
+                var d = await post('/api/user/rewards/redeem', { offer: b.getAttribute('data-redeem'), todayKey: GameScoring.dateKey(new Date()) }).catch(function () { return null; });
                 if (d && d.success) {
                     celebrate({ big: true, kicker: 'Плод на труда', title: RE.text('redeemTitle'), num: '−' + d.code.pct + '%', unit: d.code.kind === 'plan' ? 'за план' : 'за добавки', text: 'Кодът ти: ' + d.code.code + '. Пази се в „Твоите отстъпки“.', image: 'share' });
                     mount(el, true);

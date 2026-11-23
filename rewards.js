@@ -9,11 +9,13 @@
  *                          invite, invited: [userId…], inviteBonus, updatedAt }
  *   invite:<КОД>         userId — личният код за покана (DUO482)
  *   invite_used:<userId> кодът, с който е купил първия си план (поканата важи веднъж)
- *   rstat:<userId>       '' с metadata { c: постоянство 30 дни, s: поредица, t: ниво, d: дни история, o: дни с
- *                        отваряне от 14, h: обичаен час, a: последен ден (дни от 1970), ch: предизвикателство 0/1/2 }
+ *   rstat:<userId>       '' с metadata { c: постоянство 30 дни (през 5%), sb: поредица (група 0–4), t: ниво,
+ *                        d: дни история (до 7), o: дни с отваряне от 14 (група 0–3), h: обичаен час,
+ *                        a: последен ден (дни от 1970, обновява се през 3 дни), ch: предизвикателство 0/1/2 }
  *                        — за сравнението и отчета (KV list чете metadata без отделни заявки)
  *   rev:<ден>:<0-3>      { събитие: брой } — броячи за отчета (countEvent), без лични данни
- *   rewards:<userId>     … + challenges: { 'YYYY-MM': { id, joined, done } }, challengeBonus, opens
+ *   rewards:<userId>     … + challenges: { 'YYYY-MM': { id, joined, done } }, challengeBonus
+ *                        (days — само банкираните дни, по-стари от 100; по-новите се смятат от game_state)
  *   rewards_hist         { n, c: [брой по 0…100], at } — разпределението, наново на 12 часа
  *   rewards_content      текстове, думи на кодовете и снимки от админ панела (applyContent в rewards-engine.js)
  *   rewards_img:<тема>   качена снимка (data URL) → GET /api/rewards/image/<тема>
@@ -22,8 +24,9 @@
  * са за всички, но всеки код е „право“ в записа на спечелилия го: при плащане се търси при купуващия
  * (влязъл в акаунта си), а магазинът го проверява заедно с имейла на клиента (email_index).
  *
- * Точките са за дни (gameData, сливан на сървъра — sync-analytics); всеки ден пази най-високото
- * си число, затова изтритите след 120 дни записи не взимат спечеленото.
+ * Точките са за дни (gameData, сливан на сървъра — sync-analytics) и се смятат наново при всяка
+ * заявка; дните се „банкират“ в записа едва преди да изтекат (120 дни), затова обичайната заявка
+ * не пише нищо в KV, а изтритите стари записи не взимат спечеленото.
  * Добавките се доставят само в България: кодовете за тях не се дават при друга държава.
  */
 import Rewards from './rewards-engine.js';
@@ -60,22 +63,27 @@ export async function loadContent(env, now = Date.now()) {
   return contentCache.value;
 }
 const emptyRecord = () => ({ days: {}, bonus: 0, spent: 0, issued: {}, grants: [], invited: [], inviteBonus: 0 });
-/** Спечеленото: дните (всеки пази най-високото си число) + бонусите за етапи, покани и предизвикателства. */
-const earnedOf = (r) => Object.values(r?.days || {}).reduce((s, p) => s + (Number(p) || 0), 0)
-  + (Number(r?.bonus) || 0) + (Number(r?.inviteBonus) || 0) + (Number(r?.challengeBonus) || 0);
-
-/** Влизанията: дни (последните 60, най-голямото число за ден) и часове (24 брояча от телефона). */
-function mergeOpens(prev, next, now) {
-  const days = { ...(prev?.days || {}) };
-  for (const [k, n] of Object.entries(next?.days || {})) {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && Number(n) > 0) days[k] = Math.max(Number(days[k]) || 0, Math.min(500, Number(n)));
+/**
+ * Спечеленото = банкираните дни (record.days) + живите дни, които сървърът още пази в game_state (120 дни)
+ * и смята наново при всяка заявка + бонусите. Така обичайната заявка не пише нищо: дните се банкират
+ * рядко — само когато наближават изтриването (по-стари от BANK_AGE дни).
+ */
+const BANK_AGE = 100;
+function earnedOf(r, liveDays) {
+  const banked = r?.days || {};
+  let sum = Object.values(banked).reduce((s, p) => s + (Number(p) || 0), 0);
+  // за всеки ден — по-голямото от банкираното и живото (по-стари записи пазят и скорошни дни)
+  for (const [k, p] of Object.entries(liveDays || {})) sum += Math.max(0, (Number(p) || 0) - (Number(banked[k]) || 0));
+  return sum + (Number(r?.bonus) || 0) + (Number(r?.inviteBonus) || 0) + (Number(r?.challengeBonus) || 0);
+}
+/** Дните по-стари от BANK_AGE, още небанкирани → в записа (връща true, ако има нещо за запис). */
+function bankOldDays(record, liveDays, todayKey) {
+  const cut = new Date(Date.parse(todayKey + 'T00:00:00Z') - BANK_AGE * DAY_MS).toISOString().slice(0, 10);
+  let changed = false;
+  for (const [k, p] of Object.entries(liveDays || {})) {
+    if (k < cut && !(record.days[k] >= p)) { record.days[k] = p; changed = true; }
   }
-  const cut = new Date(now - 60 * DAY_MS).toISOString().slice(0, 10);
-  const hours = Array.isArray(next?.hours) && next.hours.length === 24 ? next.hours.map((x) => Math.max(0, Math.min(5000, Number(x) || 0))) : (prev?.hours || null);
-  return {
-    days: Object.fromEntries(Object.entries(days).filter(([k]) => k >= cut)),
-    hours, last: Number(next?.last) || prev?.last || null, prev: Number(next?.prev) || prev?.prev || null,
-  };
+  return changed;
 }
 
 // ── Събитията за отчета ─────────────────────────────────────────────────────
@@ -119,7 +127,7 @@ export async function handleAdminRewardsReport(url, env, { respond, now = Date.n
   }
   const today = Math.floor(now / DAY_MS);
   const people = { users: 0, active7: 0, active30: 0, tiers: [0, 0, 0, 0, 0], streaks: { '0': 0, '1-6': 0, '7-20': 0, '21-65': 0, '66+': 0 },
-    consistency: { '<40': 0, '40-59': 0, '60-79': 0, '80+': 0 }, hours: new Array(24).fill(0), openDays14: 0, challenge: { joined: 0, done: 0 } };
+    consistency: { '<40': 0, '40-59': 0, '60-79': 0, '80+': 0 }, hours: new Array(24).fill(0), opens: { '0': 0, '1-3': 0, '4-7': 0, '8-14': 0 }, challenge: { joined: 0, done: 0 } };
   let cursor;
   for (let page = 0; page < 30 && typeof env.page_content.list === 'function'; page++) {
     const res = await env.page_content.list({ prefix: 'rstat:', cursor });
@@ -129,19 +137,18 @@ export async function handleAdminRewardsReport(url, env, { respond, now = Date.n
       if (m.a != null && today - m.a < 7) people.active7++;
       if (m.a != null && today - m.a < 30) people.active30++;
       people.tiers[(Number.isFinite(m.t) ? m.t : -1) + 1]++;
-      const s = Number(m.s) || 0;
-      people.streaks[s === 0 ? '0' : s < 7 ? '1-6' : s < 21 ? '7-20' : s < 66 ? '21-65' : '66+']++;
+      const sbk = m.sb != null ? m.sb : (() => { const s = Number(m.s) || 0; return s === 0 ? 0 : s < 7 ? 1 : s < 21 ? 2 : s < 66 ? 3 : 4; })();
+      people.streaks[['0', '1-6', '7-20', '21-65', '66+'][sbk] || '0']++;
       const c = Number(m.c) || 0;
       people.consistency[c < 40 ? '<40' : c < 60 ? '40-59' : c < 80 ? '60-79' : '80+']++;
       if (m.h >= 0 && m.h < 24) people.hours[m.h]++;
-      people.openDays14 += Number(m.o) || 0;
+      people.opens[['0', '1-3', '4-7', '8-14'][Number(m.o) || 0] || '0']++;
       if (m.ch >= 1) people.challenge.joined++;
       if (m.ch === 2) people.challenge.done++;
     }
     if (res.list_complete || !res.cursor) break;
     cursor = res.cursor;
   }
-  if (people.users) people.openDays14 = Math.round(people.openDays14 / people.users * 10) / 10;
   return respond({ success: true, days, people, tiers: Rewards.TIERS.map((t) => t.title) });
 }
 
@@ -187,9 +194,11 @@ async function ensureInvite(env, userId, record) {
 }
 
 /** Разпределението на постоянството при активните (KV list с metadata — без четене на всеки запис). */
+let histMem = null;   // в паметта на копието на worker-а — без четене от KV при всяка заявка
 async function cohort(env, now) {
+  if (histMem && now - histMem.at < HIST_TTL_MS) return histMem;
   const cached = await getJSON(env, 'rewards_hist');
-  if (cached && now - cached.at < HIST_TTL_MS) return cached;
+  if (cached && now - cached.at < HIST_TTL_MS) return (histMem = cached);
   if (typeof env.page_content.list !== 'function') return null;
   const c = new Array(101).fill(0);
   let n = 0, cursor;
@@ -205,7 +214,7 @@ async function cohort(env, now) {
   }
   const hist = { n, c, at: now };
   await putJSON(env, 'rewards_hist', hist, 2 * 86400);
-  return hist;
+  return (histMem = hist);
 }
 
 /** Делът на другите с по-ниско постоянство (0–99) или null при малко хора. */
@@ -254,7 +263,7 @@ export async function handleRewards(request, env, { respond, checkOwner, now = D
   record.challenges = record.challenges || {};
   const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey, challenge: record.challenges[month] });
   record.days = record.days || {};
-  for (const [k, p] of Object.entries(status.points.days)) if (!(record.days[k] >= p)) record.days[k] = p;
+  bankOldDays(record, status.points.days, todayKey);
   record.bonus = Math.max(Number(record.bonus) || 0, status.points.bonus);
   record.issued = record.issued || {};
   const events = [];
@@ -284,29 +293,35 @@ export async function handleRewards(request, env, { respond, checkOwner, now = D
     record.challengeBonus = (Number(record.challengeBonus) || 0) + Rewards.CHALLENGE_BONUS;
     events.push('challenge_done');
   }
-  // Влизанията (np_opens на телефона): дни → най-голямото, часовете — последните от телефона.
-  if (b.opens && typeof b.opens === 'object') record.opens = mergeOpens(record.opens, b.opens, now);
   await ensureInvite(env, userId, record);
 
-  const earned = earnedOf(record);
+  const earned = earnedOf(record, status.points.days);
   if (JSON.stringify(record) !== before) {
     record.updatedAt = new Date(now).toISOString();
     await putJSON(env, `rewards:${userId}`, record);
   }
   await Promise.all(events.map((e) => countEvent(env, e, 1, now)));
 
-  // Отчетът и сравнението: кратко резюме в metadata (пише се само при промяна) — без четене на записите.
+  // Отчетът и сравнението: кратко резюме в metadata — без четене на записите. Стойностите са на
+  // стъпки (постоянство през 5%, поредица и отваряне — на групи), а денят на активност се обновява
+  // най-рано на 3 дни: резюмето се пише рядко, не при всяко отваряне. Влизанията (np_opens) идват от
+  // телефона веднъж на ден и отиват само тук.
   const c30 = status.consistency.d30;
-  const os = Rewards.openStats(record.opens, todayKey);
-  const meta = {
-    c: c30 ?? 0, s: status.streak, t: status.tier ? status.tier.index : -1, d: status.daysTracked,
-    o: os.days14, h: os.usualHour ?? -1, a: Math.floor(now / DAY_MS), ch: ch ? (ch.done ? 2 : 1) : 0,
-  };
+  const os = b.opens && typeof b.opens === 'object' ? Rewards.openStats(b.opens, todayKey) : null;
+  const sb = (x) => (x === 0 ? 0 : x < 7 ? 1 : x < 21 ? 2 : x < 66 ? 3 : 4);
+  const ob = (x) => (x === 0 ? 0 : x < 4 ? 1 : x < 8 ? 2 : 3);
+  const today = Math.floor(now / DAY_MS);
   if (status.daysTracked >= 1) {
     const prev = typeof env.page_content.getWithMetadata === 'function'
       ? await env.page_content.getWithMetadata(`rstat:${userId}`).catch(() => null) : null;
     const pm = prev?.metadata || {};
-    if (!prev || ['c', 's', 't', 'd', 'o', 'h', 'ch'].some((k) => pm[k] !== meta[k]) || pm.a !== meta.a) {
+    const meta = {
+      c: Math.round((c30 ?? 0) / 5) * 5, sb: sb(status.streak), t: status.tier ? status.tier.index : -1, d: Math.min(status.daysTracked, 7),
+      o: os ? ob(os.days14) : (pm.o ?? 0), h: os ? (os.usualHour ?? -1) : (pm.h ?? -1), ch: ch ? (ch.done ? 2 : 1) : 0, a: pm.a ?? today,
+    };
+    const changed = !prev || ['c', 'sb', 't', 'd', 'o', 'h', 'ch'].some((k) => pm[k] !== meta[k]);
+    if (changed || today - (Number(pm.a) || 0) >= 3) {
+      meta.a = today;
       await env.page_content.put(`rstat:${userId}`, '', { expirationTtl: 60 * 86400, metadata: meta });
     }
   }
@@ -323,6 +338,7 @@ export async function handleRewards(request, env, { respond, checkOwner, now = D
     supplements: supplementsAllowed(country),
     offers: Rewards.OFFERS.filter((o) => o.kind !== 'supplement' || supplementsAllowed(country)),
     challenge: ch ? { month, id: ch.id, joined: ch.joined, done: !!ch.done } : null,
+    content: contentCache.value || {},
     status: { streak: status.streak, tier: status.tier?.id || null, consistency: status.consistency },
   });
 }
@@ -365,9 +381,11 @@ export async function handleRewardsRedeem(request, env, { respond, checkOwner, n
   const offer = Rewards.offerById(String(b.offer || ''));
   if (!offer) return respond({ error: 'bad_request' }, 400);
   if (offer.kind === 'supplement' && !supplementsAllowed(countryOf(request))) return respond({ error: 'region', message: 'Добавките се доставят само в България.' }, 400);
-  const record = await getJSON(env, `rewards:${b.userId}`);
-  if (!record) return respond({ error: 'points', message: 'Още нямаш точки.' }, 400);
-  const balance = earnedOf(record) - (Number(record.spent) || 0);
+  const record = (await getJSON(env, `rewards:${b.userId}`)) || emptyRecord();
+  const state = (await getJSON(env, `game_state:${b.userId}`)) || {};
+  const live = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey: clientTodayKey(b.todayKey, now) }).points.days;
+  record.days = record.days || {};
+  const balance = earnedOf(record, live) - (Number(record.spent) || 0);
   if (balance < offer.cost) return respond({ error: 'points', message: `Нужни са ${offer.cost} точки, имаш ${balance}.`, balance }, 400);
   const g = grant(record, { code: Rewards.codeFor(offer.word, offer.pct), kind: offer.kind, pct: offer.pct, source: `offer:${offer.id}`, now });
   record.spent = (Number(record.spent) || 0) + offer.cost;
@@ -468,7 +486,7 @@ export async function applyPlanDiscount(env, userId, meta, now = Date.now()) {
 
 /** GET /api/rewards/content → промените (текстове, думи, снимки); телефонът ги слага върху стойностите по подразбиране. */
 export async function handleRewardsContent(env, { respond }) {
-  const c = (await getJSON(env, 'rewards_content')) || {};
+  const c = (await loadContent(env)) || {};   // кешът в паметта — без четене от KV при всяка заявка
   const r = respond({ success: true, content: c });
   try { r.headers.set('Cache-Control', 'public, max-age=300'); } catch (_) { /* неизменими заглавки */ }
   return r;

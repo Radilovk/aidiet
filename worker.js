@@ -13596,6 +13596,7 @@ Rules:
 - Natural, short, friendly ${name}, addressing the reader informally (as the Bulgarian does with "\u0442\u0438"; in Russian \u2014 "\u0442\u044B").
 - The source is Bulgarian even where it looks like Russian; translate it fully into ${name}.
 - Keep numbers, units (g, kcal, ml, kg), emoji, punctuation at the edges, and anything inside {curly braces} unchanged.
+- {0}, {1}\u2026 stand for numbers: keep every one of them exactly once, in the place the grammar of ${name} needs.
 - Food and dish names: the usual ${name} name; a Bulgarian dish with no equivalent keeps its name in Latin letters with a short gloss only if needed.
 - Bulgarian dairy is specific: "\u0441\u0438\u0440\u0435\u043D\u0435" is white brine cheese (feta-style), never generic cheese; "\u043A\u0430\u0448\u043A\u0430\u0432\u0430\u043B" is kashkaval, a yellow semi-hard cheese; "\u0438\u0437\u0432\u0430\u0440\u0430" is quark / cottage cheese; "\u043A\u0438\u0441\u0435\u043B\u043E \u043C\u043B\u044F\u043A\u043E" is plain yogurt; "\u043F\u0440\u044F\u0441\u043D\u043E \u043C\u043B\u044F\u043A\u043E" is milk.
 - "Nutriin" stays as is. Do not add quotes, notes or explanations.
@@ -13639,6 +13640,8 @@ async function handleI18nTranslate(request, env, deps) {
         todo.forEach((src, j) => {
           const tr = typeof arr[j] === "string" ? arr[j].trim() : "";
           if (!tr || lang !== "ru" && CYR.test(tr)) return;
+          const holes = src.match(/\{\d\}/g) || [];
+          if (holes.some((h) => !tr.includes(h))) return;
           translations[src] = tr;
           if (kv) puts.push(kv.put(keys[missing[j]], tr).catch(() => {
           }));
@@ -61999,20 +62002,23 @@ async function loadContent(env, now = Date.now()) {
   return contentCache.value;
 }
 var emptyRecord = () => ({ days: {}, bonus: 0, spent: 0, issued: {}, grants: [], invited: [], inviteBonus: 0 });
-var earnedOf = (r) => Object.values(r?.days || {}).reduce((s, p) => s + (Number(p) || 0), 0) + (Number(r?.bonus) || 0) + (Number(r?.inviteBonus) || 0) + (Number(r?.challengeBonus) || 0);
-function mergeOpens(prev, next, now) {
-  const days = { ...prev?.days || {} };
-  for (const [k, n] of Object.entries(next?.days || {})) {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && Number(n) > 0) days[k] = Math.max(Number(days[k]) || 0, Math.min(500, Number(n)));
+var BANK_AGE = 100;
+function earnedOf(r, liveDays) {
+  const banked = r?.days || {};
+  let sum = Object.values(banked).reduce((s, p) => s + (Number(p) || 0), 0);
+  for (const [k, p] of Object.entries(liveDays || {})) sum += Math.max(0, (Number(p) || 0) - (Number(banked[k]) || 0));
+  return sum + (Number(r?.bonus) || 0) + (Number(r?.inviteBonus) || 0) + (Number(r?.challengeBonus) || 0);
+}
+function bankOldDays(record, liveDays, todayKey) {
+  const cut = new Date(Date.parse(todayKey + "T00:00:00Z") - BANK_AGE * DAY_MS4).toISOString().slice(0, 10);
+  let changed = false;
+  for (const [k, p] of Object.entries(liveDays || {})) {
+    if (k < cut && !(record.days[k] >= p)) {
+      record.days[k] = p;
+      changed = true;
+    }
   }
-  const cut = new Date(now - 60 * DAY_MS4).toISOString().slice(0, 10);
-  const hours = Array.isArray(next?.hours) && next.hours.length === 24 ? next.hours.map((x) => Math.max(0, Math.min(5e3, Number(x) || 0))) : prev?.hours || null;
-  return {
-    days: Object.fromEntries(Object.entries(days).filter(([k]) => k >= cut)),
-    hours,
-    last: Number(next?.last) || prev?.last || null,
-    prev: Number(next?.prev) || prev?.prev || null
-  };
+  return changed;
 }
 var EVENT_SHARDS = 4;
 var CLIENT_EVENTS = ["share_moment", "share_section", "share_invite", "share_week", "share_challenge", "invite_visit", "week_view", "comeback"];
@@ -62054,7 +62060,7 @@ async function handleAdminRewardsReport(url, env, { respond, now = Date.now() })
     streaks: { "0": 0, "1-6": 0, "7-20": 0, "21-65": 0, "66+": 0 },
     consistency: { "<40": 0, "40-59": 0, "60-79": 0, "80+": 0 },
     hours: new Array(24).fill(0),
-    openDays14: 0,
+    opens: { "0": 0, "1-3": 0, "4-7": 0, "8-14": 0 },
     challenge: { joined: 0, done: 0 }
   };
   let cursor;
@@ -62066,19 +62072,21 @@ async function handleAdminRewardsReport(url, env, { respond, now = Date.now() })
       if (m.a != null && today2 - m.a < 7) people.active7++;
       if (m.a != null && today2 - m.a < 30) people.active30++;
       people.tiers[(Number.isFinite(m.t) ? m.t : -1) + 1]++;
-      const s = Number(m.s) || 0;
-      people.streaks[s === 0 ? "0" : s < 7 ? "1-6" : s < 21 ? "7-20" : s < 66 ? "21-65" : "66+"]++;
+      const sbk = m.sb != null ? m.sb : (() => {
+        const s = Number(m.s) || 0;
+        return s === 0 ? 0 : s < 7 ? 1 : s < 21 ? 2 : s < 66 ? 3 : 4;
+      })();
+      people.streaks[["0", "1-6", "7-20", "21-65", "66+"][sbk] || "0"]++;
       const c = Number(m.c) || 0;
       people.consistency[c < 40 ? "<40" : c < 60 ? "40-59" : c < 80 ? "60-79" : "80+"]++;
       if (m.h >= 0 && m.h < 24) people.hours[m.h]++;
-      people.openDays14 += Number(m.o) || 0;
+      people.opens[["0", "1-3", "4-7", "8-14"][Number(m.o) || 0] || "0"]++;
       if (m.ch >= 1) people.challenge.joined++;
       if (m.ch === 2) people.challenge.done++;
     }
     if (res.list_complete || !res.cursor) break;
     cursor = res.cursor;
   }
-  if (people.users) people.openDays14 = Math.round(people.openDays14 / people.users * 10) / 10;
   return respond({ success: true, days, people, tiers: import_rewards_engine.default.TIERS.map((t) => t.title) });
 }
 function countryOf(request) {
@@ -62116,9 +62124,11 @@ async function ensureInvite(env, userId, record) {
   }
   return "";
 }
+var histMem = null;
 async function cohort(env, now) {
+  if (histMem && now - histMem.at < HIST_TTL_MS) return histMem;
   const cached = await getJSON(env, "rewards_hist");
-  if (cached && now - cached.at < HIST_TTL_MS) return cached;
+  if (cached && now - cached.at < HIST_TTL_MS) return histMem = cached;
   if (typeof env.page_content.list !== "function") return null;
   const c = new Array(101).fill(0);
   let n = 0, cursor;
@@ -62135,7 +62145,7 @@ async function cohort(env, now) {
   }
   const hist = { n, c, at: now };
   await putJSON(env, "rewards_hist", hist, 2 * 86400);
-  return hist;
+  return histMem = hist;
 }
 function percentileOf(hist, value) {
   if (!hist || hist.n < MIN_COHORT || value == null) return null;
@@ -62173,7 +62183,7 @@ async function handleRewards(request, env, { respond, checkOwner, now = Date.now
   record.challenges = record.challenges || {};
   const status = import_rewards_engine.default.compute({ gameData: state.gameData || {}, calcDayScore, todayKey, challenge: record.challenges[month] });
   record.days = record.days || {};
-  for (const [k, p] of Object.entries(status.points.days)) if (!(record.days[k] >= p)) record.days[k] = p;
+  bankOldDays(record, status.points.days, todayKey);
   record.bonus = Math.max(Number(record.bonus) || 0, status.points.bonus);
   record.issued = record.issued || {};
   const events = [];
@@ -62198,30 +62208,34 @@ async function handleRewards(request, env, { respond, checkOwner, now = Date.now
     record.challengeBonus = (Number(record.challengeBonus) || 0) + import_rewards_engine.default.CHALLENGE_BONUS;
     events.push("challenge_done");
   }
-  if (b.opens && typeof b.opens === "object") record.opens = mergeOpens(record.opens, b.opens, now);
   await ensureInvite(env, userId, record);
-  const earned = earnedOf(record);
+  const earned = earnedOf(record, status.points.days);
   if (JSON.stringify(record) !== before) {
     record.updatedAt = new Date(now).toISOString();
     await putJSON(env, `rewards:${userId}`, record);
   }
   await Promise.all(events.map((e) => countEvent(env, e, 1, now)));
   const c30 = status.consistency.d30;
-  const os2 = import_rewards_engine.default.openStats(record.opens, todayKey);
-  const meta = {
-    c: c30 ?? 0,
-    s: status.streak,
-    t: status.tier ? status.tier.index : -1,
-    d: status.daysTracked,
-    o: os2.days14,
-    h: os2.usualHour ?? -1,
-    a: Math.floor(now / DAY_MS4),
-    ch: ch ? ch.done ? 2 : 1 : 0
-  };
+  const os2 = b.opens && typeof b.opens === "object" ? import_rewards_engine.default.openStats(b.opens, todayKey) : null;
+  const sb = (x) => x === 0 ? 0 : x < 7 ? 1 : x < 21 ? 2 : x < 66 ? 3 : 4;
+  const ob = (x) => x === 0 ? 0 : x < 4 ? 1 : x < 8 ? 2 : 3;
+  const today2 = Math.floor(now / DAY_MS4);
   if (status.daysTracked >= 1) {
     const prev = typeof env.page_content.getWithMetadata === "function" ? await env.page_content.getWithMetadata(`rstat:${userId}`).catch(() => null) : null;
     const pm = prev?.metadata || {};
-    if (!prev || ["c", "s", "t", "d", "o", "h", "ch"].some((k) => pm[k] !== meta[k]) || pm.a !== meta.a) {
+    const meta = {
+      c: Math.round((c30 ?? 0) / 5) * 5,
+      sb: sb(status.streak),
+      t: status.tier ? status.tier.index : -1,
+      d: Math.min(status.daysTracked, 7),
+      o: os2 ? ob(os2.days14) : pm.o ?? 0,
+      h: os2 ? os2.usualHour ?? -1 : pm.h ?? -1,
+      ch: ch ? ch.done ? 2 : 1 : 0,
+      a: pm.a ?? today2
+    };
+    const changed = !prev || ["c", "sb", "t", "d", "o", "h", "ch"].some((k) => pm[k] !== meta[k]);
+    if (changed || today2 - (Number(pm.a) || 0) >= 3) {
+      meta.a = today2;
       await env.page_content.put(`rstat:${userId}`, "", { expirationTtl: 60 * 86400, metadata: meta });
     }
   }
@@ -62238,6 +62252,7 @@ async function handleRewards(request, env, { respond, checkOwner, now = Date.now
     supplements: supplementsAllowed(country),
     offers: import_rewards_engine.default.OFFERS.filter((o) => o.kind !== "supplement" || supplementsAllowed(country)),
     challenge: ch ? { month, id: ch.id, joined: ch.joined, done: !!ch.done } : null,
+    content: contentCache.value || {},
     status: { streak: status.streak, tier: status.tier?.id || null, consistency: status.consistency }
   });
 }
@@ -62272,9 +62287,11 @@ async function handleRewardsRedeem(request, env, { respond, checkOwner, now = Da
   const offer = import_rewards_engine.default.offerById(String(b.offer || ""));
   if (!offer) return respond({ error: "bad_request" }, 400);
   if (offer.kind === "supplement" && !supplementsAllowed(countryOf(request))) return respond({ error: "region", message: "\u0414\u043E\u0431\u0430\u0432\u043A\u0438\u0442\u0435 \u0441\u0435 \u0434\u043E\u0441\u0442\u0430\u0432\u044F\u0442 \u0441\u0430\u043C\u043E \u0432 \u0411\u044A\u043B\u0433\u0430\u0440\u0438\u044F." }, 400);
-  const record = await getJSON(env, `rewards:${b.userId}`);
-  if (!record) return respond({ error: "points", message: "\u041E\u0449\u0435 \u043D\u044F\u043C\u0430\u0448 \u0442\u043E\u0447\u043A\u0438." }, 400);
-  const balance = earnedOf(record) - (Number(record.spent) || 0);
+  const record = await getJSON(env, `rewards:${b.userId}`) || emptyRecord();
+  const state = await getJSON(env, `game_state:${b.userId}`) || {};
+  const live = import_rewards_engine.default.compute({ gameData: state.gameData || {}, calcDayScore, todayKey: clientTodayKey(b.todayKey, now) }).points.days;
+  record.days = record.days || {};
+  const balance = earnedOf(record, live) - (Number(record.spent) || 0);
   if (balance < offer.cost) return respond({ error: "points", message: `\u041D\u0443\u0436\u043D\u0438 \u0441\u0430 ${offer.cost} \u0442\u043E\u0447\u043A\u0438, \u0438\u043C\u0430\u0448 ${balance}.`, balance }, 400);
   const g = grant(record, { code: import_rewards_engine.default.codeFor(offer.word, offer.pct), kind: offer.kind, pct: offer.pct, source: `offer:${offer.id}`, now });
   record.spent = (Number(record.spent) || 0) + offer.cost;
@@ -62358,7 +62375,7 @@ async function applyPlanDiscount(env, userId, meta, now = Date.now()) {
   }
 }
 async function handleRewardsContent(env, { respond }) {
-  const c = await getJSON(env, "rewards_content") || {};
+  const c = await loadContent(env) || {};
   const r = respond({ success: true, content: c });
   try {
     r.headers.set("Cache-Control", "public, max-age=300");

@@ -214,12 +214,26 @@ await check('стъпалата дават кодове веднъж; точки
   assert.equal(again.wallet.earned, first.wallet.earned);
 });
 
-await check('точките остават, когато старите дни изчезнат от gameData (пази се най-високото)', async () => {
-  const trimmed = Object.fromEntries(Object.entries(g40).slice(-10));
-  kv.set(`game_state:${A}`, JSON.stringify({ gameData: trimmed }));
-  const r = await rewards(A, { country: 'BG' });
-  assert.equal(r.wallet.earned, first.wallet.earned);
-  kv.set(`game_state:${A}`, JSON.stringify({ gameData: g40 }));
+await check('обичайната заявка не пише в KV; дните се банкират преди да изтекат и точките остават', async () => {
+  // повторна заявка без промяна → нито един запис
+  let puts = 0;
+  const realPut = env.page_content.put;
+  env.page_content.put = async (...x) => { puts++; return realPut(...x); };
+  await rewards(A, { country: 'BG' });
+  assert.equal(puts, 0);
+  env.page_content.put = realPut;
+  // 115 дни история → дните по-стари от 100 се банкират; после сливането ги изтрива (120+ дни) — точките остават
+  const U = 'fb_userBANKED1';
+  const nowB = Date.UTC(2026, 10, 20, 12);
+  const full = range('2026-07-28', '2026-11-20', () => day(3, 9000));
+  kv.set(`game_state:${U}`, JSON.stringify({ gameData: full }));
+  const call = async () => (await handleRewards(req({ userId: U, idToken: 'ok', todayKey: '2026-11-20' }, { country: 'BG' }), env, deps(nowB))).json();
+  const before = await call();
+  const rec = JSON.parse(kv.get(`rewards:${U}`));
+  assert.ok(Object.keys(rec.days).length >= 14 && Object.keys(rec.days).every((k) => k < '2026-08-12'));
+  kv.set(`game_state:${U}`, JSON.stringify({ gameData: range('2026-08-12', '2026-11-20', () => day(3, 9000)) }));
+  const after = await call();
+  assert.equal(after.wallet.earned, before.wallet.earned);
 });
 
 await check('добавки — само за България: от друга държава няма код и оферта за тях', async () => {
@@ -304,7 +318,8 @@ await check(`покана: −${INVITE_PCT}% за първия план; пок�
 await check('сравнението се появява при поне 200 активни', async () => {
   for (let i = 0; i < 210; i++) { const k = `rstat:fb_x${i}`; kv.set(k, ''); meta.set(k, { c: i % 100, s: 1 }); }
   kv.delete('rewards_hist');
-  const r = await rewards(A, { country: 'BG' });
+  // разпределението се пази 12 часа (в паметта и в KV) — заявката е след срока
+  const r = await (await handleRewards(req({ userId: A, idToken: 'ok', todayKey: today40 }, { country: 'BG' }), env, deps(NOW + 13 * 3600000))).json();
   assert.ok(r.percentile >= 90, `percentile ${r.percentile}`);
   assert.ok(r.cohort >= 200);
 });
@@ -356,14 +371,14 @@ await check('събития и отчет: позволените от теле�
   assert.equal((await ev('share_week')).success, true);
   assert.equal((await ev('invite_visit')).success, true);
   assert.equal((await ev('drop_table')).error, 'type');
-  // влизанията отиват в записа и в резюмето
+  // влизанията — само в резюмето (група 1–3 дни → 1), не в записа
   const U = 'fb_userOPENS1';
   kv.set(`game_state:${U}`, JSON.stringify({ gameData: range('2026-11-01', '2026-11-21', () => day(3)) }));
   const hours = new Array(24).fill(0); hours[21] = 4;
   await handleRewards(req({ userId: U, idToken: 'ok', todayKey: '2026-11-21', opens: { days: { '2026-11-20': 1, '2026-11-21': 2 }, hours, last: nowE, prev: nowE - DAY } }), env, deps(nowE));
-  assert.deepEqual(JSON.parse(kv.get(`rewards:${U}`)).opens.days, { '2026-11-20': 1, '2026-11-21': 2 });
+  assert.equal(JSON.parse(kv.get(`rewards:${U}`)).opens, undefined);
   assert.equal(meta.get(`rstat:${U}`).h, 21);
-  assert.equal(meta.get(`rstat:${U}`).o, 2);
+  assert.equal(meta.get(`rstat:${U}`).o, 1);
   const rep = await (await handleAdminRewardsReport(new URL('https://w/x?days=7'), env, { respond, now: nowE })).json();
   const last = rep.days[rep.days.length - 1];
   assert.equal(last.day, '2026-11-21');
@@ -371,6 +386,7 @@ await check('събития и отчет: позволените от теле�
   assert.equal(last.counts.invite_visit, 1);
   assert.ok(rep.people.users >= 1);
   assert.equal(rep.people.tiers.length, 5);
+  assert.equal(rep.people.opens['1-3'] >= 1, true);
   assert.ok(!JSON.stringify(rep).includes('fb_'));         // без идентификатори
 });
 
