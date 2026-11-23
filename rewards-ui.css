@@ -99,6 +99,22 @@
 .rw-record b { display: block; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ds-text-primary, var(--text-color)); }
 .rw-record span { font-size: 12px; color: var(--ds-text-tertiary, var(--text-light)); }
 
+/* ── Седмицата и предизвикателството ─────────────────────────────────────── */
+.rw-week { margin-top: 12px; }
+.rw-week-big { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 6px; }
+.rw-week-big b { font-size: 40px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ds-green-text); }
+.rw-week-big span { font-size: 15px; color: var(--ds-text-secondary, var(--text-light)); }
+.rw-week p + p { margin-top: 4px; }
+.rw-week-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.rw-week-chips span { padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: var(--card-bg, #fff); border: 1px solid var(--ds-line); color: var(--ds-text-primary, var(--text-color)); font-variant-numeric: tabular-nums; }
+.rw-week-actions { display: flex; gap: 8px; margin-top: 12px; }
+.rw-week-actions .rw-btn--main { flex: 1; justify-content: center; }
+.rw-ch-title { display: block; font-size: 16px; margin-bottom: 6px; color: var(--ds-text-primary, var(--text-color)); }
+.rw-ch-dots { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 8px 0 10px; }
+.rw-ch-dots i { height: 8px; border-radius: 99px; background: var(--ds-track); }
+.rw-ch-dots i.on { background: var(--ds-fill-grad, var(--brand-gradient)); }
+.rw-challenge.is-done .rw-ch-title { color: var(--ds-green-text); }
+
 /* ── Тържеството ─────────────────────────────────────────────────────────── */
 .rw-moment {
     position: fixed; inset: 0; z-index: 10050;

@@ -26,9 +26,18 @@
         weightLose: 'Етап при сваляне ({pct})', weightGain: 'Етап при качване ({pct})', weightText: 'Текст при етап на теглото',
         weightShareLose: 'Споделяне — сваляне', weightShareGain: 'Споделяне — качване',
         codesTitle: 'Заглавие: отстъпките', codesEmpty: 'Още без отстъпки', pointsTitle: 'Заглавие: точките', pointsText: 'Обяснение на точките',
-        pathTitle: 'Заглавие: нивата', pathNote: 'Бележка под нивата', inviteTitle: 'Заглавие: покана', inviteText: 'Текст на поканата ({pct} {reward})',
+        pathTitle: 'Заглавие: нивата', pathNote: 'Бележка под нивата', inviteTitle: 'Заглавие: покана', inviteText: 'Текст на поканата ({pct} {reward})', inviteTextApp: 'Текст на поканата в приложението (без цени)',
         inviteShare: 'Покана — на картата за споделяне', redeemTitle: 'Поздрав при отстъпка срещу точки',
-        shareTagline: 'Долу на картата за споделяне', shareInvite: 'Кодът на картата за споделяне ({code})'
+        shareTagline: 'Долу на картата за споделяне', shareInvite: 'Кодът на картата за споделяне ({code})',
+        weekTitle: 'Седмицата: заглавие', weekGood: 'Седмицата: добри дни ({good})', weekUp: 'Седмицата: по-силна ({d})',
+        weekSame: 'Седмицата: същият ритъм', weekDown: 'Седмицата: по-тиха', weekBest: 'Седмицата: най-силният ден ({day} {eng})',
+        weekNotifyTitle: 'Известие в неделя: заглавие', weekNotifyBody: 'Известие в неделя: текст',
+        challengeTitle: 'Предизвикателство: заглавие на картата', challengeJoin: 'Предизвикателство: бутон', challengeJoined: 'Предизвикателство: след приемане',
+        challengeLate: 'Предизвикателство: късно за месеца ({target})', challengeBehind: 'Предизвикателство: изоставане ({n} {left})',
+        challengeDone: 'Предизвикателство: изпълнено', challengeDoneText: 'Предизвикателство: изпълнено, текст ({bonus})',
+        challengeNotifyBody: 'Напомняне за предизвикателството ({n} {title})', newMonthNotifyTitle: 'Известие на 1-во число: заглавие',
+        newMonthNotifyBody: 'Известие на 1-во число: текст ({title})', comeback: 'Добре дошъл обратно (след 3+ дни)',
+        inviteLandingTitle: 'Лендинг за поканени: заглавие', inviteLandingText: 'Лендинг за поканени: текст ({pct})'
     };
 
     function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -43,7 +52,8 @@
             tiers: RE.TIERS.map(function (t) { return { id: t.id, days: t.days, minEng: t.minEng, rewards: t.rewards, title: t.title, moment: t.moment, text: t.text, share: t.share, word: t.word, image: t.image }; }),
             streaks: RE.STREAKS.map(function (s) { return { days: s.days, moment: s.moment, text: s.text, share: s.share }; }),
             texts: Object.assign({}, RE.TEXTS),
-            words: { offer: RE.OFFERS[0].word, thanks: RE.WORDS.thanks }
+            words: { offer: RE.OFFERS[0].word, thanks: RE.WORDS.thanks },
+            challenges: RE.CHALLENGES.map(function (c) { return { id: c.id, title: c.title, text: c.text }; })
         };
     }
 
@@ -91,6 +101,11 @@
                 field(['streaks', String(s.days), 'share'], 'За споделяне', s.share);
         });
         h += '</div>';
+        h += '<div class="card"><h3 style="margin-top:0">Месечни предизвикателства</h3><div style="font-size:12px;color:#666;margin-bottom:12px">Едно на месец, по ред; „крачки“ — само за хората с измерени крачки (иначе „добри дни“). Цел: ' + RE.CHALLENGE_TARGET + ' дни, бонус ' + RE.CHALLENGE_BONUS + ' точки.</div>';
+        d.challenges.forEach(function (c) {
+            h += field(['challenges', c.id, 'title'], 'Име (' + c.id + ')', c.title) + field(['challenges', c.id, 'text'], 'Описание', c.text, true);
+        });
+        h += '</div>';
         h += '<div class="card"><h3 style="margin-top:0">Други снимки</h3>' + imageBox('weight') + imageBox('invite') + imageBox('share') + '</div>';
         h += '<div class="card"><h3 style="margin-top:0">Думи на другите кодове</h3>' +
             field(['words', 'offer'], 'Отстъпка срещу точки → ' + RE.codeFor(get(content, ['words', 'offer']) || d.words.offer, 10), d.words.offer) +
@@ -110,7 +125,7 @@
     }
 
     function collect() {
-        var out = { tiers: {}, streaks: {}, texts: {}, words: {} };
+        var out = { tiers: {}, streaks: {}, challenges: {}, texts: {}, words: {} };
         el('rewardsAdmin').querySelectorAll('[data-path]').forEach(function (f) {
             var v = f.value.trim();
             if (!v) return;
@@ -122,7 +137,64 @@
         return out;
     }
 
+    var EVENT_LABEL = {
+        level_start: 'Ново ниво: 1', level_steady: 'Ново ниво: 2', level_habit: 'Ново ниво: 3', level_lifestyle: 'Ново ниво: 4',
+        code_supplement: 'Дадени кодове: добавки', code_plan: 'Дадени кодове: план', redeem_plan10: 'Точки → план', redeem_supp10: 'Точки → добавки',
+        plan_reward_used: 'Използван код в плащане', partner_redeem: 'Използван код в магазин',
+        share_moment: 'Споделяне: тържество', share_section: 'Споделяне: от картата', share_invite: 'Споделяне: покана',
+        share_week: 'Споделяне: седмицата', share_challenge: 'Споделяне: предизвикателство',
+        invite_visit: 'Покана: посещение', invite_signup: 'Покана: въпросник', invite_buy: 'Покана: купен план',
+        week_view: 'Седмицата: видяна', challenge_join: 'Предизвикателство: прието', challenge_done: 'Предизвикателство: изпълнено',
+        comeback: 'Връщане след 3+ дни'
+    };
+    function renderReport(r) {
+        var box = el('rewardsReport');
+        if (!box || !r) return;
+        var tot30 = {}, tot7 = {};
+        r.days.forEach(function (d, i) {
+            Object.keys(d.counts).forEach(function (k) {
+                tot30[k] = (tot30[k] || 0) + d.counts[k];
+                if (i >= r.days.length - 7) tot7[k] = (tot7[k] || 0) + d.counts[k];
+            });
+        });
+        var p = r.people;
+        var kpi = function (v, l) { return '<div style="flex:1;min-width:120px;padding:12px;border-radius:12px;background:#f3f8f6"><div style="font-size:22px;font-weight:800">' + esc(v) + '</div><div style="font-size:12px;color:#666">' + esc(l) + '</div></div>'; };
+        var pct = function (a, b) { return b ? Math.round(a / b * 100) + '%' : '—'; };
+        var h = '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">' +
+            kpi(p.users, 'с история') + kpi(p.active7 + ' · ' + pct(p.active7, p.users), 'активни 7 дни') + kpi(p.active30, 'активни 30 дни') +
+            kpi(p.openDays14, 'средно дни с отваряне от 14') + kpi(p.challenge.joined + ' / ' + p.challenge.done, 'предизвикателство: приели / изпълнили') +
+            kpi(pct(tot30.invite_buy || 0, tot30.invite_visit || 0), 'покана: посещение → покупка (30 дни)') + '</div>';
+        var bar = function (obj, labels) {
+            var max = Math.max.apply(null, Object.keys(obj).map(function (k) { return obj[k]; }).concat([1]));
+            return Object.keys(obj).map(function (k, i) {
+                return '<div style="display:flex;align-items:center;gap:8px;font-size:13px;margin:3px 0"><span style="width:130px">' + esc(labels ? labels[i] : k) + '</span>' +
+                    '<span style="flex:1;height:10px;background:#e8efec;border-radius:6px;overflow:hidden"><i style="display:block;height:100%;width:' + Math.round(obj[k] / max * 100) + '%;background:#14935A"></i></span><b style="width:40px;text-align:right">' + obj[k] + '</b></div>';
+            }).join('');
+        };
+        var tiers = {}; ['Без ниво'].concat(r.tiers).forEach(function (t, i) { tiers[t] = p.tiers[i] || 0; });
+        h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px">' +
+            '<div><h4>Нива</h4>' + bar(tiers) + '</div>' +
+            '<div><h4>Поредица (дни)</h4>' + bar(p.streaks) + '</div>' +
+            '<div><h4>Постоянство за 30 дни</h4>' + bar(p.consistency) + '</div>' +
+            '<div><h4>Обичаен час на отваряне</h4>' + bar((function () { var o = {}; p.hours.forEach(function (v, i) { if (v) o[(i < 10 ? '0' : '') + i + ':00'] = v; }); return o; })()) + '</div></div>';
+        var keys = Object.keys(EVENT_LABEL).filter(function (k) { return tot30[k]; }).concat(Object.keys(tot30).filter(function (k) { return !EVENT_LABEL[k]; }));
+        h += '<h4 style="margin-top:18px">Събития</h4>' + (keys.length
+            ? '<table style="width:100%;border-collapse:collapse;font-size:14px"><tr><th style="text-align:left">Събитие</th><th>7 дни</th><th>30 дни</th></tr>' +
+              keys.map(function (k) { return '<tr style="border-top:1px solid #e5ece9"><td>' + esc(EVENT_LABEL[k] || k) + '</td><td style="text-align:center">' + (tot7[k] || 0) + '</td><td style="text-align:center">' + (tot30[k] || 0) + '</td></tr>'; }).join('') + '</table>'
+            : '<p style="color:#666">Още няма събития.</p>');
+        box.innerHTML = h;
+    }
+
+    async function loadReport() {
+        try {
+            var r = await fetch(WORKER + '/api/admin/rewards/report?days=30');
+            var d = await r.json();
+            if (d && d.success) renderReport(d); else el('rewardsReport').innerHTML = '<p>Отчетът не се зареди (' + esc(d && d.error || r.status) + ').</p>';
+        } catch (e) { el('rewardsReport').innerHTML = '<p>Отчетът не се зареди.</p>'; }
+    }
+
     async function load() {
+        loadReport();
         if (!RE) { el('rewardsAdmin').innerHTML = '<p>rewards-engine.js не е зареден.</p>'; return; }
         if (!defaults) snapshotDefaults();
         try {

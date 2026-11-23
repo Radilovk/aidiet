@@ -4,12 +4,16 @@
  * трябва да е на едно място: точките, кодовете за отстъпка и поканите.
  *
  * KV:
- *   rewards:<userId>     { days: { ден: точки }, bonus, spent, issued: { 'tier:start': време },
+ *   rewards:<userId>     { days: { ден: точки }, bonus, spent, issued: { 'tier:start:supplement': време },
  *                          grants: [{ code, kind, pct, until, source, left, used: [...] }],
  *                          invite, invited: [userId…], inviteBonus, updatedAt }
  *   invite:<КОД>         userId — личният код за покана (DUO482)
  *   invite_used:<userId> кодът, с който е купил първия си план (поканата важи веднъж)
- *   rstat:<userId>       '' с metadata { c: постоянство за 30 дни, s: поредица } — за сравнението
+ *   rstat:<userId>       '' с metadata { c: постоянство 30 дни, s: поредица, t: ниво, d: дни история, o: дни с
+ *                        отваряне от 14, h: обичаен час, a: последен ден (дни от 1970), ch: предизвикателство 0/1/2 }
+ *                        — за сравнението и отчета (KV list чете metadata без отделни заявки)
+ *   rev:<ден>:<0-3>      { събитие: брой } — броячи за отчета (countEvent), без лични данни
+ *   rewards:<userId>     … + challenges: { 'YYYY-MM': { id, joined, done } }, challengeBonus, opens
  *   rewards_hist         { n, c: [брой по 0…100], at } — разпределението, наново на 12 часа
  *   rewards_content      текстове, думи на кодовете и снимки от админ панела (applyContent в rewards-engine.js)
  *   rewards_img:<тема>   качена снимка (data URL) → GET /api/rewards/image/<тема>
@@ -24,6 +28,7 @@
  */
 import Rewards from './rewards-engine.js';
 import { calcDayScore, dateKey } from './analytics-compression.js';
+import { mergeGameData } from './game-data-merge.js';
 
 const DAY_MS = 86400000;
 const CODE_DAYS = 60;            // срок на кода за отстъпка
@@ -55,6 +60,91 @@ export async function loadContent(env, now = Date.now()) {
   return contentCache.value;
 }
 const emptyRecord = () => ({ days: {}, bonus: 0, spent: 0, issued: {}, grants: [], invited: [], inviteBonus: 0 });
+/** Спечеленото: дните (всеки пази най-високото си число) + бонусите за етапи, покани и предизвикателства. */
+const earnedOf = (r) => Object.values(r?.days || {}).reduce((s, p) => s + (Number(p) || 0), 0)
+  + (Number(r?.bonus) || 0) + (Number(r?.inviteBonus) || 0) + (Number(r?.challengeBonus) || 0);
+
+/** Влизанията: дни (последните 60, най-голямото число за ден) и часове (24 брояча от телефона). */
+function mergeOpens(prev, next, now) {
+  const days = { ...(prev?.days || {}) };
+  for (const [k, n] of Object.entries(next?.days || {})) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && Number(n) > 0) days[k] = Math.max(Number(days[k]) || 0, Math.min(500, Number(n)));
+  }
+  const cut = new Date(now - 60 * DAY_MS).toISOString().slice(0, 10);
+  const hours = Array.isArray(next?.hours) && next.hours.length === 24 ? next.hours.map((x) => Math.max(0, Math.min(5000, Number(x) || 0))) : (prev?.hours || null);
+  return {
+    days: Object.fromEntries(Object.entries(days).filter(([k]) => k >= cut)),
+    hours, last: Number(next?.last) || prev?.last || null, prev: Number(next?.prev) || prev?.prev || null,
+  };
+}
+
+// ── Събитията за отчета ─────────────────────────────────────────────────────
+// Брояч по дни, без лични данни: rev:<ден>:<0-3> { събитие: брой }. Разделен на 4 ключа (KV приема
+// около 1 запис в секунда на ключ); при сблъсък броят е приблизителен — за отчет е достатъчно.
+const EVENT_SHARDS = 4;
+export const CLIENT_EVENTS = ['share_moment', 'share_section', 'share_invite', 'share_week', 'share_challenge', 'invite_visit', 'week_view', 'comeback'];
+const EVENT_RE = /^[a-z][a-z0-9_]{2,40}$/;
+
+export async function countEvent(env, name, n = 1, now = Date.now()) {
+  if (!EVENT_RE.test(name) || !env?.page_content) return;
+  try {
+    const key = `rev:${new Date(now).toISOString().slice(0, 10)}:${Math.floor(Math.random() * EVENT_SHARDS)}`;
+    const cur = (await getJSON(env, key)) || {};
+    cur[name] = (Number(cur[name]) || 0) + n;
+    await putJSON(env, key, cur, 400 * 86400);
+  } catch (_) { /* отчетът не пречи на заявката */ }
+}
+
+/** POST /api/rewards/event { type } — събитие от телефона (споделяне, посещение от покана…). */
+export async function handleRewardsEvent(request, env, { respond, now = Date.now() }) {
+  const b = await request.json().catch(() => ({}));
+  if (!CLIENT_EVENTS.includes(b.type)) return respond({ error: 'type' }, 400);
+  await countEvent(env, b.type, 1, now);
+  return respond({ success: true });
+}
+
+/**
+ * GET /api/admin/rewards/report?days=30 — събитията по дни и картината на хората
+ * (от metadata на rstat:*: ниво, поредица, постоянство, влизания, предизвикателство).
+ */
+export async function handleAdminRewardsReport(url, env, { respond, now = Date.now() }) {
+  const n = Math.max(1, Math.min(90, Number(url.searchParams.get('days')) || 30));
+  const days = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const day = new Date(now - i * DAY_MS).toISOString().slice(0, 10);
+    const parts = await Promise.all([...Array(EVENT_SHARDS)].map((_, sh) => getJSON(env, `rev:${day}:${sh}`)));
+    const counts = {};
+    parts.forEach((p) => Object.entries(p || {}).forEach(([k, v]) => { counts[k] = (counts[k] || 0) + (Number(v) || 0); }));
+    days.push({ day, counts });
+  }
+  const today = Math.floor(now / DAY_MS);
+  const people = { users: 0, active7: 0, active30: 0, tiers: [0, 0, 0, 0, 0], streaks: { '0': 0, '1-6': 0, '7-20': 0, '21-65': 0, '66+': 0 },
+    consistency: { '<40': 0, '40-59': 0, '60-79': 0, '80+': 0 }, hours: new Array(24).fill(0), openDays14: 0, challenge: { joined: 0, done: 0 } };
+  let cursor;
+  for (let page = 0; page < 30 && typeof env.page_content.list === 'function'; page++) {
+    const res = await env.page_content.list({ prefix: 'rstat:', cursor });
+    for (const k of res.keys || []) {
+      const m = k.metadata || {};
+      people.users++;
+      if (m.a != null && today - m.a < 7) people.active7++;
+      if (m.a != null && today - m.a < 30) people.active30++;
+      people.tiers[(Number.isFinite(m.t) ? m.t : -1) + 1]++;
+      const s = Number(m.s) || 0;
+      people.streaks[s === 0 ? '0' : s < 7 ? '1-6' : s < 21 ? '7-20' : s < 66 ? '21-65' : '66+']++;
+      const c = Number(m.c) || 0;
+      people.consistency[c < 40 ? '<40' : c < 60 ? '40-59' : c < 80 ? '60-79' : '80+']++;
+      if (m.h >= 0 && m.h < 24) people.hours[m.h]++;
+      people.openDays14 += Number(m.o) || 0;
+      if (m.ch >= 1) people.challenge.joined++;
+      if (m.ch === 2) people.challenge.done++;
+    }
+    if (res.list_complete || !res.cursor) break;
+    cursor = res.cursor;
+  }
+  if (people.users) people.openDays14 = Math.round(people.openDays14 / people.users * 10) / 10;
+  return respond({ success: true, days, people, tiers: Rewards.TIERS.map((t) => t.title) });
+}
+
 
 function countryOf(request) {
   const c = request?.cf?.country || request?.headers?.get?.('CF-IPCountry') || '';
@@ -106,6 +196,7 @@ async function cohort(env, now) {
   for (let page = 0; page < 30; page++) {
     const res = await env.page_content.list({ prefix: 'rstat:', cursor });
     for (const k of res.keys || []) {
+      if (k.metadata?.d != null && k.metadata.d < 7) continue;   // сравнение — само с поне седмица история
       const v = Math.max(0, Math.min(100, Math.round(Number(k.metadata?.c) || 0)));
       c[v]++; n++;
     }
@@ -137,7 +228,7 @@ function clientTodayKey(raw, now) {
 
 /**
  * Състоянието и портфейлът: смята наново от сливаните дни, дава кодовете за новите стъпала.
- * POST /api/user/rewards { userId, idToken, todayKey? }
+ * POST /api/user/rewards { userId, idToken, todayKey?, gameData? }
  */
 export async function handleRewards(request, env, { respond, checkOwner, now = Date.now() }) {
   const b = await request.json().catch(() => ({}));
@@ -147,41 +238,76 @@ export async function handleRewards(request, env, { respond, checkOwner, now = D
   const userId = b.userId;
   await loadContent(env, now);
   const state = (await getJSON(env, `game_state:${userId}`)) || {};
-  const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey: clientTodayKey(b.todayKey, now) });
+  // Ново ниво на телефона, което общото копие още не е видяло (sync-analytics върви с отлагане):
+  // телефонът праща дните си и те се сливат по същия начин (game-data-merge.js), за да дойде кодът веднага.
+  if (b.gameData && typeof b.gameData === 'object' && !Array.isArray(b.gameData)) {
+    const merged = mergeGameData(state.gameData || {}, b.gameData);
+    if (JSON.stringify(merged) !== JSON.stringify(state.gameData || {})) {
+      state.gameData = merged;
+      await putJSON(env, `game_state:${userId}`, { ...state, gameData: merged, updatedAt: new Date(now).toISOString() }, 365 * 86400);
+    }
+  }
+  const todayKey = clientTodayKey(b.todayKey, now);
   const record = (await getJSON(env, `rewards:${userId}`)) || emptyRecord();
   const before = JSON.stringify(record);
+  const month = Rewards.monthOf(todayKey);
+  record.challenges = record.challenges || {};
+  const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey, challenge: record.challenges[month] });
   record.days = record.days || {};
   for (const [k, p] of Object.entries(status.points.days)) if (!(record.days[k] >= p)) record.days[k] = p;
   record.bonus = Math.max(Number(record.bonus) || 0, status.points.bonus);
   record.issued = record.issued || {};
+  const events = [];
 
-  // Кодовете за нивата — веднъж за ниво.
+  // Кодовете за нивата. Всяка награда на нивото се помни поотделно (tier:steady:supplement): код за
+  // добавки, пропуснат заради заявка от чужбина, идва при следващото отваряне от България. Старите
+  // записи (tier:steady) — всички награди на нивото са дадени.
   const country = countryOf(request);
   const fresh = [];
   for (const m of status.milestones) {
     if (m.kind !== 'tier' || record.issued[m.id]) continue;
-    record.issued[m.id] = now;
     const tier = Rewards.tierById(m.tier);
+    if (!Object.keys(record.issued).some((k) => k.startsWith(m.id + ':'))) events.push(`level_${m.tier}`);
     for (const r of tier.rewards) {
+      const key = `${m.id}:${r.kind}`;
+      if (record.issued[key]) continue;
       if (r.kind === 'supplement' && !supplementsAllowed(country)) continue;
+      record.issued[key] = now;
+      events.push(`code_${r.kind}`);
       fresh.push(publicCode(grant(record, { code: Rewards.codeFor(tier.word, r.pct), kind: r.kind, pct: r.pct, source: m.id, now })));
     }
   }
+  // Изпълненото месечно предизвикателство — бонус веднъж.
+  const ch = record.challenges[month];
+  if (ch && status.challenge?.done && !ch.done) {
+    ch.done = now;
+    record.challengeBonus = (Number(record.challengeBonus) || 0) + Rewards.CHALLENGE_BONUS;
+    events.push('challenge_done');
+  }
+  // Влизанията (np_opens на телефона): дни → най-голямото, часовете — последните от телефона.
+  if (b.opens && typeof b.opens === 'object') record.opens = mergeOpens(record.opens, b.opens, now);
   await ensureInvite(env, userId, record);
 
-  const earned = Object.values(record.days).reduce((s, p) => s + (Number(p) || 0), 0) + record.bonus + (Number(record.inviteBonus) || 0);
+  const earned = earnedOf(record);
   if (JSON.stringify(record) !== before) {
     record.updatedAt = new Date(now).toISOString();
     await putJSON(env, `rewards:${userId}`, record);
   }
+  await Promise.all(events.map((e) => countEvent(env, e, 1, now)));
 
-  // Сравнението: собственото постоянство в metadata (пише се само при промяна), после делът под него.
+  // Отчетът и сравнението: кратко резюме в metadata (пише се само при промяна) — без четене на записите.
   const c30 = status.consistency.d30;
-  if (status.daysTracked >= 7 && c30 != null) {
+  const os = Rewards.openStats(record.opens, todayKey);
+  const meta = {
+    c: c30 ?? 0, s: status.streak, t: status.tier ? status.tier.index : -1, d: status.daysTracked,
+    o: os.days14, h: os.usualHour ?? -1, a: Math.floor(now / DAY_MS), ch: ch ? (ch.done ? 2 : 1) : 0,
+  };
+  if (status.daysTracked >= 1) {
     const prev = typeof env.page_content.getWithMetadata === 'function'
       ? await env.page_content.getWithMetadata(`rstat:${userId}`).catch(() => null) : null;
-    if (!prev || prev.metadata?.c !== c30 || prev.metadata?.s !== status.streak) {
-      await env.page_content.put(`rstat:${userId}`, '', { expirationTtl: 40 * 86400, metadata: { c: c30, s: status.streak } });
+    const pm = prev?.metadata || {};
+    if (!prev || ['c', 's', 't', 'd', 'o', 'h', 'ch'].some((k) => pm[k] !== meta[k]) || pm.a !== meta.a) {
+      await env.page_content.put(`rstat:${userId}`, '', { expirationTtl: 60 * 86400, metadata: meta });
     }
   }
   const hist = status.daysTracked >= 7 ? await cohort(env, now).catch(() => null) : null;
@@ -192,12 +318,41 @@ export async function handleRewards(request, env, { respond, checkOwner, now = D
     wallet: { earned, spent: Number(record.spent) || 0, balance: earned - (Number(record.spent) || 0) },
     codes, fresh,
     invite: { code: record.invite || '', count: (record.invited || []).length, pct: INVITE_PCT, reward: INVITER_PCT },
-    percentile: percentileOf(hist, c30),
+    percentile: status.daysTracked >= 7 ? percentileOf(hist, c30) : null,
     cohort: hist && hist.n >= MIN_COHORT ? hist.n : null,
     supplements: supplementsAllowed(country),
     offers: Rewards.OFFERS.filter((o) => o.kind !== 'supplement' || supplementsAllowed(country)),
+    challenge: ch ? { month, id: ch.id, joined: ch.joined, done: !!ch.done } : null,
     status: { streak: status.streak, tier: status.tier?.id || null, consistency: status.consistency },
   });
+}
+
+/**
+ * Приемане на месечното предизвикателство. POST /api/user/rewards/challenge { userId, idToken, todayKey }
+ * Предизвикателството е това на месеца за човека (с крачки или без) — записва се кое е, за да не се смени.
+ */
+export async function handleRewardsChallenge(request, env, { respond, checkOwner, now = Date.now() }) {
+  const b = await request.json().catch(() => ({}));
+  if (!okUser(b.userId)) return respond({ error: 'account' }, 400);
+  const authError = await checkOwner(b.userId, b.idToken, env, request);
+  if (authError) return authError;
+  await loadContent(env, now);
+  const todayKey = clientTodayKey(b.todayKey, now);
+  const state = (await getJSON(env, `game_state:${b.userId}`)) || {};
+  const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey });
+  const c = status.challenge || Rewards.compute({ gameData: { [todayKey]: {} }, calcDayScore, todayKey }).challenge;
+  if (!c || !c.canJoin) return respond({ error: 'late', message: Rewards.text('challengeLate', { target: Rewards.CHALLENGE_TARGET }) }, 400);
+  const record = (await getJSON(env, `rewards:${b.userId}`)) || emptyRecord();
+  record.challenges = record.challenges || {};
+  if (!record.challenges[c.month]) {
+    record.challenges[c.month] = { id: c.id, joined: todayKey };
+    // само последните 12 месеца
+    record.challenges = Object.fromEntries(Object.entries(record.challenges).sort().slice(-12));
+    record.updatedAt = new Date(now).toISOString();
+    await putJSON(env, `rewards:${b.userId}`, record);
+    await countEvent(env, 'challenge_join', 1, now);
+  }
+  return respond({ success: true, challenge: { month: c.month, ...record.challenges[c.month] } });
 }
 
 /** Точки → код. POST /api/user/rewards/redeem { userId, idToken, offer } */
@@ -212,13 +367,13 @@ export async function handleRewardsRedeem(request, env, { respond, checkOwner, n
   if (offer.kind === 'supplement' && !supplementsAllowed(countryOf(request))) return respond({ error: 'region', message: 'Добавките се доставят само в България.' }, 400);
   const record = await getJSON(env, `rewards:${b.userId}`);
   if (!record) return respond({ error: 'points', message: 'Още нямаш точки.' }, 400);
-  const earned = Object.values(record.days || {}).reduce((s, p) => s + (Number(p) || 0), 0) + (Number(record.bonus) || 0) + (Number(record.inviteBonus) || 0);
-  const balance = earned - (Number(record.spent) || 0);
+  const balance = earnedOf(record) - (Number(record.spent) || 0);
   if (balance < offer.cost) return respond({ error: 'points', message: `Нужни са ${offer.cost} точки, имаш ${balance}.`, balance }, 400);
   const g = grant(record, { code: Rewards.codeFor(offer.word, offer.pct), kind: offer.kind, pct: offer.pct, source: `offer:${offer.id}`, now });
   record.spent = (Number(record.spent) || 0) + offer.cost;
   record.updatedAt = new Date(now).toISOString();
   await putJSON(env, `rewards:${b.userId}`, record);
+  await countEvent(env, `redeem_${offer.id}`, 1, now);
   return respond({ success: true, code: publicCode(g), balance: balance - offer.cost });
 }
 
@@ -260,6 +415,7 @@ export async function handlePartnerVerify(request, env, { respond, now = Date.no
     g.left -= 1;
     g.used = [...(g.used || []), { at: now, by: 'partner', order: String(b.order || '').slice(0, 64) }].slice(-10);
     await putJSON(env, `rewards:${userId}`, record);
+    await countEvent(env, 'partner_redeem', 1, now);
   }
   return respond({ valid: true, kind: g.kind, pct: g.pct, until: g.until, left: g.left, region: g.region || null, redeemed: !!b.redeem });
 }
@@ -289,13 +445,14 @@ export async function applyPlanDiscount(env, userId, meta, now = Date.now()) {
   if (okRewardCode(meta.reward)) {
     const record = await getJSON(env, `rewards:${userId}`);
     const g = findGrant(record, meta.reward, 'plan', now);
-    if (g) { g.left -= 1; g.used = [...(g.used || []), { at: now, by: 'plan' }].slice(-10); await putJSON(env, `rewards:${userId}`, record); }
+    if (g) { g.left -= 1; g.used = [...(g.used || []), { at: now, by: 'plan' }].slice(-10); await putJSON(env, `rewards:${userId}`, record); await countEvent(env, 'plan_reward_used', 1, now); }
   }
   if (okInvite(meta.invite)) {
     if (await env.page_content.get(`invite_used:${userId}`)) return;
     const owner = await env.page_content.get(`invite:${meta.invite}`);
     await env.page_content.put(`invite_used:${userId}`, meta.invite);
     if (!owner || owner === userId) return;
+    await countEvent(env, 'invite_buy', 1, now);
     await loadContent(env, now);
     const rec = (await getJSON(env, `rewards:${owner}`)) || { ...emptyRecord(), invite: meta.invite };
     if ((rec.invited || []).includes(userId)) return;
@@ -322,7 +479,7 @@ export async function handleAdminRewardsContent(request, env, { respond }) {
   const b = await request.json().catch(() => ({}));
   const c = b.content && typeof b.content === 'object' ? b.content : {};
   const prev = (await getJSON(env, 'rewards_content')) || {};
-  const clean = { tiers: c.tiers || {}, streaks: c.streaks || {}, texts: c.texts || {}, words: c.words || {}, images: prev.images || {} };
+  const clean = { tiers: c.tiers || {}, streaks: c.streaks || {}, challenges: c.challenges || {}, texts: c.texts || {}, words: c.words || {}, images: prev.images || {} };
   const size = JSON.stringify(clean).length;
   if (size > 60000) return respond({ error: 'too_big' }, 400);
   Rewards.applyContent(clean);   // проверка: хвърля ли нещо
@@ -361,4 +518,12 @@ export async function handleRewardsImage(theme, env) {
   const type = data.slice(5, data.indexOf(';'));
   const bin = Uint8Array.from(atob(data.slice(data.indexOf(',') + 1)), (ch) => ch.charCodeAt(0));
   return new Response(bin, { headers: { 'Content-Type': type, 'Cache-Control': 'public, max-age=31536000, immutable', 'Access-Control-Allow-Origin': '*' } });
+}
+
+/** Ново запитване от въпросника с покана (save-client-data) → събитие за отчета, ако кодът е истински. */
+export async function noteInviteSignup(env, code, now = Date.now()) {
+  const c = normCode(code);
+  if (!okInvite(c) || !(await env.page_content.get(`invite:${c}`))) return false;
+  await countEvent(env, 'invite_signup', 1, now);
+  return true;
 }

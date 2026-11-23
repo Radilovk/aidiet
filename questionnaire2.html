@@ -4157,6 +4157,8 @@
                 const clientData = { id: clientId, timestamp: new Date().toISOString(), answers: cleanAnswers };
                 const partnerRef = window.NutriPlanPartnerRef ? window.NutriPlanPartnerRef.get() : '';
                 if (partnerRef) clientData.partnerRef = partnerRef;
+                const invite = window.NutriPlanPartnerRef && NutriPlanPartnerRef.invite ? NutriPlanPartnerRef.invite() : '';
+                if (invite) clientData.invite = invite;
                 const postClient = () => fetch('https://aidiet.radilov-k.workers.dev/api/save-client-data', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

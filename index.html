@@ -88,6 +88,7 @@
     <script src="./platform-compat.js"></script>
     <script src="./meal-swaps.js"></script>
     <script src="./partner-ref.js"></script>
+    <script src="./invite-welcome.js" defer></script>
     <script src="./plan-sync.js"></script>
     <script src="./enrichment-client.js"></script>
     <script src="./health-apps.js"></script>
@@ -737,6 +738,17 @@
             letter-spacing: 0.02em;
             margin-bottom: 26px;
         }
+        /* Покана от приятел (invite-welcome.js) — над надписа, в цветовете на акцента */
+        .lp-invite {
+            display: flex; align-items: center; gap: 10px;
+            margin: 0 0 16px; padding: 10px 14px; border-radius: 16px;
+            background: var(--lp-accent-soft); color: var(--lp-ink);
+            border: 1px solid color-mix(in srgb, var(--lp-accent) 28%, transparent);
+            font-size: 0.92rem; line-height: 1.4;
+        }
+        .lp-invite[hidden] { display: none; }
+        .lp-invite i { color: var(--lp-leaf, var(--lp-accent)); font-size: 1.05rem; }
+        .lp-invite b { color: var(--lp-accent); }
         .lp-pulse {
             width: 8px; height: 8px; border-radius: 50%;
             color: var(--lp-leaf, currentColor);
@@ -2266,6 +2278,7 @@
         <div class="lp-hero-inner">
             <div class="hero-content lp-hero-copy">
                 <figure class="lp-hero-photo lp-enter" style="--d:0" data-slot="hero" data-fx="kenburns" data-every="6"><img src="brand/photos/index-hero-4c4ab10e-1280.webp" srcset="brand/photos/index-hero-4c4ab10e-640.webp 640w, brand/photos/index-hero-4c4ab10e-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Усмихната двойка в кухнята с ябълка и здравословни храни" width="1280" height="543" decoding="async" fetchpriority="high" data-x="77.6" data-y="28.9" data-z="1.02"><img src="brand/photos/index-hero-263d3a8b-1280.webp" srcset="brand/photos/index-hero-263d3a8b-640.webp 640w, brand/photos/index-hero-263d3a8b-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Силует на жена сред природата с вдигнати палци" width="1280" height="720" decoding="async" loading="lazy" data-x="100" data-y="100" data-z="1"><img src="brand/photos/index-hero-77ffdaff-626.webp" alt="Усмихната жена в спортно облекло с разперени ръце край морето" width="626" height="417" decoding="async" loading="lazy" data-only="mobile"><img src="brand/photos/index-hero-1e91daf1-1280.webp" srcset="brand/photos/index-hero-1e91daf1-640.webp 640w, brand/photos/index-hero-1e91daf1-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Мъж измерва талията си с жълт шивашки метър" width="1280" height="853" decoding="async" loading="lazy"><img src="brand/photos/index-hero-ef4932ad-640.webp" alt="Боси крака върху кантар и зелен сантиметър" width="640" height="426" decoding="async" loading="lazy" data-only="mobile"><img src="brand/photos/index-hero-0f9be665-1280.webp" srcset="brand/photos/index-hero-0f9be665-640.webp 640w, brand/photos/index-hero-0f9be665-1280.webp 1280w" sizes="(max-width: 899px) 92vw, 560px" alt="Жена измерва обиколката на талията си с метър" width="1280" height="853" decoding="async" loading="lazy"><img src="brand/photos/index-hero-23c3a2b7-612.webp" alt="Жена на кантар държи зелена ябълка и поничка" width="612" height="383" decoding="async" loading="lazy" data-only="mobile"></figure>
+                <p class="lp-invite" id="lpInvite" role="status" hidden></p>
                 <p class="lp-eyebrow lp-enter" style="--d:0"><span class="lp-pulse" aria-hidden="true"></span> Храненето, видяно отвътре</p>
                 <h1 id="lpHeroTitle" class="lp-h1">
                     <span class="lp-line lp-enter" style="--d:1">Храната е в основата на</span>

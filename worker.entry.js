@@ -138,7 +138,7 @@ import { crossCheckText } from './cross-check.js';
 import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
 import Pricing from './pricing-config.js';
 import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUsage, quotaMap, normalizeAccess, paywallEnabled, PAYWALL_KEY, usageWindow } from './access-control.js';
-import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInviteStatus, handlePartnerVerify, handleRewardsContent, handleRewardsImage, handleAdminRewardsContent, handleAdminRewardsImage } from './rewards.js';
+import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInviteStatus, handlePartnerVerify, handleRewardsContent, handleRewardsImage, handleAdminRewardsContent, handleAdminRewardsImage, handleRewardsChallenge, handleRewardsEvent, handleAdminRewardsReport, noteInviteSignup } from './rewards.js';
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
@@ -5123,6 +5123,10 @@ async function handleSaveClientData(request, env, ctx) {
     const partnerRef = String(data.partnerRef || '').trim().toLowerCase();
     if (!clientData.partnerRef && /^[a-z0-9][a-z0-9-]{1,31}$/.test(partnerRef)) {
       clientData.partnerRef = partnerRef;
+    }
+    // Покана от приятел (rewards.js) — за отчета; отстъпката се прилага при плащането.
+    if (!clientData.invite && data.invite && await noteInviteSignup(env, data.invite).catch(() => false)) {
+      clientData.invite = String(data.invite).toUpperCase().replace(/[^A-Z0-9]/g, '');
     }
 
     if (data.plan) {
@@ -18606,12 +18610,16 @@ export default {
         return await handleAdminRewardsContent(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/admin/rewards/image' && request.method === 'POST') {
         return await handleAdminRewardsImage(request, env, { respond: jsonResponse });
+      } else if (url.pathname === '/api/admin/rewards/report' && request.method === 'GET') {
+        return await handleAdminRewardsReport(url, env, { respond: jsonResponse });
       } else if (url.pathname.startsWith('/api/user/rewards') || url.pathname.startsWith('/api/rewards/')) {
         const rlErr = await checkRateLimit(env, request, 'REWARDS');
         if (rlErr) return rlErr;
         const deps = { respond: jsonResponse, checkOwner: checkFirebaseOwner };
         if (url.pathname === '/api/user/rewards' && request.method === 'POST') return await handleRewards(request, env, deps);
         if (url.pathname === '/api/user/rewards/redeem' && request.method === 'POST') return await handleRewardsRedeem(request, env, deps);
+        if (url.pathname === '/api/user/rewards/challenge' && request.method === 'POST') return await handleRewardsChallenge(request, env, deps);
+        if (url.pathname === '/api/rewards/event' && request.method === 'POST') return await handleRewardsEvent(request, env, deps);
         if (url.pathname === '/api/rewards/code' && request.method === 'GET') return await handleRewardCodeStatus(url, env, deps);
         if (url.pathname === '/api/rewards/invite' && request.method === 'GET') return await handleInviteStatus(url, env, deps);
         if (url.pathname === '/api/rewards/partner/verify' && request.method === 'POST') return await handlePartnerVerify(request, env, deps);

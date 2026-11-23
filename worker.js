@@ -829,7 +829,7 @@ var require_rewards_engine = __commonJS({
         comparison: "\u041F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E\u0442\u043E \u0442\u0438 \u0435 \u043F\u043E-\u0432\u0438\u0441\u043E\u043A\u043E \u043E\u0442 \u0442\u043E\u0432\u0430 \u043D\u0430 {p}% \u043E\u0442 \u0445\u043E\u0440\u0430\u0442\u0430 \u0432 Nutriin.",
         newLevel: "\u041D\u043E\u0432\u043E \u043D\u0438\u0432\u043E",
         giftReady: "\u2014 \u043A\u043E\u0434\u044A\u0442 \u0442\u0435 \u0447\u0430\u043A\u0430 \u0432 \u041D\u0430\u043F\u0440\u0435\u0434\u044A\u043A",
-        shield: "\u0421\u043F\u0435\u0447\u0435\u043B\u0438 \u0436\u043E\u043A\u0435\u0440: \u0435\u0434\u0438\u043D \u0434\u0435\u043D \u0431\u0435\u0437 \u043E\u0442\u043C\u0435\u0442\u043A\u0438 \u043D\u044F\u043C\u0430 \u0434\u0430 \u043F\u0440\u0435\u043A\u044A\u0441\u043D\u0435 \u043F\u043E\u0440\u0435\u0434\u0438\u0446\u0430\u0442\u0430 \u0442\u0438.",
+        shield: "\u0421\u043F\u0435\u0447\u0435\u043B\u0438 \u0436\u043E\u043A\u0435\u0440: \u0435\u0434\u0438\u043D \u0441\u043B\u0430\u0431 \u0438\u043B\u0438 \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0430\u0442 \u0434\u0435\u043D \u043D\u044F\u043C\u0430 \u0434\u0430 \u043F\u0440\u0435\u043A\u044A\u0441\u043D\u0435 \u043F\u043E\u0440\u0435\u0434\u0438\u0446\u0430\u0442\u0430 \u0442\u0438.",
         weightLose: "\u041F\u043E-\u043B\u0435\u043A\u043E \u0441 {pct}%. \u0417\u0430\u0441\u043B\u0443\u0436\u0435\u043D\u043E.",
         weightGain: "\u0421 {pct}% \u043F\u043E-\u0431\u043B\u0438\u0437\u043E \u0434\u043E \u0446\u0435\u043B\u0442\u0430",
         weightText: "\u0421 \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0438 \u0440\u0435\u0448\u0435\u043D\u0438\u044F, \u043D\u0435 \u0441 \u043A\u0440\u0430\u0439\u043D\u043E\u0441\u0442\u0438.",
@@ -843,10 +843,32 @@ var require_rewards_engine = __commonJS({
         pathNote: "\u0418\u0437\u0433\u0440\u0430\u0434\u0435\u043D\u043E\u0442\u043E \u043E\u0441\u0442\u0430\u0432\u0430 \u0442\u0432\u043E\u0435: \u043D\u0438\u0432\u043E\u0442\u043E \u0441\u043B\u0438\u0437\u0430 \u0441 \u0435\u0434\u043D\u043E \u0441\u0430\u043C\u043E \u0441\u043B\u0435\u0434 14 \u043F\u043E\u0440\u0435\u0434\u043D\u0438 \u0434\u043D\u0438 \u043F\u043E\u0434 \u043F\u0440\u0430\u0433\u0430.",
         inviteTitle: "\u041F\u043E\u043A\u0430\u043D\u0438 \u043F\u0440\u0438\u044F\u0442\u0435\u043B",
         inviteText: "\u041F\u0440\u0438\u044F\u0442\u0435\u043B\u044F\u0442 \u043F\u043E\u043B\u0443\u0447\u0430\u0432\u0430 \u2212{pct}% \u0437\u0430 \u043F\u044A\u0440\u0432\u0438\u044F \u0441\u0438 \u043F\u043B\u0430\u043D, \u0430 \u0442\u0438 \u2014 \u043A\u043E\u0434 \u2212{reward}% \u0438 300 \u0442\u043E\u0447\u043A\u0438, \u0449\u043E\u043C \u0437\u0430\u043F\u043E\u0447\u043D\u0435.",
+        inviteTextApp: "\u0421\u043F\u043E\u0434\u0435\u043B\u0438 \u043A\u043E\u0434\u0430 \u0441\u0438: \u043F\u0440\u0438\u044F\u0442\u0435\u043B\u044F\u0442 \u043F\u043E\u043B\u0443\u0447\u0430\u0432\u0430 \u043F\u043E\u0434\u0430\u0440\u044A\u043A \u0437\u0430 \u043D\u0430\u0447\u0430\u043B\u043E, \u0430 \u0442\u0438 \u2014 \u043D\u0430\u0433\u0440\u0430\u0434\u0430 \u0438 300 \u0442\u043E\u0447\u043A\u0438, \u0449\u043E\u043C \u0437\u0430\u043F\u043E\u0447\u043D\u0435.",
         inviteShare: "\u0415\u043B\u0430 \u0441 \u043C\u0435\u043D \u2014 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E, \u0432\u0438\u0434\u044F\u043D\u043E \u043E\u0442\u0432\u044A\u0442\u0440\u0435",
         redeemTitle: "\u0417\u0430\u0441\u043B\u0443\u0436\u0435\u043D\u043E. \u041E\u0442\u0441\u0442\u044A\u043F\u043A\u0430\u0442\u0430 \u0435 \u0442\u0432\u043E\u044F.",
         shareTagline: "\u0417\u0430\u043F\u043E\u0447\u0432\u0430 \u043E\u0442\u0432\u044A\u0442\u0440\u0435. \u041B\u0438\u0447\u0438 \u043D\u0430\u0432\u044A\u043D.",
-        shareInvite: "\u041A\u043E\u0434 {code} \u2192 \u221215% \u0437\u0430 \u043F\u044A\u0440\u0432\u0438\u044F \u043F\u043B\u0430\u043D"
+        shareInvite: "\u041A\u043E\u0434 {code} \u2192 \u221215% \u0437\u0430 \u043F\u044A\u0440\u0432\u0438\u044F \u043F\u043B\u0430\u043D",
+        weekTitle: "\u0422\u0432\u043E\u044F\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430",
+        weekGood: "{good} \u043E\u0442 7 \u0434\u043E\u0431\u0440\u0438 \u0434\u043D\u0438",
+        weekUp: "\u0421 {d}% \u043F\u043E-\u0441\u0438\u043B\u043D\u0430 \u043E\u0442 \u043C\u0438\u043D\u0430\u043B\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430.",
+        weekSame: "\u0420\u0438\u0442\u044A\u043C\u044A\u0442 \u043E\u0442 \u043C\u0438\u043D\u0430\u043B\u0430\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0441\u0435 \u0434\u044A\u0440\u0436\u0438.",
+        weekDown: "\u041F\u043E-\u0442\u0438\u0445\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u043E\u0442 \u043C\u0438\u043D\u0430\u043B\u0430\u0442\u0430. \u041D\u043E\u0432\u0430\u0442\u0430 \u0437\u0430\u043F\u043E\u0447\u0432\u0430 \u0432 \u043F\u043E\u043D\u0435\u0434\u0435\u043B\u043D\u0438\u043A \u2014 \u043D\u0430 \u0447\u0438\u0441\u0442\u043E.",
+        weekBest: "\u041D\u0430\u0439-\u0441\u0438\u043B\u043D\u0438\u044F\u0442 \u0442\u0438 \u0434\u0435\u043D: {day} ({eng}%).",
+        weekNotifyTitle: "\u0422\u0432\u043E\u044F\u0442\u0430 \u0441\u0435\u0434\u043C\u0438\u0446\u0430 \u0435 \u0433\u043E\u0442\u043E\u0432\u0430",
+        weekNotifyBody: "\u0412\u0438\u0436 \u043A\u0430\u043A\u0432\u043E \u0438\u0437\u0433\u0440\u0430\u0434\u0438 \u0437\u0430 7 \u0434\u043D\u0438 \u2014 \u0438 \u043E\u0442\u043A\u044A\u0434\u0435 \u043F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u0448.",
+        challengeTitle: "\u041F\u0440\u0435\u0434\u0438\u0437\u0432\u0438\u043A\u0430\u0442\u0435\u043B\u0441\u0442\u0432\u043E\u0442\u043E \u043D\u0430 \u043C\u0435\u0441\u0435\u0446\u0430",
+        challengeJoin: "\u041F\u0440\u0438\u0435\u043C\u0430\u043C",
+        challengeJoined: "\u041F\u0440\u0438\u0435 \u0433\u043E. \u0411\u0440\u043E\u0438 \u0441\u0435 \u043E\u0442 \u0434\u043D\u0435\u0441 \u2014 \u0432\u0441\u0435\u043A\u0438 \u0434\u0435\u043D, \u0432 \u043A\u043E\u0439\u0442\u043E \u0443\u0441\u043F\u0435\u0435\u0448.",
+        challengeLate: "\u0417\u0430 \u0442\u043E\u0437\u0438 \u043C\u0435\u0441\u0435\u0446 \u043E\u0441\u0442\u0430\u0432\u0430\u0442 \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u043E\u0442 {target} \u0434\u043D\u0438. \u041D\u043E\u0432\u043E\u0442\u043E \u043F\u0440\u0435\u0434\u0438\u0437\u0432\u0438\u043A\u0430\u0442\u0435\u043B\u0441\u0442\u0432\u043E \u0438\u0434\u0432\u0430 \u043D\u0430 1-\u0432\u043E \u0447\u0438\u0441\u043B\u043E.",
+        challengeBehind: "\u041E\u0449\u0435 {n} \u0434\u043E \u0446\u0435\u043B\u0442\u0430, \u043E\u0441\u0442\u0430\u0432\u0430\u0442 {left} \u0434\u043D\u0438 \u2014 \u0432\u0441\u0435\u043A\u0438 \u043E\u0442 \u0442\u044F\u0445 \u0435 \u0448\u0430\u043D\u0441.",
+        challengeDone: "\u0418\u0437\u043F\u044A\u043B\u043D\u0438 \u043F\u0440\u0435\u0434\u0438\u0437\u0432\u0438\u043A\u0430\u0442\u0435\u043B\u0441\u0442\u0432\u043E\u0442\u043E \u043D\u0430 \u043C\u0435\u0441\u0435\u0446\u0430",
+        challengeDoneText: "+{bonus} \u0442\u043E\u0447\u043A\u0438. \u041D\u043E\u0432\u0438\u044F\u0442 \u043C\u0435\u0441\u0435\u0446 \u043D\u043E\u0441\u0438 \u043D\u043E\u0432\u043E.",
+        challengeNotifyBody: "\u041E\u0449\u0435 {n} \u0434\u043E \u201E{title}\u201C \u2014 \u0434\u043D\u0435\u0441 \u043C\u043E\u0436\u0435 \u0434\u0430 \u0435 \u0435\u0434\u0438\u043D \u043E\u0442 \u0442\u044F\u0445.",
+        newMonthNotifyTitle: "\u041D\u043E\u0432 \u043C\u0435\u0441\u0435\u0446 \u2014 \u043D\u043E\u0432\u043E \u043D\u0430\u0447\u0430\u043B\u043E",
+        newMonthNotifyBody: "\u041F\u0440\u0435\u0434\u0438\u0437\u0432\u0438\u043A\u0430\u0442\u0435\u043B\u0441\u0442\u0432\u043E\u0442\u043E \u043D\u0430 \u043C\u0435\u0441\u0435\u0446\u0430 \u0442\u0435 \u0447\u0430\u043A\u0430: \u201E{title}\u201C.",
+        comeback: "\u0420\u0430\u0434\u0432\u0430\u043C\u0435 \u0441\u0435, \u0447\u0435 \u0441\u0438 \u0442\u0443\u043A. \u0414\u043D\u0435\u0441 \u0435 \u0434\u043E\u0431\u044A\u0440 \u0434\u0435\u043D \u0437\u0430 \u043D\u043E\u0432\u043E \u043D\u0430\u0447\u0430\u043B\u043E.",
+        inviteLandingTitle: "\u041F\u043E\u043A\u0430\u043D\u0430 \u043E\u0442 \u043F\u0440\u0438\u044F\u0442\u0435\u043B",
+        inviteLandingText: "\u2212{pct}% \u0437\u0430 \u043F\u044A\u0440\u0432\u0438\u044F \u0442\u0438 \u043F\u043B\u0430\u043D. \u041E\u0442\u0441\u0442\u044A\u043F\u043A\u0430\u0442\u0430 \u0441\u0435 \u043F\u0440\u0438\u043B\u0430\u0433\u0430 \u0441\u0430\u043C\u0430 \u043F\u0440\u0438 \u043F\u043B\u0430\u0449\u0430\u043D\u0435\u0442\u043E."
       };
       function text2(key, vars) {
         var t = TEXTS[key] == null ? "" : String(TEXTS[key]);
@@ -858,7 +880,7 @@ var require_rewards_engine = __commonJS({
       var THEMES = ["resolve", "persist", "consistency", "inner", "habit", "streak", "weight", "invite", "share"];
       var DEFAULTS = null;
       function applyContent(c) {
-        if (!DEFAULTS) DEFAULTS = JSON.stringify({ t: TIERS, s: STREAKS, o: OFFERS, x: TEXTS, w: WORDS });
+        if (!DEFAULTS) DEFAULTS = JSON.stringify({ t: TIERS, s: STREAKS, o: OFFERS, x: TEXTS, w: WORDS, c: CHALLENGES });
         var d = JSON.parse(DEFAULTS);
         var str3 = function(v, n) {
           return typeof v === "string" && v.trim() ? v.trim().slice(0, n || 400) : null;
@@ -882,6 +904,13 @@ var require_rewards_engine = __commonJS({
             if (str3(o[k])) s[k] = str3(o[k]);
           });
         });
+        CHALLENGES.forEach(function(ch, i) {
+          ch.title = d.c[i].title;
+          ch.text = d.c[i].text;
+          var o = c && c.challenges && c.challenges[ch.id] || {};
+          if (str3(o.title)) ch.title = str3(o.title);
+          if (str3(o.text)) ch.text = str3(o.text);
+        });
         var ow = c && c.words && str3(c.words.offer);
         OFFERS.forEach(function(o, i) {
           o.word = ow ? ow.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5) || d.o[i].word : d.o[i].word;
@@ -903,6 +932,70 @@ var require_rewards_engine = __commonJS({
       }
       function imageFor(theme) {
         return IMAGES[theme] || "./brand/rewards/" + theme + ".webp";
+      }
+      var CHALLENGE_TARGET = 10;
+      var CHALLENGE_BONUS = 150;
+      var CHALLENGES = [
+        { id: "good", title: "10 \u0434\u043E\u0431\u0440\u0438 \u0434\u043D\u0438", text: "\u0414\u0435\u0441\u0435\u0442 \u0434\u043D\u0438 \u0442\u043E\u0437\u0438 \u043C\u0435\u0441\u0435\u0446 \u0441\u044A\u0441 \u0441\u043F\u0430\u0437\u0435\u043D \u043F\u043B\u0430\u043D \u043D\u0430\u0434 60%. \u041D\u0435 \u0435 \u043D\u0443\u0436\u043D\u043E \u0434\u0430 \u0441\u0430 \u043F\u043E\u0440\u0435\u0434." },
+        { id: "steps", title: "10 \u0434\u043D\u0438 \u0441 \u043A\u0440\u0430\u0447\u043A\u0438 \u043D\u0430 \u0446\u0435\u043B\u0442\u0430", text: "\u0414\u0435\u0441\u0435\u0442 \u0434\u043D\u0438 \u0442\u043E\u0437\u0438 \u043C\u0435\u0441\u0435\u0446, \u0432 \u043A\u043E\u0438\u0442\u043E \u0441\u0442\u0438\u0433\u0430\u0448 \u0434\u043D\u0435\u0432\u043D\u0430\u0442\u0430 \u0441\u0438 \u0446\u0435\u043B \u0437\u0430 \u043A\u0440\u0430\u0447\u043A\u0438.", needsSteps: true },
+        { id: "evening", title: "10 \u0432\u0435\u0447\u0435\u0440\u0438 \u0437\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438", text: "\u0414\u0435\u0441\u0435\u0442 \u0432\u0435\u0447\u0435\u0440\u0438, \u0432 \u043A\u043E\u0438\u0442\u043E \u043E\u0442\u0433\u043E\u0432\u0430\u0440\u044F\u0448 \u043D\u0430 \u0432\u0435\u0447\u0435\u0440\u043D\u0438\u044F \u0432\u044A\u043F\u0440\u043E\u0441 \u2014 \u0432\u043E\u0434\u0430, \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435, \u0443\u0441\u0435\u0449\u0430\u043D\u0435." },
+        { id: "great", title: "10 \u0441\u0438\u043B\u043D\u0438 \u0434\u043D\u0438", text: "\u0414\u0435\u0441\u0435\u0442 \u0434\u043D\u0438 \u043D\u0430\u0434 80% \u2014 \u0434\u043D\u0438, \u0432 \u043A\u043E\u0438\u0442\u043E \u043F\u043B\u0430\u043D\u044A\u0442 \u0435 \u0438\u0437\u0446\u044F\u043B\u043E \u0442\u0432\u043E\u0439." },
+        { id: "morning", title: "10 \u0434\u043E\u0431\u0440\u0438 \u0443\u0442\u0440\u0438\u043D\u0438", text: "\u0414\u0435\u0441\u0435\u0442 \u0441\u0443\u0442\u0440\u0438\u043D\u0438, \u0432 \u043A\u043E\u0438\u0442\u043E \u0437\u0430\u043F\u043E\u0447\u0432\u0430\u0448 \u0434\u0435\u043D\u044F \u0441 \u043E\u0442\u0433\u043E\u0432\u043E\u0440 \u043A\u0430\u043A \u0435 \u043C\u0438\u043D\u0430\u043B\u0430 \u043D\u043E\u0449\u0442\u0430." }
+      ];
+      var CHALLENGE_TEST = {
+        good: function(d) {
+          return d.eng != null && d.eng >= GOOD;
+        },
+        steps: function(d) {
+          return d.onTarget;
+        },
+        evening: function(d) {
+          return d.eve;
+        },
+        great: function(d) {
+          return d.eng != null && d.eng >= GREAT;
+        },
+        morning: function(d) {
+          return d.morn;
+        }
+      };
+      function monthOf2(key) {
+        return String(key).slice(0, 7);
+      }
+      function daysInMonth(month) {
+        var p = month.split("-");
+        return new Date(Date.UTC(+p[0], +p[1], 0)).getUTCDate();
+      }
+      function challengeFor(month, hasSteps) {
+        var p = month.split("-");
+        var c = CHALLENGES[(+p[0] * 12 + +p[1]) % CHALLENGES.length];
+        return c.needsSteps && !hasSteps ? CHALLENGES[0] : c;
+      }
+      function weekEndKey(todayKey) {
+        var dow = new Date(keyToMs(todayKey)).getUTCDay();
+        return msToKey(keyToMs(todayKey) - (dow === 0 ? 0 : dow) * DAY);
+      }
+      function openStats(opens, todayKey) {
+        var o = opens || {};
+        var end = keyToMs(todayKey || localKey(/* @__PURE__ */ new Date()));
+        var days14 = 0;
+        Object.keys(o.days || {}).forEach(function(k) {
+          if (isKey(k) && end - keyToMs(k) < 14 * DAY && keyToMs(k) <= end) days14++;
+        });
+        var h = Array.isArray(o.hours) && o.hours.length === 24 ? o.hours : null;
+        var usual = null, evening = null, best = 0, bestEve = 0;
+        if (h) for (var i = 0; i < 24; i++) {
+          if (h[i] > best) {
+            best = h[i];
+            usual = i;
+          }
+          if (i >= 17 && i <= 22 && h[i] > bestEve) {
+            bestEve = h[i];
+            evening = i;
+          }
+        }
+        var gap = o.last && o.prev ? Math.floor((o.last - o.prev) / DAY) : null;
+        return { days14, usualHour: usual, eveningHour: evening, gapDays: gap };
       }
       var FACTS = {
         habit: "\u0412 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 \u043D\u0430 University College London (Lally \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, 2010) \u0435\u0434\u0438\u043D \u043D\u043E\u0432 \u043D\u0430\u0432\u0438\u043A \u0441\u0442\u0430\u0432\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u043D \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 66 \u0434\u043D\u0438 \u2014 \u0438 \u0435\u0434\u0438\u043D \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0430\u0442 \u0434\u0435\u043D \u043D\u0435 \u0433\u043E \u0440\u0430\u0437\u0432\u0430\u043B\u044F.",
@@ -951,7 +1044,17 @@ var require_rewards_engine = __commonJS({
             if (!(eng > 0)) eng = 0;
           }
           var ec = rec && rec.eveningCheck;
-          out.push({ key: k, shielded: false, rec: !!rec, eng, steps: ec && ec.steps > 0 ? ec.steps : 0, onTarget: stepsOnTarget(rec) });
+          var mc = rec && rec.morningCheck;
+          out.push({
+            key: k,
+            shielded: false,
+            rec: !!rec,
+            eng,
+            steps: ec && ec.steps > 0 ? ec.steps : 0,
+            onTarget: stepsOnTarget(rec),
+            eve: !!(ec && (ec.activityLevel != null || ec.emotionalBalance != null || ec.waterIntake != null)),
+            morn: !!(mc && typeof mc.sleptWell === "boolean")
+          });
         }
         return out;
       }
@@ -1047,7 +1150,9 @@ var require_rewards_engine = __commonJS({
           points: { earned: 0, days: {}, bonus: 0 },
           records: { bestStreak: 0, bestWeek: null, maxSteps: null, stepDays: 0 },
           milestones,
-          weight: null
+          weight: null,
+          week: null,
+          challenge: null
         };
         if (!tl.length) return res;
         var held = 0, goodCount = 0, streak2 = 0, best = 0;
@@ -1075,7 +1180,7 @@ var require_rewards_engine = __commonJS({
               }
             });
           } else if (!isToday) {
-            if (!d.rec && held > 0 && streak2 > 0) {
+            if (held > 0 && streak2 > 0) {
               held--;
               d.shielded = true;
               res.shields.used.push(d.key);
@@ -1148,6 +1253,91 @@ var require_rewards_engine = __commonJS({
           earned += res.points.days[k];
         });
         res.points.earned = earned + res.points.bonus;
+        var wEnd = weekEndKey(todayKey);
+        var wIdx = -1;
+        for (var wi = lastIdx; wi >= 0; wi--) if (tl[wi].key === wEnd) {
+          wIdx = wi;
+          break;
+        }
+        if (wIdx >= 0) {
+          var from = Math.max(0, wIdx - 6), wk = tl.slice(from, wIdx + 1);
+          var tracked = wk.filter(function(x) {
+            return x.rec;
+          });
+          var bestDay = (
+            /** @type {any} */
+            null
+          ), stepSum = 0, stepN = 0, wpts = 0;
+          wk.forEach(function(x) {
+            if (x.eng != null && (!bestDay || x.eng >= bestDay.eng)) bestDay = x;
+            if (x.steps > 0) {
+              stepSum += x.steps;
+              stepN++;
+            }
+            wpts += res.points.days[x.key] || 0;
+          });
+          var avgW = tracked.length ? Math.round(wk.reduce(function(a2, x) {
+            return a2 + (x.eng || 0);
+          }, 0) / wk.length) : null;
+          var prevAvg = from >= 7 ? windowAvg(tl, from - 1, 7) : null;
+          res.week = {
+            startKey: wk[0].key,
+            endKey: wEnd,
+            days: wk.length,
+            tracked: tracked.length,
+            good: wk.filter(function(x) {
+              return x.eng != null && x.eng >= GOOD;
+            }).length,
+            avg: avgW,
+            prevAvg,
+            delta: avgW != null && prevAvg != null ? avgW - prevAvg : null,
+            points: wpts,
+            stepsAvg: stepN ? Math.round(stepSum / stepN) : null,
+            stepDays: wk.filter(function(x) {
+              return x.onTarget;
+            }).length,
+            best: bestDay && bestDay.eng > 0 ? { key: bestDay.key, eng: bestDay.eng } : null,
+            milestones: milestones.filter(function(m) {
+              return m.key >= wk[0].key && m.key <= wEnd && m.kind !== "shield";
+            }).map(function(m) {
+              return m.id;
+            })
+          };
+        }
+        var month = monthOf2(todayKey);
+        var hasSteps = tl.slice(-14).some(function(x) {
+          return x.steps > 0;
+        });
+        var ch = challengeFor(month, hasSteps);
+        var joinKey = inp.challenge && monthOf2(inp.challenge.joined || "") === month ? inp.challenge.joined : null;
+        if (joinKey && inp.challenge.id && CHALLENGE_TEST[inp.challenge.id]) ch = CHALLENGES.filter(function(c) {
+          return c.id === inp.challenge.id;
+        })[0] || ch;
+        var dim = daysInMonth(month), dayNo = +todayKey.slice(8, 10), left = dim - dayNo + 1;
+        var count2 = 0, doneKey = null;
+        if (joinKey) tl.forEach(function(x) {
+          if (x.key >= joinKey && monthOf2(x.key) === month && CHALLENGE_TEST[ch.id](x)) {
+            count2++;
+            if (count2 === CHALLENGE_TARGET) doneKey = x.key;
+          }
+        });
+        var joinedDay = joinKey ? +joinKey.slice(8, 10) : null;
+        res.challenge = {
+          month,
+          id: ch.id,
+          title: ch.title,
+          text: ch.text,
+          target: CHALLENGE_TARGET,
+          bonus: CHALLENGE_BONUS,
+          joined: joinKey,
+          count: Math.min(count2, CHALLENGE_TARGET),
+          done: count2 >= CHALLENGE_TARGET,
+          daysLeft: left,
+          canJoin: !joinKey && left >= CHALLENGE_TARGET,
+          // темпо: колко би трябвало да има досега, ако целта се разпредели равно до края на месеца
+          behind: !!joinKey && count2 < CHALLENGE_TARGET && left > 0 && CHALLENGE_TARGET - count2 > left * 0.8
+        };
+        if (doneKey) milestones.push({ id: "challenge:" + month, kind: "challenge", key: doneKey, big: true, challenge: ch.id, bonus: CHALLENGE_BONUS });
         var wp = weightProgress(inp.weightLog, Number(inp.startKg) || 0, inp.goalDirection);
         if (wp) {
           res.weight = wp;
@@ -1191,7 +1381,14 @@ var require_rewards_engine = __commonJS({
         normCode: normCode2,
         text: text2,
         applyContent,
-        imageFor
+        imageFor,
+        CHALLENGES,
+        CHALLENGE_TARGET,
+        CHALLENGE_BONUS,
+        challengeFor,
+        weekEndKey,
+        openStats,
+        monthOf: monthOf2
       };
       global2.RewardsEngine = api;
       if (typeof module !== "undefined" && module.exports) module.exports = api;
@@ -61802,6 +61999,88 @@ async function loadContent(env, now = Date.now()) {
   return contentCache.value;
 }
 var emptyRecord = () => ({ days: {}, bonus: 0, spent: 0, issued: {}, grants: [], invited: [], inviteBonus: 0 });
+var earnedOf = (r) => Object.values(r?.days || {}).reduce((s, p) => s + (Number(p) || 0), 0) + (Number(r?.bonus) || 0) + (Number(r?.inviteBonus) || 0) + (Number(r?.challengeBonus) || 0);
+function mergeOpens(prev, next, now) {
+  const days = { ...prev?.days || {} };
+  for (const [k, n] of Object.entries(next?.days || {})) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && Number(n) > 0) days[k] = Math.max(Number(days[k]) || 0, Math.min(500, Number(n)));
+  }
+  const cut = new Date(now - 60 * DAY_MS4).toISOString().slice(0, 10);
+  const hours = Array.isArray(next?.hours) && next.hours.length === 24 ? next.hours.map((x) => Math.max(0, Math.min(5e3, Number(x) || 0))) : prev?.hours || null;
+  return {
+    days: Object.fromEntries(Object.entries(days).filter(([k]) => k >= cut)),
+    hours,
+    last: Number(next?.last) || prev?.last || null,
+    prev: Number(next?.prev) || prev?.prev || null
+  };
+}
+var EVENT_SHARDS = 4;
+var CLIENT_EVENTS = ["share_moment", "share_section", "share_invite", "share_week", "share_challenge", "invite_visit", "week_view", "comeback"];
+var EVENT_RE = /^[a-z][a-z0-9_]{2,40}$/;
+async function countEvent(env, name, n = 1, now = Date.now()) {
+  if (!EVENT_RE.test(name) || !env?.page_content) return;
+  try {
+    const key = `rev:${new Date(now).toISOString().slice(0, 10)}:${Math.floor(Math.random() * EVENT_SHARDS)}`;
+    const cur = await getJSON(env, key) || {};
+    cur[name] = (Number(cur[name]) || 0) + n;
+    await putJSON(env, key, cur, 400 * 86400);
+  } catch (_) {
+  }
+}
+async function handleRewardsEvent(request, env, { respond, now = Date.now() }) {
+  const b = await request.json().catch(() => ({}));
+  if (!CLIENT_EVENTS.includes(b.type)) return respond({ error: "type" }, 400);
+  await countEvent(env, b.type, 1, now);
+  return respond({ success: true });
+}
+async function handleAdminRewardsReport(url, env, { respond, now = Date.now() }) {
+  const n = Math.max(1, Math.min(90, Number(url.searchParams.get("days")) || 30));
+  const days = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const day2 = new Date(now - i * DAY_MS4).toISOString().slice(0, 10);
+    const parts = await Promise.all([...Array(EVENT_SHARDS)].map((_, sh) => getJSON(env, `rev:${day2}:${sh}`)));
+    const counts = {};
+    parts.forEach((p) => Object.entries(p || {}).forEach(([k, v]) => {
+      counts[k] = (counts[k] || 0) + (Number(v) || 0);
+    }));
+    days.push({ day: day2, counts });
+  }
+  const today2 = Math.floor(now / DAY_MS4);
+  const people = {
+    users: 0,
+    active7: 0,
+    active30: 0,
+    tiers: [0, 0, 0, 0, 0],
+    streaks: { "0": 0, "1-6": 0, "7-20": 0, "21-65": 0, "66+": 0 },
+    consistency: { "<40": 0, "40-59": 0, "60-79": 0, "80+": 0 },
+    hours: new Array(24).fill(0),
+    openDays14: 0,
+    challenge: { joined: 0, done: 0 }
+  };
+  let cursor;
+  for (let page = 0; page < 30 && typeof env.page_content.list === "function"; page++) {
+    const res = await env.page_content.list({ prefix: "rstat:", cursor });
+    for (const k of res.keys || []) {
+      const m = k.metadata || {};
+      people.users++;
+      if (m.a != null && today2 - m.a < 7) people.active7++;
+      if (m.a != null && today2 - m.a < 30) people.active30++;
+      people.tiers[(Number.isFinite(m.t) ? m.t : -1) + 1]++;
+      const s = Number(m.s) || 0;
+      people.streaks[s === 0 ? "0" : s < 7 ? "1-6" : s < 21 ? "7-20" : s < 66 ? "21-65" : "66+"]++;
+      const c = Number(m.c) || 0;
+      people.consistency[c < 40 ? "<40" : c < 60 ? "40-59" : c < 80 ? "60-79" : "80+"]++;
+      if (m.h >= 0 && m.h < 24) people.hours[m.h]++;
+      people.openDays14 += Number(m.o) || 0;
+      if (m.ch >= 1) people.challenge.joined++;
+      if (m.ch === 2) people.challenge.done++;
+    }
+    if (res.list_complete || !res.cursor) break;
+    cursor = res.cursor;
+  }
+  if (people.users) people.openDays14 = Math.round(people.openDays14 / people.users * 10) / 10;
+  return respond({ success: true, days, people, tiers: import_rewards_engine.default.TIERS.map((t) => t.title) });
+}
 function countryOf(request) {
   const c = request?.cf?.country || request?.headers?.get?.("CF-IPCountry") || "";
   return /^[A-Z]{2}$/.test(c) && c !== "XX" && c !== "T1" ? c : "";
@@ -61846,6 +62125,7 @@ async function cohort(env, now) {
   for (let page = 0; page < 30; page++) {
     const res = await env.page_content.list({ prefix: "rstat:", cursor });
     for (const k of res.keys || []) {
+      if (k.metadata?.d != null && k.metadata.d < 7) continue;
       const v = Math.max(0, Math.min(100, Math.round(Number(k.metadata?.c) || 0)));
       c[v]++;
       n++;
@@ -61879,35 +62159,70 @@ async function handleRewards(request, env, { respond, checkOwner, now = Date.now
   const userId = b.userId;
   await loadContent(env, now);
   const state = await getJSON(env, `game_state:${userId}`) || {};
-  const status = import_rewards_engine.default.compute({ gameData: state.gameData || {}, calcDayScore, todayKey: clientTodayKey(b.todayKey, now) });
+  if (b.gameData && typeof b.gameData === "object" && !Array.isArray(b.gameData)) {
+    const merged = mergeGameData(state.gameData || {}, b.gameData);
+    if (JSON.stringify(merged) !== JSON.stringify(state.gameData || {})) {
+      state.gameData = merged;
+      await putJSON(env, `game_state:${userId}`, { ...state, gameData: merged, updatedAt: new Date(now).toISOString() }, 365 * 86400);
+    }
+  }
+  const todayKey = clientTodayKey(b.todayKey, now);
   const record = await getJSON(env, `rewards:${userId}`) || emptyRecord();
   const before = JSON.stringify(record);
+  const month = import_rewards_engine.default.monthOf(todayKey);
+  record.challenges = record.challenges || {};
+  const status = import_rewards_engine.default.compute({ gameData: state.gameData || {}, calcDayScore, todayKey, challenge: record.challenges[month] });
   record.days = record.days || {};
   for (const [k, p] of Object.entries(status.points.days)) if (!(record.days[k] >= p)) record.days[k] = p;
   record.bonus = Math.max(Number(record.bonus) || 0, status.points.bonus);
   record.issued = record.issued || {};
+  const events = [];
   const country = countryOf(request);
   const fresh = [];
   for (const m of status.milestones) {
     if (m.kind !== "tier" || record.issued[m.id]) continue;
-    record.issued[m.id] = now;
     const tier = import_rewards_engine.default.tierById(m.tier);
+    if (!Object.keys(record.issued).some((k) => k.startsWith(m.id + ":"))) events.push(`level_${m.tier}`);
     for (const r of tier.rewards) {
+      const key = `${m.id}:${r.kind}`;
+      if (record.issued[key]) continue;
       if (r.kind === "supplement" && !supplementsAllowed(country)) continue;
+      record.issued[key] = now;
+      events.push(`code_${r.kind}`);
       fresh.push(publicCode(grant(record, { code: import_rewards_engine.default.codeFor(tier.word, r.pct), kind: r.kind, pct: r.pct, source: m.id, now })));
     }
   }
+  const ch = record.challenges[month];
+  if (ch && status.challenge?.done && !ch.done) {
+    ch.done = now;
+    record.challengeBonus = (Number(record.challengeBonus) || 0) + import_rewards_engine.default.CHALLENGE_BONUS;
+    events.push("challenge_done");
+  }
+  if (b.opens && typeof b.opens === "object") record.opens = mergeOpens(record.opens, b.opens, now);
   await ensureInvite(env, userId, record);
-  const earned = Object.values(record.days).reduce((s, p) => s + (Number(p) || 0), 0) + record.bonus + (Number(record.inviteBonus) || 0);
+  const earned = earnedOf(record);
   if (JSON.stringify(record) !== before) {
     record.updatedAt = new Date(now).toISOString();
     await putJSON(env, `rewards:${userId}`, record);
   }
+  await Promise.all(events.map((e) => countEvent(env, e, 1, now)));
   const c30 = status.consistency.d30;
-  if (status.daysTracked >= 7 && c30 != null) {
+  const os2 = import_rewards_engine.default.openStats(record.opens, todayKey);
+  const meta = {
+    c: c30 ?? 0,
+    s: status.streak,
+    t: status.tier ? status.tier.index : -1,
+    d: status.daysTracked,
+    o: os2.days14,
+    h: os2.usualHour ?? -1,
+    a: Math.floor(now / DAY_MS4),
+    ch: ch ? ch.done ? 2 : 1 : 0
+  };
+  if (status.daysTracked >= 1) {
     const prev = typeof env.page_content.getWithMetadata === "function" ? await env.page_content.getWithMetadata(`rstat:${userId}`).catch(() => null) : null;
-    if (!prev || prev.metadata?.c !== c30 || prev.metadata?.s !== status.streak) {
-      await env.page_content.put(`rstat:${userId}`, "", { expirationTtl: 40 * 86400, metadata: { c: c30, s: status.streak } });
+    const pm = prev?.metadata || {};
+    if (!prev || ["c", "s", "t", "d", "o", "h", "ch"].some((k) => pm[k] !== meta[k]) || pm.a !== meta.a) {
+      await env.page_content.put(`rstat:${userId}`, "", { expirationTtl: 60 * 86400, metadata: meta });
     }
   }
   const hist = status.daysTracked >= 7 ? await cohort(env, now).catch(() => null) : null;
@@ -61918,12 +62233,35 @@ async function handleRewards(request, env, { respond, checkOwner, now = Date.now
     codes,
     fresh,
     invite: { code: record.invite || "", count: (record.invited || []).length, pct: INVITE_PCT, reward: INVITER_PCT },
-    percentile: percentileOf(hist, c30),
+    percentile: status.daysTracked >= 7 ? percentileOf(hist, c30) : null,
     cohort: hist && hist.n >= MIN_COHORT ? hist.n : null,
     supplements: supplementsAllowed(country),
     offers: import_rewards_engine.default.OFFERS.filter((o) => o.kind !== "supplement" || supplementsAllowed(country)),
+    challenge: ch ? { month, id: ch.id, joined: ch.joined, done: !!ch.done } : null,
     status: { streak: status.streak, tier: status.tier?.id || null, consistency: status.consistency }
   });
+}
+async function handleRewardsChallenge(request, env, { respond, checkOwner, now = Date.now() }) {
+  const b = await request.json().catch(() => ({}));
+  if (!okUser(b.userId)) return respond({ error: "account" }, 400);
+  const authError = await checkOwner(b.userId, b.idToken, env, request);
+  if (authError) return authError;
+  await loadContent(env, now);
+  const todayKey = clientTodayKey(b.todayKey, now);
+  const state = await getJSON(env, `game_state:${b.userId}`) || {};
+  const status = import_rewards_engine.default.compute({ gameData: state.gameData || {}, calcDayScore, todayKey });
+  const c = status.challenge || import_rewards_engine.default.compute({ gameData: { [todayKey]: {} }, calcDayScore, todayKey }).challenge;
+  if (!c || !c.canJoin) return respond({ error: "late", message: import_rewards_engine.default.text("challengeLate", { target: import_rewards_engine.default.CHALLENGE_TARGET }) }, 400);
+  const record = await getJSON(env, `rewards:${b.userId}`) || emptyRecord();
+  record.challenges = record.challenges || {};
+  if (!record.challenges[c.month]) {
+    record.challenges[c.month] = { id: c.id, joined: todayKey };
+    record.challenges = Object.fromEntries(Object.entries(record.challenges).sort().slice(-12));
+    record.updatedAt = new Date(now).toISOString();
+    await putJSON(env, `rewards:${b.userId}`, record);
+    await countEvent(env, "challenge_join", 1, now);
+  }
+  return respond({ success: true, challenge: { month: c.month, ...record.challenges[c.month] } });
 }
 async function handleRewardsRedeem(request, env, { respond, checkOwner, now = Date.now() }) {
   const b = await request.json().catch(() => ({}));
@@ -61936,13 +62274,13 @@ async function handleRewardsRedeem(request, env, { respond, checkOwner, now = Da
   if (offer.kind === "supplement" && !supplementsAllowed(countryOf(request))) return respond({ error: "region", message: "\u0414\u043E\u0431\u0430\u0432\u043A\u0438\u0442\u0435 \u0441\u0435 \u0434\u043E\u0441\u0442\u0430\u0432\u044F\u0442 \u0441\u0430\u043C\u043E \u0432 \u0411\u044A\u043B\u0433\u0430\u0440\u0438\u044F." }, 400);
   const record = await getJSON(env, `rewards:${b.userId}`);
   if (!record) return respond({ error: "points", message: "\u041E\u0449\u0435 \u043D\u044F\u043C\u0430\u0448 \u0442\u043E\u0447\u043A\u0438." }, 400);
-  const earned = Object.values(record.days || {}).reduce((s, p) => s + (Number(p) || 0), 0) + (Number(record.bonus) || 0) + (Number(record.inviteBonus) || 0);
-  const balance = earned - (Number(record.spent) || 0);
+  const balance = earnedOf(record) - (Number(record.spent) || 0);
   if (balance < offer.cost) return respond({ error: "points", message: `\u041D\u0443\u0436\u043D\u0438 \u0441\u0430 ${offer.cost} \u0442\u043E\u0447\u043A\u0438, \u0438\u043C\u0430\u0448 ${balance}.`, balance }, 400);
   const g = grant(record, { code: import_rewards_engine.default.codeFor(offer.word, offer.pct), kind: offer.kind, pct: offer.pct, source: `offer:${offer.id}`, now });
   record.spent = (Number(record.spent) || 0) + offer.cost;
   record.updatedAt = new Date(now).toISOString();
   await putJSON(env, `rewards:${b.userId}`, record);
+  await countEvent(env, `redeem_${offer.id}`, 1, now);
   return respond({ success: true, code: publicCode(g), balance: balance - offer.cost });
 }
 async function handleRewardCodeStatus(url, env, { respond, now = Date.now() }) {
@@ -61973,6 +62311,7 @@ async function handlePartnerVerify(request, env, { respond, now = Date.now() }) 
     g.left -= 1;
     g.used = [...g.used || [], { at: now, by: "partner", order: String(b.order || "").slice(0, 64) }].slice(-10);
     await putJSON(env, `rewards:${userId}`, record);
+    await countEvent(env, "partner_redeem", 1, now);
   }
   return respond({ valid: true, kind: g.kind, pct: g.pct, until: g.until, left: g.left, region: g.region || null, redeemed: !!b.redeem });
 }
@@ -61999,6 +62338,7 @@ async function applyPlanDiscount(env, userId, meta, now = Date.now()) {
       g.left -= 1;
       g.used = [...g.used || [], { at: now, by: "plan" }].slice(-10);
       await putJSON(env, `rewards:${userId}`, record);
+      await countEvent(env, "plan_reward_used", 1, now);
     }
   }
   if (okInvite(meta.invite)) {
@@ -62006,6 +62346,7 @@ async function applyPlanDiscount(env, userId, meta, now = Date.now()) {
     const owner = await env.page_content.get(`invite:${meta.invite}`);
     await env.page_content.put(`invite_used:${userId}`, meta.invite);
     if (!owner || owner === userId) return;
+    await countEvent(env, "invite_buy", 1, now);
     await loadContent(env, now);
     const rec = await getJSON(env, `rewards:${owner}`) || { ...emptyRecord(), invite: meta.invite };
     if ((rec.invited || []).includes(userId)) return;
@@ -62029,7 +62370,7 @@ async function handleAdminRewardsContent(request, env, { respond }) {
   const b = await request.json().catch(() => ({}));
   const c = b.content && typeof b.content === "object" ? b.content : {};
   const prev = await getJSON(env, "rewards_content") || {};
-  const clean = { tiers: c.tiers || {}, streaks: c.streaks || {}, texts: c.texts || {}, words: c.words || {}, images: prev.images || {} };
+  const clean = { tiers: c.tiers || {}, streaks: c.streaks || {}, challenges: c.challenges || {}, texts: c.texts || {}, words: c.words || {}, images: prev.images || {} };
   const size = JSON.stringify(clean).length;
   if (size > 6e4) return respond({ error: "too_big" }, 400);
   import_rewards_engine.default.applyContent(clean);
@@ -62061,6 +62402,12 @@ async function handleRewardsImage(theme, env) {
   const type = data.slice(5, data.indexOf(";"));
   const bin = Uint8Array.from(atob(data.slice(data.indexOf(",") + 1)), (ch) => ch.charCodeAt(0));
   return new Response(bin, { headers: { "Content-Type": type, "Cache-Control": "public, max-age=31536000, immutable", "Access-Control-Allow-Origin": "*" } });
+}
+async function noteInviteSignup(env, code, now = Date.now()) {
+  const c = normCode(code);
+  if (!okInvite(c) || !await env.page_content.get(`invite:${c}`)) return false;
+  await countEvent(env, "invite_signup", 1, now);
+  return true;
 }
 
 // billing.js
@@ -93563,6 +93910,9 @@ async function handleSaveClientData(request, env, ctx) {
     if (!clientData.partnerRef && /^[a-z0-9][a-z0-9-]{1,31}$/.test(partnerRef)) {
       clientData.partnerRef = partnerRef;
     }
+    if (!clientData.invite && data.invite && await noteInviteSignup(env, data.invite).catch(() => false)) {
+      clientData.invite = String(data.invite).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    }
     if (data.plan) {
       clientData.planStatus = "pending";
       clientData.planActivatedAt = null;
@@ -104063,12 +104413,16 @@ var worker_entry_default = {
         return await handleAdminRewardsContent(request, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/admin/rewards/image" && request.method === "POST") {
         return await handleAdminRewardsImage(request, env, { respond: jsonResponse2 });
+      } else if (url.pathname === "/api/admin/rewards/report" && request.method === "GET") {
+        return await handleAdminRewardsReport(url, env, { respond: jsonResponse2 });
       } else if (url.pathname.startsWith("/api/user/rewards") || url.pathname.startsWith("/api/rewards/")) {
         const rlErr = await checkRateLimit(env, request, "REWARDS");
         if (rlErr) return rlErr;
         const deps = { respond: jsonResponse2, checkOwner: checkFirebaseOwner };
         if (url.pathname === "/api/user/rewards" && request.method === "POST") return await handleRewards(request, env, deps);
         if (url.pathname === "/api/user/rewards/redeem" && request.method === "POST") return await handleRewardsRedeem(request, env, deps);
+        if (url.pathname === "/api/user/rewards/challenge" && request.method === "POST") return await handleRewardsChallenge(request, env, deps);
+        if (url.pathname === "/api/rewards/event" && request.method === "POST") return await handleRewardsEvent(request, env, deps);
         if (url.pathname === "/api/rewards/code" && request.method === "GET") return await handleRewardCodeStatus(url, env, deps);
         if (url.pathname === "/api/rewards/invite" && request.method === "GET") return await handleInviteStatus(url, env, deps);
         if (url.pathname === "/api/rewards/partner/verify" && request.method === "POST") return await handlePartnerVerify(request, env, deps);
