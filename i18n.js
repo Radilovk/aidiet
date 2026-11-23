@@ -433,7 +433,7 @@
         var page = (location.pathname.split('/').pop() || 'index.html').replace(/\.html?$/, '') || 'index';
         if (PAGE_DICTS.indexOf(page) >= 0) files.push(page);
     }
-    var V = '20261116a';
+    var V = '20261123a';
 
     api.ready = Promise.all(files.map(function (f) {
         return fetch(base + 'i18n/' + lang + '/' + f + '.json?v=' + V)

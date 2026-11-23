@@ -91,14 +91,20 @@
     var COL = { meal: '#14B8A6', cal: '#F59E0B', junk: '#E879F9', act: 'var(--ds-metric-activity, #F97316)', sleep: 'var(--ds-metric-sleep, #A78BFA)', water: 'var(--ds-metric-water, #38BDF8)', mood: 'var(--ds-metric-mood, #34D399)' };
     var NAMES = { meal: 'храненията', cal: 'калориите', act: 'движението', water: 'водата', mood: 'емоциите' };
     /** Само това, което е свалило деня, и с колко; изпълненото не се изрежда. */
+    /** „Пропуснато: Закуска, Вечеря“ → надписът и всяко хранене поотделно (речникът на превода ги хваща поотделно). */
+    function split(t) {
+        var m = /^([^:]+):\s+(.+)$/.exec(t || '');
+        if (!m) return t;
+        return '<span>' + m[1] + ':</span> ' + m[2].split(', ').map(function (v) { return '<span>' + v + '</span>'; }).join(', ');
+    }
     function popHtml(x) {
         if (!x.adh) return '<div class="t"><b>' + x.label + '</b></div><p>Няма отбелязване за деня.</p>';
         var lost = x.adh.parts.filter(function (p) { return p.text && p.got < p.w - 0.05 && !p.pending; });
         var pend = x.adh.parts.filter(function (p) { return p.pending; });
         return '<div class="t"><b>' + x.label + (x.today && !x.adh.closed ? ' · денят тече' : '') + '</b><span>' + x.adh.pct + '%</span></div>' +
-            (lost.length ? '<ul>' + lost.map(function (p) { return '<li><i style="background:' + COL[p.k] + '"></i><div>' + p.text + (p.note ? '<small>' + p.note + '</small>' : '') + '</div><em>−' + Math.round(p.w - p.got) + '</em></li>'; }).join('') + '</ul>'
+            (lost.length ? '<ul>' + lost.map(function (p) { return '<li><i style="background:' + COL[p.k] + '"></i><div>' + split(p.text) + (p.note ? '<small>' + p.note + '</small>' : '') + '</div><em>−' + Math.round(p.w - p.got) + '</em></li>'; }).join('') + '</ul>'
                 : '<p>' + (pend.length ? 'Дотук — всичко по плана.' : 'Всичко по плана.') + '</p>') +
-            (pend.length ? '<p class="pend">Предстои: ' + pend.map(function (p) { return NAMES[p.k] || ''; }).filter(Boolean).join(', ') + '</p>' : '');
+            (pend.length ? '<p class="pend"><span>Предстои:</span> ' + pend.map(function (p) { return '<span>' + (NAMES[p.k] || '') + '</span>'; }).filter(function (h) { return h !== '<span></span>'; }).join(', ') + '</p>' : '');
     }
     /** Главната причина за деня (за картата в плана): най-голямото отклонение или „Всичко по плана“. */
     function mainReason(x) {
