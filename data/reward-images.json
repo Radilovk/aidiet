@@ -38,7 +38,71 @@
       "fresh salad bowl top view"
     ]
   },
-  "images": {},
+  "images": {
+    "resolve": {
+      "file": "brand/rewards/resolve.webp",
+      "id": 5819652,
+      "focus": "0.55,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/mountains-fog-sky-clouds-5819652/"
+    },
+    "persist": {
+      "file": "brand/rewards/persist.webp",
+      "id": 3338616,
+      "focus": "0.42,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/woman-hiking-summit-peak-clouds-3338616/"
+    },
+    "consistency": {
+      "file": "brand/rewards/consistency.webp",
+      "id": 1841271,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/corn-agriculture-soil-plant-dirt-1841271/"
+    },
+    "inner": {
+      "file": "brand/rewards/inner.webp",
+      "id": 2905849,
+      "focus": "0.45,0.55",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/fruit-apple-malum-red-healthy-2905849/"
+    },
+    "habit": {
+      "file": "brand/rewards/habit.webp",
+      "id": 8027884,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/planting-transplanting-cherry-tomato-8027884/"
+    },
+    "streak": {
+      "file": "brand/rewards/streak.webp",
+      "id": 1576405,
+      "focus": "0.4,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/blueberries-milk-breakfast-sunlight-1576405/"
+    },
+    "weight": {
+      "file": "brand/rewards/weight.webp",
+      "id": 1868652,
+      "focus": "0.45,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/walking-fitness-girl-dawn-fall-1868652/"
+    },
+    "invite": {
+      "file": "brand/rewards/invite.webp",
+      "id": 4801581,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/food-table-omelette-brunch-4801581/"
+    },
+    "share": {
+      "file": "brand/rewards/share.webp",
+      "id": 9326373,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/vegetables-food-fresh-harvest-9326373/"
+    }
+  },
   "picks": {
     "resolve": {
       "id": 5819652,
