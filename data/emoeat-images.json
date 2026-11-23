@@ -148,5 +148,54 @@
       "page": "https://pixabay.com/photos/trees-avenue-tree-lined-avenue-path-5345528/"
     }
   },
-  "picks": {}
+  "picks": {
+    "comfort": {
+      "id": 1975215,
+      "focus": "0.5,0.5"
+    },
+    "pause": {
+      "id": 3281583,
+      "focus": "0.5,0.5"
+    },
+    "pendulum": {
+      "id": 3236971,
+      "focus": "0.5,0.5"
+    },
+    "order": {
+      "id": 2724355,
+      "focus": "0.5,0.5"
+    },
+    "critic": {
+      "id": 4111081,
+      "focus": "0.5,0.5"
+    },
+    "spark": {
+      "id": 1895165,
+      "focus": "0.5,0.5"
+    },
+    "impulse": {
+      "id": 1868175,
+      "focus": "0.5,0.5"
+    },
+    "calm": {
+      "id": 5204360,
+      "focus": "0.5,0.5"
+    },
+    "portrait": {
+      "id": 7807231,
+      "focus": "0.5,0.5"
+    },
+    "need": {
+      "id": 1536226,
+      "focus": "0.5,0.5"
+    },
+    "plan": {
+      "id": 9132663,
+      "focus": "0.5,0.5"
+    },
+    "welcome": {
+      "id": 2306471,
+      "focus": "0.5,0.5"
+    }
+  }
 }
