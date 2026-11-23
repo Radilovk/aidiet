@@ -404,7 +404,6 @@
   "Оставям го за сутринта, на свежа глава": "Zostawiam to do rana, kiedy mam jaśniejszą głowę",
   "Не отговарям, но после дълго го въртя в главата": "Nie odpisuję, ale potem długo mielę to w głowie",
   "Ставам и почвам да правя нещо друго, каквото и да е": "Wstaję i zaczynam robić coś innego. Cokolwiek.",
-  "Някой близък те пита: „Какво ти е, бе?“ Най-често…": "Ktoś bliski pyta: „Co z tobą?” Najczęściej…",
   "Знам точно какво ми е, ама не ми се обяснява": "Wiem dokładnie, o co chodzi, tylko nie chce mi się tłumaczyć",
   "Казвам му го направо": "Mówię prosto z mostu",
   "Не знам. Просто ми е някак": "Nie wiem. Po prostu jakoś mi nie tak",
@@ -453,7 +452,6 @@
   "Веднага, като се появи": "Od razu, kiedy tylko się zaczyna",
   "Чак когато стане неприятно": "Dopiero kiedy robi się nieprzyjemnie",
   "Чак когато спра": "Dopiero kiedy przestaję",
-  "Кое ти е по-близо, когато ти е криво?": "Kiedy jest ci kiepsko, co bardziej do ciebie pasuje?",
   "И двете са нормални. Избери по-близкото.": "Obie opcje są normalne. Wybierz tę bliższą.",
   "Трябва да направя нещо, само да не стоя така": "Muszę coś zrobić, cokolwiek, byle tak nie siedzieć",
   "Изчаквам малко и после виждам какво да правя": "Czekam chwilę, a potem patrzę, co dalej",
@@ -751,7 +749,9 @@
   "Не мога да се успокоя, докато не го оправя": "Nie uspokoję się, dopóki tego nie naprawię",
   "Дни от месеца, в които всичко ми идва в повече": "Dni w miesiącu, kiedy wszystkiego jest za dużo",
   "Около три минути": "Około trzech minut",
-  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Piętnaście krótkich scen, po jednym dotknięciu. Wybieraj to, co przyjdzie pierwsze."
+  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Piętnaście krótkich scen, po jednym dotknięciu. Wybieraj to, co przyjdzie pierwsze.",
+  "Някой близък те пита: „Какво ти е? Всичко наред ли е?“ Най-често…": "Ktoś bliski pyta: „Co ci jest? Wszystko w porządku?” Najczęściej…",
+  "Какво правиш, когато ти е криво?": "Co robisz, kiedy jest ci źle?"
  },
  "patterns": [
   [

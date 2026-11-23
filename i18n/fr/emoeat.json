@@ -405,7 +405,6 @@
   "Оставям го за сутринта, на свежа глава": "Je laisse ça pour le matin, quand j’aurai les idées plus claires",
   "Не отговарям, но после дълго го въртя в главата": "Je ne réponds pas, mais après ça me tourne dans la tête un bon moment",
   "Ставам и почвам да правя нещо друго, каквото и да е": "Je me lève et je me mets à faire autre chose. N’importe quoi.",
-  "Някой близък те пита: „Какво ти е, бе?“ Най-често…": "Quelqu’un de proche te demande : « Qu’est-ce que t’as ? » Le plus souvent…",
   "Знам точно какво ми е, ама не ми се обяснява": "Je sais très bien ce que j’ai, mais j’ai pas envie d’expliquer",
   "Казвам му го направо": "Je lui dis directement",
   "Не знам. Просто ми е някак": "Je sais pas. Je me sens juste bizarre",
@@ -454,7 +453,6 @@
   "Веднага, като се появи": "Tout de suite, dès que ça commence",
   "Чак когато стане неприятно": "Seulement quand ça devient désagréable",
   "Чак когато спра": "Seulement quand je m’arrête",
-  "Кое ти е по-близо, когато ти е криво?": "Quand tu n’as pas le moral, qu’est-ce qui te ressemble le plus ?",
   "И двете са нормални. Избери по-близкото.": "Les deux sont normaux. Choisis le plus proche de toi.",
   "Трябва да направя нещо, само да не стоя така": "Il faut que je fasse quelque chose, n’importe quoi, mais pas rester là comme ça",
   "Изчаквам малко и после виждам какво да правя": "J’attends un peu, puis je vois quoi faire",
@@ -752,7 +750,9 @@
   "Не мога да се успокоя, докато не го оправя": "Je ne me calme pas tant que je ne l’ai pas réparé",
   "Дни от месеца, в които всичко ми идва в повече": "Les jours du mois où tout me paraît trop",
   "Около три минути": "Environ trois minutes",
-  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Quinze courtes scènes, un geste chacune. Choisis ce qui te vient en premier."
+  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Quinze courtes scènes, un geste chacune. Choisis ce qui te vient en premier.",
+  "Някой близък те пита: „Какво ти е? Всичко наред ли е?“ Най-често…": "Quelqu’un de proche te demande : « Qu’est-ce qui ne va pas ? Tout va bien ? » Le plus souvent…",
+  "Какво правиш, когато ти е криво?": "Que fais-tu quand ça ne va pas ?"
  },
  "patterns": [
   [

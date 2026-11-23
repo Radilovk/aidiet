@@ -405,7 +405,6 @@
   "Оставям го за сутринта, на свежа глава": "Lo dejo para la mañana siguiente, cuando tenga la cabeza más despejada",
   "Не отговарям, но после дълго го въртя в главата": "No contesto, pero luego me paso un buen rato dándole vueltas",
   "Ставам и почвам да правя нещо друго, каквото и да е": "Me levanto y me pongo a hacer otra cosa. Lo que sea.",
-  "Някой близък те пита: „Какво ти е, бе?“ Най-често…": "Alguien cercano te pregunta: «¿Qué te pasa?». Casi siempre…",
   "Знам точно какво ми е, ама не ми се обяснява": "Sé perfectamente qué me pasa, pero no me apetece explicarlo",
   "Казвам му го направо": "Lo digo tal cual",
   "Не знам. Просто ми е някак": "No lo sé. Solo sé que algo no va bien",
@@ -454,7 +453,6 @@
   "Веднага, като се появи": "Enseguida, en cuanto empieza",
   "Чак когато стане неприятно": "Solo cuando empieza a ser incómodo",
   "Чак когато спра": "Solo cuando paro",
-  "Кое ти е по-близо, когато ти е криво?": "Cuando estás de bajón, ¿cuál se parece más a ti?",
   "И двете са нормални. Избери по-близкото.": "Las dos cosas son normales. Elige la que más se acerque.",
   "Трябва да направя нещо, само да не стоя така": "Necesito hacer algo, lo que sea, menos quedarme aquí así",
   "Изчаквам малко и после виждам какво да правя": "Espero un poco y luego ya veo qué hago",
@@ -752,7 +750,9 @@
   "Не мога да се успокоя, докато не го оправя": "No me quedo tranquilo hasta arreglarlo",
   "Дни от месеца, в които всичко ми идва в повече": "Días del mes en los que todo se me hace demasiado",
   "Около три минути": "Unos tres minutos",
-  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Quince escenas cortas, un toque cada una. Elige lo primero que te salga."
+  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Quince escenas cortas, un toque cada una. Elige lo primero que te salga.",
+  "Някой близък те пита: „Какво ти е? Всичко наред ли е?“ Най-често…": "Alguien cercano te pregunta: «¿Qué te pasa? ¿Va todo bien?». Casi siempre…",
+  "Какво правиш, когато ти е криво?": "¿Qué haces cuando estás de bajón?"
  },
  "patterns": [
   [
