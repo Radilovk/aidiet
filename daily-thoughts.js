@@ -12,6 +12,9 @@
  *  - иначе два от всеки три дни — категориите, които пасват на чертите от EmoEat (persona.traits),
  *    третият — от всички, за разнообразие. При строг глас / „всичко или нищо“ без „Постоянство и дисциплина“.
  * Родът: при жена мъжките форми, които се отнасят за човека, стават женски (само на български).
+ * Други езици: thoughts/<език>.js (364 мисли в същия ред, неутрален род), зарежда се само за
+ * текущия език. Докато не е зареден, pick() връща text: null — никога не показва български на
+ * човек с друг език и никога не минава през машинния превод.
  */
 (function (global) {
     'use strict';
@@ -447,12 +450,35 @@
         if (!pool.length) pool = THOUGHTS.map(function (_, i) { return i; });
         // 97 е взаимно просто с размерите на пуловете — обхожда целия пул, преди да повтори.
         var idx = pool[((n * 97) % pool.length + pool.length) % pool.length];
-        var text = THOUGHTS[idx][1];
-        if (o.female && (!o.lang || o.lang === 'bg')) text = feminize(text);
+        var lang = o.lang || 'bg';
+        var text;
+        if (lang === 'bg') text = o.female ? feminize(THOUGHTS[idx][1]) : THOUGHTS[idx][1];
+        else {
+            var tr = global.NutriPlanThoughtsI18n && global.NutriPlanThoughtsI18n[lang];
+            text = tr && tr[idx] ? tr[idx] : null;
+        }
         return { text: text, category: CATEGORIES[THOUGHTS[idx][0]], index: idx };
     }
 
-    var api = { pick: pick, THOUGHTS: THOUGHTS, CATEGORIES: CATEGORIES, feminize: feminize, dayNumber: dayNumber };
+    // Преводите — по един файл на език, зареждат се при нужда.
+    var LANGS = ['en', 'de', 'es', 'ru', 'fr', 'it', 'pt', 'tr', 'pl', 'ro'];
+    var loading = {};
+    function load(lang, cb) {
+        var have = global.NutriPlanThoughtsI18n && global.NutriPlanThoughtsI18n[lang];
+        if (lang === 'bg' || have || LANGS.indexOf(lang) < 0 || typeof document === 'undefined') { if (cb && (lang === 'bg' || have)) cb(); return; }
+        (loading[lang] = loading[lang] || []).push(cb);
+        if (loading[lang].length > 1) return;
+        var sc = document.createElement('script');
+        sc.src = './thoughts/' + lang + '.js?v=1';
+        sc.async = true;
+        sc.onload = function () { var q = loading[lang] || []; loading[lang] = null; q.forEach(function (f) { if (f) f(); }); };
+        sc.onerror = function () { loading[lang] = null; };
+        document.head.appendChild(sc);
+    }
+    // Текущият език — веднага, за да е готов, преди планът и известията да го потърсят.
+    try { var cur = global.EatologixI18n && global.EatologixI18n.lang; if (cur && cur !== 'bg') load(cur); } catch (_) {}
+
+    var api = { pick: pick, load: load, THOUGHTS: THOUGHTS, CATEGORIES: CATEGORIES, feminize: feminize, dayNumber: dayNumber };
     global.NutriPlanThoughts = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
 }(typeof window !== 'undefined' ? window : globalThis));

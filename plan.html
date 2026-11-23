@@ -10852,8 +10852,8 @@
         /**
          * Мисъл за деня: тих ред (без рамка) над храненията — само днес, докато не е затворен.
          * Никога заедно със SOS картата: на екрана има най-много едно поле за подкрепа.
-         * Изборът по чертите от EmoEat и по деня — daily-thoughts.js. Засега само на български:
-         * преводите на 364-те мисли идват отделно (без AI превод на живо).
+         * Изборът по чертите от EmoEat и по деня — daily-thoughts.js. На други езици мисълта идва от
+         * thoughts/<език>.js (без AI превод на живо); ако още не е зареден, картата изчаква файла.
          */
         function renderDailyThought(dayKey) {
             var container = document.getElementById('mealContainer');
@@ -10865,7 +10865,7 @@
             var dismissed = false;
             try { dismissed = localStorage.getItem('np_thought_dismissed') === today; } catch (_) {}
             var sosShown = !!container.querySelector('.persona-sos');
-            if (!T || dayKey !== today || dismissed || lang !== 'bg' || sosShown) { if (old) old.remove(); return; }
+            if (!T || dayKey !== today || dismissed || sosShown) { if (old) old.remove(); return; }
             if (old) return;
             var P = window.NutriPlanPersona;
             var persona = P ? P.current() : {};
@@ -10878,6 +10878,7 @@
                 female: /жен|female/i.test(String(ud.gender || '')),
                 lang: lang
             });
+            if (!th.text) { T.load(lang, function () { renderDailyThought(dayKey); }); return; }
             var card = document.createElement('div');
             card.className = 'daily-thought';
             card.setAttribute('role', 'note');

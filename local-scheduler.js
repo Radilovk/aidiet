@@ -1930,7 +1930,7 @@ const GameNotifier = {
     _absenceThoughts() {
         const T = typeof window !== 'undefined' && window.NutriPlanThoughts;
         const lang = (typeof window !== 'undefined' && window.EatologixI18n && window.EatologixI18n.lang) || 'bg';
-        if (!T || lang !== 'bg') return [];
+        if (!T) return [];
         const p = this._persona() || {};
         let female = false;
         try { female = /жен|female/i.test(String((JSON.parse(localStorage.getItem('userData') || '{}') || {}).gender || '')); } catch (_) {}
@@ -1939,10 +1939,12 @@ const GameNotifier = {
             const ts = this._tsForDayOffset(day, 10, 0);
             if (ts <= Date.now()) return;
             const th = T.pick({ date: new Date(ts), traits: p.traits || [], hardYesterday: true, female, lang });
+            if (!th.text) return;   // преводът още не е зареден — при следващото пренареждане
+            const tr = (typeof window !== 'undefined' && window.EatologixI18n && window.EatologixI18n.t) || ((x) => x);
             out.push({
                 id: this.MEAL_ID_BASE + 700 + i,
                 channelId: this.CHANNEL_ID,
-                title: 'Мисъл за деня',
+                title: tr('Мисъл за деня'),
                 body: th.text,
                 schedule: { at: new Date(ts), allowWhileIdle: true },
                 extra: { url: '/index.html?app=1&tab=plan', type: 'absence_thought' },
