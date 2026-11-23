@@ -44,6 +44,7 @@ on:
       - '!wording/**'
       - '!access-control.js'
       - '!billing.js'
+      - '!rewards.js'
       - '!spend.js'
       - '!gemini-models.js'
       - '!iris-gate.js'
@@ -143,6 +144,8 @@ jobs:
             --exclude 'wording/' \
             --exclude 'access-control.js' \
             --exclude 'billing.js' \
+            --exclude 'rewards.js' \
+            --exclude 'review/' \
             --exclude 'spend.js' \
             --exclude 'gemini-models.js' \
             --exclude 'iris-gate.js' \

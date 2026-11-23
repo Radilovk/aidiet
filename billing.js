@@ -18,6 +18,7 @@
  */
 import Pricing from './pricing-config.js';
 import { readAccess, writeAccess, normalizeAccess } from './access-control.js';
+import { planDiscount, applyPlanDiscount } from './rewards.js';
 
 const API = 'https://api.stripe.com/v1/';
 const DAY_MS = 24 * 3600 * 1000;
@@ -77,7 +78,7 @@ export async function handleVoucherStatus(url, env, { respond }) {
   return respond(v ? { valid: true, amount: v.amount, until: v.until } : { valid: false });
 }
 
-/** POST /api/billing/checkout { product, userId?, deviceId?, returnUrl?, voucher?, ref? } → { url } */
+/** POST /api/billing/checkout { product, userId?, deviceId?, returnUrl?, voucher?, ref?, reward?, invite? } → { url } */
 export async function handleBillingCheckout(request, env, { respond }) {
   if (!billingReady(env)) return respond({ error: 'no_stripe', mode: stripeMode(env) }, 503);
   const b = await request.json().catch(() => ({}));
@@ -99,6 +100,13 @@ export async function handleBillingCheckout(request, env, { respond }) {
       // Ваучер от IrisMap: платеното за анализа се приспада от плана (не от продължението).
       const v = !P.requiresPlan ? await readVoucher(env, b.voucher) : null;
       if (v) { meta.voucher = b.voucher; P = { ...P, price: Math.max(0.5, Math.round((P.price - v.amount) * 100) / 100), description: `С приспаднати ${Pricing.formatPrice(v.amount)} от анализа в IrisMap` }; }
+      // Награда за постоянство или покана от приятел — по-голямата от двете, след ваучера.
+      const d = await planDiscount(env, b.userId, { reward: b.reward, invite: P.requiresPlan ? '' : b.invite });
+      if (d) {
+        if (d.reward) meta.reward = d.reward;
+        if (d.invite) meta.invite = d.invite;
+        P = { ...P, price: Math.max(0.5, Math.round(P.price * (100 - d.pct)) / 100), description: [P.description, d.label].filter(Boolean).join(' · ') };
+      }
       const site = /^https:\/\/(nutriin\.app|eatologix\.com|biocode\.website)$/.test(origin) ? origin : 'https://nutriin.app';
       back = `${site}/pricing.html`;
     } else if (P.kind === 'iris') {
@@ -166,6 +174,7 @@ async function applySession(env, s, now) {
       const v = JSON.parse((await env.page_content.get(vk)) || 'null');
       if (v) await env.page_content.put(vk, JSON.stringify({ ...v, usedBy: m.userId, usedAt: now }), { expirationTtl: 60 * 86400 });
     }
+    if (m.reward || m.invite) await applyPlanDiscount(env, m.userId, m, now);
   } else if (P.kind === 'iris') {
     // Кредит за един анализ на устройството (iris-gate.js го изразходва при билета) + ваучер за плана.
     const ck = `iris_credit:${m.deviceId}`;
