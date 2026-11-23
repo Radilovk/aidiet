@@ -1478,6 +1478,7 @@
     <script src="./emoeat-v3.js?v=20261123c"></script>
     <script src="./bot-check.js?v=20261117a" defer></script>
     <script src="./ambient-glass.js?v=5"></script>
+    <script src="./ui-images-cache.js"></script>
 </head>
 <body data-page-theme="emoeat" data-standalone-module="emoeat">
     <!-- Skip Navigation Link (Accessibility) -->
@@ -1537,7 +1538,7 @@
         <!-- Welcome Screen -->
         <div class="screen active" id="welcomeScreen">
             <div class="welcome-screen">
-                <div class="welcome-cover" aria-hidden="true"><img src="./brand/emoeat/welcome.webp" alt="" width="900" height="522" decoding="async"></div>
+                <div class="welcome-cover" aria-hidden="true"><img src="./brand/emoeat/welcome.webp" data-emo-slot="welcome" alt="" width="900" height="522" decoding="async"></div>
                 <h2 class="welcome-title">Кога храната поема чувствата?</h2>
                 <p class="welcome-subtitle">Тук няма въпроси за храна. Питаме как минават обикновените ти дни: какво те изморява, какво те отпуска, как реагираш, когато нещо се обърка. Какво значи това за храненето ти, ще видиш накрая.</p>
                 <div class="welcome-pick" id="welcomePick" data-i18n-dict></div>
@@ -2227,6 +2228,24 @@
 
         // Резултатът: първо портретът (какво се вижда от обикновените дни), после мостът към
         // храната като предположение, после планът. Човекът сам разпознава връзката.
+        // Снимките: по подразбиране от brand/emoeat/, подменени от админ панела (Снимки → „EmoEat – …“, /api/ui-images).
+        let emoUiImages = {};
+        function emoPhoto(slot) { return emoUiImages['emoeat_' + slot] || './brand/emoeat/' + slot + '.webp'; }
+        function emoApplyPhotos() {
+            document.querySelectorAll('img[data-emo-slot]').forEach(function (img) {
+                const want = emoPhoto(img.getAttribute('data-emo-slot'));
+                if (img.getAttribute('src') !== want) img.setAttribute('src', want);
+            });
+        }
+        try {
+            if (typeof window.getCachedUIImages === 'function') {
+                window.getCachedUIImages('https://aidiet.radilov-k.workers.dev').then(function (d) {
+                    emoUiImages = (d && d.images) || {};
+                    emoApplyPhotos();
+                }).catch(function () {});
+            }
+        } catch (e) { /* без подмени — снимките по подразбиране */ }
+
         // Снимките (Pixabay, свободен лиценз; data/emoeat-images.json): по смисъла на модела.
         const RX_PHOTO = { 'Утехата': 'comfort', 'Паузата': 'pause', 'Махалото': 'pendulum', 'Редът': 'order',
             'Строгият глас': 'critic', 'Искрата': 'spark', 'Импулсът': 'impulse', 'Спокоен апетит': 'calm' };
@@ -2394,14 +2413,14 @@
                     </div>
                 </details>`;
 
-            const photoOf = n => './brand/emoeat/' + n + '.webp';
+            const photoOf = emoPhoto;
             const heroPhoto = portraitOnly ? 'portrait' : (RX_PHOTO[base.name] || 'calm');
             const needPhoto = 'need';
             const resultsScreen = document.getElementById('resultsScreen');
             resultsScreen.innerHTML = `
                 <div class="rx" style="--accent:${base.accent}">
                     <section class="rx-hero rx-in">
-                        <div class="rx-cover" aria-hidden="true"><img src="${photoOf(heroPhoto)}" alt="" width="900" height="522" decoding="async"></div>
+                        <div class="rx-cover" aria-hidden="true"><img src="${photoOf(heroPhoto)}" data-emo-slot="${heroPhoto}" alt="" width="900" height="522" decoding="async"></div>
                         <div class="rx-ring" role="img" aria-label="${escapeHtml(levelWord(p.riskLevel))}">
                             ${ringSvg(dots)}
                             <span class="rx-ring-icon"><i class="fas ${sanitizeIconClass(portraitOnly ? 'fa-user' : base.icon)}"></i></span>
@@ -2418,7 +2437,7 @@
 
                     ${p.realNeed && !portraitOnly ? `
                     <section class="rx-need rx-in">
-                        <img src="${photoOf(needPhoto)}" alt="" decoding="async">
+                        <img src="${photoOf(needPhoto)}" data-emo-slot="need" alt="" decoding="async">
                         <span class="rx-need-label">Истинската нужда</span>
                         <span class="rx-need-text">${T(p.realNeed)}</span>
                     </section>` : ''}
@@ -2473,7 +2492,7 @@
             if (auto) setTimeout(linkEmoEatToPlan, 0);
             return `
                 <section class="rx-plan-link rx-in" id="rxPlanLink">
-                    <div class="rx-strip" aria-hidden="true"><img src="./brand/emoeat/plan.webp" alt="" loading="lazy" decoding="async"></div>
+                    <div class="rx-strip" aria-hidden="true"><img src="${emoPhoto('plan')}" data-emo-slot="plan" alt="" loading="lazy" decoding="async"></div>
                     <div class="rx-plan-link-title"><i class="fas fa-link"></i> ${linked ? 'В хранителния ти план' : 'Хранителният план'}</div>
                     <p class="rx-plan-link-text">Към плана отива обобщението (модел, портрет, истинската нужда и здравните отговори, ако си ги дал/а), но не отделните ти отговори. По него се нагаждат насоките, напомнянията и подредбата на приложението.</p>
                     ${linked
@@ -2520,7 +2539,7 @@
         function planInviteHtml() {
             return `
                 <section class="rx-plan-link rx-in" id="rxPlanLink">
-                    <div class="rx-strip" aria-hidden="true"><img src="./brand/emoeat/plan.webp" alt="" loading="lazy" decoding="async"></div>
+                    <div class="rx-strip" aria-hidden="true"><img src="${emoPhoto('plan')}" data-emo-slot="plan" alt="" loading="lazy" decoding="async"></div>
                     <div class="rx-plan-link-title"><i class="fas fa-utensils"></i> Хранителен план, съобразен с профила ти</div>
                     <p class="rx-plan-link-text">Nutriin ще вземе модела ти предвид от първия ден: кога и защо идва гладът, какво помага вместо забрани, как да се подредят храненията. Обобщението на профила ти (без отделните отговори) тръгва с теб.</p>
                     <button type="button" class="rx-btn" id="rxPlanInviteBtn" onclick="continueToNutriPlan()"><i class="fas fa-arrow-right"></i> Създай моя план</button>

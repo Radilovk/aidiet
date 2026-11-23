@@ -163,7 +163,7 @@ var require_day_adherence = __commonJS({
         if (!mc || mc.sleptWell == null) add("sleep", 0, "\u0421\u044A\u043D \u2014 \u0431\u0435\u0437 \u043E\u0442\u0433\u043E\u0432\u043E\u0440");
         else {
           var lv = mc.level || (mc.sleptWell ? "good" : "bad");
-          add("sleep", lv === "good" ? 1 : lv === "mid" ? 0.5 : 0, lv === "good" ? "" : lv === "mid" ? "\u0421\u044A\u043D \u2014 \u0441\u0440\u0435\u0434\u0435\u043D" : "\u041B\u043E\u0448 \u0441\u044A\u043D", mc.hours ? String(mc.hours).replace(".", ",") + " \u0447" : "");
+          add("sleep", lv === "good" ? 1 : lv === "mid" ? 0.5 : 0, lv === "good" ? "" : lv === "mid" ? "\u0421\u044A\u043D \u2014 \u0441\u0440\u0435\u0434\u0435\u043D" : "\u041B\u043E\u0448 \u0441\u044A\u043D", mc.hours ? String(mc.hours).replace(".", ",") + " \u0447" : mc.phone && mc.phone.note || "");
         }
         if (!ec || ec.waterIntake == null) add("water", 0, closed ? "\u0412\u043E\u0434\u0430 \u2014 \u0431\u0435\u0437 \u043E\u0442\u0433\u043E\u0432\u043E\u0440" : "", "", !closed);
         else add("water", ec.waterIntake === true ? 1 : 0, ec.waterIntake === true ? "" : "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u044A\u0447\u043D\u043E \u0432\u043E\u0434\u0430");
@@ -101776,7 +101776,20 @@ var UI_IMAGE_ZONES = [
   "guidelines_banner",
   "plan_pending_bg",
   "plan_greeting",
-  "questionnaire2_bg"
+  "questionnaire2_bg",
+  // EmoEat: снимките на финалната страница и входния екран (emoeat.html)
+  "emoeat_comfort",
+  "emoeat_pause",
+  "emoeat_pendulum",
+  "emoeat_order",
+  "emoeat_critic",
+  "emoeat_spark",
+  "emoeat_impulse",
+  "emoeat_calm",
+  "emoeat_portrait",
+  "emoeat_need",
+  "emoeat_plan",
+  "emoeat_welcome"
 ];
 async function handleGetAllUIImages(request, env) {
   try {
