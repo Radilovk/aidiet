@@ -92,7 +92,7 @@
             <p class="price-note" id="rewardNote" hidden></p>
             <form class="code-form" id="codeForm" autocomplete="off">
                 <label for="codeInput">Имаш код за отстъпка или покана?</label>
-                <div><input id="codeInput" type="text" placeholder="напр. GRIT10" autocapitalize="characters" spellcheck="false"><button type="submit">Приложи</button></div>
+                <div><input id="codeInput" type="text" placeholder="напр. POWER" autocapitalize="characters" spellcheck="false"><button type="submit">Приложи</button></div>
                 <p id="codeMsg" role="status"></p>
             </form>
         </section>
@@ -265,7 +265,7 @@
         // Награда за постоянство (?reward=NI-…) или покана от приятел (?invite=…) — по-голямата, след ваучера (rewards.js).
         var reward = null, invite = null;
         (function () {
-            // Кодовете са дума и процент на латиница (rewards.js): „grit 10“ → GRIT10. Наградата важи само за
+            // Кодовете са дума и процент на латиница (rewards.js): „power“ → POWER (старите с число — „grit 10“ → GRIT10 — също). Наградата важи само за
             // спечелилия я — проверява се с акаунта, с който си влязъл.
             function norm(c) { return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10); }
             var code = norm(params.get('reward'));
