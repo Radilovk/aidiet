@@ -261,6 +261,7 @@
         /* Целта горе в седмицата: лентата казва нивото — числото е в подробностите (докосване) */
         #gaGoalSlot .gf-index-value { display: none; }
         #gaGoalSlot .gf-indices { margin-bottom: 12px; }
+        #gaGoalSlot .gf-index-bar.is-empty { background: none; border: 1px dashed var(--ds-line, rgba(15,47,46,.15)); }
         /* Седмицата — 7 звезди: запълването и цветът са ангажираността на деня */
         .ga-stars { display: flex; gap: 4px; margin: 4px 0 14px; }
         .ga-star-col { gap: 4px; padding: 4px 0; border-radius: 10px; }
@@ -877,7 +878,8 @@
 
     <script src="./game-scoring.js?v=2"></script>
     <script src="./goal-model.js"></script>
-    <script src="./goal-focus.js?v=2"></script>
+    <script src="./goal-focus.js?v=3"></script>
+    <script src="./progress-index.js?v=1"></script>
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
     <script src="./rewards-engine.js?v=8"></script>
@@ -950,35 +952,29 @@
             var persona = P ? P.current() : {};
             var soft = !!persona.noScores;
             var softTone = function (t) { return soft && t === 'bad' ? 'warn' : t; };
-            var metrics = Object.assign({}, (src && src.metrics) || {});
-            // Без везна — тенденцията на теглото от дневника (седмичният преглед и Профил пишат там).
-            if (!metrics.weight) {
-                try {
-                    var wl = (JSON.parse(localStorage.getItem('np_weight_log') || '[]') || []).filter(function (x) { return Date.now() - x.at <= 42 * 86400000; });
-                    if (wl.length >= 2) {
-                        var w0 = wl[0], w1 = wl[wl.length - 1], span = (w1.at - w0.at) / 86400000;
-                        if (span >= 10) metrics.weight = { trendKgWeek: Math.round((w1.kg - w0.kg) / span * 7 * 100) / 100, fromLog: true };
-                    }
-                } catch (_) {}
-            }
-            // Само един индекс — водещият за целта (темп, мускули или метаболитно здраве). Другите
-            // (движение, сън, емоции, постоянство) вече са кръговете и редовете отдолу.
-            var idx = GF.indices(metrics, window._gaChecks || {}, ud, { planKcal: planKcal })
-                .filter(function (x) { return x.id === 'pace' || x.id === 'muscle' || x.id === 'metabolic'; })
-                .slice(0, 1);
-            var indicesHtml = idx.length ? '<div class="gf-indices">' + idx.map(function (x) {
-                // На екрана: име, число, лента — и кратка бележка само ако нещо иска внимание.
-                // Какво показва индексът и от какво е съставен — при натискане (иконата „i“).
-                return '<div class="gf-index" data-tone="' + softTone(x.tone) + '" role="button" tabindex="0" aria-expanded="false" ' +
+            var metrics = (src && src.metrics) || {};
+            // „Резултат“ (progress-index.js): какво реално се е променило по водещите за целта показатели —
+            // тегло, талия, мускули, енергия, сън, захар… (goal-model.js → lead). Без старанието: то е звездите.
+            var PR = window.NutriPlanProgress;
+            var indicesHtml = '';
+            if (PR) {
+                var rd = function (k, def) { try { var v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? def : v; } catch (_) { return def; } };
+                var wk = rd('gameWeeklyAI', {}) || {};
+                var startRaw = wk.dietStartDate || ud.planCreatedAt || localStorage.getItem('planUpdatedAt') || '';
+                var planStart = Date.parse(startRaw) || null;
+                var res = PR.compute({ profile: p, userData: ud, weightLog: rd('np_weight_log', []), checkins: rd('np_checkins', []),
+                    metrics: metrics, checks: window._gaChecks || {}, planStart: planStart });
+                var on = res.value != null;
+                indicesHtml = '<div class="gf-indices"><div class="gf-index ga-result" data-tone="good" role="button" tabindex="0" aria-expanded="false" ' +
                     'onclick="gfToggleIndex(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();gfToggleIndex(this);}">' +
-                    '<div class="gf-index-head"><span class="gf-index-icon"><i class="fas ' + x.icon + '"></i></span><span class="gf-index-name">' + gfEsc(x.name) +
-                    ' <i class="fas fa-circle-info gf-index-info" aria-hidden="true"></i></span>' +
-                    '<span class="gf-index-value">' + x.value + '</span></div>' +
-                    '<div class="gf-index-bar"><span style="width:' + x.value + '%"></span></div>' +
-                    (x.note ? '<div class="gf-index-note">' + gfEsc(x.note) + '</div>' : '') +
-                    '<div class="gf-index-more"><p>' + gfEsc(x.about) + '</p><p>' + gfEsc(x.detail) + '</p>' +
-                    '<ul class="gf-index-parts">' + x.parts.map(function (pt) { return '<li><span>' + gfEsc(pt.label) + '</span><span>' + gfEsc(pt.text) + '</span></li>'; }).join('') + '</ul></div></div>';
-            }).join('') + '</div>' : '';
+                    '<div class="gf-index-head"><span class="gf-index-icon"><i class="fas fa-flag-checkered"></i></span><span class="gf-index-name">Резултат' +
+                    ' <i class="fas fa-circle-info gf-index-info" aria-hidden="true"></i></span></div>' +
+                    '<div class="gf-index-bar' + (on ? '' : ' is-empty') + '"><span style="width:' + (on ? res.value : 0) + '%"></span></div>' +
+                    (on ? '' : '<div class="gf-index-note">' + gfEsc(res.needs.text) + '</div>') +
+                    '<div class="gf-index-more"><p>Колко си се приближил/а до целта — по това, което се мери, не по старанието.</p>' +
+                    (res.parts.length ? '<ul class="gf-index-parts">' + res.parts.map(function (pt) { return '<li><span>' + gfEsc(pt.label) + '</span><span>' + gfEsc(pt.text) + '</span></li>'; }).join('') + '</ul>' : '') +
+                    (on && res.needs ? '<p>' + gfEsc(res.needs.text) + '</p>' : '') + '</div></div></div>';
+            }
             top.innerHTML = indicesHtml;
             indicesHtml = '';
             if (!src || !src.metrics || !Object.keys(src.metrics).length) {
@@ -1594,7 +1590,10 @@
                 engagementPct: validScores.length ? engagementPct : null,
                 mealAdherence: mealAdherencePct, calAdherence: calAdherencePct,
                 sleepPct: sleepPct, actPct: actPct, balancePct: balancePct,
-                junkCount: validScores.length ? junkCount7 : null
+                junkCount: validScores.length ? junkCount7 : null,
+                // дни с тренировка (вечерният въпрос) — за „Резултат“, когато тренировките са водещи
+                workouts7: days.some(function(d){ return d.rec && d.rec.eveningCheck && d.rec.eveningCheck.trained != null; })
+                    ? days.filter(function(d){ var t = d.rec && d.rec.eveningCheck && d.rec.eveningCheck.trained; return t === 'am' || t === 'pm' || t === true; }).length : null
             };
             renderGoalFocus();
 

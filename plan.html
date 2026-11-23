@@ -12670,9 +12670,18 @@
         // Отговорите се пазят до успешно изпращане — „Опитай пак“ не пита наново.
         async function sendWeeklyAnswers(questions, answers, cycleNumber) {
             // Теглото от прегледа → дневника (weight-log.js): същият път като от профила.
+            // Измерванията и усещането → np_checkins: историята за „Резултат“ в Напредък (progress-index.js).
             try {
-                var wAns = (answers || []).filter(function(a) { return a.questionId === 'weightKg'; })[0];
-                if (wAns && window.NPWeight && window.NPWeight.add) window.NPWeight.add(wAns.value);
+                var ansOf = function(id) { var h = (answers || []).filter(function(a) { return a.questionId === id; })[0]; return h ? String(h.value) : null; };
+                var wKg = ansOf('weightKg');
+                if (wKg && window.NPWeight && window.NPWeight.add) window.NPWeight.add(wKg);
+                var num1 = function(v) { var n = parseFloat(String(v || '').replace(',', '.')); return isFinite(n) ? n : null; };
+                var energy = { 'Добра': 1, 'Средна': 2, 'Ниска': 3 }[ansOf('energy')] || null;
+                var diff = ansOf('difficulty');
+                var ci = { at: Date.now(), weightKg: num1(wKg), waistCm: num1(ansOf('waistCm')), energy: energy, digestion: diff == null ? null : /Храносмилането/.test(diff) };
+                var hist = JSON.parse(localStorage.getItem('np_checkins') || '[]') || [];
+                hist.push(ci);
+                localStorage.setItem('np_checkins', JSON.stringify(hist.slice(-26)));
             } catch (_) {}
             var st0 = getWeeklyAIState();
             st0.pendingAnswers = answers;

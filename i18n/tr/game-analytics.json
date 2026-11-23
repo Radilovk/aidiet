@@ -66,7 +66,20 @@
   "Пътят към успеха": "Başarıya giden yol",
   "Първо ниво": "İlk seviye",
   "от последните {0} дни": "son {0} günden",
-  "За твоята цел": "Hedefin için"
+  "За твоята цел": "Hedefin için",
+  "Резултат": "Sonuç",
+  "Колко си се приближил/а до целта — по това, което се мери, не по старанието.": "Hedefine ne kadar yaklaştığın — çabaya göre değil, ölçülebilen şeylere göre.",
+  "Запиши теглото си — в седмичния преглед или в Профил.": "Kilonu kaydet — haftalık değerlendirmede veya Profil'de.",
+  "Измери талията — пита се в седмичния преглед.": "Belini ölç — haftalık değerlendirmede sorulur.",
+  "Мускулите се виждат с везна, която мери състава (Профил → устройства).": "Kas, vücut analizi yapan bir tartıyla görülür (Profil → cihazlar).",
+  "Нужни са измервания на захарта (Профил → устройства).": "Şeker ölçümleri gerekli (Profil → cihazlar).",
+  "Нужни са измервания на кръвното (Профил → устройства).": "Tansiyon ölçümleri gerekli (Profil → cihazlar).",
+  "Енергията се пита в седмичния преглед.": "Enerji haftalık değerlendirmede sorulur.",
+  "Храносмилането се пита в седмичния преглед.": "Sindirim haftalık değerlendirmede sorulur.",
+  "Талия": "Bel",
+  "Мускули": "Kas",
+  "Храносмилане": "Sindirim",
+  "Иска внимание": "Dikkat istiyor"
  },
  "keys": {},
  "patterns": []
