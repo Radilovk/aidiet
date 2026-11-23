@@ -50,7 +50,7 @@
         { days: 7, bonus: 30, big: false, moment: 'Седмица без прекъсване', text: 'Ритъмът се ражда. Продължавай в същия дух.', share: 'Ритъмът се ражда.' },
         { days: 21, bonus: 70, big: true, moment: 'Показа устойчивост', text: '21 дни поред — и в дните, в които беше трудно.', share: 'Показах устойчивост.' },
         { days: 66, bonus: 200, big: true, habit: true, moment: 'Създаде нов навик', text: 'Това вече не е усилие, а част от теб.', share: 'Създадох нов навик.' },
-        { days: 100, bonus: 300, big: true, moment: 'Сто дни поред', text: 'Сто дни, в които избра себе си.', share: 'Сто дни, в които избрах себе си.' }
+        { days: 100, bonus: 300, big: true, moment: '100 дни упоритост', text: 'Сто дни, в които избра себе си.', share: 'Сто дни, в които избрах себе си.' }
     ];
 
     var WEIGHT_STEPS = [3, 5, 7, 10];
@@ -73,8 +73,9 @@
     var TEXTS = {
         section: 'Пътят към успеха',
         empty: 'Всеки отметнат ден е стъпка. От първия започва пътят ти.',
-        levelLabel: 'Ниво', firstLevel: 'Първо ниво',
+        levelLabel: 'Ниво', firstLevel: 'Към ниво',
         towards: 'Още {n} {daysWord} до „{title}“',
+        towardsFirst: 'Още {n} {daysWord}',
         top: 'Най-високото ниво. Пазиш го с всеки ден.',
         behind: 'Към „{title}“ — ритъмът още не стига',
         warn: 'Още {n} {daysWord} под прага и нивото слиза. Един добър ден връща отброяването.',
@@ -283,6 +284,23 @@
         return cnt ? Math.round(sum / cnt) : 0;
     }
 
+    /**
+     * Колко добри дни (по GOOD_DAY_SIM — пълен ден) още трябват, за да се достигне нивото:
+     * всеки нов ден влиза в прозореца, най-старият излиза. До 120, иначе null.
+     */
+    var GOOD_DAY_SIM = 80;
+    function daysToTier(tl, end, t) {
+        var win = [];
+        for (var j = Math.max(0, end - t.days + 1); j <= end && j < tl.length; j++) if (!tl[j].shielded) win.push(tl[j].eng || 0);
+        var sum = function () { return win.reduce(function (a, b) { return a + b; }, 0); };
+        for (var k = 0; k <= 120; k++) {
+            if (win.length >= t.days && sum() / win.length >= t.minEng) return k;
+            win.push(GOOD_DAY_SIM);
+            if (win.length > t.days) win.shift();
+        }
+        return null;
+    }
+
     /** Най-високото стъпало, чиито условия държат заедно с всички под него (и скорошното, и дългото). */
     function qualifiedTier(tl, i) {
         var q = -1;
@@ -425,10 +443,14 @@
         if (nx) {
             var end2 = Math.max(0, evalEnd);
             var have = Math.min(nx.days, end2 + 1);
+            var nAvg = windowAvg(tl, end2, have);
             res.next = {
                 id: nx.id, title: nx.title, days: nx.days, minEng: nx.minEng, rewards: nx.rewards,
-                daysHave: have, avg: windowAvg(tl, end2, have),
-                progress: Math.min(100, Math.round(have / nx.days * 100))
+                daysHave: have, avg: nAvg,
+                // И двете условия: достатъчно дни И средна над прага — лентата е по по-слабото.
+                // (Преди беше само по дните: при 14 от 14 дни и слаб ритъм беше пълна, а нивото — не.)
+                progress: Math.min(100, Math.round(Math.min(have / nx.days, nAvg == null ? 0 : nAvg / nx.minEng) * 100)),
+                daysNeeded: daysToTier(tl, end2, nx)
             };
         }
 

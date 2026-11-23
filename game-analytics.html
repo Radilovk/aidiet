@@ -272,13 +272,16 @@
         .ga-rings--5 { grid-template-columns: repeat(6, 1fr); }
         .ga-rings--5 .ga-ring { grid-column: span 2; }
         .ga-rings--5 .ga-ring:nth-child(4) { grid-column: 2 / span 2; }
-        .ga-ring { min-height: 44px; padding: 6px 0 8px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-        .ga-ring svg, .ga-ring .game-ring-label { transition: filter .25s ease, color .25s ease, transform .25s ease; }
-        /* Избраният — меко сияние в цвета на показателя около кръга и надписа */
-        .ga-ring[aria-pressed="true"] svg { filter: drop-shadow(0 0 5px var(--rc)) drop-shadow(0 0 2px var(--rc)); transform: rotate(-90deg) scale(1.05); }
-        .ga-ring[aria-pressed="true"] .game-ring-label { color: var(--rc); text-shadow: 0 0 10px var(--rc); font-weight: 700; }
+        .ga-ring { position: relative; min-height: 44px; padding: 6px 0 8px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .ga-ring > * { position: relative; }
+        /* Избраният — тих ореол в цвета на показателя зад кръга, като светенето на завършените
+           части на деня в плана (ambient-glass.css → .dc-seg--done): една мека светлина, без рамка. */
+        .ga-ring::before { content: ''; position: absolute; left: 50%; top: 6px; width: 48px; height: 48px; margin-left: -24px; border-radius: 50%;
+            background: var(--rc); opacity: 0; filter: blur(10px); transition: opacity .3s ease; pointer-events: none; }
+        .ga-ring[aria-pressed="true"]::before { opacity: .3; }
+        .ga-ring[aria-pressed="true"] .game-ring-label { color: var(--text-dark); font-weight: 700; }
+        @media (prefers-reduced-motion: reduce) { .ga-ring::before { transition: none; } }
         .ga-ring.is-few svg { opacity: .45; }
-        @media (prefers-reduced-motion: reduce) { .ga-ring svg, .ga-ring .game-ring-label { transition: none; } }
         .ga-ring:focus-visible { outline: 2px solid var(--ds-green-text, #03939C); outline-offset: 2px; }
         #gameMetricsDetails { flex-direction: column; }
         /* История: 8 седмици като стълбчета */
@@ -921,8 +924,8 @@
     <script src="./progress-index.js?v=1"></script>
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
-    <script src="./rewards-engine.js?v=9"></script>
-    <script src="./rewards-ui.js?v=12"></script>
+    <script src="./rewards-engine.js?v=10"></script>
+    <script src="./rewards-ui.js?v=13"></script>
     <script src="./widget-layout.js?v=3"></script>
     <script>
     (function () {
