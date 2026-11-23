@@ -95,7 +95,14 @@
   "Без вечерния въпрос": "Evening check missing",
   "Хранене извън плана": "Off-plan eating",
   "Над калориите": "Over the calories",
-  "Движение над препоръчаното": "Activity above recommended"
+  "Движение над препоръчаното": "Activity above recommended",
+  "Вид на показателите": "Indicator view",
+  "Икони": "Icons",
+  "Големи кръгове": "Large rings",
+  "Пръстени": "Rings",
+  "Ленти": "Bars",
+  "Плочки": "Tiles",
+  "Задръж, за да смениш вида": "Hold to change the view"
  },
  "keys": {},
  "patterns": []

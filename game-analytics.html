@@ -265,13 +265,46 @@
         .ga-eng { cursor: pointer; }
         .ga-eng .ga-stars { margin: 12px 0 0; }
         /* Кръговете: 5 → два реда (3 + 2, долният центриран), 4 и по-малко → един ред */
-        .ga-rings { display: grid; gap: 8px 4px; margin: 4px 0 12px; grid-template-columns: repeat(4, 1fr); }
-        .ga-rings--3 { grid-template-columns: repeat(3, 1fr); }
-        .ga-rings--2 { grid-template-columns: repeat(2, 1fr); }
-        .ga-rings--1 { grid-template-columns: 1fr; }
-        .ga-rings--5 { grid-template-columns: repeat(6, 1fr); }
-        .ga-rings--5 .ga-ring { grid-column: span 2; }
-        .ga-rings--5 .ga-ring:nth-child(4) { grid-column: 2 / span 2; }
+        /* Показателите — пет вида (gaRenderRings); задържане → избор на вида */
+        .ga-rings-wrap { margin: 4px 0 12px; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+        .ga-v-row { display: grid; gap: 2px; }
+        .ga-v-scroll { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 2px; scrollbar-width: none;
+            -webkit-mask-image: linear-gradient(90deg, #000 84%, transparent); mask-image: linear-gradient(90deg, #000 84%, transparent); }
+        .ga-v-scroll::-webkit-scrollbar { display: none; }
+        .ga-v-scroll .ga-ring { flex: none; scroll-snap-align: start; padding-left: 4px; padding-right: 4px; }
+        .ga-ring-ic { position: relative; display: grid; place-items: center; }
+        .ga-ring-ic > i { position: absolute; font-size: 17px; }
+        .ga-ring-v { font-size: 0.85rem; font-weight: 700; color: var(--text-dark); font-variant-numeric: tabular-nums; }
+        .ga-conc { display: flex; align-items: center; gap: 14px; }
+        .ga-conc svg { flex: none; }
+        .ga-legend { flex: 1; min-width: 0; display: grid; gap: 2px; }
+        .ga-legend .ga-ring, .ga-bars .ga-ring { flex-direction: row; justify-content: flex-start; gap: 8px; width: 100%; min-height: 32px; padding: 4px 2px; text-align: left; }
+        .ga-legend .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+        .ga-legend .n, .ga-bars .n { font-size: 0.85rem; color: var(--text-dark); }
+        .ga-legend .v, .ga-bars .v { margin-left: auto; font-size: 0.85rem; font-weight: 700; color: var(--text-dark); font-variant-numeric: tabular-nums; }
+        .ga-bars { display: grid; gap: 2px; }
+        .ga-bars .ga-ring > i { width: 20px; text-align: center; font-size: 15px; flex: none; }
+        .ga-bars .n { width: 84px; flex: none; }
+        .ga-bars .tr { flex: 1; height: 8px; border-radius: 99px; background: var(--ds-track, rgba(15,47,46,.1)); overflow: hidden; }
+        .ga-bars .tr span { display: block; height: 100%; border-radius: inherit; }
+        .ga-bars .v { width: 40px; text-align: right; flex: none; margin-left: 0; }
+        .ga-v-tiles { display: grid; gap: 6px; }
+        .ga-v-tiles .ga-ring { border-radius: 14px; background: var(--ds-surface-sunken, rgba(15,47,46,.04)); border: 1px solid var(--ds-line, rgba(15,47,46,.08)); padding: 8px 0 7px; }
+        .ga-v-tiles .game-ring-label { font-size: 0.66rem; }
+        /* Избраният в списъчните видове — по-плътно име, без ореол */
+        .ga-legend .ga-ring::before, .ga-bars .ga-ring::before { display: none; }
+        .ga-legend .ga-ring[aria-pressed="true"] .n, .ga-bars .ga-ring[aria-pressed="true"] .n { font-weight: 700; }
+        .ga-rings-hint { margin: 6px 0 0; text-align: center; font-size: 0.72rem; color: var(--text-light); }
+        /* Изборът на вида — лист отдолу */
+        .ga-view-sheet { position: fixed; inset: 0; z-index: 10060; background: rgba(3,20,19,.45); }
+        .ga-view-panel { position: absolute; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 520px; box-sizing: border-box; max-height: 86vh; overflow-y: auto; padding: 8px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+            border-radius: 24px 24px 0 0; background: var(--ag-surface-solid, var(--bg-color, #fff)); border-top: 1px solid var(--ag-edge, var(--ds-line)); box-shadow: 0 -12px 40px rgba(0,0,0,.25); }
+        .ga-view-panel h3 { margin: 8px 2px 10px; font-size: 1.05rem; color: var(--text-dark); }
+        .ga-view-opt { display: block; width: 100%; margin: 0 0 10px; padding: 10px; border-radius: 16px; border: 1.5px solid var(--ds-line, rgba(15,47,46,.1));
+            background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+        .ga-view-opt[aria-pressed="true"] { border-color: var(--ds-green-text, #03939C); }
+        .ga-view-opt > span { display: block; margin: 0 0 8px 2px; font-size: 0.8rem; font-weight: 700; color: var(--text-light); }
+        .ga-view-opt .ga-view-prev { pointer-events: none; }
         .ga-ring { position: relative; min-height: 44px; padding: 6px 0 8px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .ga-ring > * { position: relative; }
         /* Избраният — тих ореол в цвета на показателя зад кръга, като светенето на завършените
@@ -898,6 +931,83 @@
                     el.style.height = '0px';
                     setTimeout(function () { el.style.height = el.getAttribute('data-ga-bar-h'); }, 100 + i * 25);
                 });
+            });
+        }
+        // ── Показателите: пет вида, задържане → избор ─────────────────────
+        var GA_VIEWS = [
+            { id: 'icons', name: 'Икони' }, { id: 'scroll', name: 'Големи кръгове' }, { id: 'conc', name: 'Пръстени' },
+            { id: 'bars', name: 'Ленти' }, { id: 'tiles', name: 'Плочки' }
+        ];
+        function gaView() { try { var v = localStorage.getItem('np_rings_view'); return GA_VIEWS.some(function(x){ return x.id === v; }) ? v : 'icons'; } catch (_) { return 'icons'; } }
+        function gaRingSvg(v, c, size, stroke, inner) {
+            var r = (size - stroke) / 2, C = 2 * Math.PI * r, off = C * (1 - Math.max(0, Math.min(100, v || 0)) / 100), h = size / 2;
+            return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true">' +
+                '<circle cx="' + h + '" cy="' + h + '" r="' + r + '" fill="none" stroke="var(--ds-track, rgba(15,47,46,.12))" stroke-width="' + stroke + '"/>' +
+                '<circle cx="' + h + '" cy="' + h + '" r="' + r + '" fill="none" stroke="' + c + '" stroke-width="' + stroke + '" stroke-linecap="round" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '" transform="rotate(-90 ' + h + ' ' + h + ')"/>' +
+                (inner || '') + '</svg>';
+        }
+        function gaPctText(v, fs) { return '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" style="fill:var(--text-dark);font-size:' + fs + 'px;font-weight:700">' + v + '%</text>'; }
+        function gaViewHtml(view, items) {
+            var shown = function(it){ return it.shown != null ? it.shown : it.v; };
+            var btn = function(it, inner, cls) { return '<button type="button" class="game-ring-wrap ga-ring' + (cls || '') + '" data-ring="' + it.k + '" style="--rc:' + it.c + '" aria-pressed="false" aria-label="' + it.label + ' ' + shown(it) + '%" aria-controls="gameMetricsDetails">' + inner + '</button>'; };
+            var cols = 'grid-template-columns:repeat(' + items.length + ',1fr)';
+            if (view === 'scroll') return '<div class="ga-v-scroll">' + items.map(function(it){ return btn(it, gaRingSvg(it.v, it.c, 66, 6, gaPctText(shown(it), 15)) + '<span class="game-ring-label">' + it.label + '</span>'); }).join('') + '</div>';
+            if (view === 'conc') {
+                var size = 128, st = 8, svg = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true">';
+                items.forEach(function(it, i){
+                    var r = size / 2 - st / 2 - i * (st + 3), C = 2 * Math.PI * r, off = C * (1 - Math.min(100, it.v) / 100);
+                    svg += '<circle cx="64" cy="64" r="' + r + '" fill="none" stroke="var(--ds-track, rgba(15,47,46,.12))" stroke-width="' + st + '"/>' +
+                        '<circle cx="64" cy="64" r="' + r + '" fill="none" stroke="' + it.c + '" stroke-width="' + st + '" stroke-linecap="round" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '" transform="rotate(-90 64 64)"/>';
+                });
+                return '<div class="ga-conc">' + svg + '</svg><div class="ga-legend">' + items.map(function(it){ return btn(it, '<i class="dot" style="background:' + it.c + '"></i><span class="n">' + it.label + '</span><span class="v">' + shown(it) + '%</span>'); }).join('') + '</div></div>';
+            }
+            if (view === 'bars') return '<div class="ga-bars">' + items.map(function(it){ return btn(it, '<i class="fas ' + it.icon + '" style="color:' + it.c + '"></i><span class="n">' + it.label + '</span><span class="tr"><span style="width:' + Math.min(100, it.v) + '%;background:' + it.c + '"></span></span><span class="v">' + shown(it) + '%</span>'); }).join('') + '</div>';
+            if (view === 'tiles') return '<div class="ga-v-tiles" style="' + cols + '">' + items.map(function(it){ return btn(it, gaRingSvg(it.v, it.c, 46, 4.5, gaPctText(shown(it), 11)) + '<span class="game-ring-label">' + it.label + '</span>'); }).join('') + '</div>';
+            // icons — по подразбиране: иконата в кръга, процентът и името под него
+            return '<div class="ga-v-row" style="' + cols + '">' + items.map(function(it){ return btn(it, '<span class="ga-ring-ic">' + gaRingSvg(it.v, it.c, 52, 5) + '<i class="fas ' + it.icon + '" style="color:' + it.c + '"></i></span><span class="ga-ring-v">' + shown(it) + '%</span><span class="game-ring-label">' + it.label + '</span>'); }).join('') + '</div>';
+        }
+        var _gaHeld = false;
+        function gaRenderRings() {
+            var box = document.getElementById('gaRings');
+            var items = window._gaRingItems || [];
+            if (!box || !items.length) return;
+            var hintSeen = false;
+            try { hintSeen = localStorage.getItem('np_rings_hint') === '1'; } catch (_) {}
+            box.innerHTML = gaViewHtml(gaView(), items) + (hintSeen ? '' : '<p class="ga-rings-hint">Задръж, за да смениш вида</p>');
+            box.querySelectorAll('.ga-ring').forEach(function(r){
+                r.addEventListener('click', function(e){ if (_gaHeld) { e.preventDefault(); _gaHeld = false; return; } gaToggleRing(r.getAttribute('data-ring')); });
+            });
+            if (!box._gaHold) { box._gaHold = true; gaBindHold(box); }
+            gaApplyView();
+        }
+        // Задържане (~0,5 с) върху показателите → изборът на вида. Движение на пръста отменя.
+        function gaBindHold(box) {
+            var t = null, x0 = 0, y0 = 0;
+            var cancel = function(){ clearTimeout(t); t = null; };
+            box.addEventListener('pointerdown', function(e){
+                x0 = e.clientX; y0 = e.clientY; cancel();
+                t = setTimeout(function(){ t = null; _gaHeld = true; try { if (window.NutriPlanHaptic) window.NutriPlanHaptic('Medium'); } catch (_) {} gaOpenViews(); }, 520);
+            });
+            box.addEventListener('pointermove', function(e){ if (t && (Math.abs(e.clientX - x0) > 8 || Math.abs(e.clientY - y0) > 8)) cancel(); });
+            ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(ev){ box.addEventListener(ev, cancel); });
+            box.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+        }
+        function gaOpenViews() {
+            if (document.querySelector('.ga-view-sheet')) return;
+            var items = window._gaRingItems || [], cur = gaView();
+            var ov = document.createElement('div');
+            ov.className = 'ga-view-sheet'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'Вид на показателите');
+            ov.innerHTML = '<div class="ga-view-panel"><h3>Вид на показателите</h3>' + GA_VIEWS.map(function(v){
+                return '<button type="button" class="ga-view-opt" data-view="' + v.id + '" aria-pressed="' + (v.id === cur) + '"><span>' + v.name + '</span><div class="ga-view-prev">' + gaViewHtml(v.id, items).replace(/<button /g, '<span ').replace(/<\/button>/g, '</span>') + '</div></button>';   // без бутон в бутон (чупи подредбата)
+            }).join('') + '</div>';
+            document.body.appendChild(ov);
+            ov.addEventListener('click', function(e){
+                var o = e.target.closest('.ga-view-opt');
+                if (o) {
+                    try { localStorage.setItem('np_rings_view', o.getAttribute('data-view')); localStorage.setItem('np_rings_hint', '1'); } catch (_) {}
+                    gaRenderRings();
+                }
+                if (o || e.target === ov) { ov.remove(); setTimeout(function(){ _gaHeld = false; }, 50); }
             });
         }
         function gaRow(k) { var d = document.getElementById('gameMetricsDetails'); return d ? d.querySelector(':scope > .game-index-row[data-explain="' + k + '"]') : null; }
@@ -1612,28 +1722,26 @@
             // ── Кръговете: всеки показател със седмичния си процент (същите формули като сървъра),
             // подредени по важност за целта (goal-focus.js → checkOrder). Докосване — обяснение + история.
             // Седмичен процент (weekMetrics: дните без отговор — 0); без нито един отговор за седмицата — няма кръг.
-            var ring = function(v, c, label, shown) { return v == null ? null : { v: v, shown: shown, c: c, label: label }; };
+            var ring = function(v, c, label, icon, shown) { return v == null ? null : { v: v, shown: shown, c: c, label: label, icon: icon }; };
             var RINGS = {
-                calories: ring(calAdherencePct, '#F59E0B', 'Калории'),
-                activity: ring(actPct, MC.act.c, 'Активност', actRawPct),
-                sleep: ring(sleepPct, MC.sleep.c, 'Сън'),
-                stress: ring(balancePct, MC.mood.c, 'Емоции'),
-                water: ring(waterPct, MC.water.c, 'Вода')
+                calories: ring(calAdherencePct, '#F59E0B', 'Калории', 'fa-scale-balanced'),
+                activity: ring(actPct, MC.act.c, 'Активност', 'fa-person-walking', actRawPct),
+                sleep: ring(sleepPct, MC.sleep.c, 'Сън', 'fa-moon'),
+                stress: ring(balancePct, MC.mood.c, 'Емоции', 'fa-face-smile'),
+                water: ring(waterPct, MC.water.c, 'Вода', 'fa-droplet')
             };
             var ringOrder = ['calories', 'activity', 'sleep', 'stress', 'water'];
             try {
                 var GFo = window.NutriPlanGoalFocus;
                 if (GFo) { var co = GFo.checkOrder(GFo.profileOf(JSON.parse(localStorage.getItem('userData') || '{}'))); ringOrder.sort(function(a, b){ return (co.indexOf(a) + 99) % 99 - (co.indexOf(b) + 99) % 99; }); }
             } catch (_) {}
-            var ringsHtml = ringOrder.filter(function(k){ return RINGS[k]; }).map(function(k){
-                var r = RINGS[k];
-                return '<button type="button" class="game-ring-wrap ga-ring' + (r.v == null ? ' is-few' : '') + '" data-ring="' + k + '" style="--rc:' + r.c + '" aria-pressed="false" aria-controls="gameMetricsDetails">' + ringChart(r.v, r.c, 20, r.shown) + '<span class="game-ring-label">' + r.label + '</span></button>';
-            }).join('');
+            // Показателите за кръговете — рисува ги gaRenderRings() в избрания вид (задържане → избор).
+            window._gaRingItems = ringOrder.filter(function(k){ return RINGS[k]; }).map(function(k){ return Object.assign({ k: k }, RINGS[k]); });
             if (alerts.length) html += '<div class="game-alert-card ga-card-enter" style="animation-delay:0.2s">'+alerts[0]+'</div>';
             else if (encourageText) html += '<div class="game-encourage-note ga-card-enter" style="animation-delay:0.2s">'+encourageText+'</div>';
-            // 5 кръга → два реда (3 + 2), 4 → един ред; кръгът отваря само своя седмичен ред отдолу.
-            var ringCount = ringOrder.filter(function(k){ return RINGS[k]; }).length;
-            if (ringsHtml) html += '<div class="ga-rings ga-rings--' + ringCount + ' ga-card-enter" style="animation-delay:0.1s">' + ringsHtml + '</div>';
+            // Показателите — в избрания вид (иконите по подразбиране); задържане → всички видове за избор.
+            // Докосване на показател отваря само неговия седмичен ред отдолу.
+            if (window._gaRingItems.length) html += '<div id="gaRings" class="ga-rings-wrap ga-card-enter" style="animation-delay:0.1s"></div>';
 
             // Едно нещо, върху което да се съсредоточиш: най-важното предупреждение, иначе насърчението.
 
@@ -1807,9 +1915,7 @@
                 col.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(e); } });
             });
             _gaPicked = []; _gaAll = false;
-            body.querySelectorAll('.ga-ring').forEach(function(r){
-                r.addEventListener('click', function(){ gaToggleRing(r.getAttribute('data-ring')); });
-            });
+            gaRenderRings();
             body.querySelectorAll('[data-explain]').forEach(function(el){
                 el.addEventListener('click', function(){ showExplanation(el.getAttribute('data-explain')); });
             });

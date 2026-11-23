@@ -95,7 +95,14 @@
   "Без вечерния въпрос": "Brak wieczornego pytania",
   "Хранене извън плана": "Jedzenie poza planem",
   "Над калориите": "Ponad kalorie",
-  "Движение над препоръчаното": "Ruch powyżej zalecanego"
+  "Движение над препоръчаното": "Ruch powyżej zalecanego",
+  "Вид на показателите": "Widok wskaźników",
+  "Икони": "Ikony",
+  "Големи кръгове": "Duże pierścienie",
+  "Пръстени": "Pierścienie",
+  "Ленти": "Paski",
+  "Плочки": "Kafelki",
+  "Задръж, за да смениш вида": "Przytrzymaj, aby zmienić widok"
  },
  "keys": {},
  "patterns": []

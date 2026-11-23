@@ -95,7 +95,14 @@
   "Без вечерния въпрос": "Manca il controllo della sera",
   "Хранене извън плана": "Pasto fuori piano",
   "Над калориите": "Oltre le calorie",
-  "Движение над препоръчаното": "Attività oltre il consigliato"
+  "Движение над препоръчаното": "Attività oltre il consigliato",
+  "Вид на показателите": "Vista degli indicatori",
+  "Икони": "Icone",
+  "Големи кръгове": "Anelli grandi",
+  "Пръстени": "Anelli",
+  "Ленти": "Barre",
+  "Плочки": "Riquadri",
+  "Задръж, за да смениш вида": "Tieni premuto per cambiare vista"
  },
  "keys": {},
  "patterns": []
