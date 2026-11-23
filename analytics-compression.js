@@ -2,6 +2,8 @@
  * Server-side gamification analytics compression for admin client card (#AX v1).
  * Mirrors game-scoring.js logic (plan.html / game-analytics.html).
  */
+import DayAdh from './day-adherence.js';
+import GoalFocus from './goal-focus.js';
 
 const HEALTH_WEIGHTS = {
   engagement: 0.30,
@@ -255,7 +257,42 @@ function compactDayLine(d, todayKey) {
  * @param {Record<string, object>} gameData
  * @param {object} [gameWeeklyAI]
  */
-export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
+/**
+ * Личните тежести и правилото за движение за спазването на деня (същото като на телефона):
+ * goal-focus.js → adherenceWeights / activityPolicy от профила на клиента.
+ * С историята на дните (gameData) тежестите следват и реалните данни от последните 14 дни.
+ * @param {object|null} userData
+ * @param {Record<string, object>|null} [gameData]
+ * @param {string} [todayKey]
+ */
+export function adherenceOptions(userData, gameData = null, todayKey = dateKey()) {
+  if (!userData || typeof userData !== 'object') return {};
+  try {
+    return { weights: GoalFocus.adherenceWeights(userData, gameData, todayKey).weights, policy: GoalFocus.activityPolicy(userData), group: GoalFocus.profileOf(userData).group };
+  } catch (_) { return {}; }
+}
+
+/**
+ * Спазване на целия план за седмицата — както го вижда клиентът в Напредък (day-adherence.js):
+ * последните 7 завършени дни (днешният — след вечерната проверка), ден без запис = 0, от първия запис нататък.
+ * @param {Record<string, object>} gameData
+ * @param {object} [opts] adherenceOptions(userData)
+ * @param {string} [todayKey]
+ */
+export function weekPlanAdherence(gameData = {}, opts = {}, todayKey = dateKey()) {
+  const keys = Object.keys(gameData || {}).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k) && gameData[k]).sort();
+  if (!keys.length) return null;
+  const today = gameData[todayKey];
+  const closed = !!(today && today.eveningCheck && today.eveningCheck.ts);
+  const y = new Date(todayKey + 'T12:00:00'); y.setDate(y.getDate() - 1);
+  const endKey = closed ? todayKey : dateKey(y);
+  const days = buildLast7Days(gameData, endKey).filter((d) => d.key >= keys[0]);
+  if (!days.length) return null;
+  const sum = days.reduce((s, d) => s + (d.rec ? (DayAdh.compute(d.rec, { todayKey, key: d.key, ...opts })?.pct || 0) : 0), 0);
+  return Math.round(sum / days.length);
+}
+
+export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}, opts = {}) {
   const todayKey = dateKey();
   const days = buildLast7Days(gameData, todayKey);
   const weekScores = days.map((d) => (d.rec ? calcDayScore(d.rec, todayKey) : null));
@@ -379,6 +416,8 @@ export function buildAnalyticsSummary(gameData = {}, gameWeeklyAI = {}) {
     avgScore,
     streak: calcStreak(days, todayKey),
     adherence: engagementPct,
+    // спазването на целия план, както го вижда клиентът (личните тежести); adherence — за правилата
+    planAdherence: weekPlanAdherence(gameData, opts, todayKey),
     mealAdherence,
     mealDays: mealAdh.length,
     calAdherence: calAdherencePct,
@@ -419,7 +458,7 @@ export function serializeAnalyticsBlock(analytics) {
     '#AX v1 status=active',
     // days=N/7 is the denominator behind avg and adh — without it the model cannot tell a
     // solid week from two recorded days and has to guess at the confidence of the numbers.
-    `days=${analytics.daysRecorded}/7|hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? '—'}|str=${analytics.streak}|adh=${analytics.adherence}|meal=${analytics.mealAdherence ?? '—'}`,
+    `days=${analytics.daysRecorded}/7|hi=${analytics.healthIndex}|avg=${analytics.avgScore ?? '—'}|str=${analytics.streak}|adh=${analytics.adherence}|pa=${analytics.planAdherence ?? '—'}|meal=${analytics.mealAdherence ?? '—'}`,
     `cal=${analytics.calAdherence ?? '—'}|junk7=${analytics.junk7}|net=${analytics.netCalBalance}|tr=${analytics.trend}`,
     `dim|eng=${dim.eng ?? '—'}|slp=${dim.slp ?? '—'}|bal=${dim.bal ?? '—'}|act=${dim.act ?? '—'}|wtr=${dim.wtr ?? '—'}`,
     `d7|${analytics.last7}`,

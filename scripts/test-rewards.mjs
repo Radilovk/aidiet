@@ -6,6 +6,7 @@
  */
 import assert from 'node:assert/strict';
 import RE from '../rewards-engine.js';
+import DayAdh from '../day-adherence.js';
 import { calcDayScore } from '../analytics-compression.js';
 import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInviteStatus, handlePartnerVerify, handleAdminRewardsContent, handleAdminRewardsImage, handleRewardsImage, handleRewardsContent, handleRewardsChallenge, handleRewardsEvent, handleAdminRewardsReport, noteInviteSignup, percentileOf, INVITE_PCT, INVITER_PCT, INVITE_POINTS } from '../rewards.js';
 import { handleBillingCheckout, handleBillingConfirm } from '../billing.js';
@@ -430,6 +431,46 @@ await check('движение: награда само когато е част 
   const calm = run(history(14, () => day(3, 7000)), { activity: { reward: false, maxPct: 140 } });
   assert.equal(calm.tier.id, 'start');
   assert.equal(calm.activity.days, 0);
+});
+
+await check('ден, който се брои: лично спазване ≥ 80% (day-adherence.js) + без твърдите нарушения', async () => {
+  const T = key(T0);
+  const st = (rec, policy) => RE.dayStatus(rec, calcDayScore(rec, T), policy, RE.adherenceOf(DayAdh, rec, T, key(T0 + DAY), policy));
+  assert.equal(st(day(3)).ok, true);                                          // всичко спазено — 100%
+  // всички хранения, но лош сън, без вода и напрегнат ден: старото правило би го броило
+  const weak = { ...day(3), morningCheck: { sleptWell: false, level: 'bad' }, eveningCheck: { waterIntake: false, activityLevel: 3, emotionalBalance: 1 } };
+  assert.equal(RE.dayStatus(weak, calcDayScore(weak, T)).ok, true);
+  const s1 = st(weak);
+  assert.equal(s1.ok, false);
+  assert.deepEqual(s1.why, ['plan']);
+  assert.ok(s1.plan < RE.ADH_MIN);
+  // само лош сън: за обичайния профил минава, за човек с тежест на съня — не
+  const sleepy = { ...day(3), morningCheck: { sleptWell: false, level: 'bad' } };
+  assert.equal(st(sleepy).ok, true);
+  assert.equal(st(sleepy, { weights: { meal: 25, cal: 10, junk: 10, act: 10, sleep: 25, water: 10, mood: 10 } }).ok, false);
+  // твърдото нарушение сваля деня и при високо спазване
+  const junk = { ...day(3), extraMeals: [{ isJunk: true, calories: 120 }] };
+  assert.ok(st(junk).why.includes('junk'));
+  // +5 точки за изцяло изпълнен ден — по спазването
+  const full = run(history(3, () => day(3)), { adherence: DayAdh });
+  assert.equal(full.points.days[full.todayKey], 20);                         // 10 + 5 (изцяло) + 5 (движение)
+  const part = run(history(3, () => sleepy), { adherence: DayAdh });
+  assert.equal(part.points.days[part.todayKey], 15);                         // под 90% — без +5
+});
+
+await check('сървърът: личните тежести от телефона се пазят само ако са смислени', async () => {
+  const nowW = Date.UTC(2026, 10, 14, 12);
+  const U = 'fb_userWEIGHT1';
+  kv.set(`game_state:${U}`, JSON.stringify({ gameData: range('2026-11-01', '2026-11-14', () => day(3)) }));
+  const good = { reward: true, maxPct: null, group: 'lose', weights: { meal: 31, cal: 20, junk: 10, act: 10, sleep: 12, water: 7, mood: 10 } };
+  await handleRewards(req({ userId: U, idToken: 'ok', todayKey: '2026-11-14', activity: good }), env, deps(nowW));
+  const rec = JSON.parse(kv.get(`rewards:${U}`));
+  assert.deepEqual(rec.activity.weights, good.weights);
+  assert.equal(rec.activity.group, 'lose');
+  await handleRewards(req({ userId: U, idToken: 'ok', todayKey: '2026-11-14', activity: { reward: true, maxPct: null, group: 'x', weights: { meal: 500 } } }), env, deps(nowW));
+  const rec2 = JSON.parse(kv.get(`rewards:${U}`));
+  assert.equal(rec2.activity.weights, undefined);
+  assert.equal(rec2.activity.group, undefined);
 });
 
 console.log(`\nВсички ${checks.length} проверки минаха`);

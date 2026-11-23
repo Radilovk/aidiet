@@ -30,6 +30,7 @@
  * Добавките се доставят само в България: кодовете за тях не се дават при друга държава.
  */
 import Rewards from './rewards-engine.js';
+import DayAdh from './day-adherence.js';
 import { calcDayScore, dateKey } from './analytics-compression.js';
 import { mergeGameData } from './game-data-merge.js';
 
@@ -235,12 +236,25 @@ function clientTodayKey(raw, now) {
   return Math.abs(Date.parse(raw) - Date.parse(server)) <= DAY_MS ? raw : server;
 }
 
-/** Правилото за движение от телефона: { reward: bool, maxPct: 100–300 | null } или null при нещо друго. */
+const ADH_PARTS = ['meal', 'cal', 'junk', 'act', 'sleep', 'water', 'mood'];
+const ADH_GROUPS = ['base', 'lose', 'gain', 'health', 'lose_soft'];
+/**
+ * Правилото на деня от телефона (goal-focus.js → dayPolicy): { reward, maxPct: 100–300 | null, weights?, group? }
+ * или null при нещо друго. Личните тежести — 7-те части, всяка 0–100, общо около 100; иначе се изпускат.
+ */
 function activityPolicyOf(a) {
   if (!a || typeof a !== 'object') return null;
   const max = a.maxPct == null ? null : Number(a.maxPct);
   if (max != null && !(max >= 100 && max <= 300)) return null;
-  return { reward: a.reward !== false, maxPct: max };
+  /** @type {{ reward: boolean, maxPct: number|null, weights?: Record<string, number>, group?: string }} */
+  const out = { reward: a.reward !== false, maxPct: max };
+  const w = a.weights;
+  if (w && typeof w === 'object' && ADH_PARTS.every((k) => Number.isFinite(Number(w[k])) && Number(w[k]) >= 0 && Number(w[k]) <= 100)) {
+    const sum = ADH_PARTS.reduce((s, k) => s + Number(w[k]), 0);
+    if (sum >= 90 && sum <= 110) out.weights = Object.fromEntries(ADH_PARTS.map((k) => [k, Number(w[k])]));
+  }
+  if (ADH_GROUPS.includes(a.group)) out.group = a.group;
+  return out;
 }
 
 /**
@@ -272,7 +286,7 @@ export async function handleRewards(request, env, { respond, checkOwner, now = D
   // Движението спрямо целта (телефонът го смята от профила — goal-focus.js → activityPolicy) — пази се за другите заявки.
   const policy = activityPolicyOf(b.activity);
   if (policy) record.activity = policy;
-  const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey, challenge: record.challenges[month], activity: record.activity });
+  const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey, challenge: record.challenges[month], activity: record.activity, adherence: DayAdh });
   record.days = record.days || {};
   bankOldDays(record, status.points.days, todayKey);
   record.bonus = Math.max(Number(record.bonus) || 0, status.points.bonus);
@@ -367,7 +381,7 @@ export async function handleRewardsChallenge(request, env, { respond, checkOwner
   const todayKey = clientTodayKey(b.todayKey, now);
   const state = (await getJSON(env, `game_state:${b.userId}`)) || {};
   const record = (await getJSON(env, `rewards:${b.userId}`)) || emptyRecord();
-  const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey, activity: record.activity });
+  const status = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey, activity: record.activity, adherence: DayAdh });
   const c = status.challenge || Rewards.compute({ gameData: { [todayKey]: {} }, calcDayScore, todayKey }).challenge;
   if (!c || !c.canJoin) return respond({ error: 'late', message: Rewards.text('challengeLate', { target: Rewards.CHALLENGE_TARGET }) }, 400);
   record.challenges = record.challenges || {};
@@ -394,7 +408,7 @@ export async function handleRewardsRedeem(request, env, { respond, checkOwner, n
   if (offer.kind === 'supplement' && !supplementsAllowed(countryOf(request))) return respond({ error: 'region', message: 'Добавките се доставят само в България.' }, 400);
   const record = (await getJSON(env, `rewards:${b.userId}`)) || emptyRecord();
   const state = (await getJSON(env, `game_state:${b.userId}`)) || {};
-  const live = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey: clientTodayKey(b.todayKey, now), activity: record.activity }).points.days;
+  const live = Rewards.compute({ gameData: state.gameData || {}, calcDayScore, todayKey: clientTodayKey(b.todayKey, now), activity: record.activity, adherence: DayAdh }).points.days;
   record.days = record.days || {};
   const balance = earnedOf(record, live) - (Number(record.spent) || 0);
   if (balance < offer.cost) return respond({ error: 'points', message: `Нужни са ${offer.cost} точки, имаш ${balance}.`, balance }, 400);

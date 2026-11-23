@@ -5,6 +5,7 @@
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 globalThis.window = globalThis;
+require('../day-adherence.js');
 require('../game-scoring.js');
 const GS = globalThis.GameScoring;
 let pass = 0, fail = 0;
@@ -35,7 +36,7 @@ ok(today.parts.filter((p) => p.pending).length >= 3 && !today.closed, 'днес 
 const nurse = GS.dayAdherence(day({ eveningCheck: { waterIntake: true, emotionalBalance: 3, equivSteps: 13000, steps: 13000, stepTarget: 8000, ts: 'x' } }), { todayKey: T, key: K, group: 'lose_soft', policy: { maxPct: 140 } });
 ok(nurse.parts.some((p) => p.k === 'act' && p.got === 0 && /над препоръчаното/.test(p.text)), 'кърмене: над прага — 0 и предупреждение');
 // тежестите по целта — сборът е 100
-Object.entries(GS.ADH_WEIGHTS).forEach(([g, w]) => ok(Object.values(w).reduce((a, b) => a + b, 0) === 100, `тежести „${g}“ — сбор 100`));
+Object.entries(globalThis.NutriPlanDayAdherence.WEIGHTS).forEach(([g, w]) => ok(Object.values(w).reduce((a, b) => a + b, 0) === 100, `тежести „${g}“ — сбор 100`));
 // Личните тежести (goal-focus.js → adherenceWeights): по целта и профила, сбор 100
 require('../goal-model.js');
 const GF = require('../goal-focus.js');
@@ -52,5 +53,19 @@ ok(nurseW.water > calm.water && nurseW.act < calm.act, 'кърмене → во�
 // същият ден — различен процент при различни тежести
 const sleepyDay = day({ morningCheck: { sleptWell: false, level: 'bad' } });
 ok(pct(sleepyDay, { weights: stressed }) < pct(sleepyDay, { weights: calm }), 'лош сън сваля повече, когато сънят е важен за човека');
+// Реалните данни (последните 14 дни): често слаб сън и напрегнати дни → тези части тежат повече
+const udBase = { gender: 'Жена', age: '40', height: '165', weight: '90', goal: 'Отслабване', sleepHours: '7–8', stressLevel: 'Ниско' };
+const hist = {};
+for (let i = 1; i <= 10; i++) {
+  const d = new Date(Date.UTC(2026, 10, 23) - i * 86400000);
+  hist[d.toISOString().slice(0, 10)] = { morningCheck: { sleptWell: false, level: 'bad', hours: 5.5 }, eveningCheck: { emotionalBalance: 1, waterIntake: true, activityLevel: 3 } };
+}
+const real = GF.adherenceWeights(udBase, hist, '2026-11-23');
+ok(sum(real.weights) === 100 && real.weights.sleep > calm.sleep && real.weights.mood > calm.mood, `реалните данни: сънят ${calm.sleep}→${real.weights.sleep}, емоциите ${calm.mood}→${real.weights.mood}`);
+ok(real.reasons.some((r) => /напоследък/.test(r.text)), 'причината казва „напоследък“');
+const few = {}; Object.keys(hist).slice(0, 3).forEach((k) => { few[k] = hist[k]; });
+ok(JSON.stringify(GF.adherenceWeights(udBase, few, '2026-11-23').weights) === JSON.stringify(calm), 'под 5 отговора — без промяна');
+const pol = GF.dayPolicy(udBase, hist, '2026-11-23');
+ok(pol.reward === true && pol.group === 'lose' && JSON.stringify(pol.weights) === JSON.stringify(real.weights), 'dayPolicy = движение + личните тежести + група');
 console.log(`=== day adherence: ${pass} pass, ${fail} fail ===`);
 process.exit(fail ? 1 : 0);

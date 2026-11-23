@@ -93,9 +93,13 @@
     /** Приетото предизвикателство за месеца (на устройството; сървърът — за точките). */
     function localChallenge() { return read(CHALLENGE_KEY, null); }
 
-    /** Движението спрямо целта (goal-focus.js): награждава ли се и над колко е предупреждение. */
+    /** Правилото на деня (goal-focus.js → dayPolicy): движението спрямо целта + личните тежести на спазването. */
     function activityPolicy() {
-        try { var GF = global.NutriPlanGoalFocus; if (GF && GF.activityPolicy) return GF.activityPolicy(read('userData', {}) || {}); } catch (_) {}
+        try {
+            var GF = global.NutriPlanGoalFocus, ud = read('userData', {}) || {};
+            if (GF && GF.dayPolicy) return GF.dayPolicy(ud, read('gameData', {}) || {}, global.GameScoring ? global.GameScoring.dateKey(new Date()) : undefined);
+            if (GF && GF.activityPolicy) return GF.activityPolicy(ud);
+        } catch (_) {}
         return { reward: true, maxPct: null };
     }
 
@@ -532,7 +536,7 @@
         var gift = function (t) { return t.rewards.map(function (r) { return giftText(r, srv); }).filter(Boolean).join(' · '); };
         var pol = activityPolicy();
         var html =
-            sec('fa-star', 'Ден, който се брои', '<p>Всичко за деня е спазено: поне три четвърти от храненията по плана, сутрешният и вечерният въпрос, без хранения извън плана и без преяждане' +
+            sec('fa-star', 'Ден, който се брои', '<p>Поне 80% от целия план за деня (както в кръгчетата на дните — по твоите тежести), отговорени сутрешен и вечерен въпрос, без хранения извън плана и без преяждане' +
                 (pol.maxPct ? ', без движение над препоръчаното за целта ти' : '') + '. Ден с предупреждение не носи награда. На него стои всичко отдолу.</p>') +
             sec('fa-fire', 'Поредица и жокер', '<p>Поредицата са дните, които се броят, един след друг. На всеки ' + RE.SHIELD_EVERY + ' такива дни получаваш жокер (до ' + RE.SHIELD_MAX + '): той пази поредицата в един пропуснат ден.</p>' +
                 rows(RE.STREAKS.map(function (x) { return [x.days + ' дни поред', '+' + x.bonus + ' точки']; }))) +
@@ -574,7 +578,7 @@
     /** Добри дни от последните 7 — за мекия режим вместо поредицата (тя може да се скъса). */
     function goodOf7() {
         var GS = global.GameScoring;
-        return GS && GS.goodDaysOf ? GS.goodDaysOf(read('gameData', {}) || {}, GS.dateKey(new Date()), 7).good : 0;
+        return GS && GS.goodDaysOf ? GS.goodDaysOf(read('gameData', {}) || {}, GS.dateKey(new Date()), 7, activityPolicy()).good : 0;
     }
 
     // ── Предизвикателството на месеца ───────────────────────────────────────

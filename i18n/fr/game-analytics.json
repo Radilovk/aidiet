@@ -123,7 +123,16 @@
   "Няма отбелязване за деня.": "Rien de noté pour la journée.",
   "За теб тежат повече:": "Ce qui compte plus pour toi :",
   "Кръгчета с процент": "Cercles avec pourcentage",
-  "Кръгчета с личица": "Cercles avec visages"
+  "Кръгчета с личица": "Cercles avec visages",
+  "Под 80% от плана": "Moins de 80 % du plan",
+  "Колко от целия план за деня е спазен: хранения, калории, движение, сън, вода и емоции. Кое колко тежи — по твоята цел, профил и последните 2 седмици. Докосни ден, за да видиш какво го е свалило.": "La part du plan de la journée respectée : repas, calories, mouvement, sommeil, eau et émotions. Le poids de chaque élément dépend de ton objectif, de ton profil et des 2 dernières semaines. Touche un jour pour voir ce qui l’a fait baisser.",
+  "Как се смята:": "Comment c’est calculé :",
+  "сънят ти напоследък е слаб": "ton sommeil est faible ces derniers temps",
+  "спиш средно под 6,5 часа": "tu dors en moyenne moins de 6,5 heures",
+  "напоследък имаш напрегнати дни": "tu as eu des journées tendues dernièrement",
+  "водата напоследък не стига": "tu manques d’eau ces derniers temps",
+  "напоследък има хранения извън плана": "il y a eu des repas hors plan dernièrement",
+  "напоследък се движиш малко": "tu bouges peu ces derniers temps"
  },
  "keys": {},
  "patterns": []
