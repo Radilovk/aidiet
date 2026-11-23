@@ -93,7 +93,7 @@
         if (!mc || mc.sleptWell == null) add('sleep', 0, 'Сън — без отговор');
         else {
             var lv = mc.level || (mc.sleptWell ? 'good' : 'bad');
-            add('sleep', lv === 'good' ? 1 : lv === 'mid' ? 0.5 : 0, lv === 'good' ? '' : lv === 'mid' ? 'Сън — среден' : 'Лош сън', mc.hours ? String(mc.hours).replace('.', ',') + ' ч' : '');
+            add('sleep', lv === 'good' ? 1 : lv === 'mid' ? 0.5 : 0, lv === 'good' ? '' : lv === 'mid' ? 'Сън — среден' : 'Лош сън', mc.hours ? String(mc.hours).replace('.', ',') + ' ч' : (mc.phone && mc.phone.note) || '');
         }
         // Вода
         if (!ec || ec.waterIntake == null) add('water', 0, closed ? 'Вода — без отговор' : '', '', !closed);

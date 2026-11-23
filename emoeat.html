@@ -410,6 +410,13 @@
             box-shadow: 0 15px 35px rgba(13, 148, 136, 0.3);
         }
 
+        .welcome-cover { position: relative; height: 176px; margin: 0 0 22px; border-radius: 28px; overflow: hidden;
+            box-shadow: 0 18px 40px -22px rgba(76, 29, 149, .55); }
+        .welcome-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .welcome-cover::after { content: ''; position: absolute; inset: 0;
+            background: linear-gradient(180deg, rgba(124, 58, 237, .16) 0%, transparent 45%, rgba(0, 0, 0, .12) 100%); }
+        [data-theme="dark"] .welcome-cover img { filter: brightness(.78) saturate(1.05); }
+
         .welcome-title {
             font-size: 1.5rem;
             font-weight: 800;
@@ -421,9 +428,10 @@
         .welcome-pick { display: grid; gap: 14px; margin: 4px 0 22px; text-align: left; }
         .welcome-pick-label { font-size: 13px; font-weight: 600; color: var(--text-secondary, #64748b); margin-bottom: 8px; }
         .welcome-pick-row { display: flex; flex-wrap: wrap; gap: 8px; }
-        .welcome-chip { border: 1.5px solid var(--border, rgba(15, 23, 42, .12)); background: var(--surface, #fff); color: inherit;
+        .welcome-chip { border: 1.5px solid var(--glass-border); background: var(--input-bg); color: var(--text-dark);
             border-radius: 999px; padding: 9px 15px; font: inherit; font-size: 15px; cursor: pointer; min-height: 40px; }
-        .welcome-chip.selected { border-color: var(--primary, #0d9488); background: var(--primary, #0d9488); color: #fff; }
+        .welcome-chip.selected { border-color: var(--primary); background: var(--primary); color: var(--ds-on-fill, #fff); }
+        [data-theme="dark"] .welcome-chip.selected { color: #04201C; }
         .welcome-subtitle {
             font-size: 1rem;
             color: var(--text-gray);
@@ -1416,6 +1424,37 @@
             margin: 0;
         }
 
+
+        /* ── Финалната страница: снимка, стъклени карти ── */
+        .rx-hero { padding: 0 0 22px; border-radius: 28px; }
+        .rx-hero::before { display: none; }
+        .rx-cover { position: relative; height: 210px; overflow: hidden; background: color-mix(in srgb, var(--accent) 30%, var(--rx-surface)); }
+        .rx-cover img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.04); }
+        .rx-cover::after { content: ''; position: absolute; inset: 0;
+            background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 38%, color-mix(in srgb, var(--rx-surface) 70%, transparent) 78%, var(--rx-surface) 100%); }
+        [data-theme="dark"] .rx-cover img { filter: brightness(.72) saturate(1.05); }
+        .rx-hero .rx-ring { width: 104px; height: 104px; margin: -62px auto 12px; padding: 7px; border-radius: 50%; z-index: 1;
+            background: var(--rx-surface); box-shadow: 0 8px 28px -10px color-mix(in srgb, var(--accent) 60%, transparent), 0 0 0 1px var(--rx-line); }
+        .rx-hero .rx-ring-icon { font-size: 1.7rem; }
+        .rx-hero > :not(.rx-cover):not(.rx-ring) { margin-left: 22px; margin-right: 22px; }
+        .rx-title { font-size: 2rem; letter-spacing: -0.02em; }
+        .rx-kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .72rem; }
+        .rx-section { border-radius: 24px; padding: 20px; box-shadow: 0 1px 2px rgba(20, 35, 50, .05), 0 14px 30px -22px rgba(20, 35, 50, .35); }
+        [data-theme="dark"] .rx-section { box-shadow: none; }
+        .rx-need { position: relative; overflow: hidden; border-radius: 24px; padding: 26px 22px; min-height: 150px; align-content: end; isolation: isolate; background: #1b1410; }
+        .rx-need > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+        .rx-need::before { content: ''; position: absolute; inset: 0; z-index: -1;
+            background: linear-gradient(180deg, rgba(14, 10, 6, .18) 0%, rgba(14, 10, 6, .78) 100%); }
+        .rx-need .rx-need-label { color: #FFD7A6; }
+        .rx-need .rx-need-text { color: #fff; font-size: 1.3rem; line-height: 1.32; text-shadow: 0 1px 12px rgba(0, 0, 0, .35); }
+        .rx-plan-link { overflow: hidden; border-radius: 24px; }
+        .rx-strip { height: 128px; margin: -18px -20px 4px; overflow: hidden; position: relative; }
+        .rx-strip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .rx-strip::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, var(--card-bg) 100%); }
+        [data-theme="dark"] .rx-strip img { filter: brightness(.8); }
+        @media (prefers-reduced-motion: no-preference) { .rx-cover img { animation: rxZoom 14s ease-out both; } }
+        @keyframes rxZoom { from { transform: scale(1.12); } to { transform: scale(1.04); } }
+
         @media (prefers-reduced-motion: reduce) {
             .rx-in, .rx-sos-steps { animation: none; opacity: 1; transform: none; }
             .rx-arc.on { animation: none; stroke-dashoffset: 0; }
@@ -1439,6 +1478,7 @@
     <script src="./emoeat-v3.js?v=20261123c"></script>
     <script src="./bot-check.js?v=20261117a" defer></script>
     <script src="./ambient-glass.js?v=5"></script>
+    <script src="./ui-images-cache.js"></script>
 </head>
 <body data-page-theme="emoeat" data-standalone-module="emoeat">
     <!-- Skip Navigation Link (Accessibility) -->
@@ -1498,9 +1538,7 @@
         <!-- Welcome Screen -->
         <div class="screen active" id="welcomeScreen">
             <div class="welcome-screen">
-                <div class="welcome-icon">
-                    <i class="fas fa-heart-pulse"></i>
-                </div>
+                <div class="welcome-cover" aria-hidden="true"><img src="./brand/emoeat/welcome.webp" data-emo-slot="welcome" alt="" width="900" height="522" decoding="async"></div>
                 <h2 class="welcome-title">Кога храната поема чувствата?</h2>
                 <p class="welcome-subtitle">Тук няма въпроси за храна. Питаме как минават обикновените ти дни: какво те изморява, какво те отпуска, как реагираш, когато нещо се обърка. Какво значи това за храненето ти, ще видиш накрая.</p>
                 <div class="welcome-pick" id="welcomePick" data-i18n-dict></div>
@@ -2190,6 +2228,28 @@
 
         // Резултатът: първо портретът (какво се вижда от обикновените дни), после мостът към
         // храната като предположение, после планът. Човекът сам разпознава връзката.
+        // Снимките: по подразбиране от brand/emoeat/, подменени от админ панела (Снимки → „EmoEat – …“, /api/ui-images).
+        let emoUiImages = {};
+        function emoPhoto(slot) { return emoUiImages['emoeat_' + slot] || './brand/emoeat/' + slot + '.webp'; }
+        function emoApplyPhotos() {
+            document.querySelectorAll('img[data-emo-slot]').forEach(function (img) {
+                const want = emoPhoto(img.getAttribute('data-emo-slot'));
+                if (img.getAttribute('src') !== want) img.setAttribute('src', want);
+            });
+        }
+        try {
+            if (typeof window.getCachedUIImages === 'function') {
+                window.getCachedUIImages('https://aidiet.radilov-k.workers.dev').then(function (d) {
+                    emoUiImages = (d && d.images) || {};
+                    emoApplyPhotos();
+                }).catch(function () {});
+            }
+        } catch (e) { /* без подмени — снимките по подразбиране */ }
+
+        // Снимките (Pixabay, свободен лиценз; data/emoeat-images.json): по смисъла на модела.
+        const RX_PHOTO = { 'Утехата': 'comfort', 'Паузата': 'pause', 'Махалото': 'pendulum', 'Редът': 'order',
+            'Строгият глас': 'critic', 'Искрата': 'spark', 'Импулсът': 'impulse', 'Спокоен апетит': 'calm' };
+
         function renderResults(aiRaw) {
             const ai = isValidAi(aiRaw) ? aiRaw : null;
             const p = analyzeAnswers(answerMeta);
@@ -2347,16 +2407,20 @@
                         </div>`).join('')}
                     <div class="rx-detail-block">
                         <div class="rx-detail-title"><i class="fas fa-circle-info"></i> Как е изчислено</div>
-                        <p>Тестът не пита за храна. Мери как реагираш в обикновени ситуации: колко бързо действаш при силно чувство, колко ясно назоваваш какво чувстваш, колко строг е гласът отвътре и още единадесет черти, които изследванията свързват с храненето при силни чувства.</p>
+                        <p>Тестът не пита какво ядеш. Той гледа как реагираш в обикновени ситуации: колко бързо действаш при силно чувство, колко ясно назоваваш какво чувстваш, колко строг е вътрешният ти глас и още единадесет черти, които изследванията свързват с храненето при силни чувства.</p>
                         <p>Склонността е предположение, а не диагноза. Нивата са ориентир.</p>
                         ${p.reliability.note ? `<p>${escapeHtml(p.reliability.note)}</p>` : ''}
                     </div>
                 </details>`;
 
+            const photoOf = emoPhoto;
+            const heroPhoto = portraitOnly ? 'portrait' : (RX_PHOTO[base.name] || 'calm');
+            const needPhoto = 'need';
             const resultsScreen = document.getElementById('resultsScreen');
             resultsScreen.innerHTML = `
                 <div class="rx" style="--accent:${base.accent}">
                     <section class="rx-hero rx-in">
+                        <div class="rx-cover" aria-hidden="true"><img src="${photoOf(heroPhoto)}" data-emo-slot="${heroPhoto}" alt="" width="900" height="522" decoding="async"></div>
                         <div class="rx-ring" role="img" aria-label="${escapeHtml(levelWord(p.riskLevel))}">
                             ${ringSvg(dots)}
                             <span class="rx-ring-icon"><i class="fas ${sanitizeIconClass(portraitOnly ? 'fa-user' : base.icon)}"></i></span>
@@ -2373,6 +2437,7 @@
 
                     ${p.realNeed && !portraitOnly ? `
                     <section class="rx-need rx-in">
+                        <img src="${photoOf(needPhoto)}" data-emo-slot="need" alt="" decoding="async">
                         <span class="rx-need-label">Истинската нужда</span>
                         <span class="rx-need-text">${T(p.realNeed)}</span>
                     </section>` : ''}
@@ -2386,7 +2451,7 @@
 
                     ${ai || portraitOnly ? '' : emoLocked ? unlockHtml() : `
                     <div class="rx-offline rx-in">
-                        <span>Личният текст не се зареди — показваме основния план за твоя модел.</span>
+                        <span>Личният ти текст не се зареди. Засега виждаш основния план за твоя модел.</span>
                         <button type="button" class="rx-link" onclick="retryAIAnalysis()"><i class="fas fa-rotate-right"></i> Опитай пак</button>
                     </div>`}
 
@@ -2396,7 +2461,7 @@
                         ${portraitOnly ? '' : '<button type="button" class="rx-btn" id="rxShareBtn" onclick="saveAndShare()"><i class="fas fa-share-nodes"></i> Запази плана</button>'}
                         <button type="button" class="rx-link muted" onclick="restartQuestionnaire()"><i class="fas fa-rotate-left"></i> Започни отначало</button>
                     </div>
-                    <p class="rx-privacy"><i class="fas fa-shield-halved"></i> Отговорите стоят на това устройство. За личния текст изпращаме само тях, без име и без здравните отговори, към AI модел. С плана се свързва само обобщението и само ако го включиш.</p>
+                    <p class="rx-privacy"><i class="fas fa-shield-halved"></i> Отговорите остават на това устройство. За личния ти текст към AI модела отиват само те, без име и без здравните отговори. Към плана се добавя само обобщението, и то само ако го включиш.</p>
                 </div>
             `;
             // Поетапно влизане по реда в страницата, не по реда на сглобяване.
@@ -2427,8 +2492,9 @@
             if (auto) setTimeout(linkEmoEatToPlan, 0);
             return `
                 <section class="rx-plan-link rx-in" id="rxPlanLink">
+                    <div class="rx-strip" aria-hidden="true"><img src="${emoPhoto('plan')}" data-emo-slot="plan" alt="" loading="lazy" decoding="async"></div>
                     <div class="rx-plan-link-title"><i class="fas fa-link"></i> ${linked ? 'В хранителния ти план' : 'Хранителният план'}</div>
-                    <p class="rx-plan-link-text">Обобщението (модел, портрет, истинската нужда и здравните отговори, ако си ги дал/а — без отделните отговори) отива при плана. Насоките, напомнянията и подредбата на приложението се настройват по него.</p>
+                    <p class="rx-plan-link-text">Към плана отива обобщението (модел, портрет, истинската нужда и здравните отговори, ако си ги дал/а), но не отделните ти отговори. По него се нагаждат насоките, напомнянията и подредбата на приложението.</p>
                     ${linked
                         ? '<div class="rx-plan-link-done"><i class="fas fa-check"></i> Включено в плана</div>'
                         : auto
@@ -2473,8 +2539,9 @@
         function planInviteHtml() {
             return `
                 <section class="rx-plan-link rx-in" id="rxPlanLink">
+                    <div class="rx-strip" aria-hidden="true"><img src="${emoPhoto('plan')}" data-emo-slot="plan" alt="" loading="lazy" decoding="async"></div>
                     <div class="rx-plan-link-title"><i class="fas fa-utensils"></i> Хранителен план, съобразен с профила ти</div>
-                    <p class="rx-plan-link-text">Nutriin ще отчете модела ти още от първия ден: кога и защо се появява гладът, какво помага вместо забрани, как да са подредени храненията. Обобщението на профила (без отделните отговори) отива с теб.</p>
+                    <p class="rx-plan-link-text">Nutriin ще вземе модела ти предвид от първия ден: кога и защо идва гладът, какво помага вместо забрани, как да се подредят храненията. Обобщението на профила ти (без отделните отговори) тръгва с теб.</p>
                     <button type="button" class="rx-btn" id="rxPlanInviteBtn" onclick="continueToNutriPlan()"><i class="fas fa-arrow-right"></i> Създай моя план</button>
                     <div class="rx-plan-link-status" id="rxPlanLinkStatus" role="status"></div>
                 </section>`;

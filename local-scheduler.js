@@ -2123,6 +2123,10 @@ const GameNotifier = {
                 gm.saveRecord(recordKey, rec);
                 if (typeof gm.recalcAndShowScore === 'function') gm.recalcAndShowScore(recordKey);
                 this.notifyAnswerSaved(recordKey);
+                try {
+                    const S = window.NutriPlanSleepSignal || (window.top && window.top.NutriPlanSleepSignal);
+                    if (S && S.supported()) S.refine(recordKey, { getRecord: gm.getRecord, saveRecord: gm.saveRecord }).then((ch) => { if (ch && typeof gm.recalcAndShowScore === 'function') gm.recalcAndShowScore(recordKey); });
+                } catch (_) { /* без телефона */ }
                 return true;
             } catch (_) { /* fall through */ }
         }

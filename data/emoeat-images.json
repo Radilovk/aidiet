@@ -1,0 +1,201 @@
+{
+  "about": "Снимки за EmoEat (emoeat.html). Показват ситуацията от текста: храна и чувства заедно, без тела и без числа. Тема → търсене в Pixabay (английски). Избор: picks { тема: { id, focus: 'x,y' } }; scripts/emoeat-images.mjs. Админ панелът (Снимки на EmoEat) може да ги подмени.",
+  "themes": {
+    "comfort": [
+      "dinner for one table candle evening",
+      "evening snack couch blanket cozy",
+      "woman eating alone window evening"
+    ],
+    "pause": [
+      "snacking while scrolling phone couch",
+      "hand reaching snack bowl couch evening",
+      "eating popcorn tv night"
+    ],
+    "pendulum": [
+      "salad and burger choice",
+      "cake slice fork plate night",
+      "half eaten cake plate"
+    ],
+    "order": [
+      "meal prep containers organized",
+      "neatly arranged lunch boxes",
+      "portioned meals containers fridge"
+    ],
+    "critic": [
+      "empty plate fork table thoughtful",
+      "woman sitting alone after dinner",
+      "hands on table after meal"
+    ],
+    "spark": [
+      "chocolate square desk afternoon break",
+      "tired at desk coffee cookie",
+      "office snack break"
+    ],
+    "impulse": [
+      "open refrigerator night light",
+      "hand reaching fridge midnight",
+      "kitchen night light snack"
+    ],
+    "calm": [
+      "peaceful breakfast table natural light",
+      "fruit bowl sunlight table",
+      "eating slowly mindful breakfast"
+    ],
+    "portrait": [
+      "journal tea notebook morning",
+      "woman writing diary tea",
+      "notebook coffee window"
+    ],
+    "need": [
+      "two cups tea conversation friends",
+      "hand holding hand support",
+      "friends talking kitchen table"
+    ],
+    "plan": [
+      "preparing healthy meal kitchen",
+      "cooking vegetables hands home",
+      "fresh ingredients wooden board"
+    ],
+    "welcome": [
+      "woman thinking kitchen table tea",
+      "coffee notebook kitchen window morning",
+      "hands wrapped around mug kitchen"
+    ]
+  },
+  "images": {
+    "comfort": {
+      "file": "brand/emoeat/comfort.webp",
+      "id": 1975215,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/warm-and-cozy-popcorn-coffee-1975215/"
+    },
+    "pause": {
+      "file": "brand/emoeat/pause.webp",
+      "id": 3281583,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/people-woman-tv-movies-television-3281583/"
+    },
+    "pendulum": {
+      "file": "brand/emoeat/pendulum.webp",
+      "id": 3236971,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/meal-food-remove-lent-overweight-3236971/"
+    },
+    "order": {
+      "file": "brand/emoeat/order.webp",
+      "id": 2724355,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/salad-chickpeas-carrots-peppers-2724355/"
+    },
+    "critic": {
+      "file": "brand/emoeat/critic.webp",
+      "id": 4111081,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/dessert-sweet-cake-food-treat-4111081/"
+    },
+    "spark": {
+      "file": "brand/emoeat/spark.webp",
+      "id": 1895165,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/notebook-plan-events-coffee-pot-1895165/"
+    },
+    "impulse": {
+      "file": "brand/emoeat/impulse.webp",
+      "id": 1868175,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/bottles-food-gallon-inside-light-1868175/"
+    },
+    "calm": {
+      "file": "brand/emoeat/calm.webp",
+      "id": 5204360,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/breakfast-breakfast-in-bed-cereal-5204360/"
+    },
+    "portrait": {
+      "file": "brand/emoeat/portrait.webp",
+      "id": 7807231,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/reading-tea-teatime-teapot-7807231/"
+    },
+    "need": {
+      "file": "brand/emoeat/need.webp",
+      "id": 1536226,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/happy-valentines-day-love-coffe-cup-1536226/"
+    },
+    "plan": {
+      "file": "brand/emoeat/plan.webp",
+      "id": 9132663,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/vegetables-cooking-kitchen-9132663/"
+    },
+    "welcome": {
+      "file": "brand/emoeat/welcome.webp",
+      "id": 2306471,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/coffee-pen-notebook-open-notebook-2306471/"
+    }
+  },
+  "picks": {
+    "comfort": {
+      "id": 1975215,
+      "focus": "0.5,0.5"
+    },
+    "pause": {
+      "id": 3281583,
+      "focus": "0.5,0.5"
+    },
+    "pendulum": {
+      "id": 3236971,
+      "focus": "0.5,0.5"
+    },
+    "order": {
+      "id": 2724355,
+      "focus": "0.5,0.5"
+    },
+    "critic": {
+      "id": 4111081,
+      "focus": "0.5,0.5"
+    },
+    "spark": {
+      "id": 1895165,
+      "focus": "0.5,0.5"
+    },
+    "impulse": {
+      "id": 1868175,
+      "focus": "0.5,0.5"
+    },
+    "calm": {
+      "id": 5204360,
+      "focus": "0.5,0.5"
+    },
+    "portrait": {
+      "id": 7807231,
+      "focus": "0.5,0.5"
+    },
+    "need": {
+      "id": 1536226,
+      "focus": "0.5,0.5"
+    },
+    "plan": {
+      "id": 9132663,
+      "focus": "0.5,0.5"
+    },
+    "welcome": {
+      "id": 2306471,
+      "focus": "0.5,0.5"
+    }
+  }
+}

@@ -13775,6 +13775,19 @@ const UI_IMAGE_ZONES = [
   'plan_pending_bg',
   'plan_greeting',
   'questionnaire2_bg',
+  // EmoEat: снимките на финалната страница и входния екран (emoeat.html)
+  'emoeat_comfort',
+  'emoeat_pause',
+  'emoeat_pendulum',
+  'emoeat_order',
+  'emoeat_critic',
+  'emoeat_spark',
+  'emoeat_impulse',
+  'emoeat_calm',
+  'emoeat_portrait',
+  'emoeat_need',
+  'emoeat_plan',
+  'emoeat_welcome',
 ];
 
 /**

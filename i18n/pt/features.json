@@ -1,0 +1,24 @@
+{
+ "_comment": "features.html — ръчен превод на заглавията. Точен български текст → превод; каквото липсва — резервният AI превод.",
+ "strings": {
+  "AI анализ в 7 стъпки и личен план": "Análise com IA em 7 passos e plano pessoal",
+  "AI консултант": "Consultor de IA",
+  "Умни промени в плана": "Alterações inteligentes ao plano",
+  "Планът като PDF": "O teu plano em PDF",
+  "Хранителни насоки": "Orientações alimentares",
+  "Здравен анализ и оценка": "Análise e pontuação de saúde",
+  "Препоръки за добавки": "Recomendações de suplementos",
+  "Физическа активност": "Atividade física",
+  "Работи като приложение": "Funciona como uma app",
+  "Емоционално хранене": "Alimentação emocional",
+  "Клинични протоколи": "Protocolos clínicos",
+  "Основни": "Funções",
+  "функции": "principais",
+  "Специализирани": "Módulos",
+  "модули": "especializados",
+  "11 клинични": "11 protocolos",
+  "протокола": "clínicos"
+ },
+ "keys": {},
+ "patterns": []
+}

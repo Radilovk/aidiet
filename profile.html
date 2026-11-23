@@ -2070,6 +2070,7 @@
     <script src="./supplement-shop.js"></script>
     <script src="./health-apps.js"></script>
     <script src="./health-sync.js"></script>
+    <script src="./sleep-signal.js"></script>
     <script src="./goal-model.js"></script>
     <script src="./goal-focus.js?v=6"></script>
     <script src="./activity-tracker.js"></script>
@@ -2230,6 +2231,11 @@
                     <div class="labs-sub">Крачкомер в телефона</div>
                     <p class="labs-note">Вграденият брояч — без гривна и часовник.</p>
                     <div class="labs-actions devices-actions" id="devicesStepsActions"></div>
+                </div>
+                <div class="devices-source" id="devicesScreenBox" hidden>
+                    <div class="labs-sub">Сън по използването на телефона</div>
+                    <p class="labs-note">Кога екранът не е светвал през нощта — за честна оценка на съня. Само часовете, не и какво е правено в приложенията.</p>
+                    <div class="labs-actions devices-actions" id="devicesScreenActions"></div>
                 </div>
                 <div class="devices-source" id="devicesLinksBox" hidden>
                     <div class="labs-sub">Профил в приложението на устройството</div>
@@ -3583,6 +3589,7 @@
             const box = document.getElementById('devicesActions');
             document.querySelectorAll('.devices-needs-consent').forEach(b => { b.disabled = false; });
             renderPedometer();
+            renderScreenSignal();
             if (!H || !box || !H.supported()) return;
             document.getElementById('devicesHcBox').hidden = false;
             renderDetected();
@@ -3626,6 +3633,25 @@
                 box.innerHTML = `<button type="button" class="btn btn-primary devices-connect" onclick="togglePedometer(true)"><i class="fas fa-shoe-prints"></i> Включи крачкомера</button>`;
             }
         }
+
+        // ── Сън по използването на телефона (sleep-signal.js) ─────────────
+        async function renderScreenSignal() {
+            const S = window.NutriPlanSleepSignal;
+            const wrap = document.getElementById('devicesScreenBox');
+            const box = document.getElementById('devicesScreenActions');
+            if (!S || !wrap || !box || !S.supported()) return;
+            const st = await S.status();
+            if (!st.available) return;
+            wrap.hidden = false;
+            box.innerHTML = st.granted
+                ? '<span class="labs-note">Включено · сънят се сверява с нощта на телефона. Изключва се от настройките на телефона („Достъп до данни за използване“).</span>'
+                : '<button type="button" class="btn btn-primary devices-connect" onclick="enableScreenSignal()"><i class="fas fa-moon"></i> Включи</button>';
+        }
+        async function enableScreenSignal() {
+            try { await window.NutriPlanSleepSignal.enable(); devicesSetStatus('Включи Nutriin в списъка и се върни в приложението.', 'ok'); }
+            catch (e) { devicesSetStatus(e.message || 'Настройките не се отвориха.', 'error'); }
+        }
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) renderScreenSignal(); });
 
         async function togglePedometer(on) {
             const A = window.NutriPlanActivity;

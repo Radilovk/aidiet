@@ -1,0 +1,42 @@
+name: EmoEat images
+
+# Снимките на EmoEat (scripts/emoeat-images.mjs): при промяна на data/emoeat-images.json —
+# кандидати и листове за преглед за темите без избрана снимка, после обработка на избраните (picks).
+# Ключът за Pixabay е в тайните; адресите на снимките важат само за тази машина, затова всичко е тук.
+on:
+  push:
+    paths: ['data/emoeat-images.json']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: emoeat-images-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-audit --no-fund sharp@0.34
+      - name: Candidates and review sheets
+        env:
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+        run: node scripts/emoeat-images.mjs collect
+      - name: Process the picks
+        env:
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+        run: node scripts/emoeat-images.mjs pick
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A data/emoeat-image-candidates.json data/emoeat-images.json review/emoeat-images brand/emoeat 2>/dev/null || true
+          git diff --staged --quiet && exit 0
+          git commit -m "chore(emoeat-images): кандидати и избрани снимки"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
