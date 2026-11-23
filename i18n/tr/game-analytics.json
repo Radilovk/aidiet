@@ -123,7 +123,16 @@
   "Няма отбелязване за деня.": "O gün için kayıt yok.",
   "За теб тежат повече:": "Senin için daha önemli:",
   "Кръгчета с процент": "Yüzdeli daireler",
-  "Кръгчета с личица": "Yüzlü daireler"
+  "Кръгчета с личица": "Yüzlü daireler",
+  "Под 80% от плана": "Planın %80’inin altında",
+  "Колко от целия план за деня е спазен: хранения, калории, движение, сън, вода и емоции. Кое колко тежи — по твоята цел, профил и последните 2 седмици. Докосни ден, за да видиш какво го е свалило.": "Günün tüm planına ne kadar uyuldu: öğünler, kalori, hareket, uyku, su ve duygular. Neyin ne kadar ağır bastığı hedefine, profiline ve son 2 haftaya göre belirlenir. Neyin düşürdüğünü görmek için bir güne dokun.",
+  "Как се смята:": "Nasıl hesaplanır:",
+  "сънят ти напоследък е слаб": "son zamanlarda uykun zayıf",
+  "спиш средно под 6,5 часа": "ortalama 6,5 saatten az uyuyorsun",
+  "напоследък имаш напрегнати дни": "son zamanlarda gergin günler geçiriyorsun",
+  "водата напоследък не стига": "son zamanlarda su yetmiyor",
+  "напоследък има хранения извън плана": "son zamanlarda plan dışı öğünler var",
+  "напоследък се движиш малко": "son zamanlarda az hareket ediyorsun"
  },
  "keys": {},
  "patterns": []

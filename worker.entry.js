@@ -8,7 +8,7 @@ import {
   formatPromptValue,
   estimateTokenCount,
 } from './context-compression.js';
-import { buildAnalyticsSummary } from './analytics-compression.js';
+import { buildAnalyticsSummary, adherenceOptions } from './analytics-compression.js';
 import { mergeGameData } from './game-data-merge.js';
 import {
   applyJsonPatches,
@@ -5482,7 +5482,7 @@ ${Object.entries(PLAN_MODIFICATION_CODES).map(([code, label]) => `   - "${code}"
   ред T = дневен тотал (сумарни kcal и макроси за деня)
 
 Секция #AX (аналитика от gamification модула) — READ-ONLY, но ЗАДЪЛЖИТЕЛНО я вземай предвид:
-- hi=health index (0–100), avg=средна дневна оценка (1–5), str=серия отлични дни, adh=ангажираност %, meal=спазени хранения % (за решения по плана)
+- hi=health index (0–100), avg=средна дневна оценка (1–5), str=серия отлични дни, adh=ангажираност % (отметките; за правилата), pa=спазване на целия план % — каквото клиентът вижда като „Ангажираност“ в Напредък (хранения по дела от калориите, калории, извън плана, движение, сън, вода, емоции; по личните му тежести) — говори с клиента за него, meal=спазени хранения % (за решения по плана)
 - cal=близост на калориите до плана (100 = точно, симетрично за излишък и недостиг), junk7=вредни хранения за 7 дни, net=нетен калориен баланс, tr=тренд (up/down/flat)
 - dim=eng/slp/bal/act/wtr — измерения (сън, баланс, активност, вода)
 - d7=последни 7 дни: MM-DD:stars/eng%/junk/calΔ
@@ -6216,7 +6216,7 @@ async function resolveWeeklyJobInputs(env, { userId, clientId, userData, plan, g
 
   let analytics = null;
   if (gameData && Object.keys(gameData).length) {
-    analytics = buildAnalyticsSummary(gameData, gameWeeklyAI || {});
+    analytics = buildAnalyticsSummary(gameData, gameWeeklyAI || {}, adherenceOptions(resolvedUserData, gameData));
   } else if (profile?.analytics?.status) {
     analytics = profile.analytics;
   } else {
@@ -7041,7 +7041,9 @@ async function handleSyncAnalytics(request, env) {
     }
 
     if (Object.keys(merged).length) {
-      const summary = buildAnalyticsSummary(merged, weekly);
+      // Личните тежести за спазването на плана — от профила (същото като на телефона).
+      const prof = await kvGetJSON(env, `user_profile:${userId}`).catch(() => null);
+      const summary = buildAnalyticsSummary(merged, weekly, adherenceOptions(prof?.userData || null, merged));
       const ledger = plan?.weekPlan
         ? serializeFoodLedger(buildFoodLedger(plan.weekPlan, merged, weekly))
         : null;

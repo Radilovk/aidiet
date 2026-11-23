@@ -123,7 +123,16 @@
   "Няма отбелязване за деня.": "Nothing logged for the day.",
   "За теб тежат повече:": "What matters more for you:",
   "Кръгчета с процент": "Circles with percent",
-  "Кръгчета с личица": "Circles with faces"
+  "Кръгчета с личица": "Circles with faces",
+  "Под 80% от плана": "Under 80% of the plan",
+  "Колко от целия план за деня е спазен: хранения, калории, движение, сън, вода и емоции. Кое колко тежи — по твоята цел, профил и последните 2 седмици. Докосни ден, за да видиш какво го е свалило.": "How much of the whole day plan you kept: meals, calories, movement, sleep, water and emotions. What weighs how much depends on your goal, profile and the last 2 weeks. Tap a day to see what pulled it down.",
+  "Как се смята:": "How it is calculated:",
+  "сънят ти напоследък е слаб": "your sleep has been poor lately",
+  "спиш средно под 6,5 часа": "you sleep under 6.5 hours on average",
+  "напоследък имаш напрегнати дни": "you have had tense days lately",
+  "водата напоследък не стига": "you have been short on water lately",
+  "напоследък има хранения извън плана": "there have been off-plan meals lately",
+  "напоследък се движиш малко": "you have moved little lately"
  },
  "keys": {},
  "patterns": []

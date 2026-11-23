@@ -19,7 +19,7 @@
  *
  *   RewardsEngine.compute({ gameData, calcDayScore, todayKey, weightLog?, startKg?, goalDirection? })
  */
-(function (global) {
+(function (/** @type {any} */ global) {
     'use strict';
 
     var DAY = 86400000;
@@ -89,7 +89,7 @@
         codesTitle: 'Твоите отстъпки', codesEmpty: 'Първата идва с „Упоритост“.',
         pointsTitle: 'Точки за отстъпка',
         pathTitle: 'Нивата',
-        pathAbout: 'Нивото се отключва с дни, в които всичко е спазено: храненията по плана, сутрешният и вечерният въпрос, без хранения извън плана и без преяждане. {list}. Изграденото остава — нивото слиза с едно само след 14 поредни дни под прага.',
+        pathAbout: 'Нивото се отключва с дни, в които поне 80% от плана е спазен (по твоите тежести), сутрешният и вечерният въпрос са отговорени, без хранения извън плана и без преяждане. {list}. Изграденото остава — нивото слиза с едно само след 14 поредни дни под прага.',
         inviteTitle: 'Покани приятел',
         inviteText: 'Приятелят: −{pct}% за първия план. Ти: −{reward}% и 300 точки.',
         inviteTextApp: 'Приятелят: подарък за начало. Ти: награда и 300 точки.',
@@ -240,7 +240,8 @@
 
     /**
      * Ден, който се брои (за поредицата, нивата, точките, жокерите, предизвикателството): ВСИЧКО е спазено —
-     *  - храненията по плана: поне 3/4 отметнати (MEAL_MIN);
+     *  - спазването на целия план за деня (day-adherence.js, личните тежести) — поне ADH_MIN;
+     *    без модула за спазване (стари версии) — храненията: поне 3/4 отметнати (MEAL_MIN);
      *  - сутрешният и вечерният въпрос — отговорени (нищо не липсва);
      *  - без вредни хранения извън плана и без преяждане (над 110% от калориите на плана);
      *  - без предупреждение за движението (над препоръчаното за целта — policy.maxPct).
@@ -248,9 +249,11 @@
      * Движение (active) — само когато е част от целта (policy.reward): крачките до целта или тренировка.
      * @param {object} rec  записът на деня
      * @param {object} score  calcDayScore(rec)
-     * @param {{ reward?: boolean, maxPct?: number|null }} [policy]
+     * @param {{ reward?: boolean, maxPct?: number|null, weights?: object, group?: string }} [policy]
+     * @param {number|null} [adhPct]  спазването на плана (0–100) или null
      */
     var MEAL_MIN = 75;
+    var ADH_MIN = 80;
     function mealAdh(rec) {
         var meals = (rec && rec.meals) || {};
         var free = rec && rec.freeMeal && rec.freeMeal.mealKey;
@@ -264,12 +267,13 @@
         if (ec.equivSteps > 0 && ec.stepTarget > 0) return Math.round(ec.equivSteps / ec.stepTarget * 100);
         return ec.activityLevel != null ? Math.round((ec.activityLevel - 1) / 2 * 100) : null;
     }
-    function dayStatus(rec, score, policy) {
+    function dayStatus(rec, score, policy, adhPct) {
         var p = policy || {};
         if (!rec) return { ok: false, why: ['empty'], active: false, tooMuch: false };
         var why = [];
         var adh = mealAdh(rec);
-        if (adh == null || adh < MEAL_MIN) why.push('meals');
+        if (adhPct != null) { if (adhPct < ADH_MIN) why.push('plan'); }
+        else if (adh == null || adh < MEAL_MIN) why.push('meals');
         var mc = rec.morningCheck, ec = rec.eveningCheck;
         if (!(mc && typeof mc.sleptWell === 'boolean')) why.push('morning');
         if (!(ec && (ec.activityLevel != null || ec.emotionalBalance != null || ec.waterIntake != null))) why.push('evening');
@@ -281,10 +285,10 @@
         var trained = !!(ec && (ec.trained === 'am' || ec.trained === 'pm'));
         // Награда за движение — само в ден, който се брои: предупреждение и награда не вървят заедно.
         var active = !why.length && p.reward !== false && ((raw != null && raw >= 100) || trained);
-        return { ok: !why.length, why: why, active: active, tooMuch: tooMuch, adh: adh };
+        return { ok: !why.length, why: why, active: active, tooMuch: tooMuch, adh: adh, plan: adhPct == null ? null : adhPct };
     }
     /** Думите за причината ден да не се брои (за балончето на звездата). */
-    var WHY_TEXT = { meals: 'Непълни хранения', morning: 'Без сутрешния въпрос', evening: 'Без вечерния въпрос', junk: 'Хранене извън плана', calories: 'Над калориите', activity: 'Движение над препоръчаното', empty: 'Няма отбелязване' };
+    var WHY_TEXT = { plan: 'Под 80% от плана', meals: 'Непълни хранения', morning: 'Без сутрешния въпрос', evening: 'Без вечерния въпрос', junk: 'Хранене извън плана', calories: 'Над калориите', activity: 'Движение над препоръчаното', empty: 'Няма отбелязване' };
 
     // Движение (само когато е част от целта): активни дни общо → етапи.
     var ACTIVE = [
@@ -299,7 +303,16 @@
     }
 
     /** Дните от първия запис до днес: [{ key, eng|null, steps, onTarget }]. */
-    function timeline(gameData, calcDayScore, todayKey, policy) {
+    /** Спазването на плана за деня — модулът day-adherence.js (подаден или глобален), иначе null. */
+    function adherenceOf(A, rec, key, todayKey, policy) {
+        if (!rec || !A || typeof A.compute !== 'function') return null;
+        try {
+            var r = A.compute(rec, { todayKey: todayKey, key: key, weights: policy && policy.weights, group: policy && policy.group, policy: policy });
+            return r && typeof r.pct === 'number' ? r.pct : null;
+        } catch (_) { return null; }
+    }
+
+    function timeline(gameData, calcDayScore, todayKey, policy, A) {
         var keys = Object.keys(gameData || {}).filter(function (k) { return isKey(k) && k <= todayKey; }).sort();
         if (!keys.length) return [];
         var out = [];
@@ -311,11 +324,12 @@
                 try { sc = calcDayScore(rec, todayKey); eng = sc.engPct; } catch (_) { eng = null; }
                 if (!(eng > 0)) eng = 0;
             }
-            var ds = dayStatus(rec, sc, policy);
+            var plan = adherenceOf(A, rec, k, todayKey, policy);
+            var ds = dayStatus(rec, sc, policy, plan);
             var ec = rec && rec.eveningCheck;
             var mc = rec && rec.morningCheck;
             out.push({
-                key: k, shielded: false, rec: !!rec, eng: eng, ok: ds.ok, why: ds.why, active: ds.active, tooMuch: ds.tooMuch,
+                key: k, shielded: false, rec: !!rec, eng: eng, plan: plan, ok: ds.ok, why: ds.why, active: ds.active, tooMuch: ds.tooMuch,
                 steps: ec && ec.steps > 0 ? ec.steps : 0, onTarget: stepsOnTarget(rec),
                 eve: !!(ec && (ec.activityLevel != null || ec.emotionalBalance != null || ec.waterIntake != null)),
                 morn: !!(mc && typeof mc.sleptWell === 'boolean')
@@ -326,7 +340,8 @@
 
     function dayPoints(d) {
         if (!d.ok) return 0;
-        var p = 10 + (d.eng >= GREAT_DAY ? 5 : 0) + (d.active ? 5 : 0);
+        var full = d.plan != null ? d.plan : d.eng;
+        var p = 10 + (full >= GREAT_DAY ? 5 : 0) + (d.active ? 5 : 0);
         return Math.min(DAY_POINTS_MAX, p);
     }
 
@@ -408,13 +423,16 @@
     /**
      * @param {{ gameData: object, calcDayScore: function, todayKey?: string, weightLog?: Array,
      *           startKg?: number, goalDirection?: string, challenge?: { id: string, joined: string },
-     *           activity?: { reward?: boolean, maxPct?: number|null } }} input
+     *           activity?: { reward?: boolean, maxPct?: number|null, weights?: object, group?: string },
+     *           adherence?: { compute: function } }} input
      */
     function compute(input) {
         var inp = /** @type {any} */ (input || {});
         var todayKey = inp.todayKey || localKey(new Date());
         var policy = inp.activity || { reward: true, maxPct: null };
-        var tl = timeline(inp.gameData, inp.calcDayScore, todayKey, policy);
+        // Спазването на плана: подаденият модул (сървърът), иначе глобалният (телефонът).
+        var A = inp.adherence || /** @type {any} */ (global).NutriPlanDayAdherence || null;
+        var tl = timeline(inp.gameData, inp.calcDayScore, todayKey, policy, A);
         var milestones = [];
         var res = {
             todayKey: todayKey, daysTracked: 0, firstKey: tl.length ? tl[0].key : null,
@@ -608,7 +626,7 @@
     var api = {
         GOOD: GOOD, SHIELD_EVERY: SHIELD_EVERY, SHIELD_MAX: SHIELD_MAX, GRACE_DAYS: GRACE_DAYS,
         TIERS: TIERS, STREAKS: STREAKS, WEIGHT_STEPS: WEIGHT_STEPS, OFFERS: OFFERS, FACTS: FACTS,
-        ACTIVE: ACTIVE, MEAL_MIN: MEAL_MIN, GREAT_DAY: GREAT_DAY, dayStatus: dayStatus, WHY_TEXT: WHY_TEXT,
+        ACTIVE: ACTIVE, MEAL_MIN: MEAL_MIN, ADH_MIN: ADH_MIN, adherenceOf: adherenceOf, GREAT_DAY: GREAT_DAY, dayStatus: dayStatus, WHY_TEXT: WHY_TEXT,
         compute: compute, tierById: tierById, streakOf: streakOf, offerById: offerById, weightProgress: weightProgress,
         WORDS: WORDS, TEXTS: TEXTS, THEMES: THEMES, codeFor: codeFor, normCode: normCode, text: text,
         applyContent: applyContent, imageFor: imageFor,

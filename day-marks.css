@@ -1,0 +1,25 @@
+/* Знакът на деня и прозорецът „какво свали деня“ (day-marks.js) — Напредък и картата на деня в плана. */
+/* Дните — ябълка или кръг; скалата сиво → червено → оранжево → жълто → зеленото на марката */
+:root { --ga-d-none: transparent; --ga-d-open: rgba(15,47,46,.18); --ga-d-low: #EF4444; --ga-d-mid: #F97316; --ga-d-good: #FACC15; --ga-d-best: var(--brand-green, #10CC50);
+    --ga-d-line: rgba(15,47,46,.32); --ga-d-track: rgba(15,47,46,.12); }
+[data-theme="dark"] { --ga-d-open: rgba(255,255,255,.2); --ga-d-line: rgba(255,255,255,.38); --ga-d-track: rgba(255,255,255,.12); }
+.ga-day-n { fill: var(--dm-ink, var(--text-dark)); font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.ga-day-n .u { font-size: 7px; font-weight: 700; }
+.ga-day-n.is-open { opacity: .55; }
+.ga-day-pop { position: fixed; z-index: 10002; width: min(300px, calc(100vw - 16px)); padding: 12px 14px 8px; border-radius: 16px;
+    background: var(--ag-surface-solid, var(--bg-color, #fff)); color: var(--text-dark); border: 1px solid var(--ag-edge, var(--ds-line));
+    box-shadow: 0 14px 40px rgba(0,0,0,.3); font-size: 0.85rem; animation: dmIn .14s ease-out; }
+.ga-day-pop::after { content: ''; position: absolute; left: var(--arrow-x, 50%); bottom: -6px; transform: translateX(-50%); border: 6px solid transparent; border-bottom: 0; border-top-color: var(--ag-surface-solid, var(--bg-color, #fff)); }
+.ga-day-pop.is-below::after { bottom: auto; top: -6px; border: 6px solid transparent; border-top: 0; border-bottom-color: var(--ag-surface-solid, var(--bg-color, #fff)); }
+.ga-day-pop .t { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.ga-day-pop .t span { font-weight: 800; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.ga-day-pop ul { list-style: none; margin: 0; padding: 0; }
+.ga-day-pop li { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--ds-line, rgba(15,47,46,.08)); }
+.ga-day-pop li:first-child { border-top: 0; }
+.ga-day-pop li i { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; }
+.ga-day-pop li small { display: block; font-size: 0.75rem; color: var(--text-light); }
+.ga-day-pop li em { font-style: normal; font-size: 0.75rem; color: var(--text-light); font-variant-numeric: tabular-nums; }
+.ga-day-pop p { margin: 2px 0 6px; color: var(--text-light); }
+.ga-day-pop .pend { font-size: 0.75rem; }
+@keyframes dmIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ga-day-pop { animation: none; } }

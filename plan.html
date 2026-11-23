@@ -2498,6 +2498,11 @@
         .dc-hint { font-size: 0.8125rem; opacity: 0.9; margin-top: 4px; }
         .dc-result { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; }
         .dc-stars { display: inline-flex; gap: 3px; font-size: 1.25rem; }
+        /* Знакът на деня (day-marks.js) върху плътния градиент — светли линии и текст */
+        .dc-mark { flex: none; display: grid; place-items: center; min-width: 46px; min-height: 46px; padding: 0; border: 0; background: none; cursor: pointer;
+            --dm-ink: #fff; --ga-d-line: rgba(255,255,255,.55); --ga-d-track: rgba(255,255,255,.22); --ga-d-open: rgba(255,255,255,.3); }
+        .dc-mark .ga-day-n { font-size: 12.5px; }
+        .dc-mark:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 50%; }
         .dc-stars i { color: rgba(255, 255, 255, 0.28); }
         .dc-stars i.on { color: #FCD34D; }
         .dc-result .dc-title { margin-top: 0; }
@@ -3994,6 +3999,7 @@
     </style>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
+    <link rel="stylesheet" href="./day-marks.css?v=1">
     <link rel="stylesheet" href="./rewards-ui.css?v=14">
     <script src="./app-ui.js" defer></script>
     <div id="planAuthOverlay" style="display:none">
@@ -4011,9 +4017,11 @@
         }
     })();</script>
 
-    <script src="./game-scoring.js?v=5"></script>
-    <script src="./rewards-engine.js?v=14"></script>
-    <script src="./rewards-ui.js?v=17"></script>
+    <script src="./day-adherence.js?v=1"></script>
+    <script src="./day-marks.js?v=1"></script>
+    <script src="./game-scoring.js?v=7"></script>
+    <script src="./rewards-engine.js?v=15"></script>
+    <script src="./rewards-ui.js?v=18"></script>
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
@@ -4033,7 +4041,7 @@
     <script src="./handoff-client.js"></script>
     <script src="./enrichment-client.js"></script>
     <script src="./goal-model.js"></script>
-    <script src="./goal-focus.js?v=5"></script>
+    <script src="./goal-focus.js?v=6"></script>
     <script src="./activity-tracker.js"></script>
     <script src="./crosscheck-modal.js"></script>
     <script type="module">
@@ -10458,12 +10466,21 @@
         var EVENING_UNLOCK_HOUR = 18;
         // Добър ден — една мярка навсякъде: ангажираност ≥ 60% (rewards-engine.js → GOOD).
         // Ден, който се брои: всичко спазено (rewards-engine.js → dayStatus) — същото правило като наградите.
+        // Правилото на деня (goal-focus.js → dayPolicy): движението по целта + личните тежести (и реалните данни).
         function activityPolicyNow() {
-            try { var GF = window.NutriPlanGoalFocus; return GF && GF.activityPolicy ? GF.activityPolicy(JSON.parse(localStorage.getItem('userData') || '{}')) : null; } catch (_) { return null; }
+            try {
+                var GF = window.NutriPlanGoalFocus, ud = JSON.parse(localStorage.getItem('userData') || '{}');
+                if (GF && GF.dayPolicy) return GF.dayPolicy(ud, getGameData() || {}, getTodayKey());
+                return GF && GF.activityPolicy ? GF.activityPolicy(ud) : null;
+            } catch (_) { return null; }
         }
         function isGoodDay(ds, rec) {
             var RE = window.RewardsEngine;
-            if (RE && RE.dayStatus && rec) return RE.dayStatus(rec, ds, activityPolicyNow()).ok;
+            if (RE && RE.dayStatus && rec) {
+                var pol = activityPolicyNow();
+                var planPct = RE.adherenceOf ? RE.adherenceOf(window.NutriPlanDayAdherence, rec, getTodayKey(), getTodayKey(), pol) : null;
+                return RE.dayStatus(rec, ds, pol, planPct).ok;
+            }
             return !!ds && (ds.engPct || 0) >= 60;
         }
 
@@ -10583,15 +10600,16 @@
 
             // Заглавие: какво следва (отворен ден) или резултатът (затворен ден).
             var head;
-            if (m.closed && ds.score !== null) {
-                var stars = '';
-                for (var i = 0; i < 5; i++) {
-                    stars += '<i class="fas fa-star' + (i < ds.score ? ' on' : '') + '" aria-hidden="true"></i>';
-                }
-                var baseLabel = String(ds.label || '').split(' (')[0].split(' — ')[0];
-                head = '<div class="dc-kicker">' + (m.isToday ? 'Оценка за днес' : 'Оценка за деня') + '</div>' +
-                    '<div class="dc-result"><span class="dc-stars" role="img" aria-label="' + ds.score + ' от 5 звезди">' + stars + '</span>' +
-                    '<span class="dc-title">' + esc(baseLabel) + '</span></div>';
+            // Затвореният ден — същият знак като в Напредък (day-marks.js: кръгче с процент / ябълка /
+            // личице, по личните тежести) и главната причина; докосване → какво го е свалило.
+            var DM = window.NutriPlanDayMarks, dmDay = null;
+            if (m.closed && ds.score !== null && DM && rec) {
+                dmDay = DM.dayOf(rec, dayKey, getTodayKey());
+                head = '<div class="dc-kicker">' + (m.isToday ? 'Днес' : 'Денят') + '</div>' +
+                    '<div class="dc-result"><button type="button" class="dc-mark" aria-label="' + (dmDay.adh ? dmDay.adh.pct + '%' : '') + ' — какво свали деня">' + DM.mark(dmDay, DM.view(), 46) + '</button>' +
+                    '<span class="dc-title">' + esc(DM.mainReason(dmDay)) + '</span></div>';
+            } else if (m.closed && ds.score !== null) {
+                head = '<div class="dc-kicker">' + (m.isToday ? 'Днес' : 'Денят') + '</div><div class="dc-title">Денят приключи</div>';
             } else if (m.closed) {
                 head = '<div class="dc-kicker">Оценка за деня</div><div class="dc-title">Без отбелязана активност</div>';
             } else {
@@ -10645,6 +10663,8 @@
                 calHtml +
                 (chips.length ? '<div class="dc-chips">' + chips.join('') + '</div>' : '');
 
+            var dmBtn = card.querySelector('.dc-mark');
+            if (dmBtn && dmDay) dmBtn.addEventListener('click', function(e) { e.stopPropagation(); window.NutriPlanDayMarks.pop(dmBtn, dmDay); });
             card.querySelectorAll('.dc-seg').forEach(function(btn) {
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -11954,9 +11974,8 @@
                 // „изцяло“ — по личното спазване на деня (GameScoring.dayAdherence + личните тежести), не по старата ангажираност
                 var adhPct = (ds.engPct || 0);
                 try {
-                    var udT = JSON.parse(localStorage.getItem('userData') || '{}'), GFt = window.NutriPlanGoalFocus;
-                    var aw = GFt && GFt.adherenceWeights ? GFt.adherenceWeights(udT).weights : null;
-                    var ad = window.GameScoring.dayAdherence(getRecord(getTodayKey()), { weights: aw, policy: activityPolicyNow() });
+                    var polT = activityPolicyNow() || {};
+                    var ad = window.GameScoring.dayAdherence(getRecord(getTodayKey()), { weights: polT.weights, group: polT.group, policy: polT });
                     if (ad) adhPct = ad.pct;
                 } catch (_) {}
                 var word = adhPct >= 85 && !soft ? 'Денят е изцяло по плана' : 'Денят е по плана';

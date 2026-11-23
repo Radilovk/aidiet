@@ -123,7 +123,16 @@
   "Няма отбелязване за деня.": "Nimic notat pentru ziua respectivă.",
   "За теб тежат повече:": "Pentru tine contează mai mult:",
   "Кръгчета с процент": "Cercuri cu procent",
-  "Кръгчета с личица": "Cercuri cu fețe"
+  "Кръгчета с личица": "Cercuri cu fețe",
+  "Под 80% от плана": "Sub 80% din plan",
+  "Колко от целия план за деня е спазен: хранения, калории, движение, сън, вода и емоции. Кое колко тежи — по твоята цел, профил и последните 2 седмици. Докосни ден, за да видиш какво го е свалило.": "Cât din planul zilei ai respectat: mese, calorii, mișcare, somn, apă și emoții. Cât cântărește fiecare depinde de obiectivul tău, profil și ultimele 2 săptămâni. Atinge o zi ca să vezi ce a scăzut-o.",
+  "Как се смята:": "Cum se calculează:",
+  "сънят ти напоследък е слаб": "în ultima vreme dormi prost",
+  "спиш средно под 6,5 часа": "dormi în medie sub 6,5 ore",
+  "напоследък имаш напрегнати дни": "în ultima vreme ai zile tensionate",
+  "водата напоследък не стига": "în ultima vreme apa nu ajunge",
+  "напоследък има хранения извън плана": "în ultima vreme sunt mese în afara planului",
+  "напоследък се движиш малко": "în ultima vreme te miști puțin"
  },
  "keys": {},
  "patterns": []

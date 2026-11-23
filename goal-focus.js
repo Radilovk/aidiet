@@ -8,7 +8,7 @@
  * показателите, оценка (добре / внимание / проблем) с едно изречение и
  * изводите за първия екран. Без мрежа и DOM — ползват го „Анализ“ и „Насоки“.
  */
-(function (global) {
+(function (/** @type {any} */ global) {
     'use strict';
 
     var GOAL_GROUP = {
@@ -452,7 +452,42 @@
     };
     var LEAD_WHY = { weight: 'целта е в килограмите', waist: 'целта е талията', composition: 'целта е съставът на тялото', workouts: 'тренировките са част от целта',
         energy: 'целта е енергията', sleep: 'сънят е част от целта', glucose: 'кръвната захар', bp: 'кръвното', digestion: 'храносмилането', water: 'водата е част от целта' };
-    function adherenceWeights(userData) {
+    /*
+     * С история на дните (gameData) тежестите следват и реалните данни от последните 14 дни (recentSignals):
+     * често слаб сън, напрегнати дни, недостиг на вода, хранения извън плана, малко движение.
+     * Само от дните, които са и на телефона, и на сървъра — двете страни смятат еднакво.
+     */
+    var SIG_DAYS = 14, SIG_MIN = 5;
+    function sigKey(d) { var z = function (n) { return n < 10 ? '0' + n : '' + n; }; return d.getUTCFullYear() + '-' + z(d.getUTCMonth() + 1) + '-' + z(d.getUTCDate()); }
+    /** Какво показват последните 14 дни (без днешния): дял на слабите дни по всяка част; null — под 5 отговора. */
+    function recentSignals(gameData, todayKey) {
+        var gd = gameData || {};
+        var p = String(todayKey || '').split('-');
+        if (p.length !== 3) return null;
+        var end = Date.UTC(+p[0], +p[1] - 1, +p[2]);
+        var c = { sleep: [0, 0], hours: [0, 0], mood: [0, 0], water: [0, 0], junk: [0, 0], act: [0, 0] };
+        for (var i = 1; i <= SIG_DAYS; i++) {
+            var rec = gd[sigKey(new Date(end - i * 86400000))];
+            if (!rec) continue;
+            var mc = rec.morningCheck, ec = rec.eveningCheck;
+            if (mc && typeof mc.sleptWell === 'boolean') { c.sleep[1]++; if ((mc.level || (mc.sleptWell ? 'good' : 'bad')) !== 'good') c.sleep[0]++; }
+            if (mc && mc.hours > 0) { c.hours[1]++; c.hours[0] += Number(mc.hours); }
+            if (ec && ec.emotionalBalance != null) { c.mood[1]++; if (ec.emotionalBalance <= 1) c.mood[0]++; }
+            if (ec && ec.waterIntake != null) { c.water[1]++; if (ec.waterIntake !== true) c.water[0]++; }
+            if (ec) {
+                c.junk[1]++;
+                if ((rec.extraMeals || []).some(function (/** @type {any} */ em) { return em.isJunk && (!em.isAddedToPlan || em.countCalories !== false); })) c.junk[0]++;
+                var raw = ec.equivSteps > 0 && ec.stepTarget > 0 ? ec.equivSteps / ec.stepTarget * 100 : (ec.activityLevel != null ? (ec.activityLevel - 1) / 2 * 100 : null);
+                var trained = ec.trained === 'am' || ec.trained === 'pm';
+                if (raw != null || trained) { c.act[1]++; if (!trained && raw < 60) c.act[0]++; }
+            }
+        }
+        var share = function (/** @type {number[]} */ x) { return x[1] >= SIG_MIN ? x[0] / x[1] : null; };
+        /** @type {Record<string, number|null>} */
+        var out = { sleep: share(c.sleep), hours: c.hours[1] >= SIG_MIN ? c.hours[0] / c.hours[1] : null, mood: share(c.mood), water: share(c.water), junk: share(c.junk), act: share(c.act) };
+        return Object.keys(out).some(function (k) { return out[k] != null; }) ? out : null;
+    }
+    function adherenceWeights(userData, gameData, todayKey) {
         var ud = userData || {};
         var p = profileOf(ud);
         var w = {}; Object.keys(ADH_BASE).forEach(function (k) { w[k] = ADH_BASE[k]; });
@@ -480,6 +515,16 @@
         if (p.glucose) { add('junk', 6, 'кръвната захар'); add('cal', 4); }
         if (p.bp) add('act', 4, 'кръвното');
         if (p.group === 'lose_soft' || lactatingOf(ud)) { add('water', 8, 'кърменето иска повече течности'); add('meal', 5); }
+        // Реалните данни от последните 2 седмици — слабото място тежи повече, докато се оправи.
+        var sig = gameData ? recentSignals(gameData, todayKey) : null;
+        if (sig) {
+            if (sig.sleep != null && sig.sleep >= 0.4) add('sleep', 6, 'сънят ти напоследък е слаб');
+            else if (sig.hours != null && sig.hours < 6.5) add('sleep', 4, 'спиш средно под 6,5 часа');
+            if (sig.mood != null && sig.mood >= 0.4) add('mood', 6, 'напоследък имаш напрегнати дни');
+            if (sig.water != null && sig.water >= 0.5) add('water', 4, 'водата напоследък не стига');
+            if (sig.junk != null && sig.junk >= 0.3) add('junk', 5, 'напоследък има хранения извън плана');
+            if (pol.reward && sig.act != null && sig.act >= 0.5) add('act', 4, 'напоследък се движиш малко');
+        }
         if (!pol.reward) w.act = w.act * 0.5;   // движението е за здраве, не за разход
         // Свеждане до 100 (най-малко 4 на част), с най-голям остатък.
         Object.keys(w).forEach(function (k) { w[k] = Math.max(4, w[k]); });
@@ -491,12 +536,24 @@
         var reasons = Object.keys(why).filter(function (k) { return (boost[k] || 0) >= 4; })
             .sort(function (a, b) { return (boost[b] || 0) - (boost[a] || 0); })
             .map(function (k) { return { k: k, text: why[k].text }; });
-        return { weights: out, reasons: reasons };
+        return sig ? { weights: out, reasons: reasons, signals: sig } : { weights: out, reasons: reasons };
+    }
+
+    /**
+     * Правилото на деня за наградите и маркерите: движението (activityPolicy) + личните тежести и групата.
+     * @returns {{ reward: boolean, maxPct: number|null, weights: object, group: string }}
+     */
+    function dayPolicy(userData, gameData, todayKey) {
+        var ud = userData || {};
+        var pol = activityPolicy(ud);
+        return { reward: pol.reward, maxPct: pol.maxPct, weights: adherenceWeights(ud, gameData, todayKey).weights, group: profileOf(ud).group };
     }
 
     var api = {
         adherenceWeights: adherenceWeights,
         activityPolicy: activityPolicy,
+        dayPolicy: dayPolicy,
+        recentSignals: recentSignals,
         profileOf: profileOf,
         /** Дневната цел за крачки по профила и целта. */
         stepTarget: function (userData) { return profileOf(userData).stepTarget; },
@@ -511,4 +568,4 @@
     };
     global.NutriPlanGoalFocus = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
-}(typeof window !== 'undefined' ? window : globalThis));
+}(typeof globalThis !== 'undefined' ? globalThis : this));

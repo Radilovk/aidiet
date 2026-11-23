@@ -264,34 +264,12 @@
         .ga-bars .gf-index-value { font-variant-numeric: tabular-nums; }
         .ga-eng { cursor: pointer; }
         /* Кръговете: 5 → два реда (3 + 2, долният центриран), 4 и по-малко → един ред */
-        /* Дните — ябълка или кръг; скалата сиво → червено → оранжево → жълто → зеленото на марката */
-        :root { --ga-d-none: transparent; --ga-d-open: rgba(15,47,46,.18); --ga-d-low: #EF4444; --ga-d-mid: #F97316; --ga-d-good: #FACC15; --ga-d-best: var(--brand-green, #10CC50);
-            --ga-d-line: rgba(15,47,46,.32); --ga-d-track: rgba(15,47,46,.12); }
-        [data-theme="dark"] { --ga-d-open: rgba(255,255,255,.2); --ga-d-line: rgba(255,255,255,.38); --ga-d-track: rgba(255,255,255,.12); }
         .ga-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: 12px; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
         .ga-day { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 44px; padding: 2px 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .ga-day-l { font-size: 0.7rem; color: var(--text-light); }
-        .ga-day-n { fill: var(--text-dark); font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-        .ga-day-n .u { font-size: 7px; font-weight: 700; }
-        .ga-day-n.is-open { opacity: .55; }
-        .ga-day.is-today .ga-day-l, .ga-day.is-open .ga-day-l { color: var(--text-dark); font-weight: 700; }
+        .ga-day.is-today .ga-day-l, .ga-day.dm-open .ga-day-l { color: var(--text-dark); font-weight: 700; }
         .ga-day:focus-visible { outline: 2px solid var(--ds-green-text, #03939C); outline-offset: 2px; border-radius: 8px; }
         .ga-view-prev.ga-days { margin-top: 0; }
-        .ga-day-pop { position: fixed; z-index: 10002; width: min(300px, calc(100vw - 16px)); padding: 12px 14px 8px; border-radius: 16px;
-            background: var(--ag-surface-solid, var(--bg-color, #fff)); color: var(--text-dark); border: 1px solid var(--ag-edge, var(--ds-line));
-            box-shadow: 0 14px 40px rgba(0,0,0,.3); font-size: 0.85rem; animation: gaTipIn .14s ease-out; }
-        .ga-day-pop::after { content: ''; position: absolute; left: var(--arrow-x, 50%); bottom: -6px; transform: translateX(-50%); border: 6px solid transparent; border-bottom: 0; border-top-color: var(--ag-surface-solid, var(--bg-color, #fff)); }
-        .ga-day-pop.is-below::after { bottom: auto; top: -6px; border: 6px solid transparent; border-top: 0; border-bottom-color: var(--ag-surface-solid, var(--bg-color, #fff)); }
-        .ga-day-pop .t { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
-        .ga-day-pop .t span { font-weight: 800; font-size: 1rem; font-variant-numeric: tabular-nums; }
-        .ga-day-pop ul { list-style: none; margin: 0; padding: 0; }
-        .ga-day-pop li { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--ds-line, rgba(15,47,46,.08)); }
-        .ga-day-pop li:first-child { border-top: 0; }
-        .ga-day-pop li i { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; }
-        .ga-day-pop li small { display: block; font-size: 0.75rem; color: var(--text-light); }
-        .ga-day-pop li em { font-style: normal; font-size: 0.75rem; color: var(--text-light); font-variant-numeric: tabular-nums; }
-        .ga-day-pop p { margin: 2px 0 6px; color: var(--text-light); }
-        .ga-day-pop .pend { font-size: 0.75rem; }
         /* Показателите — пет вида (gaRenderRings); задържане → избор на вида */
         .ga-rings-wrap { margin: 4px 0 12px; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
         .ga-v-row { display: grid; gap: 2px; }
@@ -552,11 +530,23 @@
             background: var(--card-bg);
             border-radius: 20px;
             padding: 20px 18px 16px;
-            max-width: 320px;
+            max-width: 340px;
             width: 100%;
+            /* никога по-висок от екрана: съдържанието се превърта, бутоните остават долу */
+            max-height: calc(100vh - 40px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+            max-height: calc(100dvh - 40px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+            display: flex; flex-direction: column;
             box-shadow: 0 20px 60px rgba(0,0,0,0.25);
             animation: gePop 0.35s cubic-bezier(0.34,1.56,0.64,1);
         }
+        .ge-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+        .ge-actions { flex: none; padding-top: 6px; }
+        .ge-more { margin-top: 10px; }
+        .ge-more summary { display: flex; align-items: center; justify-content: space-between; min-height: 40px; cursor: pointer; list-style: none;
+            font-size: 0.85rem; font-weight: 700; color: var(--ds-green-text, #03939C); }
+        .ge-more summary::-webkit-details-marker { display: none; }
+        .ge-more summary::after { content: '⌄'; font-size: 1rem; transition: transform .2s; }
+        .ge-more[open] summary::after { transform: rotate(180deg); }
         @keyframes gePop {
             from { opacity:0; transform:scale(0.8) translateY(20px); }
             to   { opacity:1; transform:scale(1) translateY(0); }
@@ -830,6 +820,7 @@
     </script>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
+    <link rel="stylesheet" href="./day-marks.css?v=1">
     <link rel="stylesheet" href="./rewards-ui.css?v=14">
     <script src="./app-ui.js" defer></script>
     <script src="./ambient-glass.js?v=5"></script>
@@ -1022,62 +1013,9 @@
                 if (o || e.target === ov) { ov.remove(); setTimeout(function(){ _gaHeld = false; }, 50); }
             });
         }
-        // ── Дните: ябълка или кръг, задържане → избор, докосване → какво свали деня ─────
-        var DAY_VIEWS = [{ id: 'pct', name: 'Кръгчета с процент' }, { id: 'apple', name: 'Ябълки' }, { id: 'face', name: 'Кръгчета с личица' }];
-        // По подразбиране — процентът (най-ясно); старият избор „кръгчета“ (с датата) → с процент.
-        function gaDayView() { try { var v = localStorage.getItem('np_day_view'); return v === 'apple' || v === 'face' ? v : 'pct'; } catch (_) { return 'pct'; } }
-        // Личицето по процента: под 35 — тъжно, 35–59 — неутрално, 60–84 — усмивка, от 85 — широка усмивка.
-        // Мекият режим — без тъжно лице. Днес, докато денят тече — неутрално и бледо.
-        function gaFace(x, h, col, R) {
-            var v = x.adh ? x.adh.pct : null, open = x.today && x.adh && !x.adh.closed;
-            if (v == null || v <= 0) return '';
-            var mood = open ? 1 : v >= 85 ? 3 : v >= 60 ? 2 : v >= 35 ? 1 : (x.soft ? 1 : 0);
-            // Пропорциите на емотикон спрямо вътрешния радиус R: очите — 0,36 R встрани и 0,3 R нагоре
-            // (леко овални), устата — широка 1,1 R и под центъра.
-            var f = function (n) { return (Math.round(n * 100) / 100); };
-            var ex = R * 0.36, ey = h - R * 0.3, erx = R * 0.1, ery = R * 0.13, sw = Math.max(1.4, R * 0.11);
-            var eyes = '<ellipse cx="' + f(h - ex) + '" cy="' + f(ey) + '" rx="' + f(erx) + '" ry="' + f(ery) + '" fill="' + col + '"/>' +
-                '<ellipse cx="' + f(h + ex) + '" cy="' + f(ey) + '" rx="' + f(erx) + '" ry="' + f(ery) + '" fill="' + col + '"/>';
-            var mx = R * 0.55, my = h + R * 0.22;
-            var mouth = mood === 3
-                ? '<path d="M' + f(h - mx) + ' ' + f(my) + 'Q' + h + ' ' + f(my + R * 0.75) + ' ' + f(h + mx) + ' ' + f(my) + 'Z" fill="' + col + '"/>'
-                : mood === 2 ? '<path d="M' + f(h - mx) + ' ' + f(my + R * 0.04) + 'Q' + h + ' ' + f(my + R * 0.5) + ' ' + f(h + mx) + ' ' + f(my + R * 0.04) + '" fill="none" stroke="' + col + '" stroke-width="' + f(sw) + '" stroke-linecap="round"/>'
-                : mood === 1 ? '<path d="M' + f(h - mx * 0.8) + ' ' + f(my + R * 0.2) + 'L' + f(h + mx * 0.8) + ' ' + f(my + R * 0.2) + '" fill="none" stroke="' + col + '" stroke-width="' + f(sw) + '" stroke-linecap="round"/>'
-                : '<path d="M' + f(h - mx) + ' ' + f(my + R * 0.42) + 'Q' + h + ' ' + f(my - R * 0.05) + ' ' + f(h + mx) + ' ' + f(my + R * 0.42) + '" fill="none" stroke="' + col + '" stroke-width="' + f(sw) + '" stroke-linecap="round"/>';
-            return '<g' + (open ? ' opacity=".5"' : '') + '>' + eyes + mouth + '</g>';
-        }
-        // Скалата: сиво (няма) → червено → оранжево → жълто → зеленото на марката (оптимално).
-        function gaDayColor(x) {
-            if (!x.adh || x.adh.pct <= 0) return 'var(--ga-d-none)';
-            if (x.today && !x.adh.closed) return 'var(--ga-d-open)';
-            var v = x.adh.pct;
-            if (x.soft) return v >= 85 ? 'var(--ga-d-best)' : 'var(--ga-d-good)';   // мекият режим — без червено
-            return v >= 85 ? 'var(--ga-d-best)' : v >= 60 ? 'var(--ga-d-good)' : v >= 35 ? 'var(--ga-d-mid)' : 'var(--ga-d-low)';
-        }
-        // Ябълката: тяло от два заоблени дяла с вдлъбнатина горе и долу, дръжка и листо.
-        var APPLE_BODY = 'M12 7.6C13.7 6.1 17.6 5.6 19.4 8.6C21.1 11.6 20.1 16.5 17.7 19.4C16.5 20.9 15.1 21.7 13.9 21.1C12.6 20.5 11.4 20.5 10.1 21.1C8.9 21.7 7.5 20.9 6.3 19.4C3.9 16.5 2.9 11.6 4.6 8.6C6.4 5.6 10.3 6.1 12 7.6Z';
-        var APPLE_STEM = 'M12 7.6C11.9 5.9 12.4 4.4 13.3 3.3';
-        var APPLE_LEAF = 'M12.9 5.4C13.5 3.4 15.6 2.4 17.7 2.8C17.1 4.8 15 5.9 12.9 5.4Z';
-        var _gaUid = 0;
-        function gaDayMark(x, view, size) {
-            var c = gaDayColor(x), f = x.adh ? Math.max(0, Math.min(1, x.adh.pct / 100)) : 0, id = 'gad' + (_gaUid++);
-            var best = x.adh && x.adh.pct >= 85 && !(x.today && !x.adh.closed);
-            if (view === 'pct' || view === 'face') {
-                // вътре — процентът (или личице); без отметки — празно кръгче
-                var st = 3.5, r = (size - st) / 2, C = 2 * Math.PI * r, h = size / 2;
-                var inner = view === 'face' ? gaFace(x, h, 'var(--text-dark)', r - st / 2 - 0.6)
-                    : (x.adh && x.adh.pct > 0 ? '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" class="ga-day-n' + (x.today && !x.adh.closed ? ' is-open' : '') + '">' + x.adh.pct + '<tspan class="u">%</tspan></text>' : '');
-                return '<svg width="' + size + '" height="' + size + '" aria-hidden="true">' + inner + '<circle cx="' + h + '" cy="' + h + '" r="' + r + '" fill="none" stroke="var(--ga-d-track)" stroke-width="' + st + '"' + (x.today ? ' stroke-dasharray="2 3"' : '') + '/>' +
-                    (f > 0 ? '<circle cx="' + h + '" cy="' + h + '" r="' + r + '" fill="none" stroke="' + c + '" stroke-width="' + st + '" stroke-linecap="round" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + (C * (1 - f)).toFixed(1) + '" transform="rotate(-90 ' + h + ' ' + h + ')"/>' : '') + '</svg>';
-            }
-            // ябълка: пълни се отдолу (тялото е между y 6,1 и 21,7)
-            var y = 21.7 - 15.6 * f;
-            return '<svg width="' + size + '" height="' + size + '" viewBox="2.6 2.2 18.8 20" aria-hidden="true"><defs><clipPath id="' + id + '"><path d="' + APPLE_BODY + '"/></clipPath></defs>' +
-                (f > 0 ? '<rect x="0" y="' + y.toFixed(2) + '" width="24" height="24" fill="' + c + '" clip-path="url(#' + id + ')"/>' : '') +
-                '<path d="' + APPLE_BODY + '" fill="none" stroke="' + (x.today ? 'var(--ds-green-text, #03939C)' : 'var(--ga-d-line)') + '" stroke-width="1.15" stroke-linejoin="round"/>' +
-                '<path d="' + APPLE_STEM + '" fill="none" stroke="var(--ga-d-line)" stroke-width="1.15" stroke-linecap="round"/>' +
-                '<path d="' + APPLE_LEAF + '" fill="' + (best ? 'var(--ga-d-best)' : 'var(--ga-d-line)') + '"/></svg>';
-        }
+        // ── Дните: общият знак (day-marks.js) — задържане → избор, докосване → какво свали деня ─────
+        function gaDayView() { return window.NutriPlanDayMarks.view(); }
+        function gaDayMark(x, view, size) { return window.NutriPlanDayMarks.mark(x, view, size); }
         function gaDaysHtml(view) {
             return (window._gaDays || []).map(function(x, i){
                 var pct = x.adh ? x.adh.pct + '%' : 'няма отбелязване';
@@ -1098,49 +1036,13 @@
                 gaBindHold(box, gaOpenDayViews);
             }
         }
-        function gaDayPop(btn) {
-            var old = document.getElementById('gaDayPop'); var same = old && old._for === btn;
-            if (old) old.remove();
-            document.querySelectorAll('.ga-day.is-open').forEach(function(b){ b.classList.remove('is-open'); });
-            if (same) return;
-            var x = window._gaDays[+btn.getAttribute('data-day')];
-            var pop = document.createElement('div');
-            pop.id = 'gaDayPop'; pop.className = 'ga-day-pop'; pop.setAttribute('role', 'status'); pop._for = btn;
-            var COL = { meal: '#14B8A6', cal: '#F59E0B', junk: '#E879F9', act: 'var(--ds-metric-activity, #F97316)', sleep: 'var(--ds-metric-sleep, #A78BFA)', water: 'var(--ds-metric-water, #38BDF8)', mood: 'var(--ds-metric-mood, #34D399)' };
-            var NAMES = { meal: 'храненията', cal: 'калориите', act: 'движението', water: 'водата', mood: 'емоциите' };
-            var html;
-            if (!x.adh) html = '<div class="t"><b>' + x.label + '</b></div><p>Няма отбелязване за деня.</p>';
-            else {
-                var lost = x.adh.parts.filter(function(p){ return p.text && p.got < p.w - 0.05 && !p.pending; });
-                var pend = x.adh.parts.filter(function(p){ return p.pending; });
-                html = '<div class="t"><b>' + x.label + (x.today && !x.adh.closed ? ' · денят тече' : '') + '</b><span>' + x.adh.pct + '%</span></div>' +
-                    (lost.length ? '<ul>' + lost.map(function(p){ return '<li><i style="background:' + COL[p.k] + '"></i><div>' + p.text + (p.note ? '<small>' + p.note + '</small>' : '') + '</div><em>−' + Math.round(p.w - p.got) + '</em></li>'; }).join('') + '</ul>'
-                        : '<p>' + (pend.length ? 'Дотук — всичко по плана.' : 'Всичко по плана.') + '</p>') +
-                    (pend.length ? '<p class="pend">Предстои: ' + pend.map(function(p){ return NAMES[p.k] || ''; }).filter(Boolean).join(', ') + '</p>' : '');
-            }
-            pop.innerHTML = html;
-            document.body.appendChild(pop);
-            btn.classList.add('is-open');
-            var r = btn.getBoundingClientRect(), w = pop.offsetWidth, hgt = pop.offsetHeight;
-            var left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
-            var top = r.top - hgt - 10, below = top < 8;
-            if (below) top = r.bottom + 10;
-            pop.style.left = left + 'px'; pop.style.top = top + 'px';
-            pop.style.setProperty('--arrow-x', (r.left + r.width / 2 - left) + 'px');
-            if (below) pop.classList.add('is-below');
-        }
-        if (!window._gaPopBound) {
-            window._gaPopBound = true;
-            var gaClosePop = function(){ var p = document.getElementById('gaDayPop'); if (p) p.remove(); document.querySelectorAll('.ga-day.is-open').forEach(function(b){ b.classList.remove('is-open'); }); };
-            document.addEventListener('click', function(e){ if (!e.target.closest('.ga-day') && !e.target.closest('#gaDayPop')) gaClosePop(); });
-            window.addEventListener('scroll', gaClosePop, { passive: true });
-        }
+        function gaDayPop(btn) { window.NutriPlanDayMarks.pop(btn, window._gaDays[+btn.getAttribute('data-day')]); }
         function gaOpenDayViews() {
             if (document.querySelector('.ga-view-sheet')) return;
             var cur = gaDayView();
             var ov = document.createElement('div');
             ov.className = 'ga-view-sheet'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'Вид на дните');
-            ov.innerHTML = '<div class="ga-view-panel"><h3>Вид на дните</h3>' + DAY_VIEWS.map(function(v){
+            ov.innerHTML = '<div class="ga-view-panel"><h3>Вид на дните</h3>' + window.NutriPlanDayMarks.VIEWS.map(function(v){
                 return '<button type="button" class="ga-view-opt" data-view="' + v.id + '" aria-pressed="' + (v.id === cur) + '"><span>' + v.name + '</span><div class="ga-view-prev ga-days">' +
                     gaDaysHtml(v.id).replace(/<button /g, '<span ').replace(/<\/button>/g, '</span>') + '</div></button>';
             }).join('') + '</div>';
@@ -1168,14 +1070,16 @@
         }
     </script>
 
-    <script src="./game-scoring.js?v=5"></script>
+    <script src="./day-adherence.js?v=1"></script>
+    <script src="./day-marks.js?v=1"></script>
+    <script src="./game-scoring.js?v=7"></script>
     <script src="./goal-model.js"></script>
-    <script src="./goal-focus.js?v=5"></script>
+    <script src="./goal-focus.js?v=6"></script>
     <script src="./progress-index.js?v=1"></script>
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
-    <script src="./rewards-engine.js?v=14"></script>
-    <script src="./rewards-ui.js?v=17"></script>
+    <script src="./rewards-engine.js?v=15"></script>
+    <script src="./rewards-ui.js?v=18"></script>
     <script>
     (function () {
         function go() { try { NutriPlanRewards.mount(document.getElementById('rewardsBody')); } catch (_) {} }
@@ -1361,7 +1265,7 @@
             try {
                 var udA = JSON.parse(localStorage.getItem('userData') || '{}');
                 var GFa = window.NutriPlanGoalFocus;
-                if (GFa) { ADH_GROUP = GFa.profileOf(udA).group; ADH_POL = GFa.activityPolicy(udA); if (GFa.adherenceWeights) ADH_W = GFa.adherenceWeights(udA); }
+                if (GFa) { ADH_GROUP = GFa.profileOf(udA).group; ADH_POL = GFa.activityPolicy(udA); if (GFa.adherenceWeights) ADH_W = GFa.adherenceWeights(udA, allData, todayKey); }
             } catch (_) {}
             window._gaAdhW = ADH_W;
             var adhOf = function(d){ return d.rec ? GS.dayAdherence(d.rec, { todayKey: todayKey, key: d.key, group: ADH_GROUP, policy: ADH_POL, weights: ADH_W && ADH_W.weights }).pct : null; };
@@ -1611,7 +1515,8 @@
             // насоките (СЗО, EFSA, ESC) и обзорите наистина казват.
             var EXPLANATIONS = {
                 engagement: { title:'Ангажираност към плана',
-                    text:'Колко от целия план за деня е спазен — не само отметките. Кое колко тежи зависи от целта и профила ти:\n• храненията — всяко тежи колкото дела си от калориите (пропусната вечеря сваля повече от пропусната междинна закуска);\n• калориите — изяденото, вкл. допълнителните хранения, спрямо плана (±10% е пълно);\n• без хранения извън плана;\n• движението спрямо дневната цел (или тренировка);\n• сънят, водата и емоциите — по отговорите.\nБез отговор частта е 0. Тежестите следват целта ти. Седмицата е средното за 7-те дни.\n\nДокосни ден, за да видиш какво го е свалило.\n\nЦел: минимум 85%.',
+                    short:'Колко от целия план за деня е спазен: хранения, калории, движение, сън, вода и емоции. Кое колко тежи — по твоята цел, профил и последните 2 седмици. Докосни ден, за да видиш какво го е свалило.',
+                    text:'Как се смята:\n• храненията — всяко тежи колкото дела си от калориите (пропусната вечеря сваля повече от пропусната междинна закуска);\n• калориите — изяденото, вкл. допълнителните хранения, спрямо плана (±10% е пълно);\n• без хранения извън плана;\n• движението спрямо дневната цел (или тренировка);\n• сънят, водата и емоциите — по отговорите.\nБез отговор частта е 0. Седмицата е средното за 7-те дни.\n\nЦел: минимум 85%.',
                     why:'Постоянството е най-силният предиктор за резултат при всяка диета — по-важно от вида на диетата. Затова планът се настройва по това, което реално спазваш.' },
                 calories: { title:'Калориен баланс',
                     text:'Сумата на разликата между изядено и планирано за завършените дни, в които са отметнати поне половината хранения. Неотметнатото хранене не се брои като неизядено, а днешният ден — едва когато свърши.\n\nЛентата показва колко близо си до плана (100% = точно; 10% над или под = 90%).',
@@ -1670,6 +1575,8 @@
                 document.addEventListener('click', function(e){ if (!e.target.closest('.game-day-col[data-tip]')) hideDayTip(); });
                 window.addEventListener('scroll', hideDayTip, { passive: true });
             }
+            // Обяснението: заглавие и кратко обобщение; подробностите — разгъващи се; съдържанието се
+            // превърта, бутоните остават долу (никога по-високо от екрана).
             function showExplanation(key) {
                 var info = EXPLANATIONS[key]; if(!info) return;
                 var old = document.getElementById('gameExplainOverlay'); if(old) old.remove();
@@ -1678,32 +1585,45 @@
                 overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
                 var box = document.createElement('div'); box.className = 'game-explain-box';
                 var t = document.createElement('div'); t.className='game-explain-title'; t.textContent=info.title;
-                var tx= document.createElement('div'); tx.className='game-explain-text'; tx.style.whiteSpace='pre-line'; tx.textContent=info.text;
-                box.appendChild(t); box.appendChild(tx);
+                var scroll = document.createElement('div'); scroll.className = 'ge-scroll';
+                var paras = String(info.text || '').split('\n\n');
+                var short = info.short || paras[0];
+                var rest = info.short ? paras : paras.slice(1);
+                var sm = document.createElement('div'); sm.className='game-explain-text'; sm.style.whiteSpace='pre-line'; sm.textContent = short;
+                scroll.appendChild(sm);
+                if(gaNumbers[key]) {
+                    var nm = document.createElement('div'); nm.className='game-explain-text'; nm.style.cssText='white-space:pre-line;margin-top:8px;font-weight:600';
+                    nm.textContent = gaNumbers[key];
+                    scroll.appendChild(nm);
+                }
+                var more = [];
+                if (rest.length) more.push(rest.join('\n\n'));
                 if (key === 'engagement' && window._gaAdhW && window._gaAdhW.reasons.length) {
                     var NM = { meal: 'храненията', cal: 'калориите', junk: 'храненията извън плана', act: 'движението', sleep: 'сънят', water: 'водата', mood: 'емоциите' };
-                    var pw = document.createElement('div'); pw.className = 'game-explain-text'; pw.style.cssText = 'white-space:pre-line;margin-top:10px';
-                    pw.textContent = 'За теб тежат повече:\n' + window._gaAdhW.reasons.slice(0, 4).map(function (r) { return '• ' + NM[r.k] + ' — ' + r.text + ' (' + window._gaAdhW.weights[r.k] + ' от 100)'; }).join('\n');
-                    box.appendChild(pw);
+                    more.push('За теб тежат повече:\n' + window._gaAdhW.reasons.slice(0, 4).map(function (r) { return '• ' + NM[r.k] + ' — ' + r.text + ' (' + window._gaAdhW.weights[r.k] + ' от 100)'; }).join('\n'));
                 }
-                if(gaNumbers[key]) {
-                    var nm = document.createElement('div'); nm.className='game-explain-text'; nm.style.cssText='white-space:pre-line;margin-top:10px;font-weight:600';
-                    nm.textContent = gaNumbers[key];
-                    box.appendChild(nm);
+                if (more.length) {
+                    var det = document.createElement('details'); det.className = 'ge-more';
+                    var su = document.createElement('summary'); su.textContent = 'Подробно';
+                    var dt = document.createElement('div'); dt.className='game-explain-text'; dt.style.whiteSpace='pre-line'; dt.textContent = more.join('\n\n');
+                    det.appendChild(su); det.appendChild(dt); scroll.appendChild(det);
                 }
+                box.appendChild(t); box.appendChild(scroll);
+                var acts = document.createElement('div'); acts.className = 'ge-actions';
                 if(info.why) {
                     var whyBtn = document.createElement('button'); whyBtn.className='game-explain-why-btn'; whyBtn.innerHTML='<i class="fas fa-flask"></i> Защо е важно';
                     whyBtn.onclick=function(){ showWhyModal(info.title, info.why); };
-                    box.appendChild(whyBtn);
+                    acts.appendChild(whyBtn);
                 }
                 if (HIST[key]) {
                     var hb = document.createElement('button'); hb.className='game-explain-why-btn ga-hist-btn'; hb.innerHTML='<i class="fas fa-chart-column"></i> История';
                     hb.onclick=function(){ overlay.remove(); showHistory(key, info.title); };
-                    box.appendChild(hb);
+                    acts.appendChild(hb);
                 }
                 var cb= document.createElement('button'); cb.className='game-explain-close'; cb.textContent='Разбрах';
                 cb.onclick=function(){ overlay.remove(); };
-                box.appendChild(cb);
+                acts.appendChild(cb);
+                box.appendChild(acts);
                 overlay.appendChild(box); document.body.appendChild(overlay);
             }
 
