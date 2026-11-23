@@ -1,8 +1,8 @@
-name: Reward images (candidates)
+name: Reward images
 
-# Кандидати за снимките на наградите (scripts/reward-images.mjs collect): търсене в Pixabay с ключа
-# от тайните. Тръгва при промяна на темите в data/reward-images.json; резултатът (само адреси и
-# етикети, без снимки) се записва в същия клон. Изборът и обработката са ръчни (pick).
+# Снимките на наградите (scripts/reward-images.mjs): при промяна на data/reward-images.json —
+# кандидати и листове за преглед за темите без избрана снимка, после обработка на избраните (picks).
+# Ключът за Pixabay е в тайните; адресите на снимките важат само за тази машина, затова всичко е тук.
 on:
   push:
     paths: ['data/reward-images.json']
@@ -16,22 +16,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  candidates:
+  images:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Search Pixabay
+      - run: npm install --no-save --no-audit --no-fund sharp@0.34
+      - name: Candidates and review sheets
         env:
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
         run: node scripts/reward-images.mjs collect
-      - name: Commit candidates
+      - name: Process the picks
+        env:
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+        run: node scripts/reward-images.mjs pick
+      - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/reward-image-candidates.json
+          git add -A data/reward-image-candidates.json data/reward-images.json review/reward-images brand/rewards 2>/dev/null || true
           git diff --staged --quiet && exit 0
-          git commit -m "chore(reward-images): кандидати за преглед"
+          git commit -m "chore(reward-images): кандидати и избрани снимки"
           git push origin "HEAD:${GITHUB_REF_NAME}"

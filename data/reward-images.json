@@ -1,15 +1,43 @@
 {
-  "about": "Снимки за наградите (rewards-ui.js): тържеството и картата за споделяне. Тема → търсене в Pixabay (английски). Избраните — в images: brand/rewards/<тема>.webp. Без разпознаваеми лица (рекламна употреба), светли, спокойни, с място за текст. Инструмент: scripts/reward-images.mjs.",
+  "about": "Снимки за наградите (rewards-ui.js): тържеството и картата за споделяне. Тема → търсене в Pixabay (английски). Избраните — в images: brand/rewards/<тема>.webp. Без разпознаваеми лица (рекламна употреба), светли, спокойни, с място за текст. Избраните: picks { тема: { id, focus: \"x,y\" } } → workflow „Reward images“. Инструмент: scripts/reward-images.mjs.",
   "themes": {
-    "resolve": ["sunrise mountain trail", "path morning light field"],
-    "persist": ["mountain summit sunrise hiker", "stairs climbing morning light"],
-    "consistency": ["fresh vegetables harvest basket", "green sprout soil sunlight"],
-    "inner": ["apple tree orchard sunlight", "red apple leaf sunlight"],
-    "habit": ["seedling growing hands soil", "young plant sprout morning"],
-    "streak": ["healthy breakfast bowl sunlight", "oatmeal berries breakfast table"],
-    "weight": ["running shoes morning road", "fresh fruit bowl light table"],
-    "invite": ["friends sharing healthy meal table", "two cups coffee table sunlight"],
-    "share": ["colorful vegetables flat lay", "fresh salad bowl top view"]
+    "resolve": [
+      "sunrise mountain trail",
+      "path morning light field"
+    ],
+    "persist": [
+      "mountain summit sunrise hiker",
+      "stairs climbing morning light"
+    ],
+    "consistency": [
+      "fresh vegetables harvest basket",
+      "green sprout soil sunlight"
+    ],
+    "inner": [
+      "apple tree orchard sunlight",
+      "red apple leaf sunlight"
+    ],
+    "habit": [
+      "seedling growing hands soil",
+      "young plant sprout morning"
+    ],
+    "streak": [
+      "healthy breakfast bowl sunlight",
+      "oatmeal berries breakfast table"
+    ],
+    "weight": [
+      "running shoes morning road",
+      "fresh fruit bowl light table"
+    ],
+    "invite": [
+      "friends sharing healthy meal table",
+      "two cups coffee table sunlight"
+    ],
+    "share": [
+      "colorful vegetables flat lay",
+      "fresh salad bowl top view"
+    ]
   },
-  "images": {}
+  "images": {},
+  "picks": {}
 }
