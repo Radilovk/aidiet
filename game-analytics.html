@@ -264,7 +264,19 @@
         .ga-bars .gf-index-value { font-variant-numeric: tabular-nums; }
         .ga-eng { cursor: pointer; }
         .ga-eng .ga-stars { margin: 12px 0 0; }
-        .ga-rings { flex-wrap: wrap; justify-content: space-around; row-gap: 10px; }
+        /* Кръговете: 5 → два реда (3 + 2, долният центриран), 4 и по-малко → един ред */
+        .ga-rings { display: grid; gap: 8px 4px; margin: 4px 0 12px; grid-template-columns: repeat(4, 1fr); }
+        .ga-rings--3 { grid-template-columns: repeat(3, 1fr); }
+        .ga-rings--2 { grid-template-columns: repeat(2, 1fr); }
+        .ga-rings--1 { grid-template-columns: 1fr; }
+        .ga-rings--5 { grid-template-columns: repeat(6, 1fr); }
+        .ga-rings--5 .ga-ring { grid-column: span 2; }
+        .ga-rings--5 .ga-ring:nth-child(4) { grid-column: 2 / span 2; }
+        .ga-ring { min-height: 44px; padding: 6px 0 8px; border: 1px solid transparent; border-radius: 16px; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .ga-ring[aria-pressed="true"] { background: var(--ds-surface-sunken, rgba(15,47,46,.04)); border-color: var(--ds-line, rgba(15,47,46,.08)); }
+        .ga-ring[aria-pressed="true"] .game-ring-label { color: var(--text-dark); }
+        .ga-ring:focus-visible { outline: 2px solid var(--ds-green-text, #03939C); outline-offset: 2px; }
+        #gameMetricsDetails { flex-direction: column; }
         /* История: 8 седмици като стълбчета */
         .ga-hist { display: flex; align-items: stretch; gap: 6px; height: 150px; margin: 16px 0 6px; }
         .ga-hist-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
@@ -849,43 +861,53 @@
             updateThemeIcon(t);
         })();
 
-        function toggleDetailedMetrics() {
+        // ── Подробностите: по кръг или всички ─────────────────────────────
+        // Кръгът отваря само своя седмичен ред (под кръговете); няколко избрани — в реда на избора.
+        // „Подробно“ — всички редове заедно с откритията, устройствата и прегледа.
+        var _gaPicked = [], _gaAll = false;
+        function gaApplyView(fresh) {
             var details = document.getElementById('gameMetricsDetails');
             var chevron = document.getElementById('gameMetricsChevron');
             var toggle  = document.getElementById('gameMetricsToggle');
             if (!details) return;
-            var isOpen = details.style.display !== 'block';
-            details.style.display = isOpen ? 'block' : 'none';
-            if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-            if (toggle)  toggle.setAttribute('aria-expanded', String(isOpen));
-
-            if (isOpen) {
-                details.querySelectorAll('.ga-card-enter').forEach(function(el, i) {
-                    el.style.animation = 'none';
-                    void el.offsetWidth;
-                    el.style.animation = '';
-                    el.style.animationDelay = (i * 0.07) + 's';
+            details.style.display = _gaAll || _gaPicked.length ? 'flex' : 'none';
+            Array.prototype.forEach.call(details.children, function (c) {
+                var k = c.classList.contains('game-index-row') ? c.getAttribute('data-explain') : null;
+                var i = k ? _gaPicked.indexOf(k) : -1;
+                c.style.display = _gaAll || i >= 0 ? '' : 'none';
+                c.style.order = !_gaAll && i >= 0 ? String(i) : '';
+            });
+            document.querySelectorAll('.ga-ring').forEach(function (r) {
+                r.setAttribute('aria-pressed', String(_gaAll || _gaPicked.indexOf(r.getAttribute('data-ring')) >= 0));
+            });
+            if (chevron) chevron.style.transform = _gaAll ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (toggle) toggle.setAttribute('aria-expanded', String(_gaAll));
+            // лентите и стълбчетата на току-що показаните редове — отново от нула
+            (fresh || []).forEach(function (row) {
+                row.querySelectorAll('[data-ga-bar]').forEach(function (el, i) {
+                    el.style.width = '0%';
+                    setTimeout(function () { el.style.width = el.getAttribute('data-ga-bar') + '%'; }, 60 + i * 60);
                 });
-                requestAnimationFrame(function() {
-                    requestAnimationFrame(function() {
-                        details.querySelectorAll('[data-ga-bar]').forEach(function(el, i) {
-                            el.style.width = '0%';
-                            setTimeout(function() {
-                                el.style.width = el.getAttribute('data-ga-bar') + '%';
-                            }, 60 + i * 60);
-                        });
-                        function animateBarHeight(selector, baseDelay) {
-                            details.querySelectorAll(selector).forEach(function(el, i) {
-                                el.style.height = '0px';
-                                setTimeout(function() {
-                                    el.style.height = el.getAttribute(selector.slice(1, -1));
-                                }, baseDelay + i * 25);
-                            });
-                        }
-                        animateBarHeight('[data-ga-bar-h]', 100);
-                    });
+                row.querySelectorAll('[data-ga-bar-h]').forEach(function (el, i) {
+                    el.style.height = '0px';
+                    setTimeout(function () { el.style.height = el.getAttribute('data-ga-bar-h'); }, 100 + i * 25);
                 });
-            }
+            });
+        }
+        function gaRow(k) { var d = document.getElementById('gameMetricsDetails'); return d ? d.querySelector(':scope > .game-index-row[data-explain="' + k + '"]') : null; }
+        function gaToggleRing(k) {
+            var row = gaRow(k);
+            if (!row) return;
+            if (_gaAll) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+            var i = _gaPicked.indexOf(k);
+            if (i >= 0) { _gaPicked.splice(i, 1); gaApplyView(); }
+            else { _gaPicked.push(k); gaApplyView([row]); }
+        }
+        function toggleDetailedMetrics() {
+            _gaAll = !_gaAll;
+            if (!_gaAll) _gaPicked = [];
+            var d = document.getElementById('gameMetricsDetails');
+            gaApplyView(_gaAll && d ? Array.prototype.slice.call(d.querySelectorAll(':scope > .game-index-row')) : null);
         }
     </script>
 
@@ -1561,18 +1583,16 @@
             } catch (_) {}
             var ringsHtml = ringOrder.filter(function(k){ return RINGS[k]; }).map(function(k){
                 var r = RINGS[k];
-                return '<div class="game-ring-wrap" data-explain="' + k + '" role="button" tabindex="0" style="cursor:pointer">' + ringChart(r.v, r.c, 20, r.shown) + '<div class="game-ring-label">' + r.label + '</div></div>';
+                return '<button type="button" class="game-ring-wrap ga-ring" data-ring="' + k + '" aria-pressed="false" aria-controls="gameMetricsDetails">' + ringChart(r.v, r.c, 20, r.shown) + '<span class="game-ring-label">' + r.label + '</span></button>';
             }).join('');
-            if (ringsHtml) html += '<div class="game-health-ring-row ga-rings ga-card-enter" style="animation-delay:0.1s">' + ringsHtml + '</div>';
-
-            // Едно нещо, върху което да се съсредоточиш: най-важното предупреждение, иначе насърчението.
             if (alerts.length) html += '<div class="game-alert-card ga-card-enter" style="animation-delay:0.2s">'+alerts[0]+'</div>';
             else if (encourageText) html += '<div class="game-encourage-note ga-card-enter" style="animation-delay:0.2s">'+encourageText+'</div>';
+            // 5 кръга → два реда (3 + 2), 4 → един ред; кръгът отваря само своя седмичен ред отдолу.
+            var ringCount = ringOrder.filter(function(k){ return RINGS[k]; }).length;
+            if (ringsHtml) html += '<div class="ga-rings ga-rings--' + ringCount + ' ga-card-enter" style="animation-delay:0.1s">' + ringsHtml + '</div>';
 
-            html += '<div class="game-metrics-toggle ga-card-enter" style="animation-delay:0.28s" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
-                '<div class="game-section-title" style="margin:0">Подробно</div>' +
-                '<i class="fas fa-chevron-down game-metrics-chevron" id="gameMetricsChevron"></i>' +
-            '</div>';
+            // Едно нещо, върху което да се съсредоточиш: най-важното предупреждение, иначе насърчението.
+
             html += '<div id="gameMetricsDetails" style="display:none;">';
 
             html += '<div class="game-index-row" data-explain="engagement">' +
@@ -1641,6 +1661,10 @@
             if(weeklyInfo.nextDue){ var nd=new Date(weeklyInfo.nextDue); html += '<div class="game-weekly-info"><i class="fas fa-calendar-check"></i> Следващ седмичен преглед: '+nd.toLocaleDateString('bg-BG')+'</div>'; }
 
             html += '</div>'; // close gameMetricsDetails
+            html += '<div class="game-metrics-toggle ga-card-enter" style="animation-delay:0.28s" id="gameMetricsToggle" onclick="toggleDetailedMetrics()" role="button" tabindex="0" aria-expanded="false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleDetailedMetrics();}">' +
+                '<div class="game-section-title" style="margin:0">Подробно</div>' +
+                '<i class="fas fa-chevron-down game-metrics-chevron" id="gameMetricsChevron"></i>' +
+            '</div>';
 
             // Точните числа — само в обясненията (докосване), не на екрана.
             gaNumbers = {
@@ -1737,6 +1761,10 @@
                 var open = function(e){ e.stopPropagation(); showDayTip(col); };
                 col.addEventListener('click', open);
                 col.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(e); } });
+            });
+            _gaPicked = []; _gaAll = false;
+            body.querySelectorAll('.ga-ring').forEach(function(r){
+                r.addEventListener('click', function(){ gaToggleRing(r.getAttribute('data-ring')); });
             });
             body.querySelectorAll('[data-explain]').forEach(function(el){
                 el.addEventListener('click', function(){ showExplanation(el.getAttribute('data-explain')); });
