@@ -1646,6 +1646,7 @@ const GameNotifier = {
         await this._registerCapacitorActionTypes();
         this._mealNotifications().forEach((n) => notifications.push(n));
         this._supportNudges().forEach((n) => notifications.push(n));
+        this._absenceThoughts().forEach((n) => notifications.push(n));
 
         this._planReminders().forEach((r) => {
             notifications.push({
@@ -1911,12 +1912,45 @@ const GameNotifier = {
                 id: this.MEAL_ID_BASE + 500 + day,
                 channelId: this.CHANNEL_ID,
                 title: p.nudge.title,
-                body: p.nudge.body,
+                // Текстовете по чертите ротират по дни (persona.js); иначе — един и същ.
+                body: Array.isArray(p.nudge.bodies) && p.nudge.bodies.length ? p.nudge.bodies[day % p.nudge.bodies.length] : p.nudge.body,
                 schedule: { at: new Date(ts), allowWhileIdle: true },
                 extra: { url: '/index.html?app=1&tab=plan', type: 'support_nudge' },
                 iconColor: this.BRAND_TEAL
             });
         }
+        return out;
+    },
+
+    /**
+     * Мисъл при отсъствие (daily-thoughts.js): на 2-рия и 4-тия ден от последното отваряне, в 10:00.
+     * Всяко отваряне пренарежда известията, затова активният човек никога не ги получава —
+     * само този, който е спрял да идва. После — тишина: не гоним никого.
+     */
+    _absenceThoughts() {
+        const T = typeof window !== 'undefined' && window.NutriPlanThoughts;
+        const lang = (typeof window !== 'undefined' && window.EatologixI18n && window.EatologixI18n.lang) || 'bg';
+        if (!T) return [];
+        const p = this._persona() || {};
+        let female = false;
+        try { female = /жен|female/i.test(String((JSON.parse(localStorage.getItem('userData') || '{}') || {}).gender || '')); } catch (_) {}
+        const out = [];
+        [2, 4].forEach((day, i) => {
+            const ts = this._tsForDayOffset(day, 10, 0);
+            if (ts <= Date.now()) return;
+            const th = T.pick({ date: new Date(ts), traits: p.traits || [], hardYesterday: true, female, lang });
+            if (!th.text) return;   // преводът още не е зареден — при следващото пренареждане
+            const tr = (typeof window !== 'undefined' && window.EatologixI18n && window.EatologixI18n.t) || ((x) => x);
+            out.push({
+                id: this.MEAL_ID_BASE + 700 + i,
+                channelId: this.CHANNEL_ID,
+                title: tr('Мисъл за деня'),
+                body: th.text,
+                schedule: { at: new Date(ts), allowWhileIdle: true },
+                extra: { url: '/index.html?app=1&tab=plan', type: 'absence_thought' },
+                iconColor: this.BRAND_TEAL
+            });
+        });
         return out;
     },
 

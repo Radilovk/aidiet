@@ -405,7 +405,6 @@
   "Оставям го за сутринта, на свежа глава": "Deixo pra manhã, com a cabeça mais fresca",
   "Не отговарям, но после дълго го въртя в главата": "Não respondo, mas fico remoendo aquilo na cabeça",
   "Ставам и почвам да правя нещо друго, каквото и да е": "Levanto e vou fazer outra coisa. Qualquer coisa.",
-  "Някой близък те пита: „Какво ти е, бе?“ Най-често…": "Alguém próximo pergunta: “O que foi?” Na maioria das vezes…",
   "Знам точно какво ми е, ама не ми се обяснява": "Eu sei exatamente o que foi, só não tô a fim de explicar",
   "Казвам му го направо": "Falo na lata",
   "Не знам. Просто ми е някак": "Não sei. Só tô meio sei lá",
@@ -454,7 +453,6 @@
   "Веднага, като се появи": "Na hora, assim que começa",
   "Чак когато стане неприятно": "Só quando fica desagradável",
   "Чак когато спра": "Só quando eu paro",
-  "Кое ти е по-близо, когато ти е криво?": "Quando você tá pra baixo, qual tem mais a ver com você?",
   "И двете са нормални. Избери по-близкото.": "As duas são normais. Escolha a que mais tem a ver com você.",
   "Трябва да направя нещо, само да не стоя така": "Preciso fazer alguma coisa, qualquer coisa menos ficar aqui desse jeito",
   "Изчаквам малко и после виждам какво да правя": "Espero um pouco e depois vejo o que fazer",
@@ -752,7 +750,9 @@
   "Не мога да се успокоя, докато не го оправя": "Não sossego até resolver",
   "Дни от месеца, в които всичко ми идва в повече": "Dias do mês em que tudo parece demais",
   "Около три минути": "Uns três minutos",
-  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Quinze cenas curtas, um toque cada. Escolha a primeira coisa que vier."
+  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Quinze cenas curtas, um toque cada. Escolha a primeira coisa que vier.",
+  "Някой близък те пита: „Какво ти е? Всичко наред ли е?“ Най-често…": "Alguém próximo pergunta: “O que você tem? Está tudo bem?” Na maioria das vezes…",
+  "Какво правиш, когато ти е криво?": "O que você faz quando está pra baixo?"
  },
  "patterns": [
   [

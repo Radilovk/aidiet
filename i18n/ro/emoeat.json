@@ -405,7 +405,6 @@
   "Оставям го за сутринта, на свежа глава": "Îl las pe dimineață, când am mintea mai limpede",
   "Не отговарям, но после дълго го въртя в главата": "Nu răspund, dar apoi îl tot întorc pe toate părțile în cap",
   "Ставам и почвам да правя нещо друго, каквото и да е": "Mă ridic și mă apuc de altceva. Orice.",
-  "Някой близък те пита: „Какво ти е, бе?“ Най-често…": "Cineva apropiat te întreabă: „Ce-i cu tine?” De obicei…",
   "Знам точно какво ми е, ама не ми се обяснява": "Știu exact ce am, doar că n-am chef să explic",
   "Казвам му го направо": "Îi spun direct",
   "Не знам. Просто ми е някак": "Nu știu. Pur și simplu nu sunt în apele mele",
@@ -454,7 +453,6 @@
   "Веднага, като се появи": "Imediat, cum începe",
   "Чак когато стане неприятно": "Abia când devine neplăcut",
   "Чак когато спра": "Abia când mă opresc",
-  "Кое ти е по-близо, когато ти е криво?": "Ce ți se potrivește mai bine când ți-e aiurea?",
   "И двете са нормални. Избери по-близкото.": "Ambele sunt normale. Alege ce e mai aproape de tine.",
   "Трябва да направя нещо, само да не стоя така": "Trebuie să fac ceva, orice, numai să nu stau așa",
   "Изчаквам малко и после виждам какво да правя": "Aștept puțin, apoi văd ce fac",
@@ -752,7 +750,9 @@
   "Не мога да се успокоя, докато не го оправя": "Nu mă liniștesc până nu repar",
   "Дни от месеца, в които всичко ми идва в повече": "Zile din lună în care totul mi se pare prea mult",
   "Около три минути": "Cam trei minute",
-  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Cincisprezece scene scurte, câte o atingere. Alege primul lucru care îți vine."
+  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Cincisprezece scene scurte, câte o atingere. Alege primul lucru care îți vine.",
+  "Някой близък те пита: „Какво ти е? Всичко наред ли е?“ Най-често…": "Cineva apropiat te întreabă: „Ce ai? E totul în regulă?” De cele mai multe ori…",
+  "Какво правиш, когато ти е криво?": "Ce faci când ți-e greu?"
  },
  "patterns": [
   [

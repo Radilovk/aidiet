@@ -405,7 +405,6 @@
   "Оставям го за сутринта, на свежа глава": "I leave it till morning, when my head’s clearer",
   "Не отговарям, но после дълго го въртя в главата": "I don’t reply, but then I keep turning it over in my head",
   "Ставам и почвам да правя нещо друго, каквото и да е": "I get up and start doing something else. Anything.",
-  "Някой близък те пита: „Какво ти е, бе?“ Най-често…": "Someone close to you asks, “What’s up with you?” Most often…",
   "Знам точно какво ми е, ама не ми се обяснява": "I know exactly what’s up, I just don’t feel like explaining",
   "Казвам му го направо": "I tell them straight",
   "Не знам. Просто ми е някак": "I don't know. I just feel kind of off",
@@ -454,7 +453,6 @@
   "Веднага, като се появи": "Right away, as soon as it starts",
   "Чак когато стане неприятно": "Only when it gets unpleasant",
   "Чак когато спра": "Only when I stop",
-  "Кое ти е по-близо, когато ти е криво?": "When you feel down, which sounds more like you?",
   "И двете са нормални. Избери по-близкото.": "Both are normal. Pick the one that’s closer.",
   "Трябва да направя нещо, само да не стоя така": "I need to do something, anything but sit here like this",
   "Изчаквам малко и после виждам какво да правя": "I wait a bit, then see what to do",
@@ -752,7 +750,9 @@
   "Не мога да се успокоя, докато не го оправя": "I can’t settle down until I fix it",
   "Дни от месеца, в които всичко ми идва в повече": "Days of the month when everything feels like too much",
   "Около три минути": "About three minutes",
-  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Fifteen short scenes, one tap each. Pick the first thing that comes to you."
+  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Fifteen short scenes, one tap each. Pick the first thing that comes to you.",
+  "Някой близък те пита: „Какво ти е? Всичко наред ли е?“ Най-често…": "Someone close to you asks, “What’s wrong? Is everything okay?” Most often…",
+  "Какво правиш, когато ти е криво?": "What do you do when you feel down?"
  },
  "patterns": [
   [

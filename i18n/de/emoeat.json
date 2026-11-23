@@ -405,7 +405,6 @@
   "Оставям го за сутринта, на свежа глава": "Ich lasse es bis morgen, dann ist der Kopf klarer",
   "Не отговарям, но после дълго го въртя в главата": "Ich antworte nicht, aber dann drehe ich es die ganze Zeit im Kopf hin und her",
   "Ставам и почвам да правя нещо друго, каквото и да е": "Ich stehe auf und mache irgendwas anderes. Egal was.",
-  "Някой близък те пита: „Какво ти е, бе?“ Най-често…": "Jemand, der dir nahesteht, fragt: „Was ist denn mit dir los?“ Meistens …",
   "Знам точно какво ми е, ама не ми се обяснява": "Ich weiß genau, was los ist, ich hab nur keine Lust, es zu erklären",
   "Казвам му го направо": "Ich sage direkt, was los ist",
   "Не знам. Просто ми е някак": "Ich weiß nicht. Ich fühl mich einfach irgendwie komisch",
@@ -454,7 +453,6 @@
   "Веднага, като се появи": "Sofort, sobald es anfängt",
   "Чак когато стане неприятно": "Erst, wenn es unangenehm wird",
   "Чак когато спра": "Erst, wenn ich aufhöre",
-  "Кое ти е по-близо, когато ти е криво?": "Wenn es dir mies geht, was klingt eher nach dir?",
   "И двете са нормални. Избери по-близкото.": "Beides ist normal. Nimm das, was näher dran ist.",
   "Трябва да направя нещо, само да не стоя така": "Ich muss irgendwas machen, Hauptsache, ich sitze hier nicht so rum",
   "Изчаквам малко и после виждам какво да правя": "Ich warte kurz ab und schaue dann, was ich mache",
@@ -752,7 +750,9 @@
   "Не мога да се успокоя, докато не го оправя": "Ich komme nicht zur Ruhe, bis ich es behoben habe",
   "Дни от месеца, в които всичко ми идва в повече": "Tage im Monat, an denen mir alles zu viel wird",
   "Около три минути": "Etwa drei Minuten",
-  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Fünfzehn kurze Szenen, je ein Tippen. Nimm das Erste, was dir einfällt."
+  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Fünfzehn kurze Szenen, je ein Tippen. Nimm das Erste, was dir einfällt.",
+  "Някой близък те пита: „Какво ти е? Всичко наред ли е?“ Най-често…": "Jemand, der dir nahesteht, fragt: „Was ist los? Ist alles okay?“ Meistens …",
+  "Какво правиш, когато ти е криво?": "Was machst du, wenn es dir mies geht?"
  },
  "patterns": [
   [

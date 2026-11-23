@@ -66,6 +66,46 @@
         }
     };
 
+    /**
+     * Чертите от EmoEat (v3) → текстове за напомнянето. Ротират по дни, за да не
+     * свикне човек с едно и също изречение (при нужда от искра — особено).
+     */
+    var TRAIT_NUDGES = {
+        URG: ['Силен ден? Когато нещо те разклати, първо десет минути, после решаваш.',
+              'Импулсът спада сам за около десет минути. Дай му ги.',
+              'Ако нещо те ядоса днес: таймер, чаша вода, две минути навън.'],
+        CLR: ['Преди вечеря: глад ли е, умора ли е, или нещо друго? Една дума стига.',
+              'Как си сега, с една дума?'],
+        AVO: ['Ако мисълта се върти: изпиши я на лист и затвори тетрадката.',
+              'Пет неща, които виждаш, четири, които чуваш. Минута и си тук.'],
+        RUM: ['Ако мисълта се върти: изпиши я на лист и затвори тетрадката.'],
+        CRIT: ['Каквото и да е било днес, утре е обичаен ден.',
+               'Едно хранене не е денят. Следващото е обичайното.'],
+        DIC: ['Едно хранене не е денят. Следващото е обичайното.'],
+        LONE: ['Вечерта е тук. Има ли на кого да пишеш две изречения?',
+               'Топъл душ, чай, едно обаждане. Вечерта има и друга топлина.'],
+        ATT: ['Вечерта е тук. Има ли на кого да пишеш две изречения?'],
+        BOR: ['Следобедният спад идва. Десет минути нещо ново: друга песен, друг маршрут.',
+              'Нещо малко и хубаво за днес, което не е храна?'],
+        REW: ['Нещо малко и хубаво за днес, което не е храна?'],
+        BODY: ['Преди да хапнеш: колко е гладът от 1 до 10?'],
+        LOAD: ['Тази вечер лягане половин час по-рано. Умората се усеща като глад.']
+    };
+    var MERCY = 'Вчера е вчера. Днес е обичаен ден, без компенсиране.';
+    var LEVEL_RANK = { 'Силно': 2, 'Осезаемо': 1 };
+
+    function expressed(traits, id, min) {
+        return !!(traits && (LEVEL_RANK[traits[id]] || 0) >= (min || 1));
+    }
+
+    /** Колко хранения извън плана е имало вчера (gameData). */
+    function extraYesterday(gameData, now) {
+        var d = new Date(now.getTime() - DAY_MS);
+        var key = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+        var r = (gameData || {})[key] || {};
+        return Array.isArray(r.extraMeals) ? r.extraMeals.length : 0;
+    }
+
     function read(key) {
         try { return JSON.parse(global.localStorage.getItem(key) || 'null'); } catch (_) { return null; }
     }
@@ -145,6 +185,42 @@
             }
             p.nudge = { minute: p.riskWindow.from + 30, title: 'Малко напомняне', body: arch.nudge };
         }
+
+        // Чертите от EmoEat (v3): тон, оценки и текстовете на напомнянето.
+        var traits = emo && emo.traits && typeof emo.traits === 'object' ? emo.traits : null;
+        if (traits) {
+            // Строг вътрешен глас или „всичко или нищо“: оценките, червеното и сериите вредят.
+            var selfCritical = expressed(traits, 'CRIT') || expressed(traits, 'DIC');
+            p.selfCritical = selfCritical;
+            if (selfCritical) {
+                p.noScores = true;
+                p.flexible = true;
+                if (p.tone === 'direct') p.tone = 'gentle';
+                p.reasons.push('строг вътрешен глас / „всичко или нищо“ — без оценки, гъвкаво');
+            } else if (!arch && (expressed(traits, 'LONE') || expressed(traits, 'ATT'))) {
+                p.tone = 'warm';
+            }
+            p.traits = Object.keys(traits);
+            if (p.nudge) {
+                var bodies = [p.nudge.body];
+                Object.keys(traits).sort(function (a, b) { return (LEVEL_RANK[traits[b]] || 0) - (LEVEL_RANK[traits[a]] || 0); })
+                    .forEach(function (id) { (TRAIT_NUDGES[id] || []).forEach(function (t) { if (bodies.indexOf(t) < 0) bodies.push(t); }); });
+                p.nudge.bodies = bodies.slice(0, 6);
+                // Малко сън: напомнянето не идва късно вечер.
+                if (expressed(traits, 'LOAD', 2) && p.nudge.minute > 21 * 60) {
+                    p.nudge.minute = 20 * 60 + 30;
+                    p.reasons.push('малко сън — без напомняния след 21 ч.');
+                }
+                // След труден ден при строг глас: първото напомняне е за връщане, не за контрол.
+                if (selfCritical && extraYesterday(inp.gameData, now) >= 2) {
+                    p.nudge.bodies = [MERCY].concat(p.nudge.bodies.filter(function (t) { return t !== MERCY; }));
+                    p.reasons.push('вчера беше по-труден ден — меко връщане');
+                }
+            }
+        }
+        if (emo && emo.teen) { p.noScores = true; p.flexible = true; p.teen = true; }
+        // Вчера — 2+ хранения извън плана (за мисълта за деня и мекото връщане).
+        p.hardYesterday = extraYesterday(inp.gameData, now) >= 2;
 
         // Влизанията в приложението (rewards-ui.js → np_opens): колко дни от последните 14 и в кой час.
         var opens = read('np_opens');

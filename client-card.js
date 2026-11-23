@@ -202,12 +202,14 @@ const CHAT_INTENTS = /** @type {Array<[RegExp, ChatSectionId|ChatSectionId[]]>} 
  */
 /** Персоната от EmoEat (persona.js): подходът и рисковият час на емоционалното хранене. */
 const PERSONA_TONE = { warm: 'топло и подкрепящо', gentle: 'меко, без натиск', direct: 'кратко и по същество', playful: 'леко, с малки предизвикателства' };
+const TRAIT_NAMES = { URG: 'бърза реакция при силно чувство', CLR: 'трудно назоваване на чувствата', AVO: 'избутване на мислите', RUM: 'въртящи се мисли', DIC: '„всичко или нищо“', RIG: 'нужда от ред', CRIT: 'строг вътрешен глас', ATT: 'тревога за близките', LONE: 'празни вечери', BOR: 'нужда от искра', REW: 'бърза награда', BODY: 'късни сигнали на тялото', SOOTHE: 'утеха отвън (детство)', LOAD: 'изтощение, малко сън' };
 function personaRows(persona) {
   if (!persona || typeof persona !== 'object') return [];
   const hm = m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
   return [
     persona.tone && PERSONA_TONE[persona.tone] ? `подход: ${PERSONA_TONE[persona.tone]}${persona.noScores ? '; без оценки, точки и сравнения' : ''}` : '',
     persona.archetype ? `емоционален профил (EmoEat): ${persona.archetype}` : '',
+    Array.isArray(persona.traits) && persona.traits.length ? `изразени черти (EmoEat): ${persona.traits.map(id => TRAIT_NAMES[id] || id).join(', ')}` : '',
     persona.riskWindow && persona.emotional ? `рисков час за хранене от емоция: ${hm(persona.riskWindow.from)}–${hm(persona.riskWindow.to)}` : '',
   ].filter(Boolean);
 }

@@ -405,7 +405,6 @@
   "Оставям го за сутринта, на свежа глава": "Lo lascio a domattina, a mente più lucida",
   "Не отговарям, но после дълго го въртя в главата": "Non rispondo, però poi continuo a rigirarmelo in testa",
   "Ставам и почвам да правя нещо друго, каквото и да е": "Mi alzo e mi metto a fare qualcos’altro. Qualsiasi cosa.",
-  "Някой близък те пита: „Какво ти е, бе?“ Най-често…": "Qualcuno che ti conosce bene ti chiede: «Che hai?» Il più delle volte…",
   "Знам точно какво ми е, ама не ми се обяснява": "So benissimo cos’ho, solo che non mi va di spiegarlo",
   "Казвам му го направо": "Glielo dico chiaramente",
   "Не знам. Просто ми е някак": "Non lo so. Mi sento solo un po’ così",
@@ -454,7 +453,6 @@
   "Веднага, като се появи": "Subito, appena comincia",
   "Чак когато стане неприятно": "Solo quando diventa fastidioso",
   "Чак когато спра": "Solo quando mi fermo",
-  "Кое ти е по-близо, когато ти е криво?": "Quando sei giù, quale ti somiglia di più?",
   "И двете са нормални. Избери по-близкото.": "Vanno bene entrambe. Scegli quella più vicina a te.",
   "Трябва да направя нещо, само да не стоя така": "Devo fare qualcosa, qualsiasi cosa pur di non restare qui così",
   "Изчаквам малко и после виждам какво да правя": "Aspetto un po’, poi vedo cosa fare",
@@ -752,7 +750,9 @@
   "Не мога да се успокоя, докато не го оправя": "Non mi calmo finché non l’ho sistemata",
   "Дни от месеца, в които всичко ми идва в повече": "I giorni del mese in cui tutto mi sembra troppo",
   "Около три минути": "Circa tre minuti",
-  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Quindici scene brevi, un tocco ciascuna. Scegli la prima cosa che ti viene."
+  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "Quindici scene brevi, un tocco ciascuna. Scegli la prima cosa che ti viene.",
+  "Някой близък те пита: „Какво ти е? Всичко наред ли е?“ Най-често…": "Una persona vicina ti chiede: «Che hai? Va tutto bene?» Di solito…",
+  "Какво правиш, когато ти е криво?": "Cosa fai quando sei giù?"
  },
  "patterns": [
   [

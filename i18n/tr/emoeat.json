@@ -404,7 +404,6 @@
   "Оставям го за сутринта, на свежа глава": "Sabaha bırakırım, kafam daha net olur",
   "Не отговарям, но после дълго го въртя в главата": "Cevap vermem ama sonra kafamda evirip çeviririm dururum",
   "Ставам и почвам да правя нещо друго, каквото и да е": "Kalkıp başka bir şey yapmaya başlarım. Herhangi bir şey.",
-  "Някой близък те пита: „Какво ти е, бе?“ Най-често…": "Yakınlarından biri “Neyin var?” diye soruyor. Çoğu zaman…",
   "Знам точно какво ми е, ама не ми се обяснява": "Neyim olduğunu gayet iyi biliyorum, sadece anlatmak istemiyorum",
   "Казвам му го направо": "Açık açık söylerim",
   "Не знам. Просто ми е някак": "Bilmiyorum. Sadece bir tuhafım işte",
@@ -453,7 +452,6 @@
   "Веднага, като се появи": "Hemen, başlar başlamaz",
   "Чак когато стане неприятно": "Ancak canımı sıkmaya başlayınca",
   "Чак когато спра": "Ancak durunca",
-  "Кое ти е по-близо, когато ти е криво?": "Moralin bozukken hangisi sana daha çok benziyor?",
   "И двете са нормални. Избери по-близкото.": "İkisi de normal. Sana daha yakın olanı seç.",
   "Трябва да направя нещо, само да не стоя така": "Bir şey yapmam lazım, ne olursa; yeter ki böyle oturmayayım",
   "Изчаквам малко и после виждам какво да правя": "Biraz beklerim, sonra ne yapacağıma bakarım",
@@ -751,7 +749,9 @@
   "Не мога да се успокоя, докато не го оправя": "Düzeltene kadar rahat edemem",
   "Дни от месеца, в които всичко ми идва в повече": "Ayın her şeyin fazla geldiği günleri",
   "Около три минути": "Yaklaşık üç dakika",
-  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "On beş kısa sahne, her biri tek dokunuş. Aklına ilk geleni seç."
+  "Петнайсет кратки сцени, по едно докосване. Избирай първото, което ти дойде.": "On beş kısa sahne, her biri tek dokunuş. Aklına ilk geleni seç.",
+  "Някой близък те пита: „Какво ти е? Всичко наред ли е?“ Най-често…": "Yakın biri soruyor: “Neyin var? Her şey yolunda mı?” Çoğu zaman…",
+  "Какво правиш, когато ти е криво?": "Moralin bozukken ne yaparsın?"
  },
  "patterns": [
   [
