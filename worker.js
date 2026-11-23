@@ -729,6 +729,319 @@ var require_pricing_config = __commonJS({
   }
 });
 
+// rewards-engine.js
+var require_rewards_engine = __commonJS({
+  "rewards-engine.js"(exports, module) {
+    (function(global2) {
+      "use strict";
+      var DAY = 864e5;
+      var GOOD = 60;
+      var GREAT = 80;
+      var SHIELD_EVERY = 14;
+      var SHIELD_MAX = 2;
+      var GRACE_DAYS = 14;
+      var DAY_POINTS_MAX = 20;
+      var TIERS = [
+        { id: "start", title: "\u041D\u0430\u0447\u0430\u043B\u043E", days: 14, minEng: 60, bonus: 100, rewards: [{ kind: "supplement", pct: 5 }] },
+        { id: "steady", title: "\u0421\u0442\u0430\u0431\u0438\u043B\u043D\u043E\u0441\u0442", days: 30, minEng: 70, bonus: 200, rewards: [{ kind: "supplement", pct: 10 }] },
+        { id: "habit", title: "\u041D\u0430\u0432\u0438\u043A", days: 60, minEng: 75, bonus: 300, rewards: [{ kind: "supplement", pct: 15 }, { kind: "plan", pct: 10 }] },
+        { id: "lifestyle", title: "\u041D\u0430\u0447\u0438\u043D \u043D\u0430 \u0436\u0438\u0432\u043E\u0442", days: 90, minEng: 80, bonus: 500, rewards: [{ kind: "supplement", pct: 20 }, { kind: "plan", pct: 20 }] }
+      ];
+      var STREAKS = [
+        { days: 7, bonus: 30, big: false },
+        { days: 21, bonus: 70, big: true },
+        { days: 66, bonus: 200, big: true, habit: true },
+        { days: 100, bonus: 300, big: true }
+      ];
+      var WEIGHT_STEPS = [3, 5, 7, 10];
+      var WEIGHT_BIG = { 5: true, 10: true };
+      var OFFERS = [
+        { id: "plan10", kind: "plan", pct: 10, cost: 1500, title: "\u221210% \u0437\u0430 \u043F\u043B\u0430\u043D" },
+        { id: "supp10", kind: "supplement", pct: 10, cost: 1e3, title: "\u221210% \u0437\u0430 \u0434\u043E\u0431\u0430\u0432\u043A\u0438", region: "BG" }
+      ];
+      var FACTS = {
+        habit: "\u0412 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 \u043D\u0430 University College London (Lally \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, 2010) \u0435\u0434\u0438\u043D \u043D\u043E\u0432 \u043D\u0430\u0432\u0438\u043A \u0441\u0442\u0430\u0432\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u043D \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 66 \u0434\u043D\u0438 \u2014 \u0438 \u0435\u0434\u0438\u043D \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0430\u0442 \u0434\u0435\u043D \u043D\u0435 \u0433\u043E \u0440\u0430\u0437\u0432\u0430\u043B\u044F.",
+        streak21: "\u0422\u0440\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0438 \u043F\u043E\u0434\u0440\u0435\u0434 \u2014 \u043F\u043E\u0432\u0435\u0447\u0435\u0442\u043E \u0445\u043E\u0440\u0430 \u0441\u043F\u0438\u0440\u0430\u0442 \u043F\u0440\u0435\u0434\u0438 \u0442\u043E\u0432\u0430. \u0422\u0438 \u043C\u0438\u043D\u0430\u0432\u0430\u0448 \u043F\u0440\u0435\u0437 \u043D\u0430\u0439-\u0442\u0440\u0443\u0434\u043D\u0430\u0442\u0430 \u0447\u0430\u0441\u0442.",
+        weight5: "\u041E\u043A\u043E\u043B\u043E 5% \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0442\u0435\u0433\u043B\u043E \u0432\u0435\u0447\u0435 \u043F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442\u0442\u0430 \u043A\u044A\u043C \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u0430, \u043A\u0440\u044A\u0432\u043D\u043E\u0442\u043E \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438\u0442\u0435 \u0432 \u043A\u0440\u044A\u0432\u0442\u0430 (Magkos \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, Cell Metabolism, 2016).",
+        weight7: "\u0412 \u0433\u043E\u043B\u044F\u043C\u043E\u0442\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 DPP (NEJM, 2002) 7% \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0442\u0435\u0433\u043B\u043E \u0438 150 \u043C\u0438\u043D\u0443\u0442\u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430\u0442 \u0440\u0438\u0441\u043A\u0430 \u043E\u0442 \u0434\u0438\u0430\u0431\u0435\u0442 \u0442\u0438\u043F 2 \u0441 58%.",
+        steps: "\u0413\u043E\u043B\u044F\u043C \u0430\u043D\u0430\u043B\u0438\u0437 \u043D\u0430 15 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F (Paluch \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, Lancet Public Health, 2022): \u043F\u043E\u0432\u0435\u0447\u0435 \u043A\u0440\u0430\u0447\u043A\u0438 \u043D\u0430 \u0434\u0435\u043D \u2014 \u043F\u043E-\u043D\u0438\u0441\u044A\u043A \u0440\u0438\u0441\u043A, \u0434\u043E \u043E\u043A\u043E\u043B\u043E 8\u201310 \u0445\u0438\u043B\u044F\u0434\u0438 \u043F\u0440\u0438 \u0432\u044A\u0437\u0440\u0430\u0441\u0442\u043D\u0438\u0442\u0435 \u043F\u043E\u0434 60 \u0433.",
+        consistency: "\u0420\u0435\u0434\u043E\u0432\u043D\u043E\u0442\u043E \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430\u043D\u0435 \u0435 \u043D\u0430\u0439-\u0441\u0438\u0433\u0443\u0440\u043D\u0438\u044F\u0442 \u043F\u0440\u0435\u0434\u0432\u0435\u0441\u0442\u043D\u0438\u043A \u043D\u0430 \u0443\u0441\u043F\u0435\u0445\u0430 \u043F\u0440\u0438 \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u0442\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E (Burke \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, 2011)."
+      };
+      function zp2(n) {
+        return n < 10 ? "0" + n : "" + n;
+      }
+      function keyToMs(k) {
+        var p = String(k).split("-");
+        return Date.UTC(+p[0], +p[1] - 1, +p[2]);
+      }
+      function msToKey(ms) {
+        var d = new Date(ms);
+        return d.getUTCFullYear() + "-" + zp2(d.getUTCMonth() + 1) + "-" + zp2(d.getUTCDate());
+      }
+      function localKey(d) {
+        return d.getFullYear() + "-" + zp2(d.getMonth() + 1) + "-" + zp2(d.getDate());
+      }
+      function isKey(k) {
+        return /^\d{4}-\d{2}-\d{2}$/.test(k);
+      }
+      function stepsOnTarget(rec) {
+        var ec = rec && rec.eveningCheck;
+        return !!(ec && ec.equivSteps > 0 && ec.stepTarget > 0 && ec.equivSteps >= ec.stepTarget);
+      }
+      function timeline(gameData, calcDayScore2, todayKey) {
+        var keys = Object.keys(gameData || {}).filter(function(k2) {
+          return isKey(k2) && k2 <= todayKey;
+        }).sort();
+        if (!keys.length) return [];
+        var out = [];
+        for (var ms = keyToMs(keys[0]), end = keyToMs(todayKey); ms <= end; ms += DAY) {
+          var k = msToKey(ms);
+          var rec = gameData[k];
+          var eng = null;
+          if (rec) {
+            try {
+              eng = calcDayScore2(rec, todayKey).engPct;
+            } catch (_) {
+              eng = null;
+            }
+            if (!(eng > 0)) eng = 0;
+          }
+          var ec = rec && rec.eveningCheck;
+          out.push({ key: k, shielded: false, rec: !!rec, eng, steps: ec && ec.steps > 0 ? ec.steps : 0, onTarget: stepsOnTarget(rec) });
+        }
+        return out;
+      }
+      function dayPoints(d) {
+        if (d.eng == null || d.eng < GOOD) return 0;
+        var p = 10 + (d.eng >= GREAT ? 5 : 0) + (d.onTarget ? 5 : 0);
+        return Math.min(DAY_POINTS_MAX, p);
+      }
+      function windowAvg(tl, i, n) {
+        if (i + 1 < n) return null;
+        var sum = 0, cnt = 0;
+        for (var j = i - n + 1; j <= i; j++) {
+          if (tl[j].shielded) continue;
+          sum += tl[j].eng || 0;
+          cnt++;
+        }
+        return cnt ? Math.round(sum / cnt) : 0;
+      }
+      function qualifiedTier(tl, i) {
+        var q = -1;
+        for (var t = 0; t < TIERS.length; t++) {
+          var a = windowAvg(tl, i, TIERS[t].days);
+          if (a == null || a < TIERS[t].minEng) break;
+          q = t;
+        }
+        return q;
+      }
+      function weightProgress(log, startKg, dir) {
+        var list4 = (Array.isArray(log) ? log : []).filter(function(x) {
+          return x && x.kg > 0 && x.at;
+        });
+        if (!(startKg > 0) || dir !== "lose" && dir !== "gain" || !list4.length) return null;
+        var sign = dir === "lose" ? 1 : -1;
+        var last = list4[list4.length - 1];
+        var pct = Math.round((startKg - last.kg) / startKg * 1e3 * sign) / 10;
+        var tooFast = false;
+        var ref = null;
+        for (var i = list4.length - 1; i >= 0; i--) {
+          if (last.at - list4[i].at >= 21 * DAY) {
+            ref = list4[i];
+            break;
+          }
+        }
+        if (dir === "lose" && ref) {
+          var weeks = (last.at - ref.at) / (7 * DAY);
+          tooFast = (ref.kg - last.kg) / ref.kg * 100 / weeks > 1;
+        }
+        var reached = [];
+        WEIGHT_STEPS.forEach(function(s) {
+          if (pct < s) return;
+          var at = null;
+          for (var j = 0; j < list4.length; j++) {
+            if ((startKg - list4[j].kg) / startKg * 100 * sign >= s) {
+              at = list4[j].at;
+              break;
+            }
+          }
+          reached.push({ pct: s, at });
+        });
+        var next = WEIGHT_STEPS.filter(function(s) {
+          return pct < s;
+        })[0] || null;
+        return {
+          dir,
+          startKg,
+          lastKg: last.kg,
+          pct,
+          tooFast,
+          reached,
+          next,
+          nextKg: next ? Math.round(startKg * (1 - sign * next / 100) * 10) / 10 : null
+        };
+      }
+      function compute(input) {
+        var inp = (
+          /** @type {any} */
+          input || {}
+        );
+        var todayKey = inp.todayKey || localKey(/* @__PURE__ */ new Date());
+        var tl = timeline(inp.gameData, inp.calcDayScore, todayKey);
+        var milestones = [];
+        var res = {
+          todayKey,
+          daysTracked: 0,
+          firstKey: tl.length ? tl[0].key : null,
+          streak: 0,
+          bestStreak: 0,
+          shields: { held: 0, max: SHIELD_MAX, toNext: SHIELD_EVERY, used: [] },
+          tier: null,
+          next: null,
+          warning: null,
+          consistency: {},
+          points: { earned: 0, days: {}, bonus: 0 },
+          records: { bestStreak: 0, bestWeek: null, maxSteps: null, stepDays: 0 },
+          milestones,
+          weight: null
+        };
+        if (!tl.length) return res;
+        var held = 0, goodCount = 0, streak2 = 0, best = 0;
+        var tierIdx = -1, under = 0, firstReach = {};
+        var lastIdx = tl.length - 1;
+        var todayGood = tl[lastIdx].eng != null && tl[lastIdx].eng >= GOOD;
+        var evalEnd = todayGood ? lastIdx : lastIdx - 1;
+        for (var i = 0; i <= lastIdx; i++) {
+          var d = tl[i];
+          var isToday = i === lastIdx;
+          if (d.rec) res.daysTracked++;
+          var good = d.eng != null && d.eng >= GOOD;
+          if (good) {
+            goodCount++;
+            streak2++;
+            if (goodCount % SHIELD_EVERY === 0 && held < SHIELD_MAX) {
+              held++;
+              milestones.push({ id: "shield:" + d.key, kind: "shield", key: d.key, big: false });
+            }
+            STREAKS.forEach(function(s) {
+              if (streak2 === s.days && !firstReach["streak" + s.days]) {
+                firstReach["streak" + s.days] = true;
+                res.points.bonus += s.bonus;
+                milestones.push({ id: "streak:" + s.days, kind: s.habit ? "habit" : "streak", key: d.key, days: s.days, big: s.big, bonus: s.bonus });
+              }
+            });
+          } else if (!isToday) {
+            if (!d.rec && held > 0 && streak2 > 0) {
+              held--;
+              d.shielded = true;
+              res.shields.used.push(d.key);
+            } else {
+              streak2 = 0;
+            }
+          }
+          if (streak2 > best) best = streak2;
+          var pts = dayPoints(d);
+          if (pts) res.points.days[d.key] = pts;
+          if (i <= evalEnd) {
+            var q = qualifiedTier(tl, i);
+            if (q > tierIdx) {
+              for (var t = tierIdx + 1; t <= q; t++) {
+                if (!firstReach["tier" + t]) {
+                  firstReach["tier" + t] = true;
+                  res.points.bonus += TIERS[t].bonus;
+                  milestones.push({ id: "tier:" + TIERS[t].id, kind: "tier", key: d.key, tier: TIERS[t].id, big: true, bonus: TIERS[t].bonus });
+                }
+              }
+              tierIdx = q;
+              under = 0;
+            } else if (q < tierIdx) {
+              under++;
+              if (under >= GRACE_DAYS) {
+                tierIdx--;
+                under = 0;
+              }
+            } else {
+              under = 0;
+            }
+          }
+        }
+        res.streak = streak2;
+        res.bestStreak = best;
+        res.records.bestStreak = best;
+        res.shields.held = held;
+        res.shields.toNext = held >= SHIELD_MAX ? null : SHIELD_EVERY - goodCount % SHIELD_EVERY;
+        [14, 30, 60, 90].forEach(function(n) {
+          var end = Math.max(0, evalEnd);
+          res.consistency["d" + n] = windowAvg(tl, end, Math.min(n, end + 1));
+        });
+        if (tierIdx >= 0) res.tier = Object.assign({ index: tierIdx }, TIERS[tierIdx]);
+        if (tierIdx >= 0 && under > 0) res.warning = { tier: TIERS[tierIdx].id, daysLeft: GRACE_DAYS - under };
+        var nx = TIERS[tierIdx + 1];
+        if (nx) {
+          var end2 = Math.max(0, evalEnd);
+          var have = Math.min(nx.days, end2 + 1);
+          res.next = {
+            id: nx.id,
+            title: nx.title,
+            days: nx.days,
+            minEng: nx.minEng,
+            rewards: nx.rewards,
+            daysHave: have,
+            avg: windowAvg(tl, end2, have),
+            progress: Math.min(100, Math.round(have / nx.days * 100))
+          };
+        }
+        for (var w = 6; w <= evalEnd; w++) {
+          var a = windowAvg(tl, w, 7);
+          if (a != null && (!res.records.bestWeek || a > res.records.bestWeek.avg)) res.records.bestWeek = { avg: a, key: tl[w].key };
+        }
+        tl.forEach(function(d2) {
+          if (d2.steps > 0 && (!res.records.maxSteps || d2.steps > res.records.maxSteps.steps)) res.records.maxSteps = { steps: d2.steps, key: d2.key };
+          if (d2.onTarget) res.records.stepDays++;
+        });
+        var earned = 0;
+        Object.keys(res.points.days).forEach(function(k) {
+          earned += res.points.days[k];
+        });
+        res.points.earned = earned + res.points.bonus;
+        var wp = weightProgress(inp.weightLog, Number(inp.startKg) || 0, inp.goalDirection);
+        if (wp) {
+          res.weight = wp;
+          if (!wp.tooFast) wp.reached.forEach(function(r) {
+            milestones.push({ id: "weight:" + wp.dir + ":" + r.pct, kind: "weight", key: r.at ? localKey(new Date(r.at)) : todayKey, pct: r.pct, dir: wp.dir, big: !!WEIGHT_BIG[r.pct] });
+          });
+        }
+        return res;
+      }
+      function tierById(id) {
+        for (var i = 0; i < TIERS.length; i++) if (TIERS[i].id === id) return TIERS[i];
+        return null;
+      }
+      function offerById(id) {
+        for (var i = 0; i < OFFERS.length; i++) if (OFFERS[i].id === id) return OFFERS[i];
+        return null;
+      }
+      var api = {
+        GOOD,
+        SHIELD_EVERY,
+        SHIELD_MAX,
+        GRACE_DAYS,
+        TIERS,
+        STREAKS,
+        WEIGHT_STEPS,
+        OFFERS,
+        FACTS,
+        compute,
+        tierById,
+        offerById,
+        weightProgress
+      };
+      global2.RewardsEngine = api;
+      if (typeof module !== "undefined" && module.exports) module.exports = api;
+    })(typeof globalThis !== "undefined" ? globalThis : exports);
+  }
+});
+
 // node_modules/@anthropic-ai/sdk/internal/errors.mjs
 function isAbortError(err2) {
   return typeof err2 === "object" && err2 !== null && // Spec-compliant fetch implementations
@@ -61298,10 +61611,234 @@ async function planUsesAI(env, userId, idToken, verifyToken, now = Date.now()) {
   return import_pricing_config.default.allows(tier, "ai_plan");
 }
 
+// rewards.js
+var import_rewards_engine = __toESM(require_rewards_engine());
+var DAY_MS4 = 864e5;
+var CODE_DAYS = 60;
+var MIN_COHORT = 200;
+var HIST_TTL_MS = 12 * 36e5;
+var INVITE_PCT = 15;
+var INVITER_PCT = 20;
+var INVITE_POINTS = 300;
+var ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+var okUser = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ""));
+var okRewardCode = (c) => /^NI-[A-HJ-NP-Z2-9]{8}$/.test(String(c || ""));
+var okInvite = (c) => /^[A-HJ-NP-Z2-9]{6}$/.test(String(c || ""));
+function randomFrom(n) {
+  const b = new Uint8Array(n);
+  crypto.getRandomValues(b);
+  return [...b].map((x) => ALPHABET[x % ALPHABET.length]).join("");
+}
+var getJSON = async (env, k) => {
+  try {
+    return JSON.parse(await env.page_content.get(k) || "null");
+  } catch (_) {
+    return null;
+  }
+};
+var putJSON = (env, k, v, ttlSec) => env.page_content.put(k, JSON.stringify(v), ttlSec ? { expirationTtl: ttlSec } : void 0);
+function countryOf(request) {
+  const c = request?.cf?.country || request?.headers?.get?.("CF-IPCountry") || "";
+  return /^[A-Z]{2}$/.test(c) && c !== "XX" && c !== "T1" ? c : "";
+}
+var supplementsAllowed = (country) => !country || country === "BG";
+async function issueCode(env, userId, { kind, pct, source, partner = "", now = Date.now() }) {
+  let code;
+  for (let i = 0; i < 5; i++) {
+    code = `NI-${randomFrom(8)}`;
+    if (!await env.page_content.get(`reward_code:${code}`)) break;
+  }
+  const rec = { userId, kind, pct, source, until: now + CODE_DAYS * DAY_MS4, createdAt: now, ...kind === "supplement" ? { region: "BG" } : {}, ...partner ? { partner } : {} };
+  await putJSON(env, `reward_code:${code}`, rec, (CODE_DAYS + 60) * 86400);
+  return { code, ...rec };
+}
+async function readRewardCode(env, code, now = Date.now()) {
+  if (!okRewardCode(code)) return null;
+  const r = await getJSON(env, `reward_code:${code}`);
+  return r && !r.usedAt && r.until > now ? r : null;
+}
+async function ensureInvite(env, userId, record) {
+  if (okInvite(record.invite)) return record.invite;
+  for (let i = 0; i < 6; i++) {
+    const c = randomFrom(6);
+    if (!await env.page_content.get(`invite:${c}`)) {
+      await env.page_content.put(`invite:${c}`, userId);
+      record.invite = c;
+      return c;
+    }
+  }
+  return "";
+}
+async function cohort(env, now) {
+  const cached = await getJSON(env, "rewards_hist");
+  if (cached && now - cached.at < HIST_TTL_MS) return cached;
+  if (typeof env.page_content.list !== "function") return null;
+  const c = new Array(101).fill(0);
+  let n = 0, cursor;
+  for (let page = 0; page < 30; page++) {
+    const res = await env.page_content.list({ prefix: "rstat:", cursor });
+    for (const k of res.keys || []) {
+      const v = Math.max(0, Math.min(100, Math.round(Number(k.metadata?.c) || 0)));
+      c[v]++;
+      n++;
+    }
+    if (res.list_complete || !res.cursor) break;
+    cursor = res.cursor;
+  }
+  const hist = { n, c, at: now };
+  await putJSON(env, "rewards_hist", hist, 2 * 86400);
+  return hist;
+}
+function percentileOf(hist, value) {
+  if (!hist || hist.n < MIN_COHORT || value == null) return null;
+  let below = 0;
+  for (let i = 0; i < Math.min(101, Math.round(value)); i++) below += hist.c[i] || 0;
+  return Math.min(99, Math.floor(below / Math.max(1, hist.n - 1) * 100));
+}
+function publicCode(code, r) {
+  return { code, kind: r.kind, pct: r.pct, until: r.until, source: r.source, used: !!r.usedAt, ...r.partner ? { partner: r.partner } : {} };
+}
+function clientTodayKey(raw, now) {
+  const server = dateKey(new Date(now));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(raw || ""))) return server;
+  return Math.abs(Date.parse(raw) - Date.parse(server)) <= DAY_MS4 ? raw : server;
+}
+async function handleRewards(request, env, { respond, checkOwner, now = Date.now() }) {
+  const b = await request.json().catch(() => ({}));
+  if (!okUser(b.userId)) return respond({ error: "account" }, 400);
+  const authError = await checkOwner(b.userId, b.idToken, env, request);
+  if (authError) return authError;
+  const userId = b.userId;
+  const state = await getJSON(env, `game_state:${userId}`) || {};
+  const status = import_rewards_engine.default.compute({ gameData: state.gameData || {}, calcDayScore, todayKey: clientTodayKey(b.todayKey, now) });
+  const record = await getJSON(env, `rewards:${userId}`) || { days: {}, bonus: 0, spent: 0, issued: {}, codes: [], invited: [], inviteBonus: 0 };
+  const before = JSON.stringify(record);
+  record.days = record.days || {};
+  for (const [k, p] of Object.entries(status.points.days)) if (!(record.days[k] >= p)) record.days[k] = p;
+  record.bonus = Math.max(Number(record.bonus) || 0, status.points.bonus);
+  record.issued = record.issued || {};
+  record.codes = Array.isArray(record.codes) ? record.codes : [];
+  const country = countryOf(request);
+  const fresh = [];
+  for (const m of status.milestones) {
+    if (m.kind !== "tier" || record.issued[m.id]) continue;
+    record.issued[m.id] = now;
+    for (const r of import_rewards_engine.default.tierById(m.tier).rewards) {
+      if (r.kind === "supplement" && !supplementsAllowed(country)) continue;
+      const c = await issueCode(env, userId, { kind: r.kind, pct: r.pct, source: m.id, now });
+      record.codes.push(c.code);
+      fresh.push(publicCode(c.code, c));
+    }
+  }
+  await ensureInvite(env, userId, record);
+  const earned = Object.values(record.days).reduce((s, p) => s + (Number(p) || 0), 0) + record.bonus + (Number(record.inviteBonus) || 0);
+  if (JSON.stringify(record) !== before) {
+    record.updatedAt = new Date(now).toISOString();
+    await putJSON(env, `rewards:${userId}`, record);
+  }
+  const c30 = status.consistency.d30;
+  if (status.daysTracked >= 7 && c30 != null) {
+    const prev = typeof env.page_content.getWithMetadata === "function" ? await env.page_content.getWithMetadata(`rstat:${userId}`).catch(() => null) : null;
+    if (!prev || prev.metadata?.c !== c30 || prev.metadata?.s !== status.streak) {
+      await env.page_content.put(`rstat:${userId}`, "", { expirationTtl: 40 * 86400, metadata: { c: c30, s: status.streak } });
+    }
+  }
+  const hist = status.daysTracked >= 7 ? await cohort(env, now).catch(() => null) : null;
+  const codes = [];
+  for (const code of record.codes.slice(-20)) {
+    const r = await getJSON(env, `reward_code:${code}`);
+    if (r && r.until > now) codes.push(publicCode(code, r));
+  }
+  return respond({
+    success: true,
+    wallet: { earned, spent: Number(record.spent) || 0, balance: earned - (Number(record.spent) || 0) },
+    codes,
+    fresh,
+    invite: { code: record.invite || "", count: (record.invited || []).length, pct: INVITE_PCT, reward: INVITER_PCT },
+    percentile: percentileOf(hist, c30),
+    cohort: hist && hist.n >= MIN_COHORT ? hist.n : null,
+    supplements: supplementsAllowed(country),
+    offers: import_rewards_engine.default.OFFERS.filter((o) => o.kind !== "supplement" || supplementsAllowed(country)),
+    status: { streak: status.streak, tier: status.tier?.id || null, consistency: status.consistency }
+  });
+}
+async function handleRewardsRedeem(request, env, { respond, checkOwner, now = Date.now() }) {
+  const b = await request.json().catch(() => ({}));
+  if (!okUser(b.userId)) return respond({ error: "account" }, 400);
+  const authError = await checkOwner(b.userId, b.idToken, env, request);
+  if (authError) return authError;
+  const offer = import_rewards_engine.default.offerById(String(b.offer || ""));
+  if (!offer) return respond({ error: "bad_request" }, 400);
+  if (offer.kind === "supplement" && !supplementsAllowed(countryOf(request))) return respond({ error: "region", message: "\u0414\u043E\u0431\u0430\u0432\u043A\u0438\u0442\u0435 \u0441\u0435 \u0434\u043E\u0441\u0442\u0430\u0432\u044F\u0442 \u0441\u0430\u043C\u043E \u0432 \u0411\u044A\u043B\u0433\u0430\u0440\u0438\u044F." }, 400);
+  const record = await getJSON(env, `rewards:${b.userId}`);
+  if (!record) return respond({ error: "points", message: "\u041E\u0449\u0435 \u043D\u044F\u043C\u0430\u0448 \u0442\u043E\u0447\u043A\u0438." }, 400);
+  const earned = Object.values(record.days || {}).reduce((s, p) => s + (Number(p) || 0), 0) + (Number(record.bonus) || 0) + (Number(record.inviteBonus) || 0);
+  const balance = earned - (Number(record.spent) || 0);
+  if (balance < offer.cost) return respond({ error: "points", message: `\u041D\u0443\u0436\u043D\u0438 \u0441\u0430 ${offer.cost} \u0442\u043E\u0447\u043A\u0438, \u0438\u043C\u0430\u0448 ${balance}.`, balance }, 400);
+  const c = await issueCode(env, b.userId, { kind: offer.kind, pct: offer.pct, source: `offer:${offer.id}`, partner: offer.partner, now });
+  record.spent = (Number(record.spent) || 0) + offer.cost;
+  record.codes = [...record.codes || [], c.code];
+  record.updatedAt = new Date(now).toISOString();
+  await putJSON(env, `rewards:${b.userId}`, record);
+  return respond({ success: true, code: publicCode(c.code, c), balance: balance - offer.cost });
+}
+async function handleRewardCodeStatus(url, env, { respond, now = Date.now() }) {
+  const code = String(url.searchParams.get("code") || "").toUpperCase();
+  const r = await readRewardCode(env, code, now);
+  return respond(r ? { valid: true, kind: r.kind, pct: r.pct, until: r.until } : { valid: false });
+}
+async function handleInviteStatus(url, env, { respond }) {
+  const code = String(url.searchParams.get("code") || "").toUpperCase();
+  const owner = okInvite(code) ? await env.page_content.get(`invite:${code}`) : null;
+  return respond(owner ? { valid: true, pct: INVITE_PCT } : { valid: false });
+}
+async function handlePartnerVerify(request, env, { respond, now = Date.now() }) {
+  const key = request.headers.get("X-Partner-Key") || "";
+  if (!env.REWARDS_PARTNER_KEY || key !== env.REWARDS_PARTNER_KEY) return respond({ error: "unauthorized" }, 401);
+  const b = await request.json().catch(() => ({}));
+  const code = String(b.code || "").toUpperCase();
+  const r = await readRewardCode(env, code, now);
+  if (!r || r.kind === "plan") return respond({ valid: false });
+  if (b.redeem) await putJSON(env, `reward_code:${code}`, { ...r, usedAt: now, usedBy: "partner", order: String(b.order || "").slice(0, 64) }, 60 * 86400);
+  return respond({ valid: true, kind: r.kind, pct: r.pct, until: r.until, region: r.region || null, redeemed: !!b.redeem });
+}
+async function planDiscount(env, userId, { reward = "", invite = "" } = {}, now = Date.now()) {
+  let best = null;
+  const r = okRewardCode(String(reward || "").toUpperCase()) ? await readRewardCode(env, String(reward).toUpperCase(), now) : null;
+  if (r && r.kind === "plan" && r.userId === userId) best = { pct: r.pct, reward: String(reward).toUpperCase(), label: `\u2212${r.pct}% \u043D\u0430\u0433\u0440\u0430\u0434\u0430 \u0437\u0430 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E` };
+  const inv = String(invite || "").toUpperCase();
+  if (okInvite(inv) && (!best || best.pct < INVITE_PCT)) {
+    const owner = await env.page_content.get(`invite:${inv}`);
+    const usedBefore = await env.page_content.get(`invite_used:${userId}`);
+    if (owner && owner !== userId && !usedBefore) best = { pct: INVITE_PCT, invite: inv, label: `\u2212${INVITE_PCT}% \u0441 \u043F\u043E\u043A\u0430\u043D\u0430 \u043E\u0442 \u043F\u0440\u0438\u044F\u0442\u0435\u043B` };
+  }
+  return best;
+}
+async function applyPlanDiscount(env, userId, meta, now = Date.now()) {
+  if (okRewardCode(meta.reward)) {
+    const r = await getJSON(env, `reward_code:${meta.reward}`);
+    if (r && !r.usedAt) await putJSON(env, `reward_code:${meta.reward}`, { ...r, usedAt: now, usedBy: userId }, 60 * 86400);
+  }
+  if (okInvite(meta.invite)) {
+    if (await env.page_content.get(`invite_used:${userId}`)) return;
+    const owner = await env.page_content.get(`invite:${meta.invite}`);
+    await env.page_content.put(`invite_used:${userId}`, meta.invite);
+    if (!owner || owner === userId) return;
+    const rec = await getJSON(env, `rewards:${owner}`) || { days: {}, bonus: 0, spent: 0, issued: {}, codes: [], invited: [], inviteBonus: 0, invite: meta.invite };
+    if ((rec.invited || []).includes(userId)) return;
+    const c = await issueCode(env, owner, { kind: "plan", pct: INVITER_PCT, source: "invite", now });
+    rec.invited = [...rec.invited || [], userId].slice(-200);
+    rec.inviteBonus = (Number(rec.inviteBonus) || 0) + INVITE_POINTS;
+    rec.codes = [...rec.codes || [], c.code];
+    rec.updatedAt = new Date(now).toISOString();
+    await putJSON(env, `rewards:${owner}`, rec);
+  }
+}
+
 // billing.js
 var import_pricing_config2 = __toESM(require_pricing_config());
 var API = "https://api.stripe.com/v1/";
-var DAY_MS4 = 24 * 3600 * 1e3;
+var DAY_MS5 = 24 * 3600 * 1e3;
 var ALLOWED_RETURN = /^https:\/\/(nutriin\.app|www\.nutriin\.app|nutriin\.eu|www\.nutriin\.eu|eatologix\.com|www\.eatologix\.com|biocode\.website|emoeat\.app|irismap\.app|www\.irismap\.app|radilovk\.github\.io)(\/|$)/;
 var stripeMode = (env) => env.BILLING_MODE === "live" ? "live" : "test";
 var stripeKey = (env) => stripeMode(env) === "live" ? env.STRIPE_SECRET_KEY : env.STRIPE_TEST_SECRET_KEY;
@@ -61336,7 +61873,7 @@ function randomCode(n = 16) {
 }
 var okReturn = (u) => typeof u === "string" && ALLOWED_RETURN.test(u) ? u : null;
 var withParam = (u, k, v) => u + (u.includes("?") ? "&" : "?") + `${k}=${v}`;
-var okUser = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ""));
+var okUser2 = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ""));
 var okDevice = (id) => /^[A-Za-z0-9_-]{8,64}$/.test(String(id || ""));
 var okVoucher = (c) => /^[a-z0-9]{10,32}$/.test(String(c || ""));
 async function readVoucher(env, code, now = Date.now()) {
@@ -61359,7 +61896,7 @@ async function handleBillingCheckout(request, env, { respond }) {
   let back;
   try {
     if (P.kind === "plan") {
-      if (!okUser(b.userId)) return respond({ error: "account", message: "\u0412\u043B\u0435\u0437 \u0432 \u0430\u043A\u0430\u0443\u043D\u0442\u0430 \u0441\u0438, \u0437\u0430 \u0434\u0430 \u043A\u0443\u043F\u0438\u0448 \u043F\u043B\u0430\u043D." }, 400);
+      if (!okUser2(b.userId)) return respond({ error: "account", message: "\u0412\u043B\u0435\u0437 \u0432 \u0430\u043A\u0430\u0443\u043D\u0442\u0430 \u0441\u0438, \u0437\u0430 \u0434\u0430 \u043A\u0443\u043F\u0438\u0448 \u043F\u043B\u0430\u043D." }, 400);
       if (P.requiresPlan) {
         const rec = await readAccess(env, b.userId);
         if (!rec || rec.tier === "start") return respond({ error: "no_plan", message: "\u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0435\u043D\u0438\u0435\u0442\u043E \u0435 \u0437\u0430 \u0432\u0435\u0447\u0435 \u043A\u0443\u043F\u0435\u043D \u043F\u043B\u0430\u043D \u2014 \u0438\u0437\u0431\u0435\u0440\u0438 \u043F\u043B\u0430\u043D \u0437\u0430 4 \u0438\u043B\u0438 12 \u0441\u0435\u0434\u043C\u0438\u0446\u0438." }, 400);
@@ -61371,6 +61908,12 @@ async function handleBillingCheckout(request, env, { respond }) {
         meta.voucher = b.voucher;
         P = { ...P, price: Math.max(0.5, Math.round((P.price - v.amount) * 100) / 100), description: `\u0421 \u043F\u0440\u0438\u0441\u043F\u0430\u0434\u043D\u0430\u0442\u0438 ${import_pricing_config2.default.formatPrice(v.amount)} \u043E\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0432 IrisMap` };
       }
+      const d = await planDiscount(env, b.userId, { reward: b.reward, invite: P.requiresPlan ? "" : b.invite });
+      if (d) {
+        if (d.reward) meta.reward = d.reward;
+        if (d.invite) meta.invite = d.invite;
+        P = { ...P, price: Math.max(0.5, Math.round(P.price * (100 - d.pct)) / 100), description: [P.description, d.label].filter(Boolean).join(" \xB7 ") };
+      }
       const site = /^https:\/\/(nutriin\.app|eatologix\.com|biocode\.website)$/.test(origin) ? origin : "https://nutriin.app";
       back = `${site}/pricing.html`;
     } else if (P.kind === "iris") {
@@ -61379,7 +61922,7 @@ async function handleBillingCheckout(request, env, { respond }) {
       meta.deviceId = b.deviceId;
     } else if (P.kind === "emoeat") {
       back = okReturn(b.returnUrl);
-      const holder = okUser(b.userId) ? b.userId : okDevice(b.deviceId) ? b.deviceId : "";
+      const holder = okUser2(b.userId) ? b.userId : okDevice(b.deviceId) ? b.deviceId : "";
       if (!holder || !back) return respond({ error: "bad_request" }, 400);
       meta.holder = holder;
     }
@@ -61414,7 +61957,7 @@ async function grantPlan(env, userId, productId, sessionId, now = Date.now()) {
   return writeAccess(env, userId, {
     tier: "core",
     periodStart: active && current.periodStart ? current.periodStart : now,
-    until: new Date((active ? current.until : now) + P.days * DAY_MS4).toISOString(),
+    until: new Date((active ? current.until : now) + P.days * DAY_MS5).toISOString(),
     quota,
     source: "stripe",
     note: `${P.name} \xB7 ${import_pricing_config2.default.formatPrice(P.price)} \xB7 Stripe ${stripeMode(env)}`,
@@ -61438,11 +61981,12 @@ async function applySession(env, s, now) {
       const v = JSON.parse(await env.page_content.get(vk) || "null");
       if (v) await env.page_content.put(vk, JSON.stringify({ ...v, usedBy: m.userId, usedAt: now }), { expirationTtl: 60 * 86400 });
     }
+    if (m.reward || m.invite) await applyPlanDiscount(env, m.userId, m, now);
   } else if (P.kind === "iris") {
     const ck = `iris_credit:${m.deviceId}`;
     await env.page_content.put(ck, String((Number(await env.page_content.get(ck)) || 0) + 1), { expirationTtl: 400 * 86400 });
     const voucher = randomCode();
-    const until = now + import_pricing_config2.default.IRIS_DISCOUNT_DAYS * DAY_MS4;
+    const until = now + import_pricing_config2.default.IRIS_DISCOUNT_DAYS * DAY_MS5;
     await env.page_content.put(`iris_voucher:${voucher}`, JSON.stringify({ amount: P.price, until, deviceId: m.deviceId, session: s.id }), { expirationTtl: (import_pricing_config2.default.IRIS_DISCOUNT_DAYS + 30) * 86400 });
     result = { ...result, deviceId: m.deviceId, voucher, voucherUntil: until, amount: P.price };
   } else if (P.kind === "emoeat") {
@@ -88470,7 +89014,7 @@ async function handleEmailDomain(request, env, { respond, now = Date.now() }) {
 
 // device-links.js
 var LINK_DAYS = 14;
-var DAY_MS5 = 864e5;
+var DAY_MS6 = 864e5;
 var ymd = (d) => d.toISOString().slice(0, 10);
 var atOf = (day2) => `${day2}T12:00:00.000Z`;
 var round1 = (v) => Math.round(v * 10) / 10;
@@ -88741,7 +89285,7 @@ var PROVIDERS = {
       const span = (types) => post("/sampleSet:polymerize", {
         polymerizeWith: types.map((t) => ({ dataTypeName: t })),
         startTime: from.getTime(),
-        endTime: to.getTime() + DAY_MS5
+        endTime: to.getTime() + DAY_MS6
       });
       await safe(async () => {
         const pts = huaweiPoints(await daily(["com.huawei.continuous.steps.delta"]));
@@ -88785,7 +89329,7 @@ var PROVIDERS = {
       });
       await safe(async () => {
         const startNs = BigInt(from.getTime()) * 1000000n;
-        const endNs = BigInt(to.getTime() + DAY_MS5) * 1000000n;
+        const endNs = BigInt(to.getTime() + DAY_MS6) * 1000000n;
         const r = await getJson(fetchFn, `${A}/healthRecords?startTime=${startNs}&endTime=${endNs}&dataType=com.huawei.health.record.sleep`, token);
         const nights = (r.healthRecords || r.healthRecord || []).map((rec) => {
           const fields = huaweiFields(rec.value || rec.fields || []);
@@ -88884,8 +89428,8 @@ async function pullFacts(fetchFn, env, provider, link, now = /* @__PURE__ */ new
   if (!current.access || current.expiresAt && current.expiresAt - 6e4 < now.getTime()) {
     current = await refreshToken(fetchFn, env, provider, current);
   }
-  const to = new Date(now.getTime() - DAY_MS5);
-  const from = new Date(now.getTime() - LINK_DAYS * DAY_MS5);
+  const to = new Date(now.getTime() - DAY_MS6);
+  const from = new Date(now.getTime() - LINK_DAYS * DAY_MS6);
   let list4;
   try {
     list4 = await p.fetchFacts(fetchFn, current.access, from, to);
@@ -89994,6 +90538,8 @@ var RATE_LIMIT = {
   // change / cancel an hour in the app: 10 calls / 10 min per IP
   ANALYTICS_SYNC: { maxRequests: 40, windowSec: 60 },
   // debounced client sync burst
+  REWARDS: { maxRequests: 30, windowSec: 600 },
+  // награди: състояние, точки → код, проверка на код
   WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
   WEEKLY_ADAPT: { maxRequests: 3, windowSec: 3600 },
   STUDIO_BOOK: { maxRequests: 10, windowSec: 600 },
@@ -103281,6 +103827,16 @@ var worker_entry_default = {
         return await handleBillingWebhook(request, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/billing/confirm" && request.method === "POST") {
         return await handleBillingConfirm(request, env, { respond: jsonResponse2 });
+      } else if (url.pathname.startsWith("/api/user/rewards") || url.pathname.startsWith("/api/rewards/")) {
+        const rlErr = await checkRateLimit(env, request, "REWARDS");
+        if (rlErr) return rlErr;
+        const deps = { respond: jsonResponse2, checkOwner: checkFirebaseOwner };
+        if (url.pathname === "/api/user/rewards" && request.method === "POST") return await handleRewards(request, env, deps);
+        if (url.pathname === "/api/user/rewards/redeem" && request.method === "POST") return await handleRewardsRedeem(request, env, deps);
+        if (url.pathname === "/api/rewards/code" && request.method === "GET") return await handleRewardCodeStatus(url, env, deps);
+        if (url.pathname === "/api/rewards/invite" && request.method === "GET") return await handleInviteStatus(url, env, deps);
+        if (url.pathname === "/api/rewards/partner/verify" && request.method === "POST") return await handlePartnerVerify(request, env, deps);
+        return jsonResponse2({ error: "Not found" }, 404);
       } else if (url.pathname === "/api/billing/voucher" && request.method === "GET") {
         return await handleVoucherStatus(url, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/billing/status" && request.method === "GET") {

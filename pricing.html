@@ -83,6 +83,7 @@
             <p class="lead">С въпросника виждаш дневните си цели и един ден от менюто. Целият план е еднократно плащане за 4 или 12 седмици — без абонамент и без автоматично подновяване.</p>
             <p class="price-note" id="payNote" hidden></p>
             <p class="price-note" id="featureNote" hidden></p>
+            <p class="price-note" id="rewardNote" hidden></p>
         </section>
 
         <div class="plans" id="plans"></div>
@@ -250,8 +251,33 @@
                 render();
             }).catch(function () {});
         })();
+        // Награда за постоянство (?reward=NI-…) или покана от приятел (?invite=…) — по-голямата, след ваучера (rewards.js).
+        var reward = null, invite = null;
+        (function () {
+            var code = String(params.get('reward') || '').toUpperCase();
+            try {
+                if (code) localStorage.setItem('np_reward_code', code);
+                else code = localStorage.getItem('np_reward_code') || '';
+            } catch (e) { /* частен режим */ }
+            var inv = window.NutriPlanPartnerRef && NutriPlanPartnerRef.invite ? NutriPlanPartnerRef.invite() : '';
+            function note() {
+                var n = document.getElementById('rewardNote');
+                var r = reward && (!invite || reward.pct >= invite.pct) ? 'Твоята награда за постоянство: −' + reward.pct + '% за плана.' : invite ? 'Покана от приятел: −' + invite.pct + '% за първия план.' : '';
+                n.textContent = r; n.hidden = !r; render();
+            }
+            if (code) fetch(WORKER + '/api/rewards/code?code=' + encodeURIComponent(code)).then(function (r) { return r.json(); }).then(function (d) {
+                if (d && d.valid && d.kind === 'plan') { reward = { code: code, pct: d.pct }; note(); }
+                else try { localStorage.removeItem('np_reward_code'); } catch (e) {}
+            }).catch(function () {});
+            if (inv) fetch(WORKER + '/api/rewards/invite?code=' + encodeURIComponent(inv)).then(function (r) { return r.json(); }).then(function (d) {
+                if (d && d.valid) { invite = { code: inv, pct: d.pct }; note(); }
+            }).catch(function () {});
+        })();
         function priceOf(c) {
-            return voucher && c.kind === 'plan' && !c.requiresPlan ? Math.max(0.5, Math.round((c.price - voucher.amount) * 100) / 100) : c.price;
+            var p = voucher && c.kind === 'plan' && !c.requiresPlan ? Math.max(0.5, Math.round((c.price - voucher.amount) * 100) / 100) : c.price;
+            if (c.kind !== 'plan' || !c.price) return p;
+            var pct = Math.max(reward ? reward.pct : 0, invite && !c.requiresPlan ? invite.pct : 0);
+            return pct ? Math.max(0.5, Math.round(p * (100 - pct)) / 100) : p;
         }
         document.getElementById('emoPrice').textContent = fmt(P.PRODUCTS.emoeat_analysis.price);
 
@@ -310,7 +336,7 @@
             }
             btn.setAttribute('aria-busy', 'true');
             var ref = window.NutriPlanPartnerRef && NutriPlanPartnerRef.get();
-            post('/api/billing/checkout', { product: btn.getAttribute('data-buy'), userId: id, ref: ref || '', voucher: voucher ? voucher.code : '' })
+            post('/api/billing/checkout', { product: btn.getAttribute('data-buy'), userId: id, ref: ref || '', voucher: voucher ? voucher.code : '', reward: reward ? reward.code : '', invite: invite ? invite.code : '' })
                 .then(function (x) {
                     if (x.d && x.d.url) { location.href = x.d.url; return; }
                     btn.removeAttribute('aria-busy');
@@ -326,7 +352,7 @@
             say('Потвърждаваме плащането…');
             post('/api/billing/confirm', { sessionId: paid }).then(function (x) {
                 if (x.d && x.d.ok) {
-                    try { sessionStorage.removeItem('np_access'); if (x.d.product !== 'plan_continue') localStorage.removeItem('np_iris_voucher'); } catch (e) {}
+                    try { sessionStorage.removeItem('np_access'); if (x.d.product !== 'plan_continue') localStorage.removeItem('np_iris_voucher'); localStorage.removeItem('np_reward_code'); localStorage.removeItem('np_invite'); } catch (e) {}
                     var prod = P.product(x.d.product);
                     say('Готово — ' + (prod ? prod.name : 'планът') + ' е активен' + (x.d.until ? ' до ' + new Date(x.d.until).toLocaleDateString() : '') + '. Отвори плана си в приложението или в сайта.');
                 } else say('Плащането още не е потвърдено. Ако си платил, опресни страницата след минута.');

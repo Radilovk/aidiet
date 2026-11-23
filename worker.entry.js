@@ -138,6 +138,7 @@ import { crossCheckText } from './cross-check.js';
 import { sanitizeQuestions, relevantQuestion, clarifyPromptBlock, extractClarify } from './chat-clarify.js';
 import Pricing from './pricing-config.js';
 import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUsage, quotaMap, normalizeAccess, paywallEnabled, PAYWALL_KEY, usageWindow } from './access-control.js';
+import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInviteStatus, handlePartnerVerify } from './rewards.js';
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
@@ -1398,6 +1399,7 @@ const RATE_LIMIT = {
   XBODY_BOOK: { maxRequests: 8, windowSec: 600 }, // several hours at once (card guarantee + booking): 8 calls / 10 min per IP
   XBODY_MANAGE: { maxRequests: 10, windowSec: 600 }, // change / cancel an hour in the app: 10 calls / 10 min per IP
   ANALYTICS_SYNC: { maxRequests: 40, windowSec: 60 }, // debounced client sync burst
+  REWARDS: { maxRequests: 30, windowSec: 600 },        // награди: състояние, точки → код, проверка на код
   WEEKLY_QUESTIONS: { maxRequests: 6, windowSec: 3600 },
   WEEKLY_ADAPT: { maxRequests: 3, windowSec: 3600 },
   STUDIO_BOOK: { maxRequests: 10, windowSec: 600 },    // studio platform: card guarantee + booking
@@ -18596,6 +18598,16 @@ export default {
         return await handleBillingWebhook(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/billing/confirm' && request.method === 'POST') {
         return await handleBillingConfirm(request, env, { respond: jsonResponse });
+      } else if (url.pathname.startsWith('/api/user/rewards') || url.pathname.startsWith('/api/rewards/')) {
+        const rlErr = await checkRateLimit(env, request, 'REWARDS');
+        if (rlErr) return rlErr;
+        const deps = { respond: jsonResponse, checkOwner: checkFirebaseOwner };
+        if (url.pathname === '/api/user/rewards' && request.method === 'POST') return await handleRewards(request, env, deps);
+        if (url.pathname === '/api/user/rewards/redeem' && request.method === 'POST') return await handleRewardsRedeem(request, env, deps);
+        if (url.pathname === '/api/rewards/code' && request.method === 'GET') return await handleRewardCodeStatus(url, env, deps);
+        if (url.pathname === '/api/rewards/invite' && request.method === 'GET') return await handleInviteStatus(url, env, deps);
+        if (url.pathname === '/api/rewards/partner/verify' && request.method === 'POST') return await handlePartnerVerify(request, env, deps);
+        return jsonResponse({ error: 'Not found' }, 404);
       } else if (url.pathname === '/api/billing/voucher' && request.method === 'GET') {
         return await handleVoucherStatus(url, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/billing/status' && request.method === 'GET') {

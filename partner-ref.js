@@ -4,7 +4,8 @@
  * към сървъра заедно с отговорите, а админ панелът показва и филтрира по него.
  *
  *   <script src="./partner-ref.js"></script>
- *   NutriPlanPartnerRef.get()  // '' или кода
+ *   NutriPlanPartnerRef.get()     // '' или кода
+ *   NutriPlanPartnerRef.invite()  // '' или кода за покана от приятел (?invite=)
  */
 (function (global) {
     'use strict';
@@ -44,7 +45,19 @@
         if (/^[a-z0-9]{10,32}$/.test(String(voucher || ''))) localStorage.setItem('np_iris_voucher', voucher);
     } catch (_) { /* частен режим */ }
 
+    // Покана от приятел (?invite=…): −15% за първия план (rewards.js); пази се 60 дни.
+    try {
+        var invite = String(new URLSearchParams(global.location.search).get('invite') || '').toUpperCase();
+        if (/^[A-HJ-NP-Z2-9]{6}$/.test(invite)) localStorage.setItem('np_invite', JSON.stringify({ code: invite, at: Date.now() }));
+    } catch (_) { /* частен режим */ }
+
     global.NutriPlanPartnerRef = {
+        invite: function () {
+            try {
+                var v = JSON.parse(localStorage.getItem('np_invite') || 'null');
+                return v && Date.now() - Number(v.at || 0) < 60 * 24 * 60 * 60 * 1000 ? v.code : '';
+            } catch (_) { return ''; }
+        },
         get: function () {
             var saved = read();
             return saved ? saved.code : '';

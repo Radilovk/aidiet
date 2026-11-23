@@ -3990,6 +3990,7 @@
     </style>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
+    <link rel="stylesheet" href="./rewards-ui.css?v=1">
     <script src="./app-ui.js" defer></script>
     <div id="planAuthOverlay" style="display:none">
         <div class="pa-spinner"></div>
@@ -4007,6 +4008,8 @@
     })();</script>
 
     <script src="./game-scoring.js"></script>
+    <script src="./rewards-engine.js?v=1"></script>
+    <script src="./rewards-ui.js?v=1"></script>
     <script src="./session-utils.js"></script>
     <script src="./diagnostics-log.js"></script>
     <script src="./platform.js"></script>
@@ -10060,6 +10063,8 @@
             _gameDataCache = d;
             localStorage.setItem(GAME_DATA_KEY, JSON.stringify(d));
             scheduleAnalyticsSync();
+            // Нов етап (стъпало, поредица, жокер) → поздрав (rewards-ui.js).
+            if (window.NutriPlanRewards) window.NutriPlanRewards.checkSoon();
         }
 
         function getPlanForAnalyticsSync() {
