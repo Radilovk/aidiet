@@ -73,7 +73,8 @@
     "build:module-marks": "node scripts/build-module-marks.mjs --png",
     "i18n:prewarm": "node scripts/i18n-prewarm.mjs",
     "test:document-reader": "node scripts/test-document-reader.mjs",
-    "test:progress-index": "node scripts/test-progress-index.mjs"
+    "test:progress-index": "node scripts/test-progress-index.mjs",
+    "test:day-adherence": "node scripts/test-day-adherence.mjs"
   },
   "keywords": [
     "ai",
