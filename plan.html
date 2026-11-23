@@ -6825,7 +6825,7 @@
             card.classList.add('meal-card--clickable');
             card.setAttribute('role', 'button');
             card.setAttribute('tabindex', '0');
-            card.setAttribute('aria-label', isFreeMeal ? 'Детайли за свободно хранене' : ('Детайли за ' + (meal.name || 'ястие')));
+            card.setAttribute('aria-label', isFreeMeal ? 'Детайли за свободно хранене' : ((window.trUi || String)('Детайли за') + ' ' + (meal.name || (window.trUi || String)('ястие'))));
             const openDetail = function() {
                 if (isFreeMeal) {
                     openFreeMealDetailModal();
@@ -10299,8 +10299,26 @@
             catch(e) { return null; }
         }
 
+        // Превод на парче текст преди да се слепи с друго (иначе всяка комбинация е нов текст за AI превода).
+        function trUi(s) { var I = window.EatologixI18n; return I && I.lang !== 'bg' && I.t ? I.t(s) : s; }
+        window.trUi = trUi;
+
+        // Поздравът: името — отделно и без превод, „Здравей,“ — от речника (не всяко име е нов текст за превод).
+        function setGreeting(el, opts, name) {
+            if (opts.greeting) { el.textContent = opts.greeting; return; }
+            if (!(opts.showName && name)) { el.textContent = 'Твоят асистент'; return; }
+            el.textContent = '';
+            var a = document.createElement('span'); a.textContent = 'Здравей,';
+            var b = document.createElement('span'); b.setAttribute('data-i18n-skip', ''); b.textContent = name;
+            el.appendChild(a); el.appendChild(document.createTextNode(' ')); el.appendChild(b); el.appendChild(document.createTextNode('!'));
+        }
+
         // ── Typewriter ────────────────────────────────────────────────────────
+        // Пише целия текст вече преведен; докато пише — без превод на парчетата (иначе всяка буква е нова AI заявка).
         function typewriter(el, text, speed, cb) {
+            var I18N = window.EatologixI18n;
+            if (I18N && I18N.lang !== 'bg' && I18N.t) text = I18N.t(text);
+            el.setAttribute('data-i18n-skip', '');
             el.textContent = '';
             el.classList.add('typing');
             var i = 0;
@@ -10312,6 +10330,8 @@
                 hapticCtrl.stop();
                 el.textContent = text;
                 el.classList.remove('typing');
+                el.removeAttribute('data-i18n-skip');
+                if (I18N && I18N.apply) I18N.apply(el);
                 if (cb) cb();
             };
             var unregisterFinalizer = registerTypingFinalizer(finalize);
@@ -10628,7 +10648,7 @@
                 var stateText = sg.done ? 'отбелязано' : sg.missed ? 'пропуснато' : sg.locked ? 'от ' + sg.unlockHour + ':00' : 'предстои';
                 var isNext = m.next && m.next.key === sg.key;
                 return '<button type="button" class="dc-seg dc-seg--' + st + (isNext ? ' is-next' : '') + '" data-seg="' + idx + '"' +
-                    ' aria-label="' + esc(sg.label) + ': ' + stateText + '" title="' + esc(sg.label) + '"' + (sg.locked && !sg.done ? ' aria-disabled="true"' : '') + '>' +
+                    ' aria-label="' + esc(trUi(sg.label)) + ': ' + esc(trUi(stateText)) + '" title="' + esc(sg.label) + '"' + (sg.locked && !sg.done ? ' aria-disabled="true"' : '') + '>' +
                     '<span class="dc-seg-bar"></span><span class="dc-seg-icon" aria-hidden="true"><svg viewBox="0 0 24 24">' +
                     (DC_SEG_ICONS[sg.icon] || DC_SEG_ICONS.lunch) + '</svg></span></button>';
             }).join('');
@@ -11430,8 +11450,7 @@
                 if (grEl && qEl && awEl) {
                     existing.classList.remove('game-bubble--exit'); // cancel any exit animation
                     var name = getUserName();
-                    grEl.textContent = opts.greeting ? opts.greeting :
-                                       (opts.showName && name) ? 'Здравей, '+name+'!' : 'Твоят асистент';
+                    setGreeting(grEl, opts, name);
                     awEl.classList.remove('visible');
                     fillAnswers(awEl);
                     qEl.textContent = question;
@@ -11474,9 +11493,7 @@
                 var gr = document.createElement('div');
                 gr.className = 'game-bubble-greeting';
                 var name = getUserName();
-                gr.textContent = opts.greeting ? opts.greeting :
-                                 (opts.showName && name) ? 'Здравей, '+name+'!' :
-                                 'Твоят асистент';
+                setGreeting(gr, opts, name);
                 hdr.appendChild(av); hdr.appendChild(gr);
                 // Затваряне без отговор — въпросите за този кръг спират.
                 var closeBtn = document.createElement('button');
