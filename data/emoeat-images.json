@@ -58,10 +58,10 @@
     },
     "pause": {
       "file": "brand/emoeat/pause.webp",
-      "id": 4882027,
-      "focus": "0.4,0.45",
+      "id": 10338948,
+      "focus": "0.5,0.55",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/meditate-lake-mood-4882027/"
+      "page": "https://pixabay.com/photos/sunrise-quebec-lake-water-outdoors-10338948/"
     },
     "pendulum": {
       "file": "brand/emoeat/pendulum.webp",
@@ -72,17 +72,17 @@
     },
     "order": {
       "file": "brand/emoeat/order.webp",
-      "id": 3076954,
+      "id": 1841271,
       "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/desk-smartphone-iphone-notebook-3076954/"
+      "page": "https://pixabay.com/photos/corn-agriculture-soil-plant-dirt-1841271/"
     },
     "critic": {
       "file": "brand/emoeat/critic.webp",
-      "id": 2567679,
+      "id": 1776746,
       "focus": "0.5,0.5",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/bedroom-lampshade-curtain-2567679/"
+      "page": "https://pixabay.com/photos/valentines-day-background-heart-leaf-1776746/"
     },
     "spark": {
       "file": "brand/emoeat/spark.webp",
@@ -114,10 +114,24 @@
     },
     "need": {
       "file": "brand/emoeat/need.webp",
-      "id": 3452582,
-      "focus": "0.5,0.4",
+      "id": 8431870,
+      "focus": "0.5,0.55",
       "source": "Pixabay",
-      "page": "https://pixabay.com/photos/hand-light-sky-heaven-religion-3452582/"
+      "page": "https://pixabay.com/photos/window-pillows-candles-lights-cozy-8431870/"
+    },
+    "plan": {
+      "file": "brand/emoeat/plan.webp",
+      "id": 5819652,
+      "focus": "0.55,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/mountains-fog-sky-clouds-5819652/"
+    },
+    "welcome": {
+      "file": "brand/emoeat/welcome.webp",
+      "id": 5345528,
+      "focus": "0.5,0.6",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/trees-avenue-tree-lined-avenue-path-5345528/"
     }
   },
   "picks": {
