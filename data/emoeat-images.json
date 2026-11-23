@@ -42,7 +42,78 @@
       "sunrise through window warm light"
     ]
   },
-  "images": {},
+  "images": {
+    "comfort": {
+      "file": "brand/emoeat/comfort.webp",
+      "id": 4597416,
+      "focus": "0.5,0.4",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/coffee-tee-cup-keep-hand-arm-4597416/"
+    },
+    "pause": {
+      "file": "brand/emoeat/pause.webp",
+      "id": 4882027,
+      "focus": "0.4,0.45",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/meditate-lake-mood-4882027/"
+    },
+    "pendulum": {
+      "file": "brand/emoeat/pendulum.webp",
+      "id": 7905883,
+      "focus": "0.55,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/sunset-stones-sea-meditation-7905883/"
+    },
+    "order": {
+      "file": "brand/emoeat/order.webp",
+      "id": 3076954,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/desk-smartphone-iphone-notebook-3076954/"
+    },
+    "critic": {
+      "file": "brand/emoeat/critic.webp",
+      "id": 2567679,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/bedroom-lampshade-curtain-2567679/"
+    },
+    "spark": {
+      "file": "brand/emoeat/spark.webp",
+      "id": 1853624,
+      "focus": "0.4,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/bright-celebration-dark-fire-1853624/"
+    },
+    "impulse": {
+      "file": "brand/emoeat/impulse.webp",
+      "id": 4481903,
+      "focus": "0.6,0.4",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/wave-splash-water-sea-lake-wild-4481903/"
+    },
+    "calm": {
+      "file": "brand/emoeat/calm.webp",
+      "id": 6100209,
+      "focus": "0.5,0.45",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/beach-coast-sea-sunrise-seascape-6100209/"
+    },
+    "portrait": {
+      "file": "brand/emoeat/portrait.webp",
+      "id": 7179046,
+      "focus": "0.5,0.5",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/forest-trees-sunlight-the-path-7179046/"
+    },
+    "need": {
+      "file": "brand/emoeat/need.webp",
+      "id": 3452582,
+      "focus": "0.5,0.4",
+      "source": "Pixabay",
+      "page": "https://pixabay.com/photos/hand-light-sky-heaven-religion-3452582/"
+    }
+  },
   "picks": {
     "comfort": {
       "id": 4597416,
