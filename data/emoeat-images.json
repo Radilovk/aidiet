@@ -1,0 +1,47 @@
+{
+  "about": "Снимки за финалната страница на EmoEat (emoeat.html → RX_PHOTO). Тема → търсене в Pixabay (английски). Избор: picks { тема: { id, focus: 'x,y' } }; scripts/emoeat-images.mjs.",
+  "themes": {
+    "comfort": [
+      "warm blanket tea window cozy",
+      "hands holding warm cup soft light"
+    ],
+    "pause": [
+      "still lake calm morning mist",
+      "quiet window light empty chair"
+    ],
+    "pendulum": [
+      "stacked stones balance calm",
+      "balance rocks sea sunrise"
+    ],
+    "order": [
+      "minimal organized shelf neutral",
+      "pebbles arranged line sand"
+    ],
+    "critic": [
+      "soft morning light curtain window",
+      "gentle sunlight leaves bokeh"
+    ],
+    "spark": [
+      "sparkler night light glow",
+      "campfire sparks dark night"
+    ],
+    "impulse": [
+      "ocean wave crest energy",
+      "water splash drops motion"
+    ],
+    "calm": [
+      "calm sea horizon sunrise",
+      "peaceful meadow morning light"
+    ],
+    "portrait": [
+      "forest path light morning",
+      "open road mountains sunrise"
+    ],
+    "need": [
+      "open hands sunlight sky",
+      "sunrise through window warm light"
+    ]
+  },
+  "images": {},
+  "picks": {}
+}
