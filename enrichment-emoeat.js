@@ -25,8 +25,22 @@ const BEHAVIOR_CODES = {
 
 const PATTERN_CODES = {
   'Правила → срив → нови правила': ['OVR', 'CMP'],
-  'Строг глас → скришом → още по-строг глас': ['CMP'],
+  'Строг глас → скришом → още по-строг глас': ['CMP'],   // v2
+  'Строг глас → утеха → още по-строг глас': ['CMP'],     // v3
   'Чувствата се усещат като глад': ['EMO'],
+  'Импулсът изпреварва': ['EMO', 'OVR'],                 // v3
+};
+
+// v3: здравните отговори (само ако човекът ги е включил в плана) → бележки за специалиста.
+const HEALTH_NOTES = {
+  diabetes: 'EmoEat: диабет/инсулинова резистентност — спадът на захарта може да изглежда като емоционален импулс; редовни хранения, без дълги паузи.',
+  pregnancy: 'EmoEat: бременност или кърмене — без дефицит и без ограничаване.',
+  meds: 'EmoEat: лекарства, които влияят на апетита — част от апетита е от тях; без вина в тона.',
+  adhd: 'EmoEat: ADHD — импулсивността е част от вниманието; структура и неща под ръка, не воля.',
+  anxiety_tx: 'EmoEat: лечение за тревожност/депресия — съветите допълват лечението, не го заместват.',
+  thyroid: 'EmoEat: щитовидна жлеза — умората и апетитът може да са хормонални.',
+  pcos: 'EmoEat: поликистозни яйчници — апетитът и умората може да са хормонални.',
+  menopause: 'EmoEat: менопауза — сънят и апетитът може да са хормонални.',
 };
 
 const APPROACH_BY_DRIVER = {
@@ -54,11 +68,28 @@ export function deriveEmoEat(facts) {
   };
   const reasons = [`емоционален профил (EmoEat${voice.archetype ? `: ${voice.archetype}` : ''})`];
 
+  // v3: портретът и контекстът за гласа на плана.
+  if (p.v === 3) {
+    voice.portrait = Array.isArray(p.portrait) ? p.portrait.slice(0, 3) : [];
+    voice.context = p.context && typeof p.context === 'object' ? p.context : null;
+  }
+
   const reliable = p.reliability?.level !== 'ниска';
   voice.reliable = reliable;
   const felt = p.intensity === 'Осезаемо' || p.intensity === 'Силно';
   /** @type {{ behaviors: string[], approach: string[], clinical: string[], cautions: string[] }} */
   const hints = { behaviors: [], approach: [], clinical: [], cautions: [] };
+  const health = Array.isArray(p.health) ? p.health : [];
+  for (const h of health) if (HEALTH_NOTES[h]) hints.cautions.push(HEALTH_NOTES[h]);
+  if (health.includes('past_ed') || p.safety === 'specialist') {
+    hints.clinical.push('EmoEat: ' + (health.includes('past_ed') ? 'минали трудности с храненето' : 'силна строгост към себе си + „всичко или нищо“') + ' — препоръчан разговор със специалист.');
+    hints.cautions.push('EmoEat: без строги забрани, без голям дефицит и без оценки на храненията.');
+  }
+  // Непълнолетен: само глас, без кодове за поведение и без дефицит.
+  if (p.context?.teen) {
+    hints.cautions.push('EmoEat: непълнолетен — без дефицит и без съвети за отслабване.');
+    return { voice, hints, reasons };
+  }
   if (!reliable || !felt) return { voice, hints, reasons };
 
   for (const d of voice.drivers) {

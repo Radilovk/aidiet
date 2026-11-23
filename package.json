@@ -40,6 +40,7 @@
     "test:weekly-recal": "node scripts/test-weekly-recal.mjs",
     "test:auto-weekly": "npm run build:worker --silent && node scripts/test-auto-weekly.mjs",
     "test:persona": "node scripts/test-persona.mjs",
+    "test:emoeat": "node scripts/test-emoeat-v3.mjs",
     "test:game-sync": "node scripts/test-game-sync.mjs",
     "links:setup": "node scripts/setup-device-links.mjs",
     "test:handoff": "node scripts/test-handoff.mjs",

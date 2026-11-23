@@ -50,6 +50,10 @@ biocode.website (`PLAN_APP_BASE_URL`); при изпращане `email-domain.j
 - Проверка: `npm run test:worker` (bundle + health); тематични тестове: `npm run test:*` (виж `package.json`, `scripts/`).
 
 ## Други проекти (отделни, не пипай при работа по Nutriin)
+- **EmoEat** (`emoeat.html`, emoeat.app) — тест за емоционалното хранене, без въпроси за храна. Въпросите, вариантите на
+  сцените по човека (пол, възраст, ден, дом, детство, здраве), чертите и тълкуването са в `emoeat-v3.js`; основата и
+  решенията — `EMOEAT_PSYCH_REVIEW.md`, `EMOEAT_V3_QUESTIONS.md`, `EMOEAT_V3_CALIBRATION.md`. Проверка: `npm run test:emoeat`.
+  Преводите на въпросите: `scripts/emoeat-v3-translate.mjs` (от английския; на живо без AI превод — `data-i18n-dict`).
 - `fitness/` — KA-TRAINER (собствен `package.json`, бекендът е в общия worker).
 - `xbody.html` (+ `xbody-*`, `acuity/`), `studio.html` + `studio-platform/`, `emoeat.html`, `kids.html`,
   `longevity.html`, `protocols.html`, `protocol-landing.html`, `pep*.html`, `reta.html`, `aix.html`,
