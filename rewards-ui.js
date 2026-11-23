@@ -523,13 +523,8 @@
 
     /** Добри дни от последните 7 — за мекия режим вместо поредицата (тя може да се скъса). */
     function goodOf7() {
-        var GS = global.GameScoring, all = read('gameData', {}) || {}, n = 0;
-        if (!GS) return 0;
-        for (var i = 0; i < 7; i++) {
-            var d = new Date(Date.now() - i * DAY), rec = all[GS.dateKey(d)];
-            if (rec && (GS.calcDayScore(rec).engPct || 0) >= RE.GOOD) n++;
-        }
-        return n;
+        var GS = global.GameScoring;
+        return GS && GS.goodDaysOf ? GS.goodDaysOf(read('gameData', {}) || {}, GS.dateKey(new Date()), 7).good : 0;
     }
 
     // ── Предизвикателството на месеца ───────────────────────────────────────
@@ -645,11 +640,15 @@
 
         // Нивата: име → дни и праг → наградата. Един ред описание.
         var cur = st.tier ? st.tier.index : -1;
-        html += '<div class="rw-card"><h4>' + esc(RE.text('pathTitle')) + '</h4>' + RE.TIERS.map(function (t, i) {
+        // Праговете (%) — зад (i), не на екрана (DESIGN_PRINCIPLES.md, т. 5).
+        var about = RE.text('pathAbout', { list: RE.TIERS.map(function (t) { return t.title + ' — ' + t.days + ' дни над ' + t.minEng + '%'; }).join('; ') });
+        html += '<div class="rw-card"><h4>' + esc(RE.text('pathTitle')) +
+            '<button type="button" class="rw-info" aria-expanded="false" aria-controls="rwPathAbout" aria-label="Как се достига ниво"><i class="fas fa-circle-info"></i></button></h4>' +
+            '<p class="rw-about" id="rwPathAbout" hidden>' + esc(about) + '</p>' + RE.TIERS.map(function (t, i) {
             var state = i <= cur ? 'is-done' : i === cur + 1 ? 'is-next' : '';
             var gifts = t.rewards.map(function (r) { return giftShort(r, srv); }).filter(Boolean);
             return '<div class="rw-step ' + state + '"><i class="fas ' + (i <= cur ? 'fa-check' : i === cur + 1 ? 'fa-arrow-up' : 'fa-lock') + '"></i>' +
-                '<div><b>' + esc(t.title) + '</b><span>' + t.days + ' дни · над ' + t.minEng + '%</span></div>' +
+                '<div><b>' + esc(t.title) + '</b><span>' + t.days + ' дни</span></div>' +
                 (gifts.length ? '<em>' + gifts.map(esc).join('<br>') + '</em>' : '') + '</div>';
         }).join('') + '</div>';
 
@@ -679,8 +678,9 @@
         }
 
         var r = st.records;
-        html += '<div class="rw-card"><h4>Лични рекорди</h4><div class="rw-records">' +
-            '<div class="rw-record"><b>' + r.bestStreak + '</b><span>дни поред</span></div>' +
+        html += '<div class="rw-card"><h4>Лични рекорди</h4><div class="rw-records"' + (soft ? ' style="grid-template-columns:repeat(2,1fr)"' : '') + '>' +
+            // Мекият режим — без поредици и тук.
+            (soft ? '' : '<div class="rw-record"><b>' + r.bestStreak + '</b><span>дни поред</span></div>') +
             '<div class="rw-record"><b>' + (r.bestWeek ? r.bestWeek.avg + '%' : '—') + '</b><span>най-добра седмица</span></div>' +
             '<div class="rw-record"><b>' + (r.maxSteps ? num(r.maxSteps.steps) : '—') + '</b><span>крачки за ден</span></div>' +
             '</div><button type="button" class="rw-btn rw-btn--wide" data-share="1"><i class="fas fa-share-nodes"></i> Сподели</button></div>';
@@ -689,6 +689,12 @@
         el.innerHTML = html;
         requestAnimationFrame(function () { var b = el.querySelector('.rw-bar i'); if (b) b.style.width = b.getAttribute('data-w') + '%'; });
 
+        var info = el.querySelector('.rw-info');
+        if (info) info.addEventListener('click', function () {
+            var p = el.querySelector('#rwPathAbout'), open = p.hidden;
+            p.hidden = !open;
+            info.setAttribute('aria-expanded', String(open));
+        });
         var tg = el.querySelector('.rw-toggle');
         tg.addEventListener('click', function () {
             var open = tg.getAttribute('aria-expanded') !== 'true';
@@ -721,9 +727,10 @@
             share({ kicker: 'Покана', title: 'Ела с мен в Nutriin', shareTitle: RE.text('inviteShare'), num: '−' + srv.invite.pct + '%', unit: 'за първия план', image: 'invite' }, srv.invite.code, 'share_invite');
         });
         el.querySelector('[data-share]').addEventListener('click', function () {
+            var num7 = soft ? String(goodOf7()) : String(st.streak), unit7 = soft ? 'от последните 7 дни' : 'дни поред';
             var mo = st.tier
-                ? { kicker: st.tier.title, num: String(st.streak), unit: 'дни поред', title: st.tier.share, image: st.tier.image }
-                : { kicker: 'Постоянство', num: String(st.streak), unit: 'дни поред', title: 'Ден след ден.', image: 'share' };
+                ? { kicker: st.tier.title, num: num7, unit: unit7, title: st.tier.share, image: st.tier.image }
+                : { kicker: 'Пътят към успеха', num: num7, unit: unit7, title: 'Ден след ден.', image: 'share' };
             share(mo, srv && srv.invite && srv.invite.code, 'share_section');
         });
     }

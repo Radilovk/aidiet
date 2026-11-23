@@ -734,10 +734,10 @@
     </script>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
-    <link rel="stylesheet" href="./rewards-ui.css?v=9">
-    <link rel="stylesheet" href="./widget-layout.css?v=1">
+    <link rel="stylesheet" href="./rewards-ui.css?v=10">
+    <link rel="stylesheet" href="./widget-layout.css?v=2">
     <script src="./app-ui.js" defer></script>
-    <script src="./ambient-glass.js?v=4"></script>
+    <script src="./ambient-glass.js?v=5"></script>
 </head>
 <body>
     <script src="./diagnostics-log.js"></script>
@@ -750,7 +750,7 @@
             <div class="game-analytics-header">
                 <div class="game-analytics-title">
                     <i class="fas fa-bullseye"></i>
-                    <span>За Твоята цел</span>
+                    <span>За твоята цел</span>
                 </div>
                 <span id="goalFocusBadge" class="game-analytics-badge"></span>
             </div>
@@ -867,14 +867,14 @@
         }
     </script>
 
-    <script src="./game-scoring.js"></script>
+    <script src="./game-scoring.js?v=2"></script>
     <script src="./goal-model.js"></script>
     <script src="./goal-focus.js"></script>
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
-    <script src="./rewards-engine.js?v=7"></script>
-    <script src="./rewards-ui.js?v=9"></script>
-    <script src="./widget-layout.js?v=1"></script>
+    <script src="./rewards-engine.js?v=8"></script>
+    <script src="./rewards-ui.js?v=10"></script>
+    <script src="./widget-layout.js?v=2"></script>
     <script>
     (function () {
         function go() { try { NutriPlanRewards.mount(document.getElementById('rewardsBody')); } catch (_) {} }
@@ -1441,8 +1441,7 @@
             var html = '';
             // Седмицата — със същата мярка като плана и наградите: добър ден = ангажираност ≥ 60%.
             // Без звезди и оценки; при мекия режим (persona.noScores) броят е в „Пътят към успеха“.
-            var GOOD_PCT = (window.RewardsEngine && window.RewardsEngine.GOOD) || 60;
-            var goodDays7 = days.filter(function(d){ return d.rec && calcDayScore(d.rec).engPct >= GOOD_PCT; }).length;
+            var goodDays7 = GS.goodDaysOf(allData, todayKey, 7).good;
             var softView = false;
             try { softView = !!(window.NutriPlanPersona && window.NutriPlanPersona.current().noScores); } catch (_) {}
             if (!softView) html += '<div class="ga-week-line ga-card-enter"><b>'+goodDays7+'</b><span>от 7 добри дни' +

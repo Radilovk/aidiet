@@ -13,7 +13,6 @@
     position: fixed; inset: 0; z-index: 10060;
     display: flex; align-items: flex-end; justify-content: center;
     background: rgba(3, 20, 19, .45);
-    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     opacity: 0; transition: opacity .25s var(--ds-ease-standard, ease);
 }
 .wl-sheet.is-in { opacity: 1; }
@@ -21,7 +20,9 @@
     width: min(520px, 100%); max-height: 86vh; overflow-y: auto; overscroll-behavior: contain;
     padding: 8px 16px calc(18px + env(safe-area-inset-bottom, 0px));
     border-radius: 24px 24px 0 0;
-    background: var(--bg-color, #fff);
+    /* плътно: под листа има бутони и текст, които не бива да прозират */
+    background: var(--ag-surface-solid, var(--bg-color, #fff));
+    border-top: 1px solid var(--ag-edge, var(--ds-line));
     color: var(--ds-text-primary, var(--text-dark));
     box-shadow: 0 -12px 40px rgba(0,0,0,.25);
     transform: translateY(24px); transition: transform .3s var(--ds-ease-emphasis, ease);
@@ -42,9 +43,11 @@
 .wl-row.is-drag { z-index: 2; box-shadow: 0 10px 24px rgba(0,0,0,.18); transition: none; }
 .wl-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
 .wl-name i { width: 18px; text-align: center; color: var(--ds-green-text); }
-.wl-btn { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 0; display: grid; place-items: center; font-size: 12px; color: #fff; cursor: pointer; }
-.wl-minus { background: var(--ds-error, #E5484D); }
-.wl-plus { background: var(--ds-success, #10B981); }
+.wl-btn { flex: none; width: 44px; height: 44px; margin-left: -8px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; }
+/* зоната е 44 px, видимият кръг — 28 px (DESIGN_PRINCIPLES.md, т. 6) */
+.wl-btn i { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; }
+.wl-minus i { background: var(--card-bg, #fff); border: 1px solid var(--ds-line); color: var(--ds-text-secondary, var(--text-light)); }
+.wl-plus i { background: var(--ds-green-soft); color: var(--ds-green-text); }
 .wl-handle { flex: none; width: 44px; height: 44px; display: grid; place-items: center; color: var(--ds-text-tertiary, var(--text-light)); cursor: grab; touch-action: none; }
 .wl-row.is-drag .wl-handle { cursor: grabbing; }
 /* бутоните ↑↓ — само за четец на екрана и клавиатура */

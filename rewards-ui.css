@@ -63,6 +63,9 @@
 .rw-card h4 { margin: 0 0 10px; font-size: 15px; font-weight: 700; color: var(--ds-text-primary, var(--text-color)); display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .rw-card h4 small { font-size: 13px; font-weight: 600; color: var(--ds-text-tertiary, var(--text-light)); font-variant-numeric: tabular-nums; }
 .rw-card h4 small i { color: var(--ds-green-text); font-size: 11px; }
+.rw-info { width: 44px; height: 44px; margin: -12px -12px -12px 0; border: 0; background: none; color: var(--ds-text-tertiary, var(--text-light)); font-size: 14px; cursor: pointer; display: grid; place-items: center; }
+.rw-info[aria-expanded="true"] { color: var(--ds-green-text); }
+.rw-about { margin: -2px 0 10px !important; font-size: 13px !important; }
 .rw-card p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ds-text-secondary, var(--text-light)); }
 
 .rw-step { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--ds-line); }

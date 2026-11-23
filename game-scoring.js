@@ -342,6 +342,27 @@
         return streak;
     }
 
+    /** Добър ден: ангажираност ≥ 60% (същият праг като наградите — rewards-engine.js → GOOD). */
+    var GOOD_DAY_PCT = 60;
+    /**
+     * Добри дни в последните n дни (днес − n+1 … днес). Днешният ден се брои само ако вече е добър —
+     * така числото е едно и също в плана, Напредък и наградите, по всяко време на деня.
+     * @returns {{ good: number, days: Array<{ key: string, good: boolean }> }}
+     */
+    function goodDaysOf(allData, todayKey, n) {
+        n = n || 7;
+        var out = [], good = 0;
+        for (var i = n - 1; i >= 0; i--) {
+            var d = new Date();
+            d.setDate(d.getDate() - i);
+            var k = dateKey(d), rec = (allData || {})[k];
+            var ok = !!rec && (calcDayScore(rec, todayKey).engPct || 0) >= GOOD_DAY_PCT;
+            if (ok) good++;
+            out.push({ key: k, good: ok });
+        }
+        return { good: good, days: out };
+    }
+
     /** Денят влиза в калорийния баланс: завършен и с поне половината хранения отметнати. */
     function calorieDayCounts(d, todayKey) {
         if (!d || !d.rec || !(d.key < todayKey)) return false;
@@ -438,6 +459,8 @@
         dayMealAdherence: dayMealAdherence,
         dayCalCloseness: dayCalCloseness,
         streakOf: streakOf,
+        GOOD_DAY_PCT: GOOD_DAY_PCT,
+        goodDaysOf: goodDaysOf,
         calorieDayCounts: calorieDayCounts,
         weekSummary: weekSummary
     };
