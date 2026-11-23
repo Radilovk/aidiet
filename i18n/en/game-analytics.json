@@ -121,7 +121,9 @@
   "Всичко по плана.": "Everything to plan.",
   "Дотук — всичко по плана.": "So far — everything to plan.",
   "Няма отбелязване за деня.": "Nothing logged for the day.",
-  "За теб тежат повече:": "What matters more for you:"
+  "За теб тежат повече:": "What matters more for you:",
+  "Кръгчета с процент": "Circles with percent",
+  "Кръгчета с личица": "Circles with faces"
  },
  "keys": {},
  "patterns": []
