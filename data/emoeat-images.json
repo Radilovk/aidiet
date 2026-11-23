@@ -1,51 +1,65 @@
 {
-  "about": "Снимки за финалната страница на EmoEat (emoeat.html → RX_PHOTO). Тема → търсене в Pixabay (английски). Избор: picks { тема: { id, focus: 'x,y' } }; scripts/emoeat-images.mjs.",
+  "about": "Снимки за EmoEat (emoeat.html). Показват ситуацията от текста: храна и чувства заедно, без тела и без числа. Тема → търсене в Pixabay (английски). Избор: picks { тема: { id, focus: 'x,y' } }; scripts/emoeat-images.mjs. Админ панелът (Снимки на EmoEat) може да ги подмени.",
   "themes": {
     "comfort": [
-      "warm blanket tea window cozy",
-      "hands holding warm cup soft light"
+      "dinner for one table candle evening",
+      "evening snack couch blanket cozy",
+      "woman eating alone window evening"
     ],
     "pause": [
-      "still lake calm morning mist",
-      "quiet window light empty chair"
+      "snacking while scrolling phone couch",
+      "hand reaching snack bowl couch evening",
+      "eating popcorn tv night"
     ],
     "pendulum": [
-      "stacked stones balance calm",
-      "balance rocks sea sunrise"
+      "salad and burger choice",
+      "cake slice fork plate night",
+      "half eaten cake plate"
     ],
     "order": [
-      "minimal organized shelf neutral",
-      "pebbles arranged line sand"
+      "meal prep containers organized",
+      "neatly arranged lunch boxes",
+      "portioned meals containers fridge"
     ],
     "critic": [
-      "soft morning light curtain window",
-      "gentle sunlight leaves bokeh"
+      "empty plate fork table thoughtful",
+      "woman sitting alone after dinner",
+      "hands on table after meal"
     ],
     "spark": [
-      "sparkler night light glow",
-      "campfire sparks dark night"
+      "chocolate square desk afternoon break",
+      "tired at desk coffee cookie",
+      "office snack break"
     ],
     "impulse": [
-      "ocean wave crest energy",
-      "water splash drops motion"
+      "open refrigerator night light",
+      "hand reaching fridge midnight",
+      "kitchen night light snack"
     ],
     "calm": [
-      "calm sea horizon sunrise",
-      "peaceful meadow morning light"
+      "peaceful breakfast table natural light",
+      "fruit bowl sunlight table",
+      "eating slowly mindful breakfast"
     ],
     "portrait": [
-      "forest path light morning",
-      "open road mountains sunrise"
+      "journal tea notebook morning",
+      "woman writing diary tea",
+      "notebook coffee window"
     ],
     "need": [
-      "open hands sunlight sky",
-      "sunrise through window warm light"
+      "two cups tea conversation friends",
+      "hand holding hand support",
+      "friends talking kitchen table"
     ],
     "plan": [
-      "misty hill trail morning"
+      "preparing healthy meal kitchen",
+      "cooking vegetables hands home",
+      "fresh ingredients wooden board"
     ],
     "welcome": [
-      "tree lined path soft light morning"
+      "woman thinking kitchen table tea",
+      "coffee notebook kitchen window morning",
+      "hands wrapped around mug kitchen"
     ]
   },
   "images": {
@@ -134,54 +148,5 @@
       "page": "https://pixabay.com/photos/trees-avenue-tree-lined-avenue-path-5345528/"
     }
   },
-  "picks": {
-    "comfort": {
-      "id": 4597416,
-      "focus": "0.5,0.4"
-    },
-    "pause": {
-      "id": 10338948,
-      "focus": "0.5,0.55"
-    },
-    "pendulum": {
-      "id": 7905883,
-      "focus": "0.55,0.5"
-    },
-    "order": {
-      "id": 1841271,
-      "focus": "0.5,0.5"
-    },
-    "critic": {
-      "id": 1776746,
-      "focus": "0.5,0.5"
-    },
-    "spark": {
-      "id": 1853624,
-      "focus": "0.4,0.5"
-    },
-    "impulse": {
-      "id": 4481903,
-      "focus": "0.6,0.4"
-    },
-    "calm": {
-      "id": 6100209,
-      "focus": "0.5,0.45"
-    },
-    "portrait": {
-      "id": 7179046,
-      "focus": "0.5,0.5"
-    },
-    "need": {
-      "id": 8431870,
-      "focus": "0.5,0.55"
-    },
-    "plan": {
-      "id": 5819652,
-      "focus": "0.55,0.5"
-    },
-    "welcome": {
-      "id": 5345528,
-      "focus": "0.5,0.6"
-    }
-  }
+  "picks": {}
 }
