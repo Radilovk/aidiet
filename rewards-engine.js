@@ -29,19 +29,24 @@
 
     // Стъпалата на постоянството и наградата при първото достигане.
     // kind: supplement — добавки (само за България), plan — план в сайта.
+    // Нивата на постоянството — качества, не етапи; думите са частта от наградата (думи: rewards-ui.js).
     var TIERS = [
-        { id: 'start', title: 'Начало', days: 14, minEng: 60, bonus: 100, rewards: [{ kind: 'supplement', pct: 5 }] },
-        { id: 'steady', title: 'Стабилност', days: 30, minEng: 70, bonus: 200, rewards: [{ kind: 'supplement', pct: 10 }] },
-        { id: 'habit', title: 'Навик', days: 60, minEng: 75, bonus: 300, rewards: [{ kind: 'supplement', pct: 15 }, { kind: 'plan', pct: 10 }] },
-        { id: 'lifestyle', title: 'Начин на живот', days: 90, minEng: 80, bonus: 500, rewards: [{ kind: 'supplement', pct: 20 }, { kind: 'plan', pct: 20 }] }
+        { id: 'start', title: 'Решимост', days: 14, minEng: 60, bonus: 100, image: 'resolve', rewards: [{ kind: 'supplement', pct: 5 }],
+          moment: 'Показа решимост', text: '14 дни, в които думата, дадена на себе си, удържа. Така започва всяка истинска промяна.', share: 'Дадох си дума — и я удържах.' },
+        { id: 'steady', title: 'Упоритост', days: 30, minEng: 70, bonus: 200, image: 'persist', rewards: [{ kind: 'supplement', pct: 10 }],
+          moment: 'Упоритостта ти личи', text: '30 дни избираш плана си отново и отново — и в лесните, и в трудните дни.', share: 'Избирам себе си — ден след ден.' },
+        { id: 'habit', title: 'Постоянство', days: 60, minEng: 75, bonus: 300, image: 'consistency', rewards: [{ kind: 'supplement', pct: 15 }, { kind: 'plan', pct: 10 }],
+          moment: 'Създаде постоянство', text: '60 дни. Това вече не е опит, а твоят ритъм.', share: 'Създадох постоянство.' },
+        { id: 'lifestyle', title: 'Вътрешна сила', days: 90, minEng: 80, bonus: 500, image: 'inner', rewards: [{ kind: 'supplement', pct: 20 }, { kind: 'plan', pct: 20 }],
+          moment: 'Промяната вече е отвътре', text: '90 дни постоянство. Вече не те води мотивацията, а това, което изгради.', share: 'Промяната вече е отвътре.' }
     ];
 
     // Поредица от добри дни: бонус точки и момент. 66 дни — медианата до автоматичен навик (Lally 2010).
     var STREAKS = [
-        { days: 7, bonus: 30, big: false },
-        { days: 21, bonus: 70, big: true },
-        { days: 66, bonus: 200, big: true, habit: true },
-        { days: 100, bonus: 300, big: true }
+        { days: 7, bonus: 30, big: false, moment: 'Седмица без прекъсване', text: 'Ритъмът се ражда. Продължавай в същия дух.', share: 'Ритъмът се ражда.' },
+        { days: 21, bonus: 70, big: true, moment: 'Показа устойчивост', text: '21 дни поред — и в дните, в които беше трудно.', share: 'Показах устойчивост.' },
+        { days: 66, bonus: 200, big: true, habit: true, moment: 'Създаде нов навик', text: 'Това вече не е усилие, а част от теб.', share: 'Създадох нов навик.' },
+        { days: 100, bonus: 300, big: true, moment: '100 дни упоритост', text: 'Сто дни, в които избра себе си.', share: 'Сто дни, в които избрах себе си.' }
     ];
 
     var WEIGHT_STEPS = [3, 5, 7, 10];
@@ -56,11 +61,10 @@
     // Само проверени факти — показват се, когато сравнение с потребителите още няма.
     var FACTS = {
         habit: 'В изследване на University College London (Lally и колеги, 2010) един нов навик става автоматичен средно за 66 дни — и един пропуснат ден не го разваля.',
-        streak21: 'Три седмици подред — повечето хора спират преди това. Ти минаваш през най-трудната част.',
         weight5: 'Около 5% по-малко тегло вече подобрява чувствителността към инсулина, кръвното и мазнините в кръвта (Magkos и колеги, Cell Metabolism, 2016).',
         weight7: 'В голямото изследване DPP (NEJM, 2002) 7% по-малко тегло и 150 минути движение седмично намаляват риска от диабет тип 2 с 58%.',
         steps: 'Голям анализ на 15 изследвания (Paluch и колеги, Lancet Public Health, 2022): повече крачки на ден — по-нисък риск, до около 8–10 хиляди при възрастните под 60 г.',
-        consistency: 'Редовното отбелязване е най-сигурният предвестник на успеха при промяната на храненето (Burke и колеги, 2011).'
+        consistency: 'В обзор на 22 изследвания (Burke и колеги, 2011) редовното записване на храненето неизменно върви с по-добрия резултат.'
     };
 
     function zp(n) { return n < 10 ? '0' + n : '' + n; }
@@ -284,13 +288,14 @@
         return res;
     }
 
+    function streakOf(days) { for (var i = 0; i < STREAKS.length; i++) if (STREAKS[i].days === days) return STREAKS[i]; return null; }
     function tierById(id) { for (var i = 0; i < TIERS.length; i++) if (TIERS[i].id === id) return TIERS[i]; return null; }
     function offerById(id) { for (var i = 0; i < OFFERS.length; i++) if (OFFERS[i].id === id) return OFFERS[i]; return null; }
 
     var api = {
         GOOD: GOOD, SHIELD_EVERY: SHIELD_EVERY, SHIELD_MAX: SHIELD_MAX, GRACE_DAYS: GRACE_DAYS,
         TIERS: TIERS, STREAKS: STREAKS, WEIGHT_STEPS: WEIGHT_STEPS, OFFERS: OFFERS, FACTS: FACTS,
-        compute: compute, tierById: tierById, offerById: offerById, weightProgress: weightProgress
+        compute: compute, tierById: tierById, streakOf: streakOf, offerById: offerById, weightProgress: weightProgress
     };
     /** @type {any} */ (global).RewardsEngine = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;

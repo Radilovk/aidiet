@@ -742,16 +742,60 @@ var require_rewards_engine = __commonJS({
       var GRACE_DAYS = 14;
       var DAY_POINTS_MAX = 20;
       var TIERS = [
-        { id: "start", title: "\u041D\u0430\u0447\u0430\u043B\u043E", days: 14, minEng: 60, bonus: 100, rewards: [{ kind: "supplement", pct: 5 }] },
-        { id: "steady", title: "\u0421\u0442\u0430\u0431\u0438\u043B\u043D\u043E\u0441\u0442", days: 30, minEng: 70, bonus: 200, rewards: [{ kind: "supplement", pct: 10 }] },
-        { id: "habit", title: "\u041D\u0430\u0432\u0438\u043A", days: 60, minEng: 75, bonus: 300, rewards: [{ kind: "supplement", pct: 15 }, { kind: "plan", pct: 10 }] },
-        { id: "lifestyle", title: "\u041D\u0430\u0447\u0438\u043D \u043D\u0430 \u0436\u0438\u0432\u043E\u0442", days: 90, minEng: 80, bonus: 500, rewards: [{ kind: "supplement", pct: 20 }, { kind: "plan", pct: 20 }] }
+        {
+          id: "start",
+          title: "\u0420\u0435\u0448\u0438\u043C\u043E\u0441\u0442",
+          days: 14,
+          minEng: 60,
+          bonus: 100,
+          image: "resolve",
+          rewards: [{ kind: "supplement", pct: 5 }],
+          moment: "\u041F\u043E\u043A\u0430\u0437\u0430 \u0440\u0435\u0448\u0438\u043C\u043E\u0441\u0442",
+          text: "14 \u0434\u043D\u0438, \u0432 \u043A\u043E\u0438\u0442\u043E \u0434\u0443\u043C\u0430\u0442\u0430, \u0434\u0430\u0434\u0435\u043D\u0430 \u043D\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438, \u0443\u0434\u044A\u0440\u0436\u0430. \u0422\u0430\u043A\u0430 \u0437\u0430\u043F\u043E\u0447\u0432\u0430 \u0432\u0441\u044F\u043A\u0430 \u0438\u0441\u0442\u0438\u043D\u0441\u043A\u0430 \u043F\u0440\u043E\u043C\u044F\u043D\u0430.",
+          share: "\u0414\u0430\u0434\u043E\u0445 \u0441\u0438 \u0434\u0443\u043C\u0430 \u2014 \u0438 \u044F \u0443\u0434\u044A\u0440\u0436\u0430\u0445."
+        },
+        {
+          id: "steady",
+          title: "\u0423\u043F\u043E\u0440\u0438\u0442\u043E\u0441\u0442",
+          days: 30,
+          minEng: 70,
+          bonus: 200,
+          image: "persist",
+          rewards: [{ kind: "supplement", pct: 10 }],
+          moment: "\u0423\u043F\u043E\u0440\u0438\u0442\u043E\u0441\u0442\u0442\u0430 \u0442\u0438 \u043B\u0438\u0447\u0438",
+          text: "30 \u0434\u043D\u0438 \u0438\u0437\u0431\u0438\u0440\u0430\u0448 \u043F\u043B\u0430\u043D\u0430 \u0441\u0438 \u043E\u0442\u043D\u043E\u0432\u043E \u0438 \u043E\u0442\u043D\u043E\u0432\u043E \u2014 \u0438 \u0432 \u043B\u0435\u0441\u043D\u0438\u0442\u0435, \u0438 \u0432 \u0442\u0440\u0443\u0434\u043D\u0438\u0442\u0435 \u0434\u043D\u0438.",
+          share: "\u0418\u0437\u0431\u0438\u0440\u0430\u043C \u0441\u0435\u0431\u0435 \u0441\u0438 \u2014 \u0434\u0435\u043D \u0441\u043B\u0435\u0434 \u0434\u0435\u043D."
+        },
+        {
+          id: "habit",
+          title: "\u041F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E",
+          days: 60,
+          minEng: 75,
+          bonus: 300,
+          image: "consistency",
+          rewards: [{ kind: "supplement", pct: 15 }, { kind: "plan", pct: 10 }],
+          moment: "\u0421\u044A\u0437\u0434\u0430\u0434\u0435 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E",
+          text: "60 \u0434\u043D\u0438. \u0422\u043E\u0432\u0430 \u0432\u0435\u0447\u0435 \u043D\u0435 \u0435 \u043E\u043F\u0438\u0442, \u0430 \u0442\u0432\u043E\u044F\u0442 \u0440\u0438\u0442\u044A\u043C.",
+          share: "\u0421\u044A\u0437\u0434\u0430\u0434\u043E\u0445 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E."
+        },
+        {
+          id: "lifestyle",
+          title: "\u0412\u044A\u0442\u0440\u0435\u0448\u043D\u0430 \u0441\u0438\u043B\u0430",
+          days: 90,
+          minEng: 80,
+          bonus: 500,
+          image: "inner",
+          rewards: [{ kind: "supplement", pct: 20 }, { kind: "plan", pct: 20 }],
+          moment: "\u041F\u0440\u043E\u043C\u044F\u043D\u0430\u0442\u0430 \u0432\u0435\u0447\u0435 \u0435 \u043E\u0442\u0432\u044A\u0442\u0440\u0435",
+          text: "90 \u0434\u043D\u0438 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E. \u0412\u0435\u0447\u0435 \u043D\u0435 \u0442\u0435 \u0432\u043E\u0434\u0438 \u043C\u043E\u0442\u0438\u0432\u0430\u0446\u0438\u044F\u0442\u0430, \u0430 \u0442\u043E\u0432\u0430, \u043A\u043E\u0435\u0442\u043E \u0438\u0437\u0433\u0440\u0430\u0434\u0438.",
+          share: "\u041F\u0440\u043E\u043C\u044F\u043D\u0430\u0442\u0430 \u0432\u0435\u0447\u0435 \u0435 \u043E\u0442\u0432\u044A\u0442\u0440\u0435."
+        }
       ];
       var STREAKS = [
-        { days: 7, bonus: 30, big: false },
-        { days: 21, bonus: 70, big: true },
-        { days: 66, bonus: 200, big: true, habit: true },
-        { days: 100, bonus: 300, big: true }
+        { days: 7, bonus: 30, big: false, moment: "\u0421\u0435\u0434\u043C\u0438\u0446\u0430 \u0431\u0435\u0437 \u043F\u0440\u0435\u043A\u044A\u0441\u0432\u0430\u043D\u0435", text: "\u0420\u0438\u0442\u044A\u043C\u044A\u0442 \u0441\u0435 \u0440\u0430\u0436\u0434\u0430. \u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0430\u0432\u0430\u0439 \u0432 \u0441\u044A\u0449\u0438\u044F \u0434\u0443\u0445.", share: "\u0420\u0438\u0442\u044A\u043C\u044A\u0442 \u0441\u0435 \u0440\u0430\u0436\u0434\u0430." },
+        { days: 21, bonus: 70, big: true, moment: "\u041F\u043E\u043A\u0430\u0437\u0430 \u0443\u0441\u0442\u043E\u0439\u0447\u0438\u0432\u043E\u0441\u0442", text: "21 \u0434\u043D\u0438 \u043F\u043E\u0440\u0435\u0434 \u2014 \u0438 \u0432 \u0434\u043D\u0438\u0442\u0435, \u0432 \u043A\u043E\u0438\u0442\u043E \u0431\u0435\u0448\u0435 \u0442\u0440\u0443\u0434\u043D\u043E.", share: "\u041F\u043E\u043A\u0430\u0437\u0430\u0445 \u0443\u0441\u0442\u043E\u0439\u0447\u0438\u0432\u043E\u0441\u0442." },
+        { days: 66, bonus: 200, big: true, habit: true, moment: "\u0421\u044A\u0437\u0434\u0430\u0434\u0435 \u043D\u043E\u0432 \u043D\u0430\u0432\u0438\u043A", text: "\u0422\u043E\u0432\u0430 \u0432\u0435\u0447\u0435 \u043D\u0435 \u0435 \u0443\u0441\u0438\u043B\u0438\u0435, \u0430 \u0447\u0430\u0441\u0442 \u043E\u0442 \u0442\u0435\u0431.", share: "\u0421\u044A\u0437\u0434\u0430\u0434\u043E\u0445 \u043D\u043E\u0432 \u043D\u0430\u0432\u0438\u043A." },
+        { days: 100, bonus: 300, big: true, moment: "100 \u0434\u043D\u0438 \u0443\u043F\u043E\u0440\u0438\u0442\u043E\u0441\u0442", text: "\u0421\u0442\u043E \u0434\u043D\u0438, \u0432 \u043A\u043E\u0438\u0442\u043E \u0438\u0437\u0431\u0440\u0430 \u0441\u0435\u0431\u0435 \u0441\u0438.", share: "\u0421\u0442\u043E \u0434\u043D\u0438, \u0432 \u043A\u043E\u0438\u0442\u043E \u0438\u0437\u0431\u0440\u0430\u0445 \u0441\u0435\u0431\u0435 \u0441\u0438." }
       ];
       var WEIGHT_STEPS = [3, 5, 7, 10];
       var WEIGHT_BIG = { 5: true, 10: true };
@@ -761,11 +805,10 @@ var require_rewards_engine = __commonJS({
       ];
       var FACTS = {
         habit: "\u0412 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 \u043D\u0430 University College London (Lally \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, 2010) \u0435\u0434\u0438\u043D \u043D\u043E\u0432 \u043D\u0430\u0432\u0438\u043A \u0441\u0442\u0430\u0432\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u043D \u0441\u0440\u0435\u0434\u043D\u043E \u0437\u0430 66 \u0434\u043D\u0438 \u2014 \u0438 \u0435\u0434\u0438\u043D \u043F\u0440\u043E\u043F\u0443\u0441\u043D\u0430\u0442 \u0434\u0435\u043D \u043D\u0435 \u0433\u043E \u0440\u0430\u0437\u0432\u0430\u043B\u044F.",
-        streak21: "\u0422\u0440\u0438 \u0441\u0435\u0434\u043C\u0438\u0446\u0438 \u043F\u043E\u0434\u0440\u0435\u0434 \u2014 \u043F\u043E\u0432\u0435\u0447\u0435\u0442\u043E \u0445\u043E\u0440\u0430 \u0441\u043F\u0438\u0440\u0430\u0442 \u043F\u0440\u0435\u0434\u0438 \u0442\u043E\u0432\u0430. \u0422\u0438 \u043C\u0438\u043D\u0430\u0432\u0430\u0448 \u043F\u0440\u0435\u0437 \u043D\u0430\u0439-\u0442\u0440\u0443\u0434\u043D\u0430\u0442\u0430 \u0447\u0430\u0441\u0442.",
         weight5: "\u041E\u043A\u043E\u043B\u043E 5% \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0442\u0435\u0433\u043B\u043E \u0432\u0435\u0447\u0435 \u043F\u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430 \u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442\u0442\u0430 \u043A\u044A\u043C \u0438\u043D\u0441\u0443\u043B\u0438\u043D\u0430, \u043A\u0440\u044A\u0432\u043D\u043E\u0442\u043E \u0438 \u043C\u0430\u0437\u043D\u0438\u043D\u0438\u0442\u0435 \u0432 \u043A\u0440\u044A\u0432\u0442\u0430 (Magkos \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, Cell Metabolism, 2016).",
         weight7: "\u0412 \u0433\u043E\u043B\u044F\u043C\u043E\u0442\u043E \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0435 DPP (NEJM, 2002) 7% \u043F\u043E-\u043C\u0430\u043B\u043A\u043E \u0442\u0435\u0433\u043B\u043E \u0438 150 \u043C\u0438\u043D\u0443\u0442\u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435 \u0441\u0435\u0434\u043C\u0438\u0447\u043D\u043E \u043D\u0430\u043C\u0430\u043B\u044F\u0432\u0430\u0442 \u0440\u0438\u0441\u043A\u0430 \u043E\u0442 \u0434\u0438\u0430\u0431\u0435\u0442 \u0442\u0438\u043F 2 \u0441 58%.",
         steps: "\u0413\u043E\u043B\u044F\u043C \u0430\u043D\u0430\u043B\u0438\u0437 \u043D\u0430 15 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F (Paluch \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, Lancet Public Health, 2022): \u043F\u043E\u0432\u0435\u0447\u0435 \u043A\u0440\u0430\u0447\u043A\u0438 \u043D\u0430 \u0434\u0435\u043D \u2014 \u043F\u043E-\u043D\u0438\u0441\u044A\u043A \u0440\u0438\u0441\u043A, \u0434\u043E \u043E\u043A\u043E\u043B\u043E 8\u201310 \u0445\u0438\u043B\u044F\u0434\u0438 \u043F\u0440\u0438 \u0432\u044A\u0437\u0440\u0430\u0441\u0442\u043D\u0438\u0442\u0435 \u043F\u043E\u0434 60 \u0433.",
-        consistency: "\u0420\u0435\u0434\u043E\u0432\u043D\u043E\u0442\u043E \u043E\u0442\u0431\u0435\u043B\u044F\u0437\u0432\u0430\u043D\u0435 \u0435 \u043D\u0430\u0439-\u0441\u0438\u0433\u0443\u0440\u043D\u0438\u044F\u0442 \u043F\u0440\u0435\u0434\u0432\u0435\u0441\u0442\u043D\u0438\u043A \u043D\u0430 \u0443\u0441\u043F\u0435\u0445\u0430 \u043F\u0440\u0438 \u043F\u0440\u043E\u043C\u044F\u043D\u0430\u0442\u0430 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E (Burke \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, 2011)."
+        consistency: "\u0412 \u043E\u0431\u0437\u043E\u0440 \u043D\u0430 22 \u0438\u0437\u0441\u043B\u0435\u0434\u0432\u0430\u043D\u0438\u044F (Burke \u0438 \u043A\u043E\u043B\u0435\u0433\u0438, 2011) \u0440\u0435\u0434\u043E\u0432\u043D\u043E\u0442\u043E \u0437\u0430\u043F\u0438\u0441\u0432\u0430\u043D\u0435 \u043D\u0430 \u0445\u0440\u0430\u043D\u0435\u043D\u0435\u0442\u043E \u043D\u0435\u0438\u0437\u043C\u0435\u043D\u043D\u043E \u0432\u044A\u0440\u0432\u0438 \u0441 \u043F\u043E-\u0434\u043E\u0431\u0440\u0438\u044F \u0440\u0435\u0437\u0443\u043B\u0442\u0430\u0442."
       };
       function zp2(n) {
         return n < 10 ? "0" + n : "" + n;
@@ -1013,6 +1056,10 @@ var require_rewards_engine = __commonJS({
         }
         return res;
       }
+      function streakOf(days) {
+        for (var i = 0; i < STREAKS.length; i++) if (STREAKS[i].days === days) return STREAKS[i];
+        return null;
+      }
       function tierById(id) {
         for (var i = 0; i < TIERS.length; i++) if (TIERS[i].id === id) return TIERS[i];
         return null;
@@ -1033,6 +1080,7 @@ var require_rewards_engine = __commonJS({
         FACTS,
         compute,
         tierById,
+        streakOf,
         offerById,
         weightProgress
       };
@@ -61620,14 +61668,37 @@ var HIST_TTL_MS = 12 * 36e5;
 var INVITE_PCT = 15;
 var INVITER_PCT = 20;
 var INVITE_POINTS = 300;
-var ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+var CODE_WORDS = {
+  "tier:start": ["\u0420\u0415\u0428\u0418\u041C\u041E\u0421\u0422", "\u041F\u042A\u0420\u0412\u0410-\u041A\u0420\u0410\u0427\u041A\u0410", "\u0414\u0410\u0414\u0415\u041D\u0410-\u0414\u0423\u041C\u0410", "\u0421\u041C\u0415\u041B\u041E-\u041D\u0410\u0427\u0410\u041B\u041E"],
+  "tier:steady": ["\u0423\u041F\u041E\u0420\u0418\u0422\u041E\u0421\u0422", "\u0414\u0415\u041D-\u0421\u041B\u0415\u0414-\u0414\u0415\u041D", "\u0421\u0418\u041B\u041D\u0410-\u0412\u041E\u041B\u042F", "\u041D\u0415-\u0421\u0415-\u041E\u0422\u041A\u0410\u0417\u0412\u0410\u041C"],
+  "tier:habit": ["\u041F\u041E\u0421\u0422\u041E\u042F\u041D\u0421\u0422\u0412\u041E", "\u041C\u041E\u042F\u0422-\u0420\u0418\u0422\u042A\u041C", "\u041D\u041E\u0412-\u041D\u0410\u0412\u0418\u041A", "\u0412\u0415\u0420\u0415\u041D-\u041A\u0423\u0420\u0421"],
+  "tier:lifestyle": ["\u0412\u042A\u0422\u0420\u0415\u0428\u041D\u0410-\u0421\u0418\u041B\u0410", "\u041E\u0422\u0412\u042A\u0422\u0420\u0415", "\u0416\u0415\u041B\u042F\u0417\u041D\u0410-\u0412\u041E\u041B\u042F", "\u041B\u0418\u0427\u0418-\u041D\u0410\u0412\u042A\u041D"],
+  offer: ["\u041F\u041B\u041E\u0414-\u041D\u0410-\u0422\u0420\u0423\u0414\u0410", "\u0417\u0410\u0421\u041B\u0423\u0416\u0415\u041D\u041E", "\u0421\u041F\u0415\u0427\u0415\u041B\u0415\u041D\u041E", "\u0427\u0415\u0421\u0422\u041D\u0410-\u041D\u0410\u0413\u0420\u0410\u0414\u0410"],
+  invite: ["\u0411\u041B\u0410\u0413\u041E\u0414\u0410\u0420\u042F", "\u0414\u041E\u0411\u042A\u0420-\u041F\u0420\u0418\u042F\u0422\u0415\u041B", "\u0417\u0410\u0415\u0414\u041D\u041E-\u0421\u041C\u0415"],
+  invitation: ["\u0415\u041B\u0410-\u0421-\u041C\u0415\u041D", "\u041E\u0411\u0429\u0410-\u0426\u0415\u041B", "\u0414\u0412\u0410\u041C\u0410-\u0421\u041C\u0415", "\u0417\u0410\u0415\u0414\u041D\u041E"]
+};
 var okUser = (id) => /^fb_[A-Za-z0-9_-]{6,128}$/.test(String(id || ""));
-var okRewardCode = (c) => /^NI-[A-HJ-NP-Z2-9]{8}$/.test(String(c || ""));
-var okInvite = (c) => /^[A-HJ-NP-Z2-9]{6}$/.test(String(c || ""));
-function randomFrom(n) {
-  const b = new Uint8Array(n);
+var CODE_RE = /^[А-Я]{2,}(?:-[А-Я]{1,})*-\d{3,4}$/;
+var normCode = (c) => String(c || "").trim().toLocaleUpperCase("bg").replace(/[\s_–—]+/g, "-").replace(/-+/g, "-").slice(0, 40);
+var okRewardCode = (c) => CODE_RE.test(String(c || ""));
+var okInvite = okRewardCode;
+function pickFrom(list4) {
+  const b = new Uint32Array(2);
   crypto.getRandomValues(b);
-  return [...b].map((x) => ALPHABET[x % ALPHABET.length]).join("");
+  return list4[b[0] % list4.length];
+}
+function digits2(n) {
+  const b = new Uint32Array(1);
+  crypto.getRandomValues(b);
+  const lo = 10 ** (n - 1);
+  return String(lo + b[0] % (9 * lo));
+}
+async function freeCode(env, prefix, words2) {
+  for (let i = 0; i < 12; i++) {
+    const code = `${pickFrom(words2)}-${digits2(i < 8 ? 3 : 4)}`;
+    if (!await env.page_content.get(`${prefix}${code}`)) return code;
+  }
+  throw new Error("no free code");
 }
 var getJSON = async (env, k) => {
   try {
@@ -61643,11 +61714,8 @@ function countryOf(request) {
 }
 var supplementsAllowed = (country) => !country || country === "BG";
 async function issueCode(env, userId, { kind, pct, source, partner = "", now = Date.now() }) {
-  let code;
-  for (let i = 0; i < 5; i++) {
-    code = `NI-${randomFrom(8)}`;
-    if (!await env.page_content.get(`reward_code:${code}`)) break;
-  }
+  const words2 = CODE_WORDS[source] || (source === "invite" ? CODE_WORDS.invite : CODE_WORDS.offer);
+  const code = await freeCode(env, "reward_code:", words2);
   const rec = { userId, kind, pct, source, until: now + CODE_DAYS * DAY_MS4, createdAt: now, ...kind === "supplement" ? { region: "BG" } : {}, ...partner ? { partner } : {} };
   await putJSON(env, `reward_code:${code}`, rec, (CODE_DAYS + 60) * 86400);
   return { code, ...rec };
@@ -61659,15 +61727,10 @@ async function readRewardCode(env, code, now = Date.now()) {
 }
 async function ensureInvite(env, userId, record) {
   if (okInvite(record.invite)) return record.invite;
-  for (let i = 0; i < 6; i++) {
-    const c = randomFrom(6);
-    if (!await env.page_content.get(`invite:${c}`)) {
-      await env.page_content.put(`invite:${c}`, userId);
-      record.invite = c;
-      return c;
-    }
-  }
-  return "";
+  const c = await freeCode(env, "invite:", CODE_WORDS.invitation);
+  await env.page_content.put(`invite:${c}`, userId);
+  record.invite = c;
+  return c;
 }
 async function cohort(env, now) {
   const cached = await getJSON(env, "rewards_hist");
@@ -61783,12 +61846,12 @@ async function handleRewardsRedeem(request, env, { respond, checkOwner, now = Da
   return respond({ success: true, code: publicCode(c.code, c), balance: balance - offer.cost });
 }
 async function handleRewardCodeStatus(url, env, { respond, now = Date.now() }) {
-  const code = String(url.searchParams.get("code") || "").toUpperCase();
+  const code = normCode(url.searchParams.get("code"));
   const r = await readRewardCode(env, code, now);
   return respond(r ? { valid: true, kind: r.kind, pct: r.pct, until: r.until } : { valid: false });
 }
 async function handleInviteStatus(url, env, { respond }) {
-  const code = String(url.searchParams.get("code") || "").toUpperCase();
+  const code = normCode(url.searchParams.get("code"));
   const owner = okInvite(code) ? await env.page_content.get(`invite:${code}`) : null;
   return respond(owner ? { valid: true, pct: INVITE_PCT } : { valid: false });
 }
@@ -61796,7 +61859,7 @@ async function handlePartnerVerify(request, env, { respond, now = Date.now() }) 
   const key = request.headers.get("X-Partner-Key") || "";
   if (!env.REWARDS_PARTNER_KEY || key !== env.REWARDS_PARTNER_KEY) return respond({ error: "unauthorized" }, 401);
   const b = await request.json().catch(() => ({}));
-  const code = String(b.code || "").toUpperCase();
+  const code = normCode(b.code);
   const r = await readRewardCode(env, code, now);
   if (!r || r.kind === "plan") return respond({ valid: false });
   if (b.redeem) await putJSON(env, `reward_code:${code}`, { ...r, usedAt: now, usedBy: "partner", order: String(b.order || "").slice(0, 64) }, 60 * 86400);
@@ -61804,9 +61867,10 @@ async function handlePartnerVerify(request, env, { respond, now = Date.now() }) 
 }
 async function planDiscount(env, userId, { reward = "", invite = "" } = {}, now = Date.now()) {
   let best = null;
-  const r = okRewardCode(String(reward || "").toUpperCase()) ? await readRewardCode(env, String(reward).toUpperCase(), now) : null;
-  if (r && r.kind === "plan" && r.userId === userId) best = { pct: r.pct, reward: String(reward).toUpperCase(), label: `\u2212${r.pct}% \u043D\u0430\u0433\u0440\u0430\u0434\u0430 \u0437\u0430 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E` };
-  const inv = String(invite || "").toUpperCase();
+  const rc = normCode(reward);
+  const r = await readRewardCode(env, rc, now);
+  if (r && r.kind === "plan" && r.userId === userId) best = { pct: r.pct, reward: rc, label: `\u2212${r.pct}% \u043D\u0430\u0433\u0440\u0430\u0434\u0430 \u0437\u0430 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u0441\u0442\u0432\u043E` };
+  const inv = normCode(invite);
   if (okInvite(inv) && (!best || best.pct < INVITE_PCT)) {
     const owner = await env.page_content.get(`invite:${inv}`);
     const usedBefore = await env.page_content.get(`invite_used:${userId}`);

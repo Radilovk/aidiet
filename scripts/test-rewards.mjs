@@ -154,7 +154,8 @@ await check('стъпалата дават кодове веднъж; точки
   assert.equal(first.status.tier, 'steady');
   assert.deepEqual(first.fresh.map((c) => `${c.kind}${c.pct}`), ['supplement5', 'supplement10']);
   assert.ok(first.wallet.balance > 41 * 15);
-  assert.match(first.invite.code, /^[A-HJ-NP-Z2-9]{6}$/);
+  assert.match(first.invite.code, /^(ЕЛА-С-МЕН|ОБЩА-ЦЕЛ|ДВАМА-СМЕ|ЗАЕДНО)-\d{3}$/);
+  assert.ok(first.fresh.every((c) => /^(РЕШИМОСТ|ПЪРВА-КРАЧКА|ДАДЕНА-ДУМА|СМЕЛО-НАЧАЛО|УПОРИТОСТ|ДЕН-СЛЕД-ДЕН|СИЛНА-ВОЛЯ|НЕ-СЕ-ОТКАЗВАМ)-\d{3}$/.test(c.code)), first.fresh.map((c) => c.code).join());
   const again = await rewards(A, { country: 'BG' });
   assert.equal(again.fresh.length, 0);
   assert.equal(again.codes.length, 2);
@@ -184,12 +185,15 @@ await check('точки → код; недостатъчно точки → от
   const d = await redeem('supp10');
   assert.equal(d.success, true);
   assert.equal(d.code.kind, 'supplement');
+  assert.match(d.code.code, /^(ПЛОД-НА-ТРУДА|ЗАСЛУЖЕНО|СПЕЧЕЛЕНО|ЧЕСТНА-НАГРАДА)-\d{3}$/);
   assert.equal(d.balance, first.wallet.balance - RE.offerById('supp10').cost);
   const poor = await redeem('plan10');
   assert.equal(poor.error, 'points');
   const verify = async (body, key = 'partner-secret') => (await handlePartnerVerify(req(body, { headers: { 'X-Partner-Key': key } }), env, deps(NOW))).json();
   assert.equal((await verify({ code: d.code.code }, 'wrong')).error, 'unauthorized');
   assert.equal((await verify({ code: d.code.code })).valid, true);
+  // въведен на ръка: малки букви и интервали вместо тирета
+  assert.equal((await verify({ code: d.code.code.toLowerCase().replace(/-/g, ' ') })).valid, true);
   assert.equal((await verify({ code: d.code.code, redeem: true, order: 'BC-1' })).redeemed, true);
   assert.equal((await verify({ code: d.code.code })).valid, false);
 });

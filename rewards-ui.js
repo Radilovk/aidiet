@@ -101,42 +101,49 @@
         return 'Постоянството ти е по-високо от това на ' + srv.percentile + '% от хората в Nutriin.';
     }
 
-    /** Етап → { big, kicker, num, unit, title, text, fact, gift } */
+    /**
+     * Етап → { big, kicker, num, unit, title, shareTitle, text, fact, gift, image }.
+     * Думите са за качеството, което човекът е показал (решимост, упоритост, постоянство),
+     * не за „постигнато ниво“: наградата е признанието, отстъпката идва след него.
+     */
     function momentOf(m, st, srv) {
         if (m.kind === 'tier') {
             var t = RE.tierById(m.tier);
             var gifts = t.rewards.map(function (r) { return giftText(r, srv); }).filter(Boolean);
             return {
-                big: true, kicker: 'Ново стъпало', num: String(t.days), unit: 'дни постоянство',
-                title: 'Браво! Достигна „' + t.title + '“', shareTitle: 'Достигнах „' + t.title + '“ в Nutriin',
-                text: t.days + ' дни със спазен план средно над ' + t.minEng + '%. ' + (comparison(srv) || 'Това е постоянство, което личи.'),
-                fact: t.id === 'habit' ? RE.FACTS.habit : RE.FACTS.consistency,
-                gift: gifts.length ? gifts.join(' · ') + ' — кодът е в Напредък' : ''
+                big: true, kicker: 'Ново ниво', num: String(t.days), unit: 'дни ' + t.title.toLowerCase(),
+                title: t.moment, shareTitle: t.share, text: t.text,
+                fact: comparison(srv) || (t.id === 'habit' ? RE.FACTS.habit : RE.FACTS.consistency),
+                gift: gifts.length ? gifts.join(' · ') + ' — кодът те чака в Напредък' : '',
+                image: t.image
             };
         }
-        if (m.kind === 'habit') return {
-            big: true, kicker: 'Нов навик', num: '66', unit: 'дни поред',
-            title: 'Честито — създаде нов навик!', shareTitle: 'Създадох нов навик с Nutriin', text: 'Това вече не е усилие, а част от деня ти.', fact: RE.FACTS.habit
-        };
-        if (m.kind === 'streak') return {
-            big: m.big, kicker: 'Поредица', num: String(m.days), unit: 'дни поред',
-            title: m.days + ' дни поред — браво!', shareTitle: m.days + ' дни поред с моя план в Nutriin',
-            text: m.days >= 21 ? RE.FACTS.streak21 : 'Седмица без прекъсване. Продължавай в същия ритъм.',
-            fact: m.days >= 21 ? comparison(srv) : ''
-        };
+        if (m.kind === 'habit' || m.kind === 'streak') {
+            var s = RE.streakOf(m.days) || {};
+            return {
+                big: m.big, kicker: m.kind === 'habit' ? 'Нов навик' : 'Поредица', num: String(m.days), unit: 'дни поред',
+                title: s.moment || m.days + ' дни поред', shareTitle: s.share, text: s.text || '',
+                fact: m.kind === 'habit' ? RE.FACTS.habit : comparison(srv),
+                image: m.kind === 'habit' ? 'habit' : 'streak'
+            };
+        }
         if (m.kind === 'weight') {
             var lose = m.dir === 'lose';
             return {
-                big: m.big, kicker: 'Етап към целта', num: (lose ? '−' : '+') + m.pct + '%', unit: lose ? 'от теглото' : 'към целта',
-                title: lose ? 'Честито — ' + m.pct + '% по-леко!' : 'Честито — ' + m.pct + '% напред към целта!',
-                shareTitle: lose ? m.pct + '% по-леко — стъпка по стъпка, с Nutriin' : m.pct + '% напред към целта — с Nutriin',
-                text: 'Постигнато с ежедневни решения, не с крайности.',
-                fact: lose && m.pct >= 7 ? RE.FACTS.weight7 : lose && m.pct >= 5 ? RE.FACTS.weight5 : ''
+                big: m.big, kicker: 'Към целта', num: (lose ? '−' : '+') + m.pct + '%', unit: lose ? 'от теглото' : 'към целта',
+                title: lose ? 'По-леко с ' + m.pct + '%. Заслужено.' : 'С ' + m.pct + '% по-близо до целта',
+                shareTitle: lose ? 'По-леко. Отвътре навън.' : 'По-близо до целта. Ден след ден.',
+                text: 'С ежедневни решения, не с крайности.',
+                fact: lose && m.pct >= 7 ? RE.FACTS.weight7 : lose && m.pct >= 5 ? RE.FACTS.weight5 : '',
+                image: 'weight'
             };
         }
-        if (m.kind === 'shield') return { big: false, icon: 'fa-shield-halved', title: 'Спечели жокер — пази поредицата в ден без отметки.' };
+        if (m.kind === 'shield') return { big: false, icon: 'fa-shield-alt', title: 'Спечели жокер: един ден без отметки няма да прекъсне поредицата ти.' };
         return null;
     }
+
+    /** Снимката на темата (data/reward-images.json → brand/rewards/<тема>.webp). */
+    function photo(theme) { return './brand/rewards/' + theme + '.webp'; }
 
     // ── Тържеството ─────────────────────────────────────────────────────────
     function haptic(strong) {
@@ -184,7 +191,8 @@
         el.setAttribute('aria-modal', 'true');
         el.setAttribute('aria-label', mo.title);
         el.innerHTML = '<canvas class="rw-confetti"></canvas>' +
-            '<div class="rw-moment-card">' +
+            '<div class="rw-moment-card' + (mo.image ? ' has-photo' : '') + '">' +
+            (mo.image ? '<div class="rw-moment-photo"><img src="' + photo(mo.image) + '" alt="" onerror="this.closest(\'.rw-moment-card\').classList.remove(\'has-photo\');this.parentNode.remove()"></div>' : '') +
             '<div class="rw-moment-mark"><img src="./brand/nutriin-mark-dark.svg" alt=""></div>' +
             (mo.kicker ? '<div class="rw-moment-kicker">' + esc(mo.kicker) + '</div>' : '') +
             (mo.num ? '<div class="rw-moment-big">' + esc(mo.num) + '</div><p>' + esc(mo.unit || '') + '</p>' : '') +
@@ -244,29 +252,47 @@
             g.addColorStop(0, a[3]); g.addColorStop(1, 'rgba(0,0,0,0)');
             x.fillStyle = g; x.fillRect(0, 0, W, H);
         });
-        var mark = await loadImg('./brand/nutriin-mark-dark.svg');
-        if (mark) { x.globalAlpha = .1; x.drawImage(mark, 560, 300, 600, 600); x.globalAlpha = 1; }
+        var pic = mo.image ? await loadImg(photo(mo.image)) : null;
+        if (pic) {
+            // снимката горе, плавно в тъмното отдолу — текстът стои върху спокоен фон
+            x.drawImage(pic, 0, 0, W, H);
+            var fade = x.createLinearGradient(0, 0, 0, H);
+            fade.addColorStop(0, 'rgba(4,26,25,.55)'); fade.addColorStop(.22, 'rgba(4,26,25,.05)');
+            fade.addColorStop(.42, 'rgba(4,26,25,.35)'); fade.addColorStop(.62, 'rgba(4,26,25,.9)'); fade.addColorStop(1, 'rgba(4,26,25,.97)');
+            x.fillStyle = fade; x.fillRect(0, 0, W, H);
+        } else {
+            var mark = await loadImg('./brand/nutriin-mark-dark.svg');
+            if (mark) { x.globalAlpha = .1; x.drawImage(mark, 560, 300, 600, 600); x.globalAlpha = 1; }
+        }
         var logo = await loadImg('./brand/nutriin-horizontal-dark.svg');
         if (logo) { var lw = 300, lh = lw * (logo.height / logo.width || .3); x.drawImage(logo, 90, 96, lw, lh); }
         x.textAlign = 'left';
+        x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = pic ? 18 : 0;
+        // Със снимка текстът слиза в долната, тъмна част.
+        var big = String(mo.num || '').length > 3 ? 210 : 260;
+        var y0 = pic ? 640 : 420;
         x.fillStyle = '#A0F500';
         x.font = '700 34px ' + font;
-        x.fillText(String(mo.kicker || 'Постижение').toUpperCase(), 90, 420);
+        x.fillText(String(mo.kicker || 'Постоянство').toUpperCase(), 90, y0);
         x.fillStyle = '#fff';
-        x.font = '800 ' + (String(mo.num || '').length > 3 ? 230 : 300) + 'px ' + font;
-        x.fillText(mo.num || '★', 80, 700);
-        x.font = '500 48px ' + font;
-        x.fillStyle = 'rgba(255,255,255,.86)';
-        x.fillText(mo.unit || '', 90, 790);
+        x.font = '800 ' + (pic ? big - 30 : big + 40) + 'px ' + font;
+        var ny = y0 + (pic ? big - 20 : big + 20);
+        x.fillText(mo.num || '★', 80, ny);
+        var numW = x.measureText(mo.num || '★').width;
+        x.font = '500 46px ' + font;
+        x.fillStyle = 'rgba(255,255,255,.88)';
+        if (pic) x.fillText(mo.unit || '', 110 + numW, ny);   // „30 дни упоритост“ на един ред
+        else x.fillText(mo.unit || '', 90, ny + 90);
         x.fillStyle = '#fff';
         x.font = '800 60px ' + font;
-        wrap(x, mo.shareTitle || mo.title, 90, 900, W - 180, 72, 2);
-        x.font = '500 36px ' + font;
-        x.fillStyle = 'rgba(255,255,255,.72)';
-        x.fillText('Започва отвътре. Личи навън.', 90, 1150);
-        x.fillStyle = '#A0F500';
+        wrap(x, mo.shareTitle || mo.title, 90, pic ? ny + 110 : ny + 200, W - 180, 72, 2);
+        x.shadowBlur = 0;
         x.font = '700 34px ' + font;
-        x.fillText(invite ? 'nutriin.app · код ' + invite + ' — −15% за първия план' : 'nutriin.app', 90, 1230);
+        x.fillStyle = '#A0F500';
+        x.fillText(invite ? 'Код ' + invite + ' → −15% за първия план' : 'Започва отвътре. Личи навън.', 90, 1210);
+        x.font = '500 32px ' + font;
+        x.fillStyle = 'rgba(255,255,255,.7)';
+        x.fillText('nutriin.app', 90, 1265);
         return new Promise(function (res) { c.toBlob(function (b) { res(b); }, 'image/png'); });
     }
 
@@ -377,46 +403,48 @@
 
     function render(el, st, srv) {
         if (!st || !st.firstKey) {
-            el.innerHTML = '<div class="rw-card"><p>Отбелязвай храненията и вечерния въпрос — от първия ден започва поредицата ти, а с нея и наградите: стъпала, точки и отстъпки.</p></div>';
+            el.innerHTML = '<div class="rw-card"><p>Всеки отметнат ден е стъпка. От първия започва поредицата ти, а с нея — решимост, упоритост, постоянство и наградите за тях.</p></div>';
             return;
         }
-        var tierTitle = st.tier ? st.tier.title : 'Първи стъпки';
+        var tierTitle = st.tier ? st.tier.title : 'Първа крачка';
         var nx = st.next;
         var barPct = nx ? nx.progress : 100;
         var barLabel = nx
-            ? 'До „' + nx.title + '“: ' + nx.daysHave + ' от ' + nx.days + ' дни · средно ' + (nx.avg || 0) + '% (нужни ' + nx.minEng + '%)'
-            : 'Най-високото стъпало — пазиш го с всеки ден.';
+            ? 'Към „' + nx.title + '“ · ' + nx.daysHave + ' от ' + nx.days + ' дни · средно ' + (nx.avg || 0) + '% (нужни ' + nx.minEng + '%)'
+            : 'Вътрешна сила — пазиш я с всеки ден.';
         var pts = srv ? srv.wallet.balance : st.points.earned;
         var shields = '';
-        for (var i = 0; i < st.shields.max; i++) shields += '<i class="fas fa-shield-halved" style="' + (i < st.shields.held ? '' : 'opacity:.3') + '"></i>';
+        for (var i = 0; i < st.shields.max; i++) shields += '<i class="fas fa-shield-alt" style="' + (i < st.shields.held ? '' : 'opacity:.3') + '"></i>';
 
         var summary;
-        if (nx && nx.avg != null && nx.avg >= nx.minEng) summary = 'Още ' + (nx.days - nx.daysHave) + ' ' + plural(nx.days - nx.daysHave, 'ден', 'дни') + ' в този ритъм и стигаш „' + nx.title + '“' + (nx.rewards.length ? ' — ' + nx.rewards.map(function (r) { return giftText(r, srv); }).filter(Boolean).join(' и ') : '') + '.';
-        else if (nx && nx.avg != null) summary = 'За „' + nx.title + '“ средната ангажираност трябва да е ' + nx.minEng + '% — сега е ' + nx.avg + '%. Всеки отметнат ден я вдига.';
-        else summary = 'Пазиш най-високото стъпало. Точките продължават да се трупат.';
+        if (nx && nx.avg != null && nx.avg >= nx.minEng) summary = 'Още ' + (nx.days - nx.daysHave) + ' ' + plural(nx.days - nx.daysHave, 'ден', 'дни') + ' в този ритъм — и ще покажеш ' + nx.title.toLowerCase() + '.' + (nx.rewards.length ? ' Наградата: ' + nx.rewards.map(function (r) { return giftText(r, srv); }).filter(Boolean).join(' и ') + '.' : '');
+        else if (nx && nx.avg != null) summary = '„' + nx.title + '“ иска средно ' + nx.minEng + '% — сега си на ' + nx.avg + '%. Всеки отметнат ден те приближава.';
+        else summary = 'Промяната вече е отвътре. Пазиш я с всеки ден, а точките ти продължават да растат.';
         var cmp = comparison(srv);
         if (cmp) summary += ' ' + cmp;
 
-        var html = '<div class="rw-hero">' +
+        // Снимката на нивото — тихо зад градиента (brand/rewards, без нея остава само градиентът).
+        var heroPic = st.tier ? st.tier.image : 'resolve';
+        var html = '<div class="rw-hero" style="--rw-photo:url(' + photo(heroPic) + ')">' +
             '<div class="rw-hero-top"><div class="rw-streak"><b>' + st.streak + '</b><span>' + plural(st.streak, 'ден', 'дни') + ' поред</span></div>' +
-            '<div class="rw-tier"><small>Стъпало</small><strong>' + esc(tierTitle) + '</strong></div></div>' +
+            '<div class="rw-tier"><small>Твоето ниво</small><strong>' + esc(tierTitle) + '</strong></div></div>' +
             '<div class="rw-bar"><i data-w="' + barPct + '"></i></div><div class="rw-bar-label">' + esc(barLabel) + '</div>' +
             '<div class="rw-chips"><span class="rw-chip" title="Жокери: пазят поредицата в ден без отметки">' + shields + ' ' + st.shields.held + ' ' + plural(st.shields.held, 'жокер', 'жокера') + '</span>' +
             '<span class="rw-chip"><i class="fas fa-star"></i>' + num(pts) + ' точки</span></div>' +
             '</div>' +
             '<p class="rw-summary">' + esc(summary) + '</p>';
-        if (st.warning) html += '<div class="rw-warn"><i class="fas fa-circle-exclamation"></i> Пази стъпалото „' + esc(st.tier.title) + '“: още ' + st.warning.daysLeft + ' ' + plural(st.warning.daysLeft, 'ден', 'дни') + ' под прага и слиза с едно. Един добър ден връща отброяването.</div>';
+        if (st.warning) html += '<div class="rw-warn"><i class="fas fa-circle-exclamation"></i> Пази своята ' + esc(st.tier.title.toLowerCase()) + ': след още ' + st.warning.daysLeft + ' ' + plural(st.warning.daysLeft, 'ден', 'дни') + ' под прага нивото слиза с едно. Един добър ден връща отброяването.</div>';
 
-        html += '<button type="button" class="rw-toggle" aria-expanded="false" aria-controls="rwDetails"><span>Награди, стъпала и покана</span><i class="fas fa-chevron-down"></i></button><div id="rwDetails" hidden>';
+        html += '<button type="button" class="rw-toggle" aria-expanded="false" aria-controls="rwDetails"><span>Награди, нива и покана</span><i class="fas fa-chevron-down"></i></button><div id="rwDetails" hidden>';
 
         // Кодовете
         var codes = (srv && srv.codes || []).filter(function (c) { return !c.used; });
         html += '<div class="rw-card"><h4><i class="fas fa-gift"></i>Твоите отстъпки</h4>' +
-            (codes.length ? codes.map(codeRow).join('') : '<p>' + (srv ? 'Първата отстъпка идва със стъпалото „Начало“ — 14 дни средно над 60%.' : 'Влез в акаунта си, за да събираш точки и отстъпки.') + '</p>') + '</div>';
+            (codes.length ? codes.map(codeRow).join('') : '<p>' + (srv ? 'Първата награда идва с „Решимост“ — 14 дни средно над 60%.' : 'Влез в акаунта си, за да събираш точки и отстъпки.') + '</p>') + '</div>';
 
         // Точки → отстъпка
         if (srv && srv.offers && srv.offers.length) {
-            html += '<div class="rw-card"><h4><i class="fas fa-star"></i>Точки за отстъпка</h4><p>10 точки за добър ден, +5 при над 80%, +5 при крачки на целта; бонуси за стъпалата и поредиците.</p>' +
+            html += '<div class="rw-card"><h4><i class="fas fa-star"></i>Плодът на труда ти</h4><p>Точки за всеки добър ден (10, +5 над 80%, +5 при крачки на целта) и бонуси за нивата и поредиците. Обърни ги в отстъпка.</p>' +
                 srv.offers.filter(function (o) { return !(o.kind === 'plan' && isApp()); }).map(function (o) {
                     return '<div class="rw-code"><div class="rw-code-main"><b>' + esc(o.title) + '</b><span>' + num(o.cost) + ' точки</span></div>' +
                         '<button type="button" class="rw-btn rw-btn--main" data-redeem="' + esc(o.id) + '"' + (srv.wallet.balance < o.cost ? ' disabled' : '') + '>Вземи</button></div>';
@@ -424,12 +452,12 @@
         }
 
         // Стъпалата
-        html += '<div class="rw-card"><h4><i class="fas fa-stairs"></i>Стъпала на постоянството</h4>' + RE.TIERS.map(function (t, i) {
+        html += '<div class="rw-card"><h4><i class="fas fa-stairs"></i>Пътят на постоянството</h4>' + RE.TIERS.map(function (t, i) {
             var done = st.tier && st.tier.index >= i;
             var isNext = !done && (st.tier ? st.tier.index + 1 : 0) === i;
             return '<div class="rw-step' + (done ? ' is-done' : isNext ? ' is-next' : '') + '"><i class="fas ' + (done ? 'fa-check' : isNext ? 'fa-arrow-up' : 'fa-lock') + '"></i><div><b>' + esc(t.title) + '</b>' +
                 '<span>' + t.days + ' дни · средно над ' + t.minEng + '%</span><div>' + t.rewards.map(function (r) { var g = giftText(r, srv); return g ? '<span class="rw-gift">' + esc(g) + '</span>' : ''; }).join('') + '</div></div></div>';
-        }).join('') + '<p style="margin-top:8px">Достигнатото стъпало се пази: слиза с едно само след 14 поредни дни под прага.</p></div>';
+        }).join('') + '<p style="margin-top:8px">Изграденото остава твое: нивото слиза с едно само след 14 поредни дни под прага.</p></div>';
 
         // Покана
         if (srv && srv.invite && srv.invite.code) {
@@ -437,7 +465,7 @@
                 '<p>' + (isApp() ? 'Сподели кода си: приятелят получава отстъпка за първия си план, а ти — отстъпка и ' + 300 + ' точки, щом започне.'
                     : 'Приятелят получава −' + srv.invite.pct + '% за първия си план, а ти — код −' + srv.invite.reward + '% и 300 точки, щом започне.') +
                 (srv.invite.count ? ' Досега: ' + srv.invite.count + ' ' + plural(srv.invite.count, 'приятел', 'приятели') + '.' : '') + '</p>' +
-                '<div class="rw-code" style="margin-top:10px"><div class="rw-code-main"><code style="font-size:20px">' + esc(srv.invite.code) + '</code></div>' +
+                '<div class="rw-code" style="margin-top:10px"><div class="rw-code-main"><code style="font-size:18px;white-space:nowrap;letter-spacing:.02em">' + esc(srv.invite.code) + '</code></div>' +
                 '<button type="button" class="rw-btn" data-copy="' + esc(SITE + '/?invite=' + srv.invite.code) + '" aria-label="Копирай връзката"><i class="fas fa-link"></i></button>' +
                 '<button type="button" class="rw-btn rw-btn--main" data-invite="1"><i class="fas fa-share-nodes"></i> Покани</button></div></div>';
         }
@@ -471,19 +499,19 @@
                 b.disabled = true;
                 var d = await post('/api/user/rewards/redeem', { offer: b.getAttribute('data-redeem') }).catch(function () { return null; });
                 if (d && d.success) {
-                    celebrate({ big: true, kicker: 'Награда', title: 'Готово — твоята отстъпка', num: '−' + d.code.pct + '%', unit: d.code.kind === 'plan' ? 'за план' : 'за добавки', text: 'Код: ' + d.code.code + '. Пази се в „Твоите отстъпки“.' });
+                    celebrate({ big: true, kicker: 'Плод на труда', title: 'Заслужено. Отстъпката е твоя.', num: '−' + d.code.pct + '%', unit: d.code.kind === 'plan' ? 'за план' : 'за добавки', text: 'Кодът ти: ' + d.code.code + '. Пази се в „Твоите отстъпки“.', image: 'share' });
                     mount(el, true);
                 } else { b.disabled = false; toast((d && d.message) || 'Не стана. Опитай пак.', 'fa-circle-exclamation'); }
             });
         });
         var inv = el.querySelector('[data-invite]');
         if (inv) inv.addEventListener('click', function () {
-            share({ kicker: 'Покана', title: 'Започни с мен в Nutriin', shareTitle: 'Започни с мен — храненето, видяно отвътре', num: '−' + srv.invite.pct + '%', unit: 'за първия план' }, srv.invite.code);
+            share({ kicker: 'Покана', title: 'Ела с мен в Nutriin', shareTitle: 'Ела с мен — храненето, видяно отвътре', num: '−' + srv.invite.pct + '%', unit: 'за първия план', image: 'invite' }, srv.invite.code);
         });
         el.querySelector('[data-share]').addEventListener('click', function () {
             var mo = st.tier
-                ? { kicker: 'Постоянство', num: String(st.streak), unit: 'дни поред', title: 'Стъпало „' + st.tier.title + '“', shareTitle: 'Стъпало „' + st.tier.title + '“ в Nutriin' }
-                : { kicker: 'Постоянство', num: String(st.streak), unit: 'дни поред', title: st.streak + ' дни поред с моя план' };
+                ? { kicker: st.tier.title, num: String(st.streak), unit: 'дни поред', title: st.tier.share, image: st.tier.image }
+                : { kicker: 'Постоянство', num: String(st.streak), unit: 'дни поред', title: 'Ден след ден.', image: 'share' };
             share(mo, srv && srv.invite && srv.invite.code);
         });
     }

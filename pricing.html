@@ -34,6 +34,12 @@
         .price-iris p { margin: 0 0 14px; color: var(--text-2); }
         .price-iris img { flex: none; }
         .price-note { margin: 14px auto 0; max-width: 30em; padding: 10px 14px; border-radius: 14px; background: var(--tint); color: var(--text); font-size: .92rem; }
+        .code-form { margin: 14px auto 0; max-width: 30em; text-align: left; }
+        .code-form label { display: block; font-size: .9rem; color: var(--muted, inherit); margin-bottom: 6px; }
+        .code-form div { display: flex; gap: 8px; }
+        .code-form input { flex: 1; min-width: 0; min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line, rgba(0,0,0,.12)); background: var(--card, #fff); color: var(--text); font: inherit; letter-spacing: .04em; text-transform: uppercase; }
+        .code-form button { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 0; background: var(--brand-gradient); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+        .code-form p { margin: 6px 0 0; font-size: .88rem; min-height: 1em; }
         .plans { display: grid; gap: 14px; margin: 24px 0 8px; }
         .plans { max-width: 1080px; margin-left: auto; margin-right: auto; }
         @media (min-width: 700px) { .plans { grid-template-columns: repeat(2, 1fr); } }
@@ -84,6 +90,11 @@
             <p class="price-note" id="payNote" hidden></p>
             <p class="price-note" id="featureNote" hidden></p>
             <p class="price-note" id="rewardNote" hidden></p>
+            <form class="code-form" id="codeForm" autocomplete="off">
+                <label for="codeInput">Имаш код за отстъпка или покана?</label>
+                <div><input id="codeInput" type="text" placeholder="напр. УПОРИТОСТ-417" autocapitalize="characters" spellcheck="false"><button type="submit">Приложи</button></div>
+                <p id="codeMsg" role="status"></p>
+            </form>
         </section>
 
         <div class="plans" id="plans"></div>
@@ -254,7 +265,9 @@
         // Награда за постоянство (?reward=NI-…) или покана от приятел (?invite=…) — по-голямата, след ваучера (rewards.js).
         var reward = null, invite = null;
         (function () {
-            var code = String(params.get('reward') || '').toUpperCase();
+            // Кодовете са думи и число (rewards.js): „упоритост 417“ → „УПОРИТОСТ-417“.
+            function norm(c) { return String(c || '').trim().toLocaleUpperCase('bg').replace(/[\s_–—]+/g, '-').replace(/-+/g, '-'); }
+            var code = norm(params.get('reward'));
             try {
                 if (code) localStorage.setItem('np_reward_code', code);
                 else code = localStorage.getItem('np_reward_code') || '';
@@ -265,13 +278,33 @@
                 var r = reward && (!invite || reward.pct >= invite.pct) ? 'Твоята награда за постоянство: −' + reward.pct + '% за плана.' : invite ? 'Покана от приятел: −' + invite.pct + '% за първия план.' : '';
                 n.textContent = r; n.hidden = !r; render();
             }
-            if (code) fetch(WORKER + '/api/rewards/code?code=' + encodeURIComponent(code)).then(function (r) { return r.json(); }).then(function (d) {
-                if (d && d.valid && d.kind === 'plan') { reward = { code: code, pct: d.pct }; note(); }
-                else try { localStorage.removeItem('np_reward_code'); } catch (e) {}
-            }).catch(function () {});
-            if (inv) fetch(WORKER + '/api/rewards/invite?code=' + encodeURIComponent(inv)).then(function (r) { return r.json(); }).then(function (d) {
-                if (d && d.valid) { invite = { code: inv, pct: d.pct }; note(); }
-            }).catch(function () {});
+            function get(path, c) { return fetch(WORKER + path + '?code=' + encodeURIComponent(c)).then(function (r) { return r.json(); }); }
+            function tryReward(c) {
+                return get('/api/rewards/code', c).then(function (d) {
+                    if (d && d.valid && d.kind === 'plan') { reward = { code: c, pct: d.pct }; try { localStorage.setItem('np_reward_code', c); } catch (e) {} note(); return 'plan'; }
+                    return d && d.valid ? d.kind : '';
+                });
+            }
+            function tryInvite(c) {
+                return get('/api/rewards/invite', c).then(function (d) {
+                    if (d && d.valid) { invite = { code: c, pct: d.pct }; try { localStorage.setItem('np_invite', JSON.stringify({ code: c, at: Date.now() })); } catch (e) {} note(); return true; }
+                    return false;
+                });
+            }
+            if (code) tryReward(code).then(function (k) { if (k !== 'plan') try { localStorage.removeItem('np_reward_code'); } catch (e) {} }).catch(function () {});
+            if (inv) tryInvite(inv).catch(function () {});
+            var form = document.getElementById('codeForm'), msg = document.getElementById('codeMsg');
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var c = norm(document.getElementById('codeInput').value);
+                if (!c) return;
+                msg.textContent = 'Проверяваме…';
+                tryReward(c).then(function (k) {
+                    if (k === 'plan') { msg.textContent = 'Кодът е приложен.'; return; }
+                    if (k === 'supplement') { msg.textContent = 'Това е код за добавки — използвай го в магазина BIOCODE.'; return; }
+                    return tryInvite(c).then(function (ok) { msg.textContent = ok ? 'Поканата е приложена — отстъпка за първия план.' : 'Не намираме такъв код. Провери думите и числото.'; });
+                }).catch(function () { msg.textContent = 'Няма връзка. Опитай пак.'; });
+            });
         })();
         function priceOf(c) {
             var p = voucher && c.kind === 'plan' && !c.requiresPlan ? Math.max(0.5, Math.round((c.price - voucher.amount) * 100) / 100) : c.price;
