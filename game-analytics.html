@@ -272,9 +272,16 @@
         .ga-rings--5 { grid-template-columns: repeat(6, 1fr); }
         .ga-rings--5 .ga-ring { grid-column: span 2; }
         .ga-rings--5 .ga-ring:nth-child(4) { grid-column: 2 / span 2; }
-        .ga-ring { min-height: 44px; padding: 6px 0 8px; border: 1px solid transparent; border-radius: 16px; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-        .ga-ring[aria-pressed="true"] { background: var(--ds-surface-sunken, rgba(15,47,46,.04)); border-color: var(--ds-line, rgba(15,47,46,.08)); }
-        .ga-ring[aria-pressed="true"] .game-ring-label { color: var(--text-dark); }
+        .ga-ring { position: relative; min-height: 44px; padding: 6px 0 8px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .ga-ring > * { position: relative; }
+        /* Избраният — тих ореол в цвета на показателя зад кръга, като светенето на завършените
+           части на деня в плана (ambient-glass.css → .dc-seg--done): една мека светлина, без рамка. */
+        .ga-ring::before { content: ''; position: absolute; left: 50%; top: 6px; width: 48px; height: 48px; margin-left: -24px; border-radius: 50%;
+            background: var(--rc); opacity: 0; filter: blur(10px); transition: opacity .3s ease; pointer-events: none; }
+        .ga-ring[aria-pressed="true"]::before { opacity: .3; }
+        .ga-ring[aria-pressed="true"] .game-ring-label { color: var(--text-dark); font-weight: 700; }
+        @media (prefers-reduced-motion: reduce) { .ga-ring::before { transition: none; } }
+        .ga-ring.is-few svg { opacity: .45; }
         .ga-ring:focus-visible { outline: 2px solid var(--ds-green-text, #03939C); outline-offset: 2px; }
         #gameMetricsDetails { flex-direction: column; }
         /* История: 8 седмици като стълбчета */
@@ -778,7 +785,7 @@
     </script>
     <!-- Общ UI слой на приложението (шрифт, бутони, листове, жестове) -->
     <link rel="stylesheet" href="./app-ui.css">
-    <link rel="stylesheet" href="./rewards-ui.css?v=11">
+    <link rel="stylesheet" href="./rewards-ui.css?v=12">
     <link rel="stylesheet" href="./widget-layout.css?v=2">
     <script src="./app-ui.js" defer></script>
     <script src="./ambient-glass.js?v=5"></script>
@@ -917,8 +924,8 @@
     <script src="./progress-index.js?v=1"></script>
     <script src="./persona.js"></script>
     <script src="./health-sync.js"></script>
-    <script src="./rewards-engine.js?v=8"></script>
-    <script src="./rewards-ui.js?v=11"></script>
+    <script src="./rewards-engine.js?v=10"></script>
+    <script src="./rewards-ui.js?v=13"></script>
     <script src="./widget-layout.js?v=3"></script>
     <script>
     (function () {
@@ -1080,7 +1087,15 @@
             var allData = {};
             try { allData = JSON.parse(localStorage.getItem('gameData') || '{}'); } catch(e) {}
 
-            var days = GS.buildLast7Days(allData, todayKey);
+            // Седмицата за кръговете и лентата: последните 7 ЗАВЪРШЕНИ дни. Днешният влиза едва когато е
+            // приключен (вечерната проверка) — иначе по обед полупразният ден дърпа седмицата надолу
+            // и кръгът мърда като дневен. Звездите показват и днешния (неутрално, докато тече).
+            var todayRec0 = allData[todayKey];
+            var todayClosed = !!(todayRec0 && todayRec0.eveningCheck && todayRec0.eveningCheck.ts);
+            var yd0 = new Date(); yd0.setDate(yd0.getDate() - 1);
+            var weekEndKey = todayClosed ? todayKey : GS.dateKey(yd0);
+            var days = GS.buildLast7Days(allData, weekEndKey);
+            var starDays = GS.buildLast7Days(allData, todayKey);
             // Дните преди първия запис не са „пропуснати“ — клиентът още не е започнал.
             var firstKey = Object.keys(allData).filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k) && allData[k]; }).sort()[0] || null;
             if (!firstKey) {
@@ -1091,7 +1106,7 @@
                 return;
             }
             // Същите формули като на сървъра (решенията за плана се вземат там).
-            var summary = GS.weekSummary(allData, todayKey);
+            var summary = GS.weekSummary(allData, todayKey, weekEndKey);
             var waterGoalText = (function(){
                 try {
                     var st = (JSON.parse(localStorage.getItem('dietPlan') || '{}').strategy) || {};
@@ -1523,7 +1538,7 @@
                 return '<svg class="game-ring-svg" width="'+(r*2+8)+'" height="'+(r*2+8)+'" viewBox="0 0 '+(r*2+8)+' '+(r*2+8)+'">' +
                     '<circle class="game-ring-bg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5"/>' +
                     '<circle class="game-ring-fg" cx="'+(r+4)+'" cy="'+(r+4)+'" r="'+r+'" stroke-width="5" style="stroke:'+color+'" stroke-dasharray="'+circ+'" stroke-dashoffset="'+circ+'" data-ga-ring-offset="'+offset.toFixed(2)+'"/>' +
-                    '<text x="'+(r+4)+'" y="'+(r+4)+'" text-anchor="middle" dominant-baseline="central" style="fill:var(--text-dark);font-size:'+(r>24?'0.9':'0.78')+'rem;font-weight:700;transform:rotate(90deg);transform-origin:'+(r+4)+'px '+(r+4)+'px" data-ga-ring-count="'+(pct!=null?pct:'')+'" data-ga-ring-target="'+(shown!=null?shown:pct!=null?pct:'')+'" >'+(pct!=null?'0%':'?')+'</text>' +
+                    '<text x="'+(r+4)+'" y="'+(r+4)+'" text-anchor="middle" dominant-baseline="central" style="fill:var(--text-dark);font-size:'+(r>24?'0.9':'0.78')+'rem;font-weight:700;transform:rotate(90deg);transform-origin:'+(r+4)+'px '+(r+4)+'px" data-ga-ring-count="'+(pct!=null?pct:'')+'" data-ga-ring-target="'+(shown!=null?shown:pct!=null?pct:'')+'" >'+(pct!=null?'0%':'—')+'</text>' +
                     '</svg>';
             }
 
@@ -1537,7 +1552,7 @@
             try { softView = !!(window.NutriPlanPersona && window.NutriPlanPersona.current().noScores); } catch (_) {}
             var STAR_PATH = 'M12 2.6l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z';
             var DAY_SHORT = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
-            var starsHtml = days.map(function(d){
+            var starsHtml = starDays.map(function(d){
                 var dt = new Date(d.key + 'T12:00:00');
                 var label = DAY_SHORT[dt.getDay()];
                 var isToday = d.key === todayKey;
@@ -1569,12 +1584,17 @@
 
             // ── Кръговете: всеки показател със седмичния си процент (същите формули като сървъра),
             // подредени по важност за целта (goal-focus.js → checkOrder). Докосване — обяснение + история.
+            // Седмичен процент — само при поне 3 дни с данни; с по-малко кръгът е празен („—“),
+            // за да не показва един-два дни като седмица.
+            var MIN_DAYS = 3;
+            var calDays = days.filter(function(d){ return GS.dayCalCloseness(d.rec) != null; }).length;
+            var ring = function(v, n, c, label, shown) { return v == null ? null : { v: n >= MIN_DAYS ? v : null, shown: n >= MIN_DAYS ? shown : null, c: c, label: label }; };
             var RINGS = {
-                calories: calAdherencePct!=null ? { v: calAdherencePct, c: '#F59E0B', label: 'Калории' } : null,
-                activity: actPct!=null ? { v: actPct, shown: actRawPct, c: MC.act.c, label: 'Активност' } : null,
-                sleep: sleepPct!=null ? { v: sleepPct, c: MC.sleep.c, label: 'Сън' } : null,
-                stress: balancePct!=null ? { v: balancePct, c: MC.mood.c, label: 'Емоции' } : null,
-                water: waterPct!=null ? { v: waterPct, c: MC.water.c, label: 'Вода' } : null
+                calories: ring(calAdherencePct, calDays, '#F59E0B', 'Калории'),
+                activity: ring(actPct, actValid.length, MC.act.c, 'Активност', actRawPct),
+                sleep: ring(sleepPct, sleepValid.length, MC.sleep.c, 'Сън'),
+                stress: ring(balancePct, balanceValid.length, MC.mood.c, 'Емоции'),
+                water: ring(waterPct, waterValid.length, MC.water.c, 'Вода')
             };
             var ringOrder = ['calories', 'activity', 'sleep', 'stress', 'water'];
             try {
@@ -1583,7 +1603,7 @@
             } catch (_) {}
             var ringsHtml = ringOrder.filter(function(k){ return RINGS[k]; }).map(function(k){
                 var r = RINGS[k];
-                return '<button type="button" class="game-ring-wrap ga-ring" data-ring="' + k + '" aria-pressed="false" aria-controls="gameMetricsDetails">' + ringChart(r.v, r.c, 20, r.shown) + '<span class="game-ring-label">' + r.label + '</span></button>';
+                return '<button type="button" class="game-ring-wrap ga-ring' + (r.v == null ? ' is-few' : '') + '" data-ring="' + k + '" style="--rc:' + r.c + '" aria-pressed="false" aria-controls="gameMetricsDetails">' + ringChart(r.v, r.c, 20, r.shown) + '<span class="game-ring-label">' + r.label + '</span></button>';
             }).join('');
             if (alerts.length) html += '<div class="game-alert-card ga-card-enter" style="animation-delay:0.2s">'+alerts[0]+'</div>';
             else if (encourageText) html += '<div class="game-encourage-note ga-card-enter" style="animation-delay:0.2s">'+encourageText+'</div>';
@@ -1720,7 +1740,7 @@
 
                     body.querySelectorAll('[data-ga-ring-target]').forEach(function(el, i) {
                         var target = parseInt(el.getAttribute('data-ga-ring-target'), 10);
-                        if (isNaN(target)) { el.textContent = '?'; return; }
+                        if (isNaN(target)) { el.textContent = '—'; return; }
                         var start = GA_RING_START + i * GA_RING_STAGGER;
                         var duration = GA_RING_COUNTER;
                         var startTime = null;

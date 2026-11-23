@@ -19,7 +19,7 @@
     };
     var TEXT_LABEL = {
         section: 'Заглавие на картата', empty: 'Преди първия отметнат ден', levelLabel: 'Над нивото', firstLevel: 'Преди първото ниво',
-        towards: 'Под лентата, в ритъм ({n} {daysWord} {title})', top: 'Лента на най-високото ниво',
+        towards: 'Под лентата: оставащи добри дни ({n} {daysWord} {title})', towardsFirst: 'Под лентата, преди първото ниво ({n} {daysWord})', top: 'Лента на най-високото ниво',
         behind: 'Под лентата, под прага ({title} {min} {avg})', warn: 'Предупреждение ({n} {daysWord})', comparison: 'Сравнение с другите ({p})',
         newLevel: 'Надпис над числото при ново ниво', giftReady: 'След наградата в поздрава', shield: 'Спечелен жокер',
         weightLose: 'Етап при сваляне ({pct})', weightGain: 'Етап при качване ({pct})', weightText: 'Текст при етап на теглото',

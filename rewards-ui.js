@@ -642,9 +642,14 @@
         var barPct = nx ? nx.progress : 100;
         // Под лентата — само следващата стъпка: колко дни остават или какъв ритъм иска нивото.
         var hint;
+        // Колко добри дни остават — по дните и по ритъма заедно (rewards-engine.js → daysNeeded).
+        // Без ниво името на целта е горе вдясно („Към ниво · Упоритост“) — тук не се повтаря.
         if (!nx) hint = RE.text('top');
-        else if (nx.avg != null && nx.avg < nx.minEng) hint = RE.text('behind', { title: nx.title, min: nx.minEng, avg: nx.avg });
-        else { var left = Math.max(1, nx.days - nx.daysHave); hint = RE.text('towards', { n: left, daysWord: plural(left, 'ден', 'дни'), title: nx.title }); }
+        else if (nx.daysNeeded == null) hint = RE.text('behind', { title: nx.title });
+        else {
+            var left = Math.max(1, nx.daysNeeded);
+            hint = RE.text(st.tier ? 'towards' : 'towardsFirst', { n: left, daysWord: plural(left, 'добър ден', 'добри дни'), title: nx.title });
+        }
         var pts = srv ? srv.wallet.balance : st.points.earned;
 
         // Хиро: поредицата и нивото → лентата → следващата стъпка. Нищо друго.
