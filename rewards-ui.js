@@ -679,8 +679,8 @@
         var html = '<div class="rw-hero" style="--rw-photo:url(' + photo(heroPic) + ')">' +
             // Мекият режим (persona.noScores) — без поредица, която може да се скъса: добрите дни от последните 7.
             '<div class="rw-hero-top"><div class="rw-streak' + (zero ? ' rw-streak--start' : '') + '">' + (zero
-                // последните две думи — заедно на втория ред („Направи 10 / последователни дни“)
-                ? '<strong>' + esc(RE.text('startCall', { n: Math.max(1, nx.daysNeeded) })).replace(/(\S+ \S+)$/, '<span class="nw">$1</span>') + '</strong>'
+                // „10 поредни дни“ — едро, на един ред; под него „до наградата“
+                ? '<strong>' + esc(RE.text('startCall', { n: Math.max(1, nx.daysNeeded) })) + '</strong>'
                 : soft
                     ? '<b>' + count + '</b><span>от последните 7 дни</span>'
                     : '<b>' + count + '</b><span>' + plural(count, 'ден', 'дни') + ' поред</span>') + '</div>' +
