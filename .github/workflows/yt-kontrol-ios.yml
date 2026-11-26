@@ -152,6 +152,11 @@ jobs:
         if: ${{ steps.upload.outcome == 'success' }}
         env:
           BUILD_NUMBER: ${{ github.run_number }}
+          # по желание: контакт за бета ревюто на Apple (иначе се попълва веднъж в App Store Connect)
+          YTK_CONTACT_FIRST: ${{ secrets.YTK_CONTACT_FIRST }}
+          YTK_CONTACT_LAST: ${{ secrets.YTK_CONTACT_LAST }}
+          YTK_CONTACT_PHONE: ${{ secrets.YTK_CONTACT_PHONE }}
+          YTK_CONTACT_EMAIL: ${{ secrets.YTK_CONTACT_EMAIL }}
         run: node scripts/yt-kontrol-apple.mjs distribute
 
       - name: Чистене на сертификата и профила
