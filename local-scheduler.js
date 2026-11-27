@@ -25,6 +25,7 @@ const GameNotifier = {
     // Keep a rolling monthly buffer so OEM battery restrictions or missed app opens
     // do not leave users without reminders after the first week.
     SCHEDULE_WINDOW_DAYS: 30,
+    IOS_MAX_PENDING: 64,
     LS_CONFIG_KEY:        'gameNotifierConfig',
     LS_LOCAL_KEY:         'gameNotifierLocalConfig',
     LS_VERSION_KEY:       'gameNotifierConfigVersion',
@@ -897,7 +898,8 @@ const GameNotifier = {
             }
 
             if (localNotifications) {
-                return { LocalNotifications: localNotifications };
+                const platform = typeof cap.getPlatform === 'function' ? cap.getPlatform() : '';
+                return { LocalNotifications: localNotifications, platform };
             }
         } catch (_) {}
         return null;
@@ -1659,6 +1661,15 @@ const GameNotifier = {
                 iconColor: this.BRAND_TEAL
             });
         });
+
+        // iPhone пази най-много 64 насрочени известия (останалите тихо изпадат) — пращаме най-близките 64 по време.
+        // Прозорецът се пренасрочва при всяко отваряне, така че следващите дни идват навреме.
+        try {
+            if (this._capacitor && this._capacitor.platform === 'ios' && notifications.length > this.IOS_MAX_PENDING) {
+                notifications.sort((a, b) => new Date(a.schedule.at) - new Date(b.schedule.at));
+                notifications.length = this.IOS_MAX_PENDING;
+            }
+        } catch (_) {}
 
         try {
             await LocalNotifications.schedule({ notifications });

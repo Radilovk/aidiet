@@ -33,12 +33,17 @@ info["NSCameraUsageDescription"] = (
     "or a lab result, so it can estimate the meal or read the document for your plan.")
 info["NSPhotoLibraryUsageDescription"] = (
     "Nutriin opens your photos only when you choose a picture of a meal, a menu or a document to add to your plan.")
+info["NSHealthShareUsageDescription"] = (
+    "Nutriin reads your steps, sleep, weight, heart rate and workouts from Apple Health to adjust your daily "
+    "meal plan and activity goals. You choose which data to share and can turn it off at any time.")
+info["NSHealthUpdateUsageDescription"] = (
+    "Nutriin does not write to Apple Health. This permission is only part of the Health connection used to read your data.")
 info["NSPhotoLibraryAddUsageDescription"] = (
     "Nutriin saves to your photos only when you choose to save an image of your plan.")
 
 with plist_path.open("wb") as f:
     plistlib.dump(info, f)
-print("Info.plist: encryption flag, arm64, portrait, name, languages, camera/photos purpose strings")
+print("Info.plist: encryption flag, arm64, portrait, name, languages, camera/photos/health purpose strings")
 
 # иконата (1024, без алфа канал) и стартовият екран
 icon_dir = APP / "Assets.xcassets" / "AppIcon.appiconset"
@@ -62,3 +67,22 @@ if new not in xml:
         sys.exit("Main.storyboard: CAPBridgeViewController not found")
     board.write_text(xml.replace(old, new))
 print("Main.storyboard → NutriViewController")
+
+# push: токенът на устройството (или грешката) отива при @capacitor/push-notifications (двата метода от документацията)
+delegate = APP / "AppDelegate.swift"
+src = delegate.read_text()
+if "capacitorDidRegisterForRemoteNotifications" not in src:
+    methods = """
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+    }
+"""
+    end = src.rstrip().rfind("}")
+    if end < 0:
+        sys.exit("AppDelegate.swift: no class end found")
+    delegate.write_text(src[:end] + methods + src[end:])
+    print("AppDelegate.swift: push token methods")

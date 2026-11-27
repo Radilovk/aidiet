@@ -3585,8 +3585,8 @@
             const got = H.describeLast ? H.describeLast() : '';
             const when = st.lastSync ? ` · обновено ${formatSyncTime(st.lastSync)}` : '';
             return got
-                ? `Свързано с Health Connect${when}. Получено: ${got}.`
-                : `Свързано с Health Connect${when}. Още няма данни — щом гривната или приложението запишат, идват сами.`;
+                ? `Свързано с ${H.label()}${when}. Получено: ${got}.`
+                : `Свързано с ${H.label()}${when}. Още няма данни — щом телефонът, часовникът или приложението запишат, идват сами.`;
         }
 
         function renderDevices() {
@@ -3609,8 +3609,8 @@
                     <button type="button" class="labs-delete devices-off" onclick="disconnectDevices()"><i class="fas fa-link-slash"></i> Изключи и изтрий данните</button>`;
                 if (!document.getElementById('devicesStatus').textContent) devicesSetStatus(healthStatusText(), 'ok');
             } else {
-                // Разрешението в Health Connect е съгласието — бутонът не чака отметката.
-                box.innerHTML = `<button type="button" class="btn btn-primary devices-connect" onclick="connectDevices()"><i class="fas fa-link"></i> Свържи Health Connect</button>`;
+                // Разрешението в Health Connect / Apple Health е съгласието — бутонът не чака отметката.
+                box.innerHTML = `<button type="button" class="btn btn-primary devices-connect" onclick="connectDevices()"><i class="fas fa-link"></i> Свържи ${H.label()}</button>`;
             }
         }
 
@@ -3850,7 +3850,7 @@
             try {
                 await window.NutriPlanHealth.disconnect();
                 document.getElementById('devicesConsent').checked = false;
-                devicesSetStatus('Изключено. Достъпа в Health Connect можеш да оттеглиш от настройките му.', 'ok');
+                devicesSetStatus(window.NutriPlanHealth && window.NutriPlanHealth.isIOS && window.NutriPlanHealth.isIOS() ? 'Изключено. Достъпа можеш да оттеглиш и от Настройки → Здраве → Достъп до данни.' : 'Изключено. Достъпа в Health Connect можеш да оттеглиш от настройките му.', 'ok');
             } catch (e) {
                 devicesSetStatus(e.message || 'Не успяхме да изтрием данните.', 'error');
             }

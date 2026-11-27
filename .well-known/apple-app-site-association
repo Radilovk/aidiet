@@ -14,6 +14,39 @@
             "comment": "a studio's invite link (studio.html?s=…) opens in XB-Studio when it is installed; the plain page (and its admin) stays in the browser"
           }
         ]
+      },
+      {
+        "appIDs": [
+          "67VQXZL7KG.com.biocode.nutriplan"
+        ],
+        "components": [
+          {
+            "/": "/plan.html",
+            "comment": "Nutriin: страниците на приложението се отварят в него, ако е инсталирано (ios-companion.js → appUrlOpen)"
+          },
+          {
+            "/": "/profile.html"
+          },
+          {
+            "/": "/guidelines.html"
+          },
+          {
+            "/": "/game-analytics.html"
+          },
+          {
+            "/": "/plan-book.html"
+          },
+          {
+            "/": "/quick-answer.html"
+          },
+          {
+            "/": "/index.html",
+            "?": {
+              "app": "?*"
+            },
+            "comment": "обвивката на приложението; въпросникът, цените, анализът и модулите остават в браузъра"
+          }
+        ]
       }
     ]
   }

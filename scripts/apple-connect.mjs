@@ -360,7 +360,9 @@ try {
     const bid = found.data.find((b) => b.attributes.identifier === BUNDLE);
     if (!bid) fail(`Няма Bundle ID ${BUNDLE}.`);
     const have = (found.included || []).filter((c) => c.type === 'bundleIdCapabilities').map((c) => c.attributes.capabilityType);
-    for (const type of ['PUSH_NOTIFICATIONS', 'ASSOCIATED_DOMAINS']) {
+    // APP_CAPABILITIES: за Nutriin — HEALTHKIT,ASSOCIATED_DOMAINS,PUSH_NOTIFICATIONS (build-ios.yml); студиото — по подразбиране
+    const wanted = (process.env.APP_CAPABILITIES || 'PUSH_NOTIFICATIONS,ASSOCIATED_DOMAINS').split(',').map((x) => x.trim()).filter(Boolean);
+    for (const type of wanted) {
       if (have.includes(type)) { console.log(`✓ ${type}`); continue; }
       await api('POST', '/v1/bundleIdCapabilities', { data: { type: 'bundleIdCapabilities', attributes: { capabilityType: type },
         relationships: { bundleId: { data: { type: 'bundleIds', id: bid.id } } } } });

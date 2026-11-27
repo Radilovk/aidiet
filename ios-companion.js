@@ -89,5 +89,23 @@
     }
     if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', onIndex, { once: true }); else onIndex();
 
+    // Връзка от писмо или сайта (Universal Links — .well-known/apple-app-site-association): отваря същата страница
+    // в приложението. Страниците само за сайта ги пренасочва пазачът в i18n.js.
+    (function bindLinks() {
+        try { if (global.top !== global) return; } catch (_) { return; }
+        var app = global.Capacitor && global.Capacitor.Plugins && global.Capacitor.Plugins.App;
+        if (!app || typeof app.addListener !== 'function' || global.__nutriinLinksBound) return;
+        global.__nutriinLinksBound = true;
+        app.addListener('appUrlOpen', function (e) {
+            try {
+                var u = new URL(e && e.url);
+                if (!/^(nutriin\.app|www\.nutriin\.app|biocode\.website)$/.test(u.hostname)) return;
+                var page = u.pathname.replace(/^\/+/, '') || 'index.html';
+                if (!/^[\w-]+\.html$/.test(page)) return;
+                global.location.href = page + u.search + u.hash;
+            } catch (_) {}
+        });
+    })();
+
     global.NutriinCompanion = { screen: screen };
 })(window);

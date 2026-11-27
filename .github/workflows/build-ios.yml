@@ -81,19 +81,25 @@ jobs:
           python3 ios-res/patch-ios.py
           ruby ios-res/add-privacy-manifest.rb
           ruby ios-res/add-app-sources.rb
+          ruby ios-res/add-entitlements.rb
           npx cap sync ios
-          # Плъгините само за Android (Health Connect, Google вход, навигационна лента) не влизат (ios.includePlugins):
-          # HealthKit без разрешение и обяснение е причина за отказ още при качване.
+          # Плъгините само за Android (Google вход, навигационна лента) не влизат (ios.includePlugins).
           grep -q 'capacitor-updater' ios/App/CapApp-SPM/Package.swift || { echo "::error::Няма плъгина за обновяване отвътре (@capgo/capacitor-updater)"; exit 1; }
           MIN=$(node -p "require('./ios-res/live-update.json').minAppVersion")
           node -e "const a='${{ inputs.version }}'.split('.').map(Number),b='$MIN'.split('.').map(Number);for(let i=0;i<3;i++){if((a[i]||0)!==(b[i]||0)){process.exit((a[i]||0)>(b[i]||0)?0:1)}}" \
             || { echo "::error::Версията ${{ inputs.version }} е по-ниска от minAppVersion $MIN (ios-res/live-update.json)"; exit 1; }
-          if grep -Eiq 'health|google-auth|navigation-bar' ios/App/CapApp-SPM/Package.swift; then
+          if grep -Eiq 'google-auth|navigation-bar' ios/App/CapApp-SPM/Package.swift; then
             echo "::error::В iOS проекта има плъгин само за Android"; cat ios/App/CapApp-SPM/Package.swift; exit 1
           fi
 
       - name: Bundle ID (регистрира се, ако го няма)
         run: node scripts/apple-connect.mjs bundle-id
+
+      # Разрешенията в ios-res/App.entitlements трябва да ги има и Bundle ID-то, преди да се направи профилът.
+      - name: Възможности на Bundle ID (Apple Health, връзки, push)
+        env:
+          APP_CAPABILITIES: HEALTHKIT,ASSOCIATED_DOMAINS,PUSH_NOTIFICATIONS
+        run: node scripts/apple-connect.mjs capability
 
       - name: Ключ за App Store Connect (за качването)
         run: |
@@ -134,6 +140,11 @@ jobs:
           family=$(/usr/libexec/PlistBuddy -c 'Print :UIDeviceFamily:0' "$APP/Info.plist")
           [ "$family" = "1" ] || { echo "::error::Приложението не е само за iPhone (UIDeviceFamily=$family)"; exit 1; }
           /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$APP/Info.plist" >/dev/null || { echo "::error::Няма обяснение за камерата"; exit 1; }
+          /usr/libexec/PlistBuddy -c 'Print :NSHealthShareUsageDescription' "$APP/Info.plist" >/dev/null || { echo "::error::Няма обяснение за Apple Health"; exit 1; }
+          ents=$(codesign -d --entitlements :- "$APP" 2>/dev/null)
+          echo "$ents" | grep -q 'com.apple.developer.healthkit' || { echo "::error::Подписаното приложение няма разрешение за Apple Health"; exit 1; }
+          echo "$ents" | grep -q 'applinks:nutriin.app' || { echo "::error::Подписаното приложение няма връзките към nutriin.app"; exit 1; }
+          echo "$ents" | grep -q 'aps-environment' || { echo "::error::Подписаното приложение няма разрешение за push"; exit 1; }
           if /usr/libexec/PlistBuddy -c 'Print :NSAppTransportSecurity' "$APP/Info.plist" >/dev/null 2>&1; then
             echo "::error::Има изключения от ATS (NSAppTransportSecurity) — Apple иска обосновка"; exit 1
           fi

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Apple Health: само четене (health-sync.js); без клиничните записи (health-records) -->
+	<key>com.apple.developer.healthkit</key>
+	<true/>
+	<key>com.apple.developer.healthkit.access</key>
+	<array/>
+	<!-- връзките от писмата и сайта към страниците на приложението (.well-known/apple-app-site-association) -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:nutriin.app</string>
+		<string>applinks:biocode.website</string>
+	</array>
+	<!-- известия от сървъра: готовност (разрешението се иска едва когато сървърът започне да праща) -->
+	<key>aps-environment</key>
+	<string>production</string>
+</dict>
+</plist>

@@ -1,5 +1,8 @@
 /**
- * Health Connect (Android) → обогатяване на профила.
+ * Health Connect (Android) и Apple Health (iPhone) → обогатяване на профила.
+ *
+ * На iPhone същият плъгин чете HealthKit (крачки и сън от телефона и Apple Watch, тегло, пулс…); източникът на
+ * фактите остава вътрешното име health_connect („здравните данни на телефона“) — сървърът ги обработва еднакво.
  *
  * Health Connect е общият вход на Android: в него пишат Samsung Health,
  * Fitbit, Garmin Connect, Zepp/Amazfit, Mi Fitness, Withings, Oura, Polar,
@@ -42,9 +45,18 @@
     function plugin() {
         var cap = bridge();
         if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform()) return null;
-        if (typeof cap.getPlatform === 'function' && cap.getPlatform() !== 'android') return null;
+        var p = typeof cap.getPlatform === 'function' ? cap.getPlatform() : 'android';
+        if (p !== 'android' && p !== 'ios') return null;
         return (cap.Plugins && cap.Plugins.Health) || null;
     }
+
+    function isIOS() {
+        var cap = bridge();
+        try { return !!(cap && typeof cap.getPlatform === 'function' && cap.getPlatform() === 'ios'); } catch (_) { return false; }
+    }
+
+    /** Името на системното хранилище — за текстовете на екрана. */
+    function label() { return isIOS() ? 'Apple Health' : 'Health Connect'; }
 
     /** Нативният помощник в APK (NutriSystemUiPlugin.java): инсталирани приложения, отваряне. */
     function nativeUi() {
@@ -397,9 +409,9 @@
     /** Иска достъп само за четирите вида; съгласието се записва преди това. */
     async function connect() {
         var H = plugin();
-        if (!H) throw new Error('Health Connect е достъпен само в приложението за Android.');
+        if (!H) throw new Error('Здравните данни се свързват в приложението за телефон.');
         var avail = await isAvailable();
-        if (!avail.available) throw new Error('Health Connect не е инсталиран или не е обновен на това устройство.');
+        if (!avail.available) throw new Error(isIOS() ? 'Apple Health не е достъпно на това устройство.' : 'Health Connect не е инсталиран или не е обновен на това устройство.');
         var E = global.NutriPlanEnrichment;
         E.setConsent('device', true);
         var status = await H.requestAuthorization({ read: READ_TYPES });
@@ -438,7 +450,7 @@
         Object.keys(summary).forEach(function (k) { summary[k] = Object.keys(summary[k]).length; });
         if (!out.facts.length) {
             writeState({ lastSync: new Date().toISOString(), lastCount: 0, lastSummary: {}, lastErrors: out.errors });
-            return { sent: 0, message: 'Няма нови данни в Health Connect за последните две седмици.' };
+            return { sent: 0, message: 'Няма нови данни в ' + label() + ' за последните две седмици.' };
         }
         // Същите данни като при последното изпращане — без заявка към сървъра.
         var sig = String(out.facts.length) + ':' + JSON.stringify(out.facts).length + ':' + JSON.stringify(out.facts.slice(-5));
@@ -558,6 +570,8 @@
     }
 
     global.NutriPlanHealth = {
+        label: label,
+        isIOS: isIOS,
         describeLast: describeLast,
         supported: function () { return !!plugin(); },
         isAvailable: isAvailable,

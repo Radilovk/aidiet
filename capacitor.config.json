@@ -48,6 +48,13 @@
       "autoDeletePrevious": true,
       "autoDeleteFailed": true,
       "keepUrlPathAfterReload": true
+    },
+    "PushNotifications": {
+      "_note": "iOS: само готовност (разрешението се иска едва когато сървърът започне да праща — от страниците, без ново ревю).",
+      "presentationOptions": [
+        "alert",
+        "sound"
+      ]
     }
   },
   "android": {
@@ -71,7 +78,7 @@
     "_note": "includePlugins: всички плъгини без @capgo/capacitor-updater (обновяването отвътре е само за iOS). Нов плъгин за Android — добави го тук."
   },
   "ios": {
-    "_note": "iOS (build-ios.yml): страниците сами пазят safe area (viewport-fit=cover); само плъгините, които работят на iPhone — Health Connect, навигационната лента и Google входа са за Android.",
+    "_note": "iOS (build-ios.yml): страниците сами пазят safe area (viewport-fit=cover). Плъгините за iPhone: без навигационната лента и Google входа (Android). Health = Apple Health; push — готовност за известия от сървъра.",
     "contentInset": "never",
     "backgroundColor": "#032E36",
     "preferredContentMode": "mobile",
@@ -85,7 +92,9 @@
       "@capacitor/share",
       "@capacitor/splash-screen",
       "@capacitor/status-bar",
-      "@capgo/capacitor-updater"
+      "@capgo/capacitor-updater",
+      "@capgo/capacitor-health",
+      "@capacitor/push-notifications"
     ]
   }
 }

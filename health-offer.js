@@ -210,6 +210,31 @@
         };
     }
 
+    /** iPhone: Apple Health — крачки и сън от телефона и Apple Watch, тегло, пулс. */
+    function appleHealthView() {
+        var H = global.NutriPlanHealth;
+        return {
+            title: 'Свържи Apple Health',
+            text: 'Крачките и сънят от iPhone и Apple Watch, теглото и пулсът — планът следи реалния ти ден.',
+            note: 'Само четене · изключваш по всяко време от Профил → Устройства',
+            primary: 'Свържи', primaryIcon: 'fa-link',
+            onPrimary: async function (btn, status) {
+                btn.disabled = true;
+                setStatus(status, 'Свързване…');
+                try {
+                    var res = await H.connect();
+                    writeState({ connectedAt: new Date().toISOString() });
+                    render({ icon: 'fa-check', title: 'Свързано',
+                        text: res.sent > 0 ? 'Данните за последните 14 дни са в профила. Оттук нататък се обновяват сами.' : 'Свързано. Щом телефонът или часовникът запишат данни, идват сами.',
+                        secondary: 'Готово', onSecondary: close });
+                } catch (e) {
+                    btn.disabled = false;
+                    setStatus(status, e.message || 'Свързването не успя.', 'error');
+                }
+            }
+        };
+    }
+
     /** Облачните връзки, включени на сървъра (device-links.js) — веднъж на отваряне. */
     var _cloud = null;
     async function cloudProviders() {
@@ -352,6 +377,14 @@
             var ps = readState();
             writeState({ pedoShown: (ps.pedoShown || 0) + 1, pedoLastAt: new Date().toISOString() });
             show(pv);
+            return;
+        }
+        // iPhone: един вход за всичко — Apple Health (телефонът, Apple Watch и приложенията, които пишат в него).
+        if (global.NutriPlanHealth.isIOS && global.NutriPlanHealth.isIOS()) {
+            if (busy() || !due()) return;
+            var s0 = readState();
+            writeState({ shown: (s0.shown || 0) + 1, lastAt: new Date().toISOString() });
+            show(appleHealthView());
             return;
         }
         var d = await global.NutriPlanHealth.detect();
