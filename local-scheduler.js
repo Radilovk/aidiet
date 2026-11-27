@@ -552,6 +552,8 @@ const GameNotifier = {
     /** Close APK task completely — no background process in recents. */
     exitAppSilently() {
         try {
+            // iPhone: без самозатваряне (виж platform.js → exitNativeApp) — извикващият отива към плана.
+            if (this._capacitor && this._capacitor.platform === 'ios') return false;
             if (typeof window !== 'undefined' && window.NutriPlanPlatform &&
                 typeof window.NutriPlanPlatform.exitNativeApp === 'function') {
                 if (window.NutriPlanPlatform.exitNativeApp()) return true;

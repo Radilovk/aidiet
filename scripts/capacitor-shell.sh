@@ -106,3 +106,25 @@ printf '{"version":"%s"}\n' "$V" > capacitor-shell/web-bundle.json
 if [ "${IOS:-}" = "1" ]; then
   rm -f capacitor-shell/app-update.js
 fi
+# iPhone: входът да се стартира с initializeAuth преди първия getAuth (firebase-ios.js) — първият модул на страниците с вход.
+if [ "${IOS:-}" = "1" ]; then
+  python3 - <<'PY_FIREBASE_IOS'
+import re
+from pathlib import Path
+TAG = '<script type="module" src="./firebase-ios.js"></script>'
+pages = ['index.html', 'plan.html', 'profile.html', 'plan-pending.html', 'guidelines.html', 'game-analytics.html',
+         'food-picker.html', 'plan-update.html', 'plan-book.html', 'quick-answer.html', 'delete-account.html']
+for name in pages:
+    f = Path('capacitor-shell') / name
+    if not f.exists():
+        continue
+    t = f.read_text(encoding='utf-8')
+    if TAG in t:
+        continue
+    m = re.search(r'<script[^>]*src="\.?/?i18n\.js[^"]*"[^>]*></script>', t)
+    if not m:
+        raise SystemExit(f'{name}: няма <script src="i18n.js"> — firebase-ios.js няма къде да влезе')
+    f.write_text(t[:m.end()] + '\n' + TAG + t[m.end():], encoding='utf-8')
+    print('firebase-ios.js →', name)
+PY_FIREBASE_IOS
+fi

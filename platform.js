@@ -37,6 +37,13 @@
         } catch (_) { return false; }
     }
 
+    function isNativeIOS() {
+        try {
+            var cap = getCap();
+            return !!(cap && typeof cap.getPlatform === 'function' && cap.getPlatform() === 'ios');
+        } catch (_) { return false; }
+    }
+
     function isPWA() {
         try {
             return (global.matchMedia && global.matchMedia('(display-mode: standalone)').matches) ||
@@ -92,6 +99,9 @@
      */
     function exitNativeApp() {
         if (!isAPK()) return false;
+        // iPhone: приложение не може да се затваря само (App.exitApp няма на iOS, а Apple го забранява) —
+        // връща false и потокът продължава към плана, вместо да остане тъмен празен екран.
+        if (isNativeIOS()) return false;
         try {
             if (document.documentElement) {
                 document.documentElement.style.visibility = 'hidden';
@@ -357,6 +367,7 @@
         isPWA: isPWA,
         isWeb: isWeb,
         isIOS: isIOS,
+        isNativeIOS: isNativeIOS,
         isAndroid: isAndroid,
         isHuawei: isHuawei,
         getMode: getMode,

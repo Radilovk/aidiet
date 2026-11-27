@@ -5,7 +5,8 @@
  * съществуващия профил: планът и денят, напредъкът, наградите, напомнянията, данните от телефона и помощта.
  * Зарежда го i18n.js само на iPhone; пренасочването от страниците само за сайта е в i18n.js (преди рисуването).
  *
- *  - крие входовете към страниците само за сайта и редактирането на профила (то пуска нов план);
+ *  - крие входовете към страниците само за сайта, анализа, изследванията и документите (редакцията на профила
+ *    и новият план от нея остават — минават без въпросника);
  *  - index.html без вход → екран само за вход; с вход, но без план → „Планът ти още не е готов“.
  */
 (function (global) {
@@ -17,9 +18,12 @@
     var css =
         // Връзки към страниците само за сайта и към началната страница за посетители
         'a[href*="questionnaire2.html"],a[href*="analysis.html"],a[href*="features.html"],a[href*="pricing.html"],' +
-        'a[href*="index.html?stay=1"],#loginSwitchBtn,#startNowBtn,#heroCTABtn,' +
-        // Профил: данните за плана се попълват и променят в сайта (там е и новият план)
-        '#cardMeter,#labsSection,#docsSection,#analysisSection,#editBtn,#saveBtn,#saveAndRegenerateBtn,#cancelBtn' +
+        'a[href*="index.html?stay=1"]:not([href*="#contact"]),#loginSwitchBtn,#startNowBtn,#heroCTABtn,' +
+        // Бутони към въпросника („Нямаш профил? Попълни въпросника“, при грешка) — профилът се създава в сайта
+        '[onclick*="questionnaire2.html"],p:has(>button[onclick*="questionnaire2.html"]),' +
+        // Профил: анализът (оценка на здравето), изследванията, документите и картона с модулите — в сайта.
+        // Редакцията остава: теглото и данните се сменят оттук, а „Запази и регенерирай“ прави плана в страницата.
+        '#cardMeter,#labsSection,#docsSection,#analysisSection' +
         '{display:none!important}' +
         '#npCompanion{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;' +
         'gap:14px;padding:max(24px,env(safe-area-inset-top)) 28px max(28px,env(safe-area-inset-bottom));text-align:center;' +

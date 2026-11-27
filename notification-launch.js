@@ -116,6 +116,12 @@
     function exitAppNative() {
         if (revealTimer) clearTimeout(revealTimer);
         revealTimer = null;
+        // iPhone: приложението не се затваря само — показва плана (отговорът от известието вече е записан).
+        if (window.NutriPlanPlatform && typeof window.NutriPlanPlatform.isNativeIOS === 'function' && window.NutriPlanPlatform.isNativeIOS()) {
+            document.documentElement.style.visibility = '';
+            location.replace('index.html?app=1&tab=plan');
+            return;
+        }
         if (window.NutriPlanPlatform && typeof window.NutriPlanPlatform.exitNativeApp === 'function') {
             if (window.NutriPlanPlatform.exitNativeApp()) return;
         }

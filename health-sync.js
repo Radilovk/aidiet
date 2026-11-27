@@ -413,6 +413,11 @@
         var avail = await isAvailable();
         if (!avail.available) throw new Error(isIOS() ? 'Apple Health не е достъпно на това устройство.' : 'Health Connect не е инсталиран или не е обновен на това устройство.');
         var E = global.NutriPlanEnrichment;
+        // iPhone: данните от Apple Health влизат в плана и в седмичното AI обобщение — съгласието за AI се пита
+        // тук, при свързването, а не по-късно по време на синхронизирането във фона (ai-consent.js).
+        if (global.NutriinAiConsent && !(await global.NutriinAiConsent.ensure())) {
+            throw new Error('Без съгласие за обработката данните от телефона не могат да влизат в плана.');
+        }
         E.setConsent('device', true);
         var status = await H.requestAuthorization({ read: READ_TYPES });
         var granted = (status && status.readAuthorized) || [];
