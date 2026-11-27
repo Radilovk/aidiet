@@ -315,7 +315,9 @@
   "{0} г • {1} kcal": "{0} g • {1} kcal",
   "от {0}:{1}": "de {0}:{1}",
   "Цени": "Precios",
-  "Какво включва": "Qué incluye"
+  "Какво включва": "Qué incluye",
+  "Лимитът за този период е изчерпан.": "Se ha alcanzado el límite de este período.",
+  "Не е включено в профила ти.": "No está incluido en tu perfil."
  },
  "keys": {},
  "patterns": []

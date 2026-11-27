@@ -2254,16 +2254,16 @@
         <div class="nav-menu-section-label">Начална страница</div>
         <a href="features.html" onclick="closeNavMenu()"><i class="fas fa-star"></i> Всички възможности</a>
         <a href="pricing.html" class="sf-web" onclick="closeNavMenu()"><i class="fas fa-tag"></i> Цени</a>
-        <a href="index.html?stay=1#programs" onclick="closeNavMenu()"><i class="fas fa-layer-group"></i> Програми</a>
+        <a href="index.html?stay=1#programs" data-ios-hide onclick="closeNavMenu()"><i class="fas fa-layer-group"></i> Програми</a>
         <a href="index.html?stay=1#how-it-works" onclick="closeNavMenu()"><i class="fas fa-info-circle"></i> Как работи</a>
         <a href="help.html" onclick="closeNavMenu()"><i class="fas fa-circle-question"></i> Въпроси и отговори</a>
         <a href="index.html?stay=1#contact" onclick="closeNavMenu(); handleContactNavigation();"><i class="fas fa-envelope"></i> Контакт</a>
 
-        <div class="nav-menu-divider"></div>
-        <div class="nav-menu-section-label">Програми</div>
-        <a href="emoeat-landing.html" onclick="closeNavMenu()"><img class="nav-mod-mark" src="brand/emoeat-mark.svg" alt="" width="20" height="20"> EmoEat — емоционално хранене</a>
+        <div class="nav-menu-divider" data-ios-hide></div>
+        <div class="nav-menu-section-label" data-ios-hide>Програми</div>
+        <a href="emoeat-landing.html" data-ios-hide onclick="closeNavMenu()"><img class="nav-mod-mark" src="brand/emoeat-mark.svg" alt="" width="20" height="20"> EmoEat — емоционално хранене</a>
         <a href="https://irismap.app/?from=nutriplan" target="_blank" rel="noopener" onclick="closeNavMenu()"><img class="nav-mod-mark" src="brand/irismap-mark.svg" alt="" width="20" height="20"> IrisMap — ирисов анализ</a>
-        <a href="protocol-landing.html" onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични протоколи</a>
+        <a href="protocol-landing.html" data-ios-hide onclick="closeNavMenu()"><i class="fas fa-stethoscope"></i> Клинични протоколи</a>
         <div class="nav-menu-divider"></div>
         <div class="nav-menu-section-label">Език · Language</div>
         <label class="nav-menu-lang"><i class="fas fa-globe" aria-hidden="true"></i><select data-lang-picker aria-label="Език / Language"><option value="bg">Български</option></select></label>
@@ -2368,7 +2368,7 @@
             Включи известията
         </button>
         <div class="notification-status" id="notificationStatus"></div>
-        <p class="notification-compat-note">
+        <p class="notification-compat-note" data-ios-hide>
             На Android: разреши известията и изключи ограничението за батерия за Nutriin.
             На iPhone: добави сайта към началния екран от Safari.
         </p>
@@ -2445,7 +2445,7 @@
     </section>
 
     <!-- Programs: храненето, емоционалното хранене и ирисът — една свързана система -->
-    <section class="lp-section lp-section--tint" id="programs">
+    <section class="lp-section lp-section--tint" id="programs" data-ios-hide>
         <div class="lp-wrap">
             <header class="lp-head lp-reveal">
                 <p class="lp-kicker">Свързани модули</p>
@@ -2674,7 +2674,7 @@
                             <li class="sf-web"><a href="index.html?stay=1#android-install">Приложението</a></li>
                         </ul>
                     </div>
-                    <div>
+                    <div data-ios-hide>
                         <h2 class="sf-h">Програми</h2>
                         <ul>
                             <li><a href="protocol-landing.html">Клинични протоколи</a></li>

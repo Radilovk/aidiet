@@ -315,7 +315,9 @@
   "Въглехидрати:": "Carbs:",
   "{0}г ({1} kcal)": "{0}g ({1} kcal)",
   "{0} г • {1} kcal": "{0} g • {1} kcal",
-  "от {0}:{1}": "from {0}:{1}"
+  "от {0}:{1}": "from {0}:{1}",
+  "Лимитът за този период е изчерпан.": "This period's limit has been reached.",
+  "Не е включено в профила ти.": "Not included in your profile."
  },
  "keys": {},
  "patterns": []
