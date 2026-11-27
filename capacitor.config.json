@@ -42,5 +42,22 @@
     "minWebViewVersion": 60,
     "allowMixedContent": false,
     "backgroundColor": "#032E36"
+  },
+  "ios": {
+    "_note": "iOS (build-ios.yml): страниците сами пазят safe area (viewport-fit=cover); само плъгините, които работят на iPhone — Health Connect, навигационната лента и Google входа са за Android.",
+    "contentInset": "never",
+    "backgroundColor": "#032E36",
+    "preferredContentMode": "mobile",
+    "includePlugins": [
+      "@capacitor/app",
+      "@capacitor/camera",
+      "@capacitor/filesystem",
+      "@capacitor/haptics",
+      "@capacitor/local-notifications",
+      "@capacitor/preferences",
+      "@capacitor/share",
+      "@capacitor/splash-screen",
+      "@capacitor/status-bar"
+    ]
   }
 }

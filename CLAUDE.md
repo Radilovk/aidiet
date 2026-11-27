@@ -41,7 +41,10 @@ biocode.website (`PLAN_APP_BASE_URL`); при изпращане `email-domain.j
   Нова страница на приложението → `<script src="./i18n.js?v=…">` веднага след `<meta charset>`.
 - APK: `capacitor.config.json` (webDir `capacitor-shell`, генерира се в CI), `android-res/` (Java/gradle/patch-ове),
   `.github/workflows/build-apk.yml` (копира корена в shell с изключения), `publish-apk-release.yml`.
-  Нов root файл влиза в APK автоматично, освен ако не е в изключенията на `build-apk.yml`.
+  Нов root файл влиза в APK автоматично, освен ако не е в изключенията на `scripts/capacitor-shell.sh` (общ за APK и iOS).
+- iOS (TestFlight, ръчно пускане): `.github/workflows/build-ios.yml` — същите страници, `ios-res/` (Info.plist, икона,
+  манифест за поверителност; иконата — `node scripts/build-ios-assets.mjs`), плъгините за iOS — `ios.includePlugins` в
+  `capacitor.config.json`. Подписването — общите `scripts/apple-signing.mjs`/`apple-connect.mjs` (`APP_CONFIG`). План: `IOS_APP_STORE_PLAN.md`.
 
 ## Бекенд (Cloudflare Worker, общ за Nutriin, fitness, studio)
 - Източник: `worker.entry.js` + импортираните модули в корена, `nutrition-engine/`, `fitness/worker.js`, `studio-platform/`.

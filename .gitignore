@@ -34,11 +34,13 @@ Thumbs.db
 # Build artifacts
 *.log
 android/
+ios/
 capacitor-shell/*
 !capacitor-shell/.gitkeep
 
 # Temporary scripts
 *.sh
+!scripts/capacitor-shell.sh
 !deploy.sh
 *.py
 !setup.py
