@@ -3015,8 +3015,12 @@
             const list = document.getElementById('cardMeterList');
             if (!list) return;
             const loggedIn = !!(window.NutriPlanEnrichment && window.NutriPlanEnrichment.hasPlanProfile());
-            const mods = cardModules(_cardData && _cardData.derived, _cardData && _cardData.moduleSources);
-            const pct = Math.round(mods.reduce((sum, m) => sum + m.weight * m.fill, 0));
+            // iPhone (App Store): без IrisMap — уеб модул, който се плаща извън приложението; процентът е спрямо останалите.
+            const iosApp = document.documentElement.classList.contains('platform-ios');
+            const mods = cardModules(_cardData && _cardData.derived, _cardData && _cardData.moduleSources)
+                .filter(m => !(iosApp && m.id === 'iris'));
+            const totalWeight = mods.reduce((sum, m) => sum + m.weight, 0) || 100;
+            const pct = Math.round(mods.reduce((sum, m) => sum + m.weight * m.fill, 0) * 100 / totalWeight);
             document.getElementById('cardMeterPct').textContent = `${pct}%`;
             document.getElementById('cardMeterFill').style.width = `${pct}%`;
             document.getElementById('cardMeterBar').setAttribute('aria-valuenow', String(pct));

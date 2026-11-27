@@ -116,6 +116,39 @@
 })();
 /* web-only:end */
 
+// Приложението от магазина (Capacitor — Android и iPhone). Тук, защото i18n.js е първият скрипт на всяка страница
+// на приложението: класовете са на <html> преди първото рисуване, без скритото да се мярка.
+//   html.is-native   — скрива .sf-web (цени, сваляне на APK, връзки към плащане) на всяка страница, не само в index.html
+//   html.platform-ios — App Store (IOS_APP_STORE_PLAN.md): без APK, без IrisMap (уеб модул, продава се извън
+//                       приложението); [data-ios-hide] — всичко друго само за уеб/Android
+// На сайта не прави нищо.
+(function () {
+    var cap = null;
+    try { cap = (window.top && window.top !== window && window.top.Capacitor) || window.Capacitor || null; } catch (_) { cap = window.Capacitor || null; }
+    var native = false;
+    try { native = !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()); } catch (_) {}
+    if (!native) return;
+    var ios = false;
+    try { ios = typeof cap.getPlatform === 'function' && cap.getPlatform() === 'ios'; } catch (_) {}
+    var root = document.documentElement;
+    root.classList.add('is-native');
+    if (ios) root.classList.add('platform-ios');
+    var css = 'html.is-native .sf-web{display:none!important}';
+    if (ios) {
+        css += 'html.platform-ios [data-ios-hide],' +
+            'html.platform-ios #android-install,' +
+            'html.platform-ios a[href*="irismap.app"],' +
+            'html.platform-ios li:has(>a[href*="irismap.app"]),' +
+            'html.platform-ios a[href$=".apk"],' +
+            'html.platform-ios a[href*="/releases/latest/download/"]' +
+            '{display:none!important}';
+    }
+    var style = document.createElement('style');
+    style.id = 'np-native-store';
+    style.textContent = css;
+    (document.head || root).appendChild(style);
+})();
+
 (function () {
     'use strict';
     if (window.EatologixI18n) return;
