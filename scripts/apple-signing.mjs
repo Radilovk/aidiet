@@ -60,12 +60,22 @@ try {
   if (action === 'prepare') {
     const dir = join(TMP, 'signing'); mkdirSync(dir, { recursive: true });
     // 0. certificates/profiles kept by earlier successful uploads are no longer needed (those builds are processed)
+    // Акаунтът има един сертификат за разпространение наведнъж, а двете приложения (XB-Studio и Nutriin) го правят
+    // тук през CI: на всяко пускане се чистят сертификатите от CI на ДВЕТЕ. Чуждият — само ако е по-стар от час
+    // (дотогава Apple е обработила качването му; сертификатът е за една година → възрастта е от expirationDate).
+    const CI_PROFILE = /^(XB-Studio|Nutriin) AppStore /;
+    const HOUR = 3600 * 1000;
     const profs = await api('GET', '/v1/profiles?filter[profileType]=IOS_APP_STORE&limit=100');
-    for (const pr of profs.data.filter((x) => x.attributes.name.startsWith(PREFIX))) {
+    for (const pr of profs.data.filter((x) => CI_PROFILE.test(x.attributes.name))) {
+      const own = pr.attributes.name.startsWith(PREFIX);
       let certs = [];
       try { certs = (await api('GET', `/v1/profiles/${pr.id}/certificates`)).data; } catch (_) { /* profile without certificates */ }
+      if (!own) {
+        const ages = certs.map((c) => Date.now() - (Date.parse(c.attributes.expirationDate) - 365 * 24 * HOUR));
+        if (ages.some((a) => !(a > HOUR))) { console.log(`… „${pr.attributes.name}“ е от последния час — остава`); continue; }
+      }
       try { await api('DELETE', `/v1/profiles/${pr.id}`); } catch (e) { console.log(`! профил ${pr.id}: ${e.message.slice(0, 150)}`); }
-      for (const c of certs) { try { await api('DELETE', `/v1/certificates/${c.id}`); console.log(`✓ изтрит стар сертификат ${c.id}`); } catch (e) { console.log(`! ${c.id}: ${e.message.slice(0, 150)}`); } }
+      for (const c of certs) { try { await api('DELETE', `/v1/certificates/${c.id}`); console.log(`✓ изтрит стар сертификат ${c.id}${own ? '' : ' (от другото приложение)'}`); } catch (e) { console.log(`! ${c.id}: ${e.message.slice(0, 150)}`); } }
     }
     const left = (await api('GET', '/v1/certificates?filter[certificateType]=DISTRIBUTION&limit=50')).data.length;
     if (left >= 3) fail(`В акаунта вече има ${left} дистрибуционни сертификата (границата е 3). Виж ги с Apple → certs и изтрий излишните.`);
@@ -73,8 +83,17 @@ try {
     run('openssl', ['req', '-new', '-newkey', 'rsa:2048', '-nodes', '-keyout', join(dir, 'key.pem'), '-out', join(dir, 'req.csr'),
       '-subj', `/CN=${LABEL} CI/O=${LABEL}/C=BG`]);
     // 2. the distribution certificate
-    const cert = await api('POST', '/v1/certificates', { data: { type: 'certificates', attributes: {
-      certificateType: 'DISTRIBUTION', csrContent: readFileSync(join(dir, 'req.csr'), 'utf8') } } });
+    let cert;
+    try {
+      cert = await api('POST', '/v1/certificates', { data: { type: 'certificates', attributes: {
+        certificateType: 'DISTRIBUTION', csrContent: readFileSync(join(dir, 'req.csr'), 'utf8') } } });
+    } catch (e) {
+      if (!/409/.test(e.message)) throw e;
+      const all = (await api('GET', '/v1/certificates?filter[certificateType]=DISTRIBUTION&limit=50')).data;
+      fail('В акаунта вече има сертификат за разпространение, който CI не е правил (или е от последния час): '
+        + all.map((c) => `${c.id} (${c.attributes.displayName || c.attributes.name}, до ${c.attributes.expirationDate})`).join('; ')
+        + '. Пусни пак след час, или го изтрий с Apple → delete-cert (приложенията в App Store не се засягат).');
+    }
     writeFileSync(STATE, JSON.stringify({ certId: cert.data.id }));   // from now on a failure still cleans up the certificate
     writeFileSync(join(dir, 'cert.cer'), Buffer.from(cert.data.attributes.certificateContent, 'base64'));
     run('openssl', ['x509', '-inform', 'der', '-in', join(dir, 'cert.cer'), '-out', join(dir, 'cert.pem')]);
