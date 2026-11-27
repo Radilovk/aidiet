@@ -133,6 +133,20 @@
     var root = document.documentElement;
     root.classList.add('is-native');
     if (ios) root.classList.add('platform-ios');
+    // iPhone — клиентско приложение (ios-companion.js): страниците, в които профилът се създава или променя, и
+    // модулите са само на сайта. Пренасочването е тук — преди страницата да се нарисува.
+    if (ios) {
+        var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+        if (/^(questionnaire2|analysis|analysis-loading|warning|features|pricing|emoeat[\w-]*|protocol[\w-]*|protocols|irismap[\w-]*)\.html$/.test(page)) {
+            var ls = null;
+            try { ls = window.localStorage; } catch (_) {}
+            var user = ls && String(ls.getItem('userId') || '').indexOf('fb_') === 0;
+            var plan = ls && ls.getItem('dietPlan');
+            var to = user && plan ? 'index.html?app=1&tab=plan' : (user ? 'index.html?stay=1&companion=noplan' : 'index.html');
+            try { (window.top || window).location.replace(to); } catch (_) { location.replace(to); }
+            return;
+        }
+    }
     var css = 'html.is-native .sf-web{display:none!important}';
     if (ios) {
         css += 'html.platform-ios [data-ios-hide],' +
@@ -147,6 +161,12 @@
     style.id = 'np-native-store';
     style.textContent = css;
     (document.head || root).appendChild(style);
+    // iPhone: клиентският режим — скрити входове към страниците само за сайта, екран за вход (ios-companion.js)
+    if (ios && !window.__nutriinCompanion) {
+        var c = document.createElement('script');
+        c.src = './ios-companion.js?v=20261127a';
+        (document.head || root).appendChild(c);
+    }
     // iPhone: изричното съгласие преди данни да стигнат до AI (App Store 5.1.2(i)) — ai-consent.js
     if (ios && !window.NutriinAiConsent) {
         var s = document.createElement('script');

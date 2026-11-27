@@ -324,7 +324,11 @@
   "Не сега": "Nu acum",
   "Съгласен съм": "Sunt de acord",
   "Тази функция използва AI. Ще те попитаме пак, когато я отвориш.": "Această funcție folosește AI. Te vom întreba din nou când o deschizi.",
-  "Изпращат се само за конкретната заявка и не се използват за обучение на модели.": "Sunt trimise doar pentru solicitarea respectivă și nu sunt folosite pentru antrenarea modelelor."
+  "Изпращат се само за конкретната заявка и не се използват за обучение на модели.": "Sunt trimise doar pentru solicitarea respectivă și nu sunt folosite pentru antrenarea modelelor.",
+  "Влез с профила си: планът и денят, напредъкът, напомнянията и данните от телефона — на едно място.": "Intră cu profilul tău: planul și ziua, progresul, mementourile și datele din telefon — într-un singur loc.",
+  "Планът ти още не е готов": "Planul tău nu este încă gata",
+  "Ще получиш имейл, когато е готов. Тогава го отвори тук.": "Vei primi un e-mail când este gata. Atunci deschide-l aici.",
+  "Провери пак": "Verifică din nou"
  },
  "keys": {},
  "patterns": []

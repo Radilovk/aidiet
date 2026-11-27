@@ -113,7 +113,7 @@
     function askOnOpen() {
         if (has() || /questionnaire/.test(global.location.pathname)) return;
         try { if (global.sessionStorage.getItem(SESSION_KEY)) return; } catch (_) {}
-        if (!get('userId')) return;
+        if (!get('userId') || !get('dietPlan')) return;   // без план (екранът за вход/„не е готов“) — после
         try { if (global.top !== global) return; } catch (_) { return; }
         setTimeout(function () { if (!has() && !doc.getElementById('npAiConsent')) ensure(); }, 1200);
     }
