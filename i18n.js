@@ -153,6 +153,21 @@
         s.src = './ai-consent.js?v=20261127a';
         (document.head || root).appendChild(s);
     }
+    // iPhone: обновяването на страниците отвътре. Пакетът тръгна — веднага, преди всичко друго: иначе плъгинът
+    // го смята за повреден и след 10 секунди се връща на предишния. После web-updater.js проверява за нов пакет.
+    if (ios) {
+        try {
+            var upd = cap.Plugins && cap.Plugins.CapacitorUpdater;
+            if (upd && typeof upd.notifyAppReady === 'function') upd.notifyAppReady();
+        } catch (_) {}
+        try {
+            if (window.top === window && !window.__nutriinWebUpdater) {
+                var u = document.createElement('script');
+                u.src = './web-updater.js?v=20261127a';
+                (document.head || root).appendChild(u);
+            }
+        } catch (_) {}
+    }
 })();
 
 (function () {

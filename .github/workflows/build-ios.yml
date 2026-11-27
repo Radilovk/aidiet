@@ -61,13 +61,12 @@ jobs:
 
       - run: npm ci
 
-      - name: Уеб обвивката (същата като в APK-то)
-        run: bash scripts/capacitor-shell.sh
+      - name: Уеб обвивката (същата като в APK-то, без обновяването на APK)
+        run: IOS=1 bash scripts/capacitor-shell.sh
 
       # Само за Android — в iOS пакета не влизат: обновяването на APK-то и цените/плащането (вече изключено в обвивката).
       - name: Проверка на обвивката за iOS
         run: |
-          rm -f capacitor-shell/app-update.js
           bad=$(ls capacitor-shell | grep -E '^(pricing\.html|admin\.html)$' || true)
           [ -z "$bad" ] || { echo "::error::В пакета има уеб страници, които не са за приложението: $bad"; exit 1; }
 
@@ -85,6 +84,10 @@ jobs:
           npx cap sync ios
           # Плъгините само за Android (Health Connect, Google вход, навигационна лента) не влизат (ios.includePlugins):
           # HealthKit без разрешение и обяснение е причина за отказ още при качване.
+          grep -q 'capacitor-updater' ios/App/CapApp-SPM/Package.swift || { echo "::error::Няма плъгина за обновяване отвътре (@capgo/capacitor-updater)"; exit 1; }
+          MIN=$(node -p "require('./ios-res/live-update.json').minAppVersion")
+          node -e "const a='${{ inputs.version }}'.split('.').map(Number),b='$MIN'.split('.').map(Number);for(let i=0;i<3;i++){if((a[i]||0)!==(b[i]||0)){process.exit((a[i]||0)>(b[i]||0)?0:1)}}" \
+            || { echo "::error::Версията ${{ inputs.version }} е по-ниска от minAppVersion $MIN (ios-res/live-update.json)"; exit 1; }
           if grep -Eiq 'health|google-auth|navigation-bar' ios/App/CapApp-SPM/Package.swift; then
             echo "::error::В iOS проекта има плъгин само за Android"; cat ios/App/CapApp-SPM/Package.swift; exit 1
           fi
@@ -125,6 +128,7 @@ jobs:
           [ -f "$APP/Assets.car" ] || { echo "::error::Няма икони/ресурси (Assets.car)"; exit 1; }
           [ -f "$APP/public/index.html" ] || { echo "::error::Няма страниците (public/index.html)"; exit 1; }
           [ ! -f "$APP/public/app-update.js" ] || { echo "::error::app-update.js (APK обновяване) е в iOS пакета"; exit 1; }
+          [ -f "$APP/public/web-bundle.json" ] || { echo "::error::Няма web-bundle.json (версията на пакета страници)"; exit 1; }
           enc=$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$APP/Info.plist")
           [ "$enc" = "false" ] || { echo "::error::ITSAppUsesNonExemptEncryption не е false"; exit 1; }
           family=$(/usr/libexec/PlistBuddy -c 'Print :UIDeviceFamily:0' "$APP/Info.plist")

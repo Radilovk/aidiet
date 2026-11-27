@@ -141,6 +141,7 @@ import { gateFeature, planUsesAI, resolveAccess, writeAccess, readAccess, readUs
 import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInviteStatus, handlePartnerVerify, handleRewardsContent, handleRewardsImage, handleAdminRewardsContent, handleAdminRewardsImage, handleRewardsChallenge, handleRewardsEvent, handleAdminRewardsReport, noteInviteSignup } from './rewards.js';
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
+import { handleWebBundle } from './app-bundle.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
 import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview, isRiskyProfile, applyReviewCorrection, markAutoActivated } from './plan-review.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, addSpend, BUDGET_KEY } from './spend.js';
@@ -18656,6 +18657,9 @@ export default {
         return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === '/api/user/save-profile' && request.method === 'POST') {
         return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === '/api/app/web-bundle' && request.method === 'GET') {
+        // iPhone: последният пакет страници за обновяване отвътре (app-bundle.js)
+        return await handleWebBundle(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/user/access' && request.method === 'GET') {
         return jsonResponse(await resolveAccess(env, url.searchParams.get('userId') || ''));
       } else if (url.pathname === '/api/turnstile/config' && request.method === 'GET') {

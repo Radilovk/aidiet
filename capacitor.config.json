@@ -36,12 +36,39 @@
       "overlaysWebView": false,
       "style": "DARK",
       "backgroundColor": "#032E36"
+    },
+    "CapacitorUpdater": {
+      "_note": "Само iOS (Android го изключва — android.includePlugins): страниците се обновяват отвътре от нашия сървър (web-updater.js, /api/app/web-bundle), без облака на Capgo — без автоматично обновяване, без статистика.",
+      "autoUpdate": false,
+      "statsUrl": "",
+      "updateUrl": "https://aidiet.radilov-k.workers.dev/api/app/web-bundle",
+      "channelUrl": "",
+      "appReadyTimeout": 10000,
+      "resetWhenUpdate": true,
+      "autoDeletePrevious": true,
+      "autoDeleteFailed": true,
+      "keepUrlPathAfterReload": true
     }
   },
   "android": {
     "minWebViewVersion": 60,
     "allowMixedContent": false,
-    "backgroundColor": "#032E36"
+    "backgroundColor": "#032E36",
+    "includePlugins": [
+      "@capacitor/app",
+      "@capacitor/camera",
+      "@capacitor/filesystem",
+      "@capacitor/haptics",
+      "@capacitor/local-notifications",
+      "@capacitor/preferences",
+      "@capacitor/share",
+      "@capacitor/splash-screen",
+      "@capacitor/status-bar",
+      "@capgo/capacitor-health",
+      "@capgo/capacitor-navigation-bar",
+      "@codetrix-studio/capacitor-google-auth"
+    ],
+    "_note": "includePlugins: всички плъгини без @capgo/capacitor-updater (обновяването отвътре е само за iOS). Нов плъгин за Android — добави го тук."
   },
   "ios": {
     "_note": "iOS (build-ios.yml): страниците сами пазят safe area (viewport-fit=cover); само плъгините, които работят на iPhone — Health Connect, навигационната лента и Google входа са за Android.",
@@ -57,7 +84,8 @@
       "@capacitor/preferences",
       "@capacitor/share",
       "@capacitor/splash-screen",
-      "@capacitor/status-bar"
+      "@capacitor/status-bar",
+      "@capgo/capacitor-updater"
     ]
   }
 }

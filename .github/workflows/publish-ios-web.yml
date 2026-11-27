@@ -1,0 +1,117 @@
+name: Nutriin — iOS страници (обновяване отвътре)
+
+# Пакетът страници за приложението за iPhone — обновява се отвътре, без ново ревю в App Store (IOS_APP_STORE_PLAN.md).
+# При всяка промяна по страниците в main (същите пътища като APK-то): обвивката (scripts/capacitor-shell.sh, IOS=1) →
+# zip → предварително издание в GitHub с таг ios-web-<version> и тяло { version, sha256, minAppVersion }.
+# Приложението го намира през /api/app/web-bundle (app-bundle.js) и го прилага при следващото отваряне (web-updater.js).
+#   version       — времето на комита (същото като web-bundle.json в пакета)
+#   minAppVersion — ios-res/live-update.json (вдига се, когато страниците искат нов нативен плъгин)
+# Спиране на обновяванията за всички: KV app_web_bundle_paused = "1". Връщане назад: изтрий изданието — следващата
+# проверка дава предишното, но вече обновените приложения остават на новото, докато не излезе по-ново.
+# Изданията са предварителни (prerelease) — не пипат „latest“, по който Android сваля APK-то. Пазят се последните 5.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-ios-web.yml'
+      - 'ios-res/live-update.json'
+      - '**.html'
+      - '**.css'
+      - '**.js'
+      - '!worker.js'
+      - '!worker.entry.js'
+      - '!plan-response-schemas.js'
+      - '!context-compression.js'
+      - '!analytics-compression.js'
+      - '!json-patch.js'
+      - '!client-card.js'
+      - '!food-nutrition.js'
+      - '!food-nutrition-data.js'
+      - '!food-catalog.js'
+      - '!food-catalog-data.js'
+      - '!food-utils.js'
+      - '!fitness/worker.js'
+      - '!fitness/exercise-translate-batch.js'
+      - '!scripts/**'
+      - '!studio.html'
+      - '!studio-privacy.html'
+      - '!xb-studio.html'
+      - '!studio-app/**'
+      - '!studio-platform/**'
+      - '**.json'
+      - '**.png'
+      - '**.jpg'
+      - '**.jpeg'
+      - '**.svg'
+      - '**.webp'
+      - '**.ico'
+      - '**.webm'
+      # само за уеб (не променят приложението) — без ново APK
+      - '!wording-editor.js'
+      - '!emoeat-landing.html'
+      - '!i18n/*/emoeat-landing.json'
+      - '!wording/**'
+      - '!access-control.js'
+      - '!billing.js'
+      - '!rewards.js'
+      - '!spend.js'
+      - '!gemini-models.js'
+      - '!iris-gate.js'
+      - '!app-bundle.js'
+      - '!turnstile.js'
+      - '!plan-review.js'
+      - '!pricing.html'
+      - 'scripts/capacitor-shell.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: nutriin-ios-web
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Пакетът страници (както в приложението за iPhone)
+        run: |
+          IOS=1 bash scripts/capacitor-shell.sh
+          test -f capacitor-shell/index.html
+          test ! -f capacitor-shell/app-update.js
+          test ! -f capacitor-shell/pricing.html
+          cd capacitor-shell && zip -qr -9 "$RUNNER_TEMP/nutriin-web.zip" . -x '.gitkeep'
+
+      - name: Издание в GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./capacitor-shell/web-bundle.json').version")
+          MIN=$(node -p "require('./ios-res/live-update.json').minAppVersion")
+          SHA=$(sha256sum "$RUNNER_TEMP/nutriin-web.zip" | cut -d' ' -f1)
+          TAG="ios-web-${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Изданието $TAG вече го има (същият комит)."
+            exit 0
+          fi
+          cp "$RUNNER_TEMP/nutriin-web.zip" "nutriin-web-${VERSION}.zip"
+          printf '{"version":"%s","sha256":"%s","minAppVersion":"%s"}' "$VERSION" "$SHA" "$MIN" > notes.json
+          gh release create "$TAG" "nutriin-web-${VERSION}.zip" \
+            --title "iOS страници ${VERSION}" --notes-file notes.json \
+            --prerelease --latest=false --target "${GITHUB_SHA}"
+          {
+            echo "### Пакетът страници за iPhone е публикуван ✓"
+            echo "Версия ${VERSION} · за приложението от ${MIN} · $(du -h nutriin-web-${VERSION}.zip | cut -f1)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Само последните 5 пакета
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 100 --json tagName --jq '.[].tagName' | grep '^ios-web-' | sort -t- -k3 -n -r | tail -n +6 | while read -r t; do
+            gh release delete "$t" --yes --cleanup-tag || true
+          done

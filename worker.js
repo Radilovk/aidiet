@@ -63905,6 +63905,61 @@ async function handleIrisGemini(request, env, url, { notify } = (
   return new Response(text2, { status: r.status, headers: { "Content-Type": "application/json", ...IRIS_CORS } });
 }
 
+// app-bundle.js
+var RELEASES_URL = "https://api.github.com/repos/Radilovk/aidiet/releases?per_page=30";
+var TAG_PREFIX = "ios-web-";
+var CACHE_SEC = 300;
+function versionAtLeast(have, need) {
+  const a = String(have || "0").split(".").map((n) => parseInt(n, 10) || 0);
+  const b = String(need || "0").split(".").map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
+  }
+  return true;
+}
+function bundlesFromReleases(releases) {
+  const out = [];
+  for (const r of Array.isArray(releases) ? releases : []) {
+    if (!r || r.draft || !String(r.tag_name || "").startsWith(TAG_PREFIX)) continue;
+    let meta = null;
+    try {
+      meta = JSON.parse(String(r.body || "").trim());
+    } catch (_) {
+      continue;
+    }
+    const asset = (r.assets || []).find((a) => /\.zip$/.test(a.name || ""));
+    const version = String(meta && meta.version || "");
+    if (!asset || !/^\d+$/.test(version) || !/^[0-9a-f]{64}$/.test(String(meta.sha256 || ""))) continue;
+    out.push({ version, url: asset.browser_download_url, sha256: meta.sha256, minAppVersion: String(meta.minAppVersion || "1.0.0") });
+  }
+  return out.sort((x, y) => Number(y.version) - Number(x.version));
+}
+async function handleWebBundle(request, env, { respond }) {
+  const url = new URL(request.url);
+  if (url.searchParams.get("platform") !== "ios") return respond({});
+  if (env.page_content && await env.page_content.get("app_web_bundle_paused") === "1") return respond({});
+  const app = url.searchParams.get("app") || "0";
+  let releases = null;
+  const cache2 = typeof caches !== "undefined" ? caches.default : null;
+  const key = new Request(RELEASES_URL);
+  try {
+    const hit = cache2 && await cache2.match(key);
+    if (hit) releases = await hit.json();
+  } catch (_) {
+  }
+  if (!releases) {
+    const r = await fetch(RELEASES_URL, { headers: { "User-Agent": "nutriin-worker", Accept: "application/vnd.github+json" } });
+    if (!r.ok) return respond({});
+    releases = await r.json();
+    try {
+      if (cache2) await cache2.put(key, new Response(JSON.stringify(releases), { headers: { "Content-Type": "application/json", "Cache-Control": `max-age=${CACHE_SEC}` } }));
+    } catch (_) {
+    }
+  }
+  const best = bundlesFromReleases(releases).find((b) => versionAtLeast(app, b.minAppVersion));
+  return respond(best || {});
+}
+
 // node_modules/@anthropic-ai/sdk/internal/tslib.mjs
 function __classPrivateFieldSet(receiver, state, value, kind, f) {
   if (kind === "m")
@@ -105461,6 +105516,8 @@ var worker_entry_default = {
         return await handleSaveUserNotificationPreferences(request, env);
       } else if (url.pathname === "/api/user/save-profile" && request.method === "POST") {
         return await handleSaveUserProfile(request, env);
+      } else if (url.pathname === "/api/app/web-bundle" && request.method === "GET") {
+        return await handleWebBundle(request, env, { respond: jsonResponse2 });
       } else if (url.pathname === "/api/user/access" && request.method === "GET") {
         return jsonResponse2(await resolveAccess(env, url.searchParams.get("userId") || ""));
       } else if (url.pathname === "/api/turnstile/config" && request.method === "GET") {

@@ -48,6 +48,7 @@ rsync -a ./ capacitor-shell/ \
   --exclude 'spend.js' \
   --exclude 'gemini-models.js' \
   --exclude 'iris-gate.js' \
+  --exclude 'app-bundle.js' \
   --exclude 'turnstile.js' \
   --exclude 'plan-review.js' \
   --exclude 'email-domain.js' \
@@ -97,3 +98,11 @@ for f in Path('capacitor-shell').rglob('*.js'):
     f.write_text(n, encoding='utf-8')
     print('web-only removed:', f)
 PY_WEBONLY
+# Версията на пакета страници (обновяването отвътре на iPhone — web-updater.js, app-bundle.js): времето на комита.
+# Същото число е във вградения пакет (build-ios.yml) и в изданието (publish-ios-web.yml) от същия комит.
+V=$(git log -1 --format=%ct 2>/dev/null || date +%s)
+printf '{"version":"%s"}\n' "$V" > capacitor-shell/web-bundle.json
+# iPhone (IOS=1 — build-ios.yml и publish-ios-web.yml): без обновяването на APK-то.
+if [ "${IOS:-}" = "1" ]; then
+  rm -f capacitor-shell/app-update.js
+fi

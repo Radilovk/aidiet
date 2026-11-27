@@ -48,6 +48,7 @@ on:
       - '!spend.js'
       - '!gemini-models.js'
       - '!iris-gate.js'
+      - '!app-bundle.js'
       - '!turnstile.js'
       - '!plan-review.js'
       - '!pricing.html'

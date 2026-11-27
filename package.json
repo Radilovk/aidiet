@@ -75,7 +75,8 @@
     "test:document-reader": "node scripts/test-document-reader.mjs",
     "test:progress-index": "node scripts/test-progress-index.mjs",
     "test:day-adherence": "node scripts/test-day-adherence.mjs",
-    "test:sleep-signal": "node scripts/test-sleep-signal.mjs"
+    "test:sleep-signal": "node scripts/test-sleep-signal.mjs",
+    "test:app-bundle": "node scripts/test-app-bundle.mjs"
   },
   "keywords": [
     "ai",
@@ -118,6 +119,7 @@
     "@capacitor/status-bar": "^8.0.4",
     "@capgo/capacitor-health": "^8.11.12",
     "@capgo/capacitor-navigation-bar": "^8.1.5",
+    "@capgo/capacitor-updater": "~8.54.2",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4"
   }
 }
