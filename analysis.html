@@ -2955,7 +2955,7 @@
             if (state === 'ready') {
                 if (icon) icon.className = 'fas fa-hourglass-half';
                 if (strong) strong.textContent = 'Планът ти предстои да бъде одобрен';
-                if (text) text.textContent = 'Планът е готов и е изпратен към специалист за преглед. Ще получиш известие по имейл.';
+                if (text) text.textContent = 'Планът е готов и минава проверка за безопасност. Ще получиш известие по имейл.';
             } else if (state === 'error') {
                 if (icon) icon.className = 'fas fa-exclamation-triangle';
                 if (strong) strong.textContent = 'Планът се забави';
@@ -3075,7 +3075,7 @@
                 const ctaTitle = document.getElementById('ctaTitle');
                 const ctaSubtitle = document.getElementById('ctaSubtitle');
                 if (ctaTitle) ctaTitle.textContent = 'Анализът ти е готов!';
-                if (ctaSubtitle) ctaSubtitle.textContent = 'Планът ти се изготвя автоматично и преди да го получиш, се преглежда и одобрява от специалист.';
+                if (ctaSubtitle) ctaSubtitle.textContent = 'Планът ти се изготвя автоматично и преди да го получиш, минава проверка за безопасност.';
 
                 // Inject a pending-plan notice above the CTA (only when plan is ready for review)
                 const ctaSection = document.getElementById('ctaSection');
@@ -3093,7 +3093,7 @@
                             <i class="fas fa-hourglass-half"></i>
                             <div>
                                 <strong>Планът ти предстои да бъде одобрен</strong>
-                                <p>Нашият специалист ще прегледа данните ти и ще активира плана. Ще получиш известие по имейл.</p>
+                                <p>Планът минава проверка за безопасност, а при някои здравни особености — и преглед от нутриционист. Ще получиш известие по имейл.</p>
                             </div>
                         </div>`;
                         ctaSection.insertBefore(notice, ctaSection.firstChild);

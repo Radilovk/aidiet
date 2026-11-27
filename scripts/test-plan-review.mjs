@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Прегледът на новите планове от Claude (plan-review.js): опашка, присъда, промени с „преди/след“, прилагане. Без мрежа. */
 import assert from 'node:assert/strict';
-import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview, reviewEffort, reviewInput, REVIEW_MODEL, GUIDE } from '../plan-review.js';
+import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview, reviewEffort, reviewInput, REVIEW_MODEL, GUIDE, isRiskyProfile, applyReviewCorrection, markAutoActivated } from '../plan-review.js';
 
 const kv = new Map();
 const queue = [];
@@ -140,6 +140,24 @@ await check('рисков профил → по-високо ниво; лек п
   assert.equal(reviewEffort({ medications: 'Да' }), 'high');
   assert.equal(reviewEffort({ postpartumStatus: 'Бременна' }), 'high');
   assert.equal(reviewEffort({ age: '72' }), 'high');
+});
+await check('рисков профил не се активира сам: isRiskyProfile', async () => {
+  assert.equal(isRiskyProfile({ healthConditions: ['Нямам'], medications: 'Не', age: '35' }), false);
+  assert.equal(isRiskyProfile({}), false);
+  assert.equal(isRiskyProfile({ healthConditions: ['Диабет / Инсулинова резистентност'] }), true);
+  assert.equal(isRiskyProfile({ medications: 'Да' }), true);
+  assert.equal(isRiskyProfile({ age: '16' }), true);
+});
+await check('applyReviewCorrection: корекцията става текущ план (pending); markAutoActivated се вижда в прегледа', async () => {
+  put(client('c11', 'v1'));
+  await runPlanReview(env, { clientId: 'c11', planUpdatedAt: 'v1' }, deps(fakeClaude({ verdict: 'fix', summary: 's', findings: [], changes: [fixMeal] }), []));
+  const res = await applyReviewCorrection(env, 'c11', { now: Date.parse('2026-11-27T10:00:00Z') });
+  assert.equal(res.ok, true);
+  const c = JSON.parse(kv.get('client:c11'));
+  assert.equal(c.planStatus, 'pending');
+  assert.equal(c.plan.weekPlan.day1.meals[1].dishId, 'd_chicken');
+  await markAutoActivated(env, 'c11', { now: 5 });
+  assert.equal(review('c11').autoActivatedAt, 5);
 });
 await check('забележките са най-много 8', async () => {
   put(client('c8', 'v1'));

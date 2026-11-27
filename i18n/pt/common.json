@@ -320,11 +320,11 @@
   "Не е включено в профила ти.": "Não está incluído no teu perfil.",
   "Как Nutriin използва AI": "Como o Nutriin usa IA",
   "За плана, асистента, снимките на храната и разчитането на изследвания Nutriin изпраща нужните данни — профила, храненето, снимките и документите, които добавиш — на доставчици на изкуствен интелект: Google (Gemini), OpenAI и Anthropic.": "Para o teu plano, o assistente, as fotos de comida e a leitura de análises, o Nutriin envia os dados necessários — o teu perfil, as refeições e as fotos e documentos que adicionares — a fornecedores de inteligência artificial: Google (Gemini), OpenAI e Anthropic.",
-  "Изпращат се само за конкретната заявка и не се използват за обучение на модели. Планът се преглежда от специалист.": "São enviados apenas para o pedido concreto e não são usados para treinar modelos. O teu plano é revisto por um especialista.",
   "Политика за поверителност": "Política de privacidade",
   "Не сега": "Agora não",
   "Съгласен съм": "Concordo",
-  "Тази функция използва AI. Ще те попитаме пак, когато я отвориш.": "Esta função usa IA. Voltamos a perguntar quando a abrires."
+  "Тази функция използва AI. Ще те попитаме пак, когато я отвориш.": "Esta função usa IA. Voltamos a perguntar quando a abrires.",
+  "Изпращат се само за конкретната заявка и не се използват за обучение на модели.": "São enviados apenas para o pedido concreto e não são usados para treinar modelos."
  },
  "keys": {},
  "patterns": []

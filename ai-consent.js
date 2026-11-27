@@ -55,7 +55,7 @@
                     'box-shadow:0 20px 60px rgba(0,0,0,.3);font-size:.93rem;line-height:1.55">' +
                     '<h2 id="npAiConsentTitle" style="margin:0 0 10px;font-size:1.1rem">Как Nutriin използва AI</h2>' +
                     '<p style="margin:0 0 10px">За плана, асистента, снимките на храната и разчитането на изследвания Nutriin изпраща нужните данни — профила, храненето, снимките и документите, които добавиш — на доставчици на изкуствен интелект: Google (Gemini), OpenAI и Anthropic.</p>' +
-                    '<p style="margin:0 0 12px;color:' + c.sub + '">Изпращат се само за конкретната заявка и не се използват за обучение на модели. Планът се преглежда от специалист.</p>' +
+                    '<p style="margin:0 0 12px;color:' + c.sub + '">Изпращат се само за конкретната заявка и не се използват за обучение на модели.</p>' +
                     '<p style="margin:0 0 16px"><a href="privacy-policy.html" style="color:' + c.acc + ';font-weight:600">Политика за поверителност</a></p>' +
                     '<div style="display:flex;gap:10px">' +
                     '<button type="button" data-ai="no" style="flex:1;min-height:48px;border-radius:14px;border:1.5px solid ' + c.line + ';background:transparent;color:' + c.text + ';font:inherit;font-weight:600">Не сега</button>' +

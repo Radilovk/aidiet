@@ -10113,6 +10113,13 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             return result;
         }
 
+        // Прегледът на плана е без име, имейл и телефон — по номера на клиента (виж IOS_APP_STORE_PLAN.md).
+        function anonClientLabel(id) {
+            const tail = String(id || '').replace(/^client_/, '').slice(-6).toUpperCase();
+            return 'Клиент #' + (tail || '—');
+        }
+        const PERSONAL_ANSWER_KEY = /^(name|email|e-?mail|phone|tel|telephone|mobile|firstName|lastName|fullName|address|city|instagram|facebook|userId|_?userId)$/i;
+
         function renderPendingPlans() {
             const container = document.getElementById('pendingPlansContainer');
             const statusEl  = document.getElementById('pendingLoadStatus');
@@ -10146,11 +10153,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                 const failedBadge = isFailed ? `<span style="display:inline-block;background:#fee2e2;color:#dc2626;border-radius:4px;padding:2px 8px;font-size:0.78rem;margin-left:6px;"><i class="fas fa-exclamation-circle"></i> Неуспешно генериране</span>` : '';
                 const errorRow = isFailed && client.planGenerationError ? `<div style="color:#dc2626;font-size:0.8rem;margin-top:4px;"><i class="fas fa-bug"></i> ${escapeHtml(client.planGenerationError)}</div>` : '';
                 html += `
-                    <div class="pending-client-card" data-client-id="${escapeHtml(client.id)}" data-client-name="${escapeHtml(client.name)}">
+                    <div class="pending-client-card" data-client-id="${escapeHtml(client.id)}">
                         <div class="pending-client-info">
-                            <div class="pending-client-name"><i class="fas fa-user-circle" style="color:#d97706;margin-right:6px;"></i>${escapeHtml(client.name)}${failedBadge}${!isFailed ? `<span class="pending-review-badge" data-client-id="${escapeHtml(client.id)}" style="display:inline-block;border-radius:4px;padding:2px 8px;font-size:0.78rem;margin-left:6px;background:#f1f5f9;color:#475569;">Claude: …</span>` : ''}</div>
+                            <div class="pending-client-name"><i class="fas fa-user-circle" style="color:#d97706;margin-right:6px;"></i>${escapeHtml(anonClientLabel(client.id))}${failedBadge}${!isFailed ? `<span class="pending-review-badge" data-client-id="${escapeHtml(client.id)}" style="display:inline-block;border-radius:4px;padding:2px 8px;font-size:0.78rem;margin-left:6px;background:#f1f5f9;color:#475569;">Claude: …</span>` : ''}</div>
                             <div class="pending-client-meta">
-                                <i class="fas fa-envelope"></i> ${escapeHtml(client.email)}&nbsp;&nbsp;
                                 <i class="fas fa-bullseye"></i> ${escapeHtml(client.goal)}&nbsp;&nbsp;
                                 <i class="fas fa-clock"></i> ${dateStr}
                             </div>
@@ -10177,7 +10183,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             container.querySelectorAll('.pending-view-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const card = this.closest('.pending-client-card');
-                    viewClientDetails(card.getAttribute('data-client-id'));
+                    viewClientDetails(card.getAttribute('data-client-id'), { anonymous: true });
                 });
             });
             // Прегледът на Claude (Opus 5.5 при постъпване на плана, plan-review.js): присъда до името, подробности в прозорец.
@@ -10812,7 +10818,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
             }
         }
         
-        async function viewClientDetails(clientId) {
+        async function viewClientDetails(clientId, { anonymous = false } = {}) {
             try {
                 const response = await fetch(`${WORKER_URL}/api/admin/get-client-data?clientId=${encodeURIComponent(clientId)}`);
                 const result = await response.json();
@@ -10869,7 +10875,10 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                     }
                 ];
 
-                const answers = client.answers || {};
+                // От хъба за одобрение: без име, имейл и телефон (прегледът е по номера на клиента).
+                const answers = anonymous
+                    ? Object.fromEntries(Object.entries(client.answers || {}).filter(([k]) => !PERSONAL_ANSWER_KEY.test(k)))
+                    : (client.answers || {});
                 const usedKeys = new Set();
                 let answersHtml = '';
 
@@ -10937,7 +10946,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
                             <div style="position:sticky;top:0;background:var(--bg-color);padding:20px 24px 14px;border-bottom:2px solid var(--soft-red);display:flex;justify-content:space-between;align-items:center;z-index:1;">
                                 <h2 style="margin:0;color:var(--text-dark);font-size:1.2rem;">
                                     <i class="fas fa-user-circle" style="color:var(--primary-red);margin-right:8px;"></i>
-                                    ${escapeHtml(answers.name || 'N/A')} ${statusBadgeHtml}
+                                    ${escapeHtml(anonymous ? anonClientLabel(client.id) : (answers.name || 'N/A'))} ${statusBadgeHtml}
                                 </h2>
                                 <button class="client-modal-close" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-gray);padding:4px 8px;" title="Затвори">
                                     <i class="fas fa-times"></i>
@@ -10948,7 +10957,7 @@ JSON ФОРМАТ (КРИТИЧНО - използвай САМО числа з�
 
                             <!-- Summary strip -->
                             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;background:var(--soft-red);padding:14px;border-radius:10px;margin-bottom:20px;">
-                                <div><i class="fas fa-envelope" style="color:var(--primary-red);margin-right:4px;"></i><small style="color:var(--text-gray);">${escapeHtml(answers.email || '—')}</small></div>
+                                ${anonymous ? '' : `<div><i class="fas fa-envelope" style="color:var(--primary-red);margin-right:4px;"></i><small style="color:var(--text-gray);">${escapeHtml(answers.email || '—')}</small></div>`}
                                 <div><i class="fas fa-clock" style="color:var(--primary-red);margin-right:4px;"></i><small style="color:var(--text-gray);">${dateStr}</small></div>
                                 <div><i class="fas fa-hashtag" style="color:var(--primary-red);margin-right:4px;"></i><small style="color:var(--text-gray);word-break:break-all;">${escapeHtml(client.id)}</small></div>
                             </div>
