@@ -914,13 +914,14 @@
   "Изглежда има грешка. Поправи само тях — останалото е запазено и анализът продължава.": "Il semble y avoir une erreur. Corrige seulement celles-ci — le reste est enregistré et l'analyse continue.",
   "Готово — продължи": "C'est bon — continuer",
   "Преди да изпратиш": "Avant d'envoyer",
-  "Съгласен/на съм здравните ми данни да бъдат обработвани за тази цел. Прочетох": "J'accepte que mes données de santé soient traitées à cette fin. J'ai lu",
   "политиката за поверителност": "la politique de confidentialité",
   "условията": "les conditions",
   "Изпрати": "Envoyer",
   "провери въведените": "vérifie les éléments saisis",
   "Инструкции": "Instructions",
-  "Виж как": "Voir comment"
+  "Виж как": "Voir comment",
+  "Съгласен/на съм здравните ми данни да бъдат обработвани за тази цел, включително от AI доставчиците. Прочетох": "J'accepte que mes données de santé soient traitées à cette fin, y compris par les fournisseurs d'IA. J'ai lu la",
+  "Планът се изготвя с помощта на AI: отговорите ти се изпращат на доставчици на изкуствен интелект — Google (Gemini), OpenAI и Anthropic — само за конкретната заявка и не се използват за обучение на модели.": "Ton plan est préparé avec l'aide de l'IA : tes réponses sont envoyées à des fournisseurs d'intelligence artificielle — Google (Gemini), OpenAI et Anthropic — uniquement pour la demande concernée, et elles ne servent pas à entraîner des modèles."
  },
  "keys": {},
  "patterns": [

@@ -81,6 +81,7 @@ jobs:
           npx cap add ios
           python3 ios-res/patch-ios.py
           ruby ios-res/add-privacy-manifest.rb
+          ruby ios-res/add-app-sources.rb
           npx cap sync ios
           # Плъгините само за Android (Health Connect, Google вход, навигационна лента) не влизат (ios.includePlugins):
           # HealthKit без разрешение и обяснение е причина за отказ още при качване.

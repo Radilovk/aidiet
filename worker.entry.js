@@ -1280,7 +1280,7 @@ async function answerGate(env, data) {
   try {
     const qmap = data._qmap && typeof data._qmap === 'object' ? data._qmap : {};
     const followUps = Array.isArray(data.followUps) ? data.followUps : [];
-    const skip = new Set(['_qmap', 'followUps', 'criticalFollowUp', 'medicalFiles', 'email', '_dq_text_map', 'consentHealthData']);
+    const skip = new Set(['_qmap', 'followUps', 'criticalFollowUp', 'medicalFiles', 'email', '_dq_text_map', 'consentHealthData', 'consentAi']);
     const userData = Object.entries(data).filter(([k, v]) => !skip.has(k) && v !== '' && v != null)
       .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n').slice(0, 9000);
     const template = await requireKvPrompt(env, 'admin_answer_gate_prompt');

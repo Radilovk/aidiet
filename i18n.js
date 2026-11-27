@@ -120,7 +120,7 @@
 // на приложението: класовете са на <html> преди първото рисуване, без скритото да се мярка.
 //   html.is-native   — скрива .sf-web (цени, сваляне на APK, връзки към плащане) на всяка страница, не само в index.html
 //   html.platform-ios — App Store (IOS_APP_STORE_PLAN.md): без APK, без IrisMap (уеб модул, продава се извън
-//                       приложението); [data-ios-hide] — всичко друго само за уеб/Android
+//                       приложението); [data-ios-hide] — всичко друго само за уеб/Android; + ai-consent.js
 // На сайта не прави нищо.
 (function () {
     var cap = null;
@@ -147,6 +147,12 @@
     style.id = 'np-native-store';
     style.textContent = css;
     (document.head || root).appendChild(style);
+    // iPhone: изричното съгласие преди данни да стигнат до AI (App Store 5.1.2(i)) — ai-consent.js
+    if (ios && !window.NutriinAiConsent) {
+        var s = document.createElement('script');
+        s.src = './ai-consent.js?v=20261127a';
+        (document.head || root).appendChild(s);
+    }
 })();
 
 (function () {

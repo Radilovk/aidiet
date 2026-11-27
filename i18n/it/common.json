@@ -317,7 +317,14 @@
   "Цени": "Prezzi",
   "Какво включва": "Cosa include",
   "Лимитът за този период е изчерпан.": "Il limite per questo periodo è stato raggiunto.",
-  "Не е включено в профила ти.": "Non incluso nel tuo profilo."
+  "Не е включено в профила ти.": "Non incluso nel tuo profilo.",
+  "Как Nutriin използва AI": "Come Nutriin usa l'IA",
+  "За плана, асистента, снимките на храната и разчитането на изследвания Nutriin изпраща нужните данни — профила, храненето, снимките и документите, които добавиш — на доставчици на изкуствен интелект: Google (Gemini), OpenAI и Anthropic.": "Per il tuo piano, l'assistente, le foto del cibo e la lettura delle analisi, Nutriin invia i dati necessari — il tuo profilo, i pasti e le foto e i documenti che aggiungi — a fornitori di intelligenza artificiale: Google (Gemini), OpenAI e Anthropic.",
+  "Изпращат се само за конкретната заявка и не се използват за обучение на модели. Планът се преглежда от специалист.": "Vengono inviati solo per la richiesta specifica e non sono usati per addestrare modelli. Il tuo piano è controllato da uno specialista.",
+  "Политика за поверителност": "Informativa sulla privacy",
+  "Не сега": "Non ora",
+  "Съгласен съм": "Accetto",
+  "Тази функция използва AI. Ще те попитаме пак, когато я отвориш.": "Questa funzione usa l'IA. Te lo chiederemo di nuovo quando la aprirai."
  },
  "keys": {},
  "patterns": []

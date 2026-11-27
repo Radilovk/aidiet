@@ -5,6 +5,7 @@
   - Info.plist: без криптиране извън HTTPS, arm64, само вертикално, името под иконата,
     обясненията за камерата и снимките (Apple отказва качване без тях, щом има плъгин за камера)
   - иконата и стартовият екран от ios-res/ (scripts/build-ios-assets.mjs)
+  - Main.storyboard: главният екран е NutriViewController (ios-res/App/ — регистрира NutriPrint)
 """
 import plistlib
 import shutil
@@ -50,3 +51,14 @@ splashes = sorted((APP / "Assets.xcassets" / "Splash.imageset").glob("*.png"))
 for p in splashes:
     shutil.copyfile(RES / "splash-2732.png", p)
 print(f"icon → {', '.join(p.name for p in icons)}; splash → {len(splashes)} files")
+
+# главният екран — нашият (регистрира собствените плъгини); Swift файловете добавя ios-res/add-app-sources.rb
+board = APP / "Base.lproj" / "Main.storyboard"
+xml = board.read_text()
+old = 'customClass="CAPBridgeViewController" customModule="Capacitor"'
+new = 'customClass="NutriViewController" customModule="App" customModuleProvider="target"'
+if new not in xml:
+    if old not in xml:
+        sys.exit("Main.storyboard: CAPBridgeViewController not found")
+    board.write_text(xml.replace(old, new))
+print("Main.storyboard → NutriViewController")
