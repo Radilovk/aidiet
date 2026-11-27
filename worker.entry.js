@@ -142,7 +142,7 @@ import { handleRewards, handleRewardsRedeem, handleRewardCodeStatus, handleInvit
 import { handleBillingCheckout, handleBillingConfirm, handleBillingWebhook, handleVoucherStatus, billingReady, stripeMode, emoeatCredit, useEmoeatCredit } from './billing.js';
 import { handleIrisTicket, handleIrisGemini, handleIrisStatus, handleIrisPass, handleIrisRedeem } from './iris-gate.js';
 import { verifyTurnstile, turnstileSiteKey, BOT_MESSAGE } from './turnstile.js';
-import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview } from './plan-review.js';
+import { handleReviewGet, handleReviewApply, maybeFireReview, reviewOnPending, runPlanReview, isRiskyProfile, applyReviewCorrection, markAutoActivated } from './plan-review.js';
 import { budgetOk, dailySpend, budgetLimit, noteSpend, addSpend, BUDGET_KEY } from './spend.js';
 import { claudeReaderAvailable, readLabsWithClaude, assessDocumentWithClaude } from './document-reader.js';
 import { resolveGeminiModel } from './gemini-models.js';
@@ -1280,7 +1280,7 @@ async function answerGate(env, data) {
   try {
     const qmap = data._qmap && typeof data._qmap === 'object' ? data._qmap : {};
     const followUps = Array.isArray(data.followUps) ? data.followUps : [];
-    const skip = new Set(['_qmap', 'followUps', 'criticalFollowUp', 'medicalFiles', 'email', '_dq_text_map', 'consentHealthData']);
+    const skip = new Set(['_qmap', 'followUps', 'criticalFollowUp', 'medicalFiles', 'email', '_dq_text_map', 'consentHealthData', 'consentAi']);
     const userData = Object.entries(data).filter(([k, v]) => !skip.has(k) && v !== '' && v != null)
       .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n').slice(0, 9000);
     const template = await requireKvPrompt(env, 'admin_answer_gate_prompt');
@@ -1658,7 +1658,7 @@ async function planReviewOnSave(env, clientId, clientData) {
     // Без преглед от Claude (няма ключ) — писмото за новия план тръгва веднага; иначе — с прегледа.
     if (r === 'off' && !(await env.page_content.get(`plan_review_mailed:${clientId}:${clientData.planUpdatedAt || ''}`))) {
       await env.page_content.put(`plan_review_mailed:${clientId}:${clientData.planUpdatedAt || ''}`, '1', { expirationTtl: 30 * 86400 });
-      await notifyAdmin(env, null, `План за одобрение: ${clientData.answers?.name || clientId}`, [['Клиент', clientData.answers?.name], ['Имейл', clientData.answers?.email], ['Цел', clientData.answers?.goal], ['ID', clientId]]);
+      await notifyAdmin(env, null, `План за одобрение: ${clientId}`, [['ID', clientId], ['Цел', clientData.answers?.goal]]);
     }
   } catch (e) {
     console.warn('[plan-review] on save:', e?.message);
@@ -4149,7 +4149,7 @@ const DEFAULT_EMAIL_TEMPLATE = {
   headerSubtitle: 'Персонален хранителен план',
   greeting: 'Здравей, {name}! 👋',
   paragraph1: 'Радваме се да ти съобщим, че твоят <strong>персонален 7-дневен хранителен план</strong> е готов и вече е достъпен!',
-  paragraph2: 'Нашият специалист внимателно е разгледал твоите данни и е изготвил индивидуален план, съобразен с твоите цели и нужди.',
+  paragraph2: 'Планът ти е изготвен по твоите данни и цели и мина проверка за безопасност.',
   buttonText: 'Виж моя план →',
   contactEmail: 'info@nutriin.app'
 };
@@ -4654,7 +4654,7 @@ function notifyAdmin(env, ctx, subject, rows, extraHtml = '') {
 }
 
 /** Писмото за нов план: прегледът на Claude (присъда, забележки, промени „беше → стана · защо“). */
-function notifyPlanReviewed(env, client, review) {
+function notifyPlanReviewed(env, client, review, clientId = '', auto = null) {
   const verdict = { ok: '✅ готов за одобрение', fix: '🛠 с предложени промени', stop: '⛔ нужен е човек' }[review.verdict] || review.verdict;
   const sev = { critical: 'Критично', major: 'Важно', minor: 'Дребно' };
   const mealOf = v => (v && typeof v === 'object' && v.name ? `${v.name}${v.calories != null ? ` (${Math.round(v.calories)} kcal)` : ''}` : (v == null ? '—' : JSON.stringify(v).slice(0, 160)));
@@ -4663,10 +4663,14 @@ function notifyPlanReviewed(env, client, review) {
   const extra = `<h3 style="font-size:15px;margin:16px 0 6px">Прегледът на Claude: ${verdict}</h3><p>${escapeHtml(review.summary || '')}</p>`
     + (findings ? `<h4 style="margin:12px 0 4px">Забележки</h4><ol>${findings}</ol>` : '')
     + (changes ? `<h4 style="margin:12px 0 4px">Предложени промени</h4><ol>${changes}</ol>` : '')
-    + '<p style="color:#64748b">Планът чака одобрение. Промените не са приложени, докато не ги одобрите в админ панела.</p>';
+    + (auto === 'activated'
+      ? '<p style="color:#15803d">Планът е активиран автоматично (профилът не е рисков)' + (review.verdict === 'fix' ? ', с промените по-горе' : '') + ' и клиентът вече го има. Може да го прегледате и промените в админ панела.</p>'
+      : '<p style="color:#64748b">Планът чака одобрение. Промените не са приложени, докато не ги одобрите в админ панела.</p>');
+  // Без име, имейл и телефон — прегледът е по номера на клиента.
   const a = client?.answers || {};
-  return notifyAdmin(env, null, `План за одобрение: ${a.name || client?.id || ''} — ${verdict}`,
-    [['Клиент', a.name], ['Имейл', a.email], ['Цел', a.goal], ['ID', client?.id]], extra);
+  const id = clientId || client?.id || '';
+  return notifyAdmin(env, null, auto === 'activated' ? `Нов план, активиран автоматично: ${id} — ${verdict}` : `План за одобрение: ${id} — ${verdict}`,
+    [['ID', id], ['Цел', a.goal], ['Възраст', a.age]], extra);
 }
 
 /**
@@ -5044,7 +5048,7 @@ async function syncPlanToEmailCanonicalStore(env, {
   if (plan && requireApproval && clientData.planStatus === 'pending') {
     sendPushNotificationToUser('admin', {
       title: 'Нов план чака преглед',
-      body: `Клиент ${clientData.answers?.name || resolvedClientId} — регенериран план от профила.`,
+      body: `Клиент ${resolvedClientId} — регенериран план от профила.`,
       url: '/admin.html',
       icon: '/icon-192x192.png',
       notificationType: 'admin_plan_pending',
@@ -7375,6 +7379,63 @@ async function handleUpdateClientPlan(request, env, ctx) {
   }
 }
 
+/**
+ * Активира плана на клиента: статус, профилът в приложението и писмото „планът е готов“.
+ * Общо за бутона „Активирай“ в админа и за автоматичното активиране след прегледа (autoActivateReviewedPlan).
+ */
+async function activateClientPlan(env, clientId, clientData) {
+  if (clientData.plan?.weekPlan && clientData.plan?.strategy) {
+    await reconcilePlanStructure(clientData.plan, clientData.answers, env);
+  }
+  clientData.planStatus = 'activated';
+  clientData.planActivatedAt = new Date().toISOString();
+  delete clientData.planReplacementPending;
+  delete clientData.planGenerationError;
+  await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+
+  clientData.planUpdatedAt = clientData.planUpdatedAt || clientData.planActivatedAt;
+
+  let emailSent = false;
+  let emailError = null;
+  if (clientData.answers?.email) {
+    const emailResult = await deliverPlanUpdateToClient(env, clientData, clientId, 'ready');
+    emailSent = !!emailResult.sent;
+    emailError = emailResult.sent ? null : (emailResult.error || emailResult.reason || 'Неизвестна грешка');
+  } else {
+    await syncActivatedPlanToUserProfile(env, clientData, clientId);
+    emailError = 'Няма имейл адрес за клиента';
+  }
+  return { activatedAt: clientData.planActivatedAt, emailSent, emailError };
+}
+
+/**
+ * След прегледа от Claude планът стига до клиента веднага — без човек, — ако:
+ *   присъдата е „ok“ (или „fix“ и корекциите са приложени), и профилът НЕ е рисков (plan-review.js →
+ *   isRiskyProfile: заболявания, лекарства, бременност/кърмене, под 18 или от 70 г.).
+ * Иначе остава за одобрение от нутриционист. → 'activated' | null
+ */
+async function autoActivateReviewedPlan(env, clientId, review) {
+  try {
+    if (!clientId || !review || !['ok', 'fix'].includes(review.verdict)) return null;
+    let c = await kvGetJSON(env, `client:${clientId}`);
+    if (!c?.plan || c.planStatus !== 'pending' || (c.planUpdatedAt || null) !== (review.planUpdatedAt || null)) return null;
+    if (isRiskyProfile(c.answers)) return null;
+    if (review.verdict === 'fix') {
+      const res = await applyReviewCorrection(env, clientId);
+      if (!res.ok) return null;
+      c = await kvGetJSON(env, `client:${clientId}`);
+      if (!c?.plan) return null;
+    }
+    await activateClientPlan(env, clientId, c);
+    await markAutoActivated(env, clientId);
+    console.log(`[plan-review] ${clientId}: активиран автоматично (${review.verdict})`);
+    return 'activated';
+  } catch (e) {
+    console.warn(`[plan-review] ${clientId}: автоматичното активиране не мина:`, e?.message);
+    return null;
+  }
+}
+
 // ─── Admin: Activate client plan ───
 async function handleActivateClientPlan(request, env, ctx) {
   try {
@@ -7393,32 +7454,11 @@ async function handleActivateClientPlan(request, env, ctx) {
     if (!clientData.plan) {
       return jsonResponse({ error: 'No plan to activate' }, 400);
     }
-    if (clientData.plan?.weekPlan && clientData.plan?.strategy) {
-      await reconcilePlanStructure(clientData.plan, clientData.answers, env);
-    }
-    clientData.planStatus = 'activated';
-    clientData.planActivatedAt = new Date().toISOString();
-    delete clientData.planReplacementPending;
-    delete clientData.planGenerationError;
-    await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
-
-    clientData.planUpdatedAt = clientData.planUpdatedAt || clientData.planActivatedAt;
-
-    let emailSent = false;
-    let emailError = null;
-    if (clientData.answers?.email) {
-      const emailResult = await deliverPlanUpdateToClient(env, clientData, clientId, 'ready');
-      emailSent = !!emailResult.sent;
-      emailError = emailResult.sent ? null : (emailResult.error || emailResult.reason || 'Неизвестна грешка');
-    } else {
-      await syncActivatedPlanToUserProfile(env, clientData, clientId);
-      emailError = 'Няма имейл адрес за клиента';
-    }
-
+    const { activatedAt, emailSent, emailError } = await activateClientPlan(env, clientId, clientData);
     return jsonResponse({
       success: true,
       message: 'Plan activated',
-      activatedAt: clientData.planActivatedAt,
+      activatedAt,
       emailSent,
       emailError: emailSent ? null : (emailError || 'Неизвестна грешка')
     });
@@ -18950,14 +18990,15 @@ export default {
             const r = await runPlanReview(env, body, {
               reconcile: (plan, answers) => reconcilePlanStructure(plan, answers, env),
               addSpend: (usd) => addSpend(env, usd, { notify: adminSpendNotify(env) }),
-              notify: (client, review) => notifyPlanReviewed(env, client, review),
+              // Без рисков профил и с чиста присъда планът стига до клиента веднага; писмото казва какво е станало.
+              notify: async (client, review) => notifyPlanReviewed(env, client, review, clientId, await autoActivateReviewedPlan(env, clientId, review)),
             });
             console.log(`[plan-review] ${clientId}: ${r}`);
           } catch (err) {
             // Последният опит не мина — писмото за новия план тръгва без прегледа.
             if ((message.attempts || 1) >= 3) {
               const c = await kvGetJSON(env, `client:${clientId}`);
-              await notifyAdmin(env, null, `План за одобрение: ${c?.answers?.name || clientId} — без преглед`, [['Клиент', c?.answers?.name], ['Имейл', c?.answers?.email], ['ID', clientId], ['Прегледът не мина', String(err?.message || err).slice(0, 300)]]);
+              await notifyAdmin(env, null, `План за одобрение: ${clientId} — без преглед`, [['ID', clientId], ['Цел', c?.answers?.goal], ['Прегледът не мина', String(err?.message || err).slice(0, 300)]]);
             } else {
               throw err;
             }

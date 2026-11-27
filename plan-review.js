@@ -46,7 +46,8 @@ const reviewKey = (id) => `plan_review:${id}`;
 const firedKey = (id) => `plan_review_fired:${id}`;
 const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
 
-export const GUIDE = `Преглеждаш хранителен план на Nutriin, преди да стигне до клиента. Екипът го одобрява след теб.
+export const GUIDE = `Преглеждаш хранителен план на Nutriin, преди да стигне до клиента. При "ok" или "fix" планът стига до
+клиента веднага (без рисков профил), без друг преглед — затова при всяко съмнение за безопасност: "stop".
 Пишеш на екипа, на български: кратко, конкретно, с място (ден, хранене). Не пишеш на клиента.
 
 Главното правило: планът трябва да бъде СПАЗЕН от този човек. План, точен на 80%, но лесен и гъвкав, дава повече
@@ -260,15 +261,20 @@ export function reviewInput(c) {
 }
 
 /** Рисков профил → по-високо ниво на мислене. */
-export function reviewEffort(answers) {
+export function isRiskyProfile(answers) {
   const a = answers || {};
   const conditions = Array.isArray(a.healthConditions) ? a.healthConditions : [a.healthConditions].filter(Boolean);
   const age = Number(a.age);
-  const risky = conditions.some((x) => MEDICAL_CONDITIONS.has(x))
+  return conditions.some((x) => MEDICAL_CONDITIONS.has(x))
     || a.medications === 'Да'
-    || (a.postpartumStatus && a.postpartumStatus !== 'Не кърмя, но наскоро родих (до 1 година)')
+    || Boolean(a.postpartumStatus && a.postpartumStatus !== 'Не кърмя, но наскоро родих (до 1 година)')
     || (age > 0 && (age < 18 || age >= 70));
-  return risky ? EFFORT_RISK : EFFORT_BASE;
+}
+
+/** Рисков профил (заболявания, лекарства, бременност/кърмене, под 18 или от 70 г.) — high; иначе medium.
+ *  Същият профил не се активира сам: планът чака нутриционист (autoActivation в worker.entry.js). */
+export function reviewEffort(answers) {
+  return isRiskyProfile(answers) ? EFFORT_RISK : EFFORT_BASE;
 }
 
 const MEAL_PATH = /^\/plan\/weekPlan\/(day\d+)\/meals\/(\d+)$/;
@@ -427,15 +433,17 @@ export async function handleReviewGet(url, env, { respond, now = Date.now() }) {
   return respond({ review: r, ...(queued ? { queued } : {}) });
 }
 
-/** POST /api/admin/plan-review/apply { clientId } — коригираният план става текущ; остава за одобрение. */
-export async function handleReviewApply(request, env, { respond, now = Date.now() }) {
-  const { clientId } = await request.json().catch(() => ({}));
+/**
+ * Коригираният план от прегледа става текущ (остава pending — активира се отделно).
+ * → { ok: true, planUpdatedAt } | { ok: false, error, message, status }
+ */
+export async function applyReviewCorrection(env, clientId, { now = Date.now() } = {}) {
   const r = JSON.parse((await env.page_content.get(reviewKey(clientId))) || 'null');
-  if (!r?.correctedPlan) return respond({ error: 'no_correction', message: 'Няма корекции за прилагане' }, 400);
+  if (!r?.correctedPlan) return { ok: false, status: 400, error: 'no_correction', message: 'Няма корекции за прилагане' };
   const c = JSON.parse((await env.page_content.get(`client:${clientId}`)) || 'null');
-  if (!isPending(c)) return respond({ error: 'not_pending', message: 'Планът вече не чака одобрение' }, 409);
+  if (!isPending(c)) return { ok: false, status: 409, error: 'not_pending', message: 'Планът вече не чака одобрение' };
   if ((c.planUpdatedAt || null) !== r.planUpdatedAt) {
-    return respond({ error: 'stale', message: 'Планът е сменен след прегледа — корекциите не важат за него' }, 409);
+    return { ok: false, status: 409, error: 'stale', message: 'Планът е сменен след прегледа — корекциите не важат за него' };
   }
   const originalPlan = c.plan;
   c.plan = r.correctedPlan;
@@ -443,5 +451,19 @@ export async function handleReviewApply(request, env, { respond, now = Date.now(
   await env.page_content.put(`client:${clientId}`, JSON.stringify(c));
   // Прегледът важи за новия вариант (иначе би тръгнал пак); старият план остава в прегледа.
   await env.page_content.put(reviewKey(clientId), JSON.stringify({ ...r, applied: true, appliedAt: now, planUpdatedAt: c.planUpdatedAt, originalPlan }), { expirationTtl: 120 * 86400 });
-  return respond({ success: true, planUpdatedAt: c.planUpdatedAt });
+  return { ok: true, planUpdatedAt: c.planUpdatedAt };
+}
+
+/** Отбелязва в прегледа, че планът е активиран без човек (вижда се в хъба за одобрение). */
+export async function markAutoActivated(env, clientId, { now = Date.now() } = {}) {
+  const r = JSON.parse((await env.page_content.get(reviewKey(clientId))) || 'null');
+  if (r) await env.page_content.put(reviewKey(clientId), JSON.stringify({ ...r, autoActivatedAt: now }), { expirationTtl: 120 * 86400 });
+}
+
+/** POST /api/admin/plan-review/apply { clientId } — коригираният план става текущ; остава за одобрение. */
+export async function handleReviewApply(request, env, { respond, now = Date.now() }) {
+  const { clientId } = await request.json().catch(() => ({}));
+  const res = await applyReviewCorrection(env, clientId, { now });
+  if (!res.ok) return respond({ error: res.error, message: res.message }, res.status);
+  return respond({ success: true, planUpdatedAt: res.planUpdatedAt });
 }

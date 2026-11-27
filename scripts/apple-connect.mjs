@@ -21,7 +21,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
 const { APPSTORE_KEY_ID: KEY_ID, APPSTORE_ISSUER_ID: ISSUER, APPSTORE_KEY_P8: P8 } = process.env;
-const cfg = JSON.parse(readFileSync(new URL('../studio-app/capacitor.config.json', import.meta.url), 'utf8'));
+// APP_CONFIG: Capacitor конфигурацията на приложението, от корена (по подразбиране — студиото; Nutriin: capacitor.config.json)
+const cfg = JSON.parse(readFileSync(new URL(`../${process.env.APP_CONFIG || 'studio-app/capacitor.config.json'}`, import.meta.url), 'utf8'));
 const BUNDLE = cfg.appId;
 const APP_NAME = cfg.appName;
 
@@ -67,10 +68,10 @@ try {
     if (hit) {
       console.log(`✓ Bundle ID ${BUNDLE} вече е регистриран (${hit.attributes.name}).`);
     } else {
-      const made = await api('POST', '/v1/bundleIds', { data: { type: 'bundleIds', attributes: { identifier: BUNDLE, name: 'XB Studio', platform: 'IOS' } } });
+      const made = await api('POST', '/v1/bundleIds', { data: { type: 'bundleIds', attributes: { identifier: BUNDLE, name: APP_NAME.replace(/[^A-Za-z0-9 ]/g, ' '), platform: 'IOS' } } });
       console.log(`✓ Регистрирах Bundle ID ${made.data.attributes.identifier}.`);
     }
-    console.log(`\nСледваща стъпка (само ти): App Store Connect → My Apps → + → New App: платформа iOS, име „${APP_NAME}“, език Bulgarian, Bundle ID ${BUNDLE}, SKU xb-studio-1.`);
+    console.log(`\nСледваща стъпка (само ти): App Store Connect → My Apps → + → New App: платформа iOS, име „${APP_NAME}“, език Bulgarian, Bundle ID ${BUNDLE}, SKU ${APP_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-1.`);
   } else if (action === 'status') {
     const apps = await api('GET', `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE)}`);
     const app = apps.data[0];

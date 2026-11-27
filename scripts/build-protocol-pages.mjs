@@ -82,7 +82,7 @@ function siteFooter() {
                             <li class="sf-web"><a href="index.html?stay=1#android-install">Приложението</a></li>
                         </ul>
                     </div>
-                    <div>
+                    <div data-ios-hide>
                         <h2 class="sf-h">Програми</h2>
                         <ul>
                             <li><a href="protocol-landing.html">Клинични протоколи</a></li>
@@ -129,7 +129,7 @@ const topbar = () => `<header class="topbar">
     </header>`;
 
 const themeInit = `<script src="partner-ref.js"></script>
-<script src="i18n.js?v=20261123a"></script>
+<script src="i18n.js?v=20261123b"></script>
     <script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}t=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);if(t==='dark')document.querySelector('meta[name="theme-color"]').setAttribute('content','#071312');})();</script>`;
 
 const fonts = `<link rel="preconnect" href="https://fonts.googleapis.com">

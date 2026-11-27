@@ -2944,8 +2944,11 @@
             var ud = JSON.parse(localStorage.getItem('userData') || '{}');
             if (ud && ud.name) name = 'Nutriin - ' + String(ud.name).slice(0, 40);
         } catch (_) {}
+        // iPhone: обещанието се изпълнява, когато диалогът се затвори — подсказка не е нужна
+        // (в диалога „Сподели“ → „Запази във Файлове“ дава PDF). Android: подсказката за горното меню.
+        var ios = document.documentElement.classList.contains('platform-ios');
         printer.print({ name: name }).then(function () {
-            showBookNotice('Избери „Запази като PDF“ или принтер от горното меню.');
+            if (!ios) showBookNotice('Избери „Запази като PDF“ или принтер от горното меню.');
         }).catch(function () {
             showBookNotice('Печатът не успя. Опитай отново след малко.');
         });

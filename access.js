@@ -10,7 +10,8 @@
  *
  * Стената е изключена, докато админът не я включи: тогава can() е винаги true
  * и нищо не се показва. В приложението (APK / iOS) няма цени и бутони за
- * плащане — правилата на магазините; плащането е само в сайта.
+ * плащане — правилата на магазините; плащането е само в сайта. На iPhone и без
+ * упоменаване на план, продължение или вход с „акаунта от сайта“ (isStoreRestricted).
  */
 (function (global) {
     'use strict';
@@ -31,6 +32,12 @@
             var cap = global.Capacitor;
             return !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
         } catch (_) { return false; }
+    }
+
+    /** iPhone (App Store): приложението-придружител не споменава покупка, план или сайта — правило 3.1.3(f).
+     *  Класът го слага i18n.js (първият скрипт на страницата). */
+    function isStoreRestricted() {
+        try { return document.documentElement.classList.contains('platform-ios'); } catch (_) { return false; }
     }
 
     function readCache() {
@@ -107,6 +114,11 @@
         var daily = state.daily && state.daily[feature];
         if (daily) {
             body = '<p class="np-lock-text">' + escapeHtml(daily) + '</p>';
+        } else if (isStoreRestricted()) {
+            // Без „план“, „продължение“, „влез“ и връзки — само какво е състоянието.
+            body = '<p class="np-lock-text">' + (q && q.used >= q.limit
+                ? 'Лимитът за този период е изчерпан.'
+                : 'Не е включено в профила ти.') + '</p>';
         } else if (q && q.used >= q.limit) {
             body = '<p class="np-lock-text">Лимитът от ' + escapeHtml(Pricing ? Pricing.quotaText(q.limit, feature) : q.limit) + ' за плана е изчерпан. Още — с продължение на плана.</p>' +
                 (!isNativeApp()
@@ -206,6 +218,7 @@
         noteUse: noteUse,
         state: function () { return state; },
         isNativeApp: isNativeApp,
+        isStoreRestricted: isStoreRestricted,
         lockCard: lockCard,
         showLock: showLock,
         authFields: authFields,

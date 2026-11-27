@@ -717,7 +717,9 @@
         }).join('') + '</div>';
 
         // Отстъпките — само ако има; без акаунт — една подсказка.
-        var codes = (srv && srv.codes || []).filter(function (c) { return !c.used; });
+        // iPhone (App Store): без кодовете за отстъпка от план — ползват се само в сайта (насочване към плащане навън).
+        var iosApp = doc.documentElement.classList.contains('platform-ios');
+        var codes = (srv && srv.codes || []).filter(function (c) { return !c.used && !(iosApp && c.kind === 'plan'); });
         if (codes.length) html += '<div class="rw-card"><h4>' + esc(RE.text('codesTitle')) + '</h4>' + codes.map(codeRow).join('') + '</div>';
         else if (!srv) html += '<div class="rw-card"><p>Влез в акаунта си, за да събираш точки и отстъпки.</p></div>';
 

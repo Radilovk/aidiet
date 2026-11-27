@@ -34,17 +34,20 @@ Thumbs.db
 # Build artifacts
 *.log
 android/
+ios/
 capacitor-shell/*
 !capacitor-shell/.gitkeep
 
 # Temporary scripts
 *.sh
+!scripts/capacitor-shell.sh
 !deploy.sh
 *.py
 !setup.py
 !android-res/patch-local-notifications.py
 !android-res/patch-app-exit.py
 !android-res/patch-print-plugin.py
+!ios-res/patch-ios.py
 
 # Test files
 test-*.js

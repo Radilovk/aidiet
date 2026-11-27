@@ -19,11 +19,15 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 const { APPSTORE_KEY_ID: KEY_ID, APPSTORE_ISSUER_ID: ISSUER, APPSTORE_KEY_P8: P8, APPLE_TEAM_ID: TEAM } = process.env;
-const cfg = JSON.parse(readFileSync(new URL('../studio-app/capacitor.config.json', import.meta.url), 'utf8'));
+// APP_CONFIG: Capacitor конфигурацията на приложението, от корена на репото (по подразбиране — студиото; Nutriin:
+// capacitor.config.json). Профилите са с името на приложението, за да чисти всяко само своите.
+const cfg = JSON.parse(readFileSync(new URL(`../${process.env.APP_CONFIG || 'studio-app/capacitor.config.json'}`, import.meta.url), 'utf8'));
 const BUNDLE = cfg.appId;
+const LABEL = cfg.appName;                      // XB-Studio | Nutriin
+const PREFIX = `${LABEL} AppStore `;
 const TMP = process.env.RUNNER_TEMP || '/tmp';
 const STATE = join(TMP, 'apple-signing.json');
-const KEYCHAIN = join(TMP, 'xb-build.keychain-db');
+const KEYCHAIN = join(TMP, `${LABEL.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-build.keychain-db`);
 
 const fail = (m) => { console.error(`::error::${m}`); process.exit(1); };
 if (!KEY_ID || !ISSUER || !P8 || !TEAM) fail('Липсват секрети: APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8, APPLE_TEAM_ID.');
@@ -57,7 +61,7 @@ try {
     const dir = join(TMP, 'signing'); mkdirSync(dir, { recursive: true });
     // 0. certificates/profiles kept by earlier successful uploads are no longer needed (those builds are processed)
     const profs = await api('GET', '/v1/profiles?filter[profileType]=IOS_APP_STORE&limit=100');
-    for (const pr of profs.data.filter((x) => /^XB-Studio AppStore /.test(x.attributes.name))) {
+    for (const pr of profs.data.filter((x) => x.attributes.name.startsWith(PREFIX))) {
       let certs = [];
       try { certs = (await api('GET', `/v1/profiles/${pr.id}/certificates`)).data; } catch (_) { /* profile without certificates */ }
       try { await api('DELETE', `/v1/profiles/${pr.id}`); } catch (e) { console.log(`! профил ${pr.id}: ${e.message.slice(0, 150)}`); }
@@ -67,7 +71,7 @@ try {
     if (left >= 3) fail(`В акаунта вече има ${left} дистрибуционни сертификата (границата е 3). Виж ги с Apple → certs и изтрий излишните.`);
     // 1. a key and a signing request (the key never leaves this runner)
     run('openssl', ['req', '-new', '-newkey', 'rsa:2048', '-nodes', '-keyout', join(dir, 'key.pem'), '-out', join(dir, 'req.csr'),
-      '-subj', '/CN=XB-Studio CI/O=XB-Studio/C=BG']);
+      '-subj', `/CN=${LABEL} CI/O=${LABEL}/C=BG`]);
     // 2. the distribution certificate
     const cert = await api('POST', '/v1/certificates', { data: { type: 'certificates', attributes: {
       certificateType: 'DISTRIBUTION', csrContent: readFileSync(join(dir, 'req.csr'), 'utf8') } } });
@@ -90,7 +94,7 @@ try {
     const bid = await api('GET', `/v1/bundleIds?filter[identifier]=${encodeURIComponent(BUNDLE)}&limit=5`);
     const bundle = bid.data.find((b) => b.attributes.identifier === BUNDLE);
     if (!bundle) fail(`Няма Bundle ID ${BUNDLE} (пусни Apple → bundle-id).`);
-    const name = `XB-Studio AppStore ${process.env.GITHUB_RUN_ID || Date.now()}`;
+    const name = `${PREFIX}${process.env.GITHUB_RUN_ID || Date.now()}`;
     let prof;
     prof = await api('POST', '/v1/profiles', { data: { type: 'profiles', attributes: { name, profileType: 'IOS_APP_STORE' },
       relationships: { bundleId: { data: { type: 'bundleIds', id: bundle.id } }, certificates: { data: [{ type: 'certificates', id: cert.data.id }] } } } });

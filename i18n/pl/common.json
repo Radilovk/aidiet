@@ -315,7 +315,16 @@
   "{0} г • {1} kcal": "{0} g • {1} kcal",
   "от {0}:{1}": "od {0}:{1}",
   "Цени": "Ceny",
-  "Какво включва": "Co zawiera"
+  "Какво включва": "Co zawiera",
+  "Лимитът за този период е изчерпан.": "Limit na ten okres został wyczerpany.",
+  "Не е включено в профила ти.": "Nie jest uwzględnione w Twoim profilu.",
+  "Как Nutriin използва AI": "Jak Nutriin używa AI",
+  "За плана, асистента, снимките на храната и разчитането на изследвания Nutriin изпраща нужните данни — профила, храненето, снимките и документите, които добавиш — на доставчици на изкуствен интелект: Google (Gemini), OpenAI и Anthropic.": "Na potrzeby planu, asystenta, zdjęć jedzenia i odczytu wyników badań Nutriin wysyła potrzebne dane — Twój profil, posiłki oraz dodane zdjęcia i dokumenty — do dostawców sztucznej inteligencji: Google (Gemini), OpenAI i Anthropic.",
+  "Политика за поверителност": "Polityka prywatności",
+  "Не сега": "Nie teraz",
+  "Съгласен съм": "Zgadzam się",
+  "Тази функция използва AI. Ще те попитаме пак, когато я отвориш.": "Ta funkcja korzysta z AI. Zapytamy ponownie, gdy ją otworzysz.",
+  "Изпращат се само за конкретната заявка и не се използват за обучение на модели.": "Są wysyłane tylko na potrzeby konkretnego zapytania i nie są używane do trenowania modeli."
  },
  "keys": {},
  "patterns": []

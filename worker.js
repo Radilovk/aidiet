@@ -14580,16 +14580,16 @@ var L = ["en", "de", "es", "ru", "fr", "it", "pt", "tr", "pl", "ro"];
 var isEmailLang = (lang) => L.includes(String(lang || "").toLowerCase());
 var EMAIL_TEMPLATES = {
   ready: {
-    en: { subject: "Your personal nutrition plan is ready! \u{1F957}", headerSubtitle: "Personal nutrition plan", greeting: "Hi {name}! \u{1F44B}", paragraph1: "Great news: your <strong>personal 7-day nutrition plan</strong> is ready and waiting for you!", paragraph2: "Our specialist has carefully reviewed your data and built an individual plan around your goals and needs.", buttonText: "See my plan \u2192" },
-    de: { subject: "Dein pers\xF6nlicher Ern\xE4hrungsplan ist fertig! \u{1F957}", headerSubtitle: "Pers\xF6nlicher Ern\xE4hrungsplan", greeting: "Hallo {name}! \u{1F44B}", paragraph1: "Gute Nachrichten: Dein <strong>pers\xF6nlicher 7-Tage-Ern\xE4hrungsplan</strong> ist fertig und wartet auf dich!", paragraph2: "Unsere Fachkraft hat deine Angaben sorgf\xE4ltig gepr\xFCft und einen individuellen Plan f\xFCr deine Ziele und Bed\xFCrfnisse erstellt.", buttonText: "Zu meinem Plan \u2192" },
-    es: { subject: "\xA1Tu plan de alimentaci\xF3n personal est\xE1 listo! \u{1F957}", headerSubtitle: "Plan de alimentaci\xF3n personal", greeting: "\xA1Hola, {name}! \u{1F44B}", paragraph1: "Buenas noticias: tu <strong>plan de alimentaci\xF3n personal de 7 d\xEDas</strong> ya est\xE1 listo.", paragraph2: "Nuestro especialista ha revisado tus datos con atenci\xF3n y ha creado un plan individual seg\xFAn tus objetivos y necesidades.", buttonText: "Ver mi plan \u2192" },
-    ru: { subject: "\u0422\u0432\u043E\u0439 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F \u0433\u043E\u0442\u043E\u0432! \u{1F957}", headerSubtitle: "\u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F", greeting: "\u041F\u0440\u0438\u0432\u0435\u0442, {name}! \u{1F44B}", paragraph1: "\u041E\u0442\u043B\u0438\u0447\u043D\u044B\u0435 \u043D\u043E\u0432\u043E\u0441\u0442\u0438: \u0442\u0432\u043E\u0439 <strong>\u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 7-\u0434\u043D\u0435\u0432\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F</strong> \u0433\u043E\u0442\u043E\u0432 \u0438 \u0443\u0436\u0435 \u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D!", paragraph2: "\u041D\u0430\u0448 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442 \u0432\u043D\u0438\u043C\u0430\u0442\u0435\u043B\u044C\u043D\u043E \u0438\u0437\u0443\u0447\u0438\u043B \u0442\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435 \u0438 \u0441\u043E\u0441\u0442\u0430\u0432\u0438\u043B \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u043E\u0434 \u0442\u0432\u043E\u0438 \u0446\u0435\u043B\u0438 \u0438 \u043F\u043E\u0442\u0440\u0435\u0431\u043D\u043E\u0441\u0442\u0438.", buttonText: "\u0421\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043C\u043E\u0439 \u043F\u043B\u0430\u043D \u2192" },
-    fr: { subject: "Ton plan alimentaire personnel est pr\xEAt ! \u{1F957}", headerSubtitle: "Plan alimentaire personnel", greeting: "Bonjour {name} ! \u{1F44B}", paragraph1: "Bonne nouvelle : ton <strong>plan alimentaire personnel sur 7 jours</strong> est pr\xEAt et t'attend !", paragraph2: "Notre sp\xE9cialiste a examin\xE9 attentivement tes donn\xE9es et a construit un plan individuel selon tes objectifs et tes besoins.", buttonText: "Voir mon plan \u2192" },
-    it: { subject: "Il tuo piano alimentare personale \xE8 pronto! \u{1F957}", headerSubtitle: "Piano alimentare personale", greeting: "Ciao {name}! \u{1F44B}", paragraph1: "Ottime notizie: il tuo <strong>piano alimentare personale di 7 giorni</strong> \xE8 pronto e ti aspetta!", paragraph2: "Il nostro specialista ha esaminato con cura i tuoi dati e ha creato un piano individuale in base ai tuoi obiettivi e alle tue esigenze.", buttonText: "Vedi il mio piano \u2192" },
-    pt: { subject: "Seu plano alimentar personalizado est\xE1 pronto! \u{1F957}", headerSubtitle: "Plano alimentar personalizado", greeting: "Ol\xE1, {name}! \u{1F44B}", paragraph1: "Boa not\xEDcia: seu <strong>plano alimentar personalizado de 7 dias</strong> est\xE1 pronto e esperando por voc\xEA!", paragraph2: "Nosso especialista analisou seus dados com aten\xE7\xE3o e montou um plano individual de acordo com seus objetivos e necessidades.", buttonText: "Ver meu plano \u2192" },
-    tr: { subject: "Ki\u015Fisel beslenme plan\u0131n haz\u0131r! \u{1F957}", headerSubtitle: "Ki\u015Fisel beslenme plan\u0131", greeting: "Merhaba {name}! \u{1F44B}", paragraph1: "Harika haber: <strong>7 g\xFCnl\xFCk ki\u015Fisel beslenme plan\u0131n</strong> haz\u0131r ve seni bekliyor!", paragraph2: "Uzman\u0131m\u0131z verilerini dikkatle inceledi ve hedeflerine ve ihtiya\xE7lar\u0131na g\xF6re ki\u015Fisel bir plan haz\u0131rlad\u0131.", buttonText: "Plan\u0131m\u0131 g\xF6r \u2192" },
-    pl: { subject: "Tw\xF3j osobisty plan \u017Cywieniowy jest gotowy! \u{1F957}", headerSubtitle: "Osobisty plan \u017Cywieniowy", greeting: "Cze\u015B\u0107, {name}! \u{1F44B}", paragraph1: "Dobra wiadomo\u015B\u0107: Tw\xF3j <strong>osobisty 7-dniowy plan \u017Cywieniowy</strong> jest gotowy i czeka na Ciebie!", paragraph2: "Nasz specjalista dok\u0142adnie przeanalizowa\u0142 Twoje dane i przygotowa\u0142 indywidualny plan dopasowany do Twoich cel\xF3w i potrzeb.", buttonText: "Zobacz m\xF3j plan \u2192" },
-    ro: { subject: "Planul t\u0103u alimentar personal este gata! \u{1F957}", headerSubtitle: "Plan alimentar personal", greeting: "Salut, {name}! \u{1F44B}", paragraph1: "Ve\u0219ti bune: <strong>planul t\u0103u alimentar personal de 7 zile</strong> este gata \u0219i te a\u0219teapt\u0103!", paragraph2: "Specialistul nostru \u021Bi-a analizat cu aten\u021Bie datele \u0219i a creat un plan individual pe baza obiectivelor \u0219i nevoilor tale.", buttonText: "Vezi planul meu \u2192" }
+    en: { subject: "Your personal nutrition plan is ready! \u{1F957}", headerSubtitle: "Personal nutrition plan", greeting: "Hi {name}! \u{1F44B}", paragraph1: "Great news: your <strong>personal 7-day nutrition plan</strong> is ready and waiting for you!", paragraph2: "Your plan was built from your data and goals and has passed a safety check.", buttonText: "See my plan \u2192" },
+    de: { subject: "Dein pers\xF6nlicher Ern\xE4hrungsplan ist fertig! \u{1F957}", headerSubtitle: "Pers\xF6nlicher Ern\xE4hrungsplan", greeting: "Hallo {name}! \u{1F44B}", paragraph1: "Gute Nachrichten: Dein <strong>pers\xF6nlicher 7-Tage-Ern\xE4hrungsplan</strong> ist fertig und wartet auf dich!", paragraph2: "Dein Plan wurde aus deinen Angaben und Zielen erstellt und hat eine Sicherheitspr\xFCfung bestanden.", buttonText: "Zu meinem Plan \u2192" },
+    es: { subject: "\xA1Tu plan de alimentaci\xF3n personal est\xE1 listo! \u{1F957}", headerSubtitle: "Plan de alimentaci\xF3n personal", greeting: "\xA1Hola, {name}! \u{1F44B}", paragraph1: "Buenas noticias: tu <strong>plan de alimentaci\xF3n personal de 7 d\xEDas</strong> ya est\xE1 listo.", paragraph2: "Tu plan se ha creado a partir de tus datos y objetivos y ha superado una revisi\xF3n de seguridad.", buttonText: "Ver mi plan \u2192" },
+    ru: { subject: "\u0422\u0432\u043E\u0439 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F \u0433\u043E\u0442\u043E\u0432! \u{1F957}", headerSubtitle: "\u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F", greeting: "\u041F\u0440\u0438\u0432\u0435\u0442, {name}! \u{1F44B}", paragraph1: "\u041E\u0442\u043B\u0438\u0447\u043D\u044B\u0435 \u043D\u043E\u0432\u043E\u0441\u0442\u0438: \u0442\u0432\u043E\u0439 <strong>\u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 7-\u0434\u043D\u0435\u0432\u043D\u044B\u0439 \u043F\u043B\u0430\u043D \u043F\u0438\u0442\u0430\u043D\u0438\u044F</strong> \u0433\u043E\u0442\u043E\u0432 \u0438 \u0443\u0436\u0435 \u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D!", paragraph2: "\u0422\u0432\u043E\u0439 \u043F\u043B\u0430\u043D \u0441\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D \u043F\u043E \u0442\u0432\u043E\u0438\u043C \u0434\u0430\u043D\u043D\u044B\u043C \u0438 \u0446\u0435\u043B\u044F\u043C \u0438 \u043F\u0440\u043E\u0448\u0451\u043B \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0443 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438.", buttonText: "\u0421\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043C\u043E\u0439 \u043F\u043B\u0430\u043D \u2192" },
+    fr: { subject: "Ton plan alimentaire personnel est pr\xEAt ! \u{1F957}", headerSubtitle: "Plan alimentaire personnel", greeting: "Bonjour {name} ! \u{1F44B}", paragraph1: "Bonne nouvelle : ton <strong>plan alimentaire personnel sur 7 jours</strong> est pr\xEAt et t'attend !", paragraph2: "Ton plan a \xE9t\xE9 construit \xE0 partir de tes donn\xE9es et de tes objectifs, et il a pass\xE9 une v\xE9rification de s\xE9curit\xE9.", buttonText: "Voir mon plan \u2192" },
+    it: { subject: "Il tuo piano alimentare personale \xE8 pronto! \u{1F957}", headerSubtitle: "Piano alimentare personale", greeting: "Ciao {name}! \u{1F44B}", paragraph1: "Ottime notizie: il tuo <strong>piano alimentare personale di 7 giorni</strong> \xE8 pronto e ti aspetta!", paragraph2: "Il tuo piano \xE8 stato creato in base ai tuoi dati e obiettivi e ha superato un controllo di sicurezza.", buttonText: "Vedi il mio piano \u2192" },
+    pt: { subject: "Seu plano alimentar personalizado est\xE1 pronto! \u{1F957}", headerSubtitle: "Plano alimentar personalizado", greeting: "Ol\xE1, {name}! \u{1F44B}", paragraph1: "Boa not\xEDcia: seu <strong>plano alimentar personalizado de 7 dias</strong> est\xE1 pronto e esperando por voc\xEA!", paragraph2: "Seu plano foi montado a partir dos seus dados e objetivos e passou por uma verifica\xE7\xE3o de seguran\xE7a.", buttonText: "Ver meu plano \u2192" },
+    tr: { subject: "Ki\u015Fisel beslenme plan\u0131n haz\u0131r! \u{1F957}", headerSubtitle: "Ki\u015Fisel beslenme plan\u0131", greeting: "Merhaba {name}! \u{1F44B}", paragraph1: "Harika haber: <strong>7 g\xFCnl\xFCk ki\u015Fisel beslenme plan\u0131n</strong> haz\u0131r ve seni bekliyor!", paragraph2: "Plan\u0131n verilerine ve hedeflerine g\xF6re haz\u0131rland\u0131 ve g\xFCvenlik kontrol\xFCnden ge\xE7ti.", buttonText: "Plan\u0131m\u0131 g\xF6r \u2192" },
+    pl: { subject: "Tw\xF3j osobisty plan \u017Cywieniowy jest gotowy! \u{1F957}", headerSubtitle: "Osobisty plan \u017Cywieniowy", greeting: "Cze\u015B\u0107, {name}! \u{1F44B}", paragraph1: "Dobra wiadomo\u015B\u0107: Tw\xF3j <strong>osobisty 7-dniowy plan \u017Cywieniowy</strong> jest gotowy i czeka na Ciebie!", paragraph2: "Tw\xF3j plan powsta\u0142 na podstawie Twoich danych i cel\xF3w i przeszed\u0142 kontrol\u0119 bezpiecze\u0144stwa.", buttonText: "Zobacz m\xF3j plan \u2192" },
+    ro: { subject: "Planul t\u0103u alimentar personal este gata! \u{1F957}", headerSubtitle: "Plan alimentar personal", greeting: "Salut, {name}! \u{1F44B}", paragraph1: "Ve\u0219ti bune: <strong>planul t\u0103u alimentar personal de 7 zile</strong> este gata \u0219i te a\u0219teapt\u0103!", paragraph2: "Planul t\u0103u a fost creat pe baza datelor \u0219i obiectivelor tale \u0219i a trecut de o verificare de siguran\u021B\u0103.", buttonText: "Vezi planul meu \u2192" }
   },
   updated: {
     en: { subject: "Your nutrition plan has been updated \u{1F957}", headerSubtitle: "Plan update", greeting: "Hi {name}! \u{1F44B}", paragraph1: "Your specialist has made changes to your <strong>personal nutrition plan</strong>.", paragraph2: "Tap the button below to load the new version. The link works once and is valid for 72 hours.", buttonText: "Load the updated plan \u2192" },
@@ -89449,7 +89449,8 @@ var SEVERITIES = /* @__PURE__ */ new Set(["critical", "major", "minor"]);
 var reviewKey = (id) => `plan_review:${id}`;
 var firedKey = (id) => `plan_review_fired:${id}`;
 var clip = (v, n) => String(v == null ? "" : v).slice(0, n);
-var GUIDE = `\u041F\u0440\u0435\u0433\u043B\u0435\u0436\u0434\u0430\u0448 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D \u043D\u0430 Nutriin, \u043F\u0440\u0435\u0434\u0438 \u0434\u0430 \u0441\u0442\u0438\u0433\u043D\u0435 \u0434\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u0415\u043A\u0438\u043F\u044A\u0442 \u0433\u043E \u043E\u0434\u043E\u0431\u0440\u044F\u0432\u0430 \u0441\u043B\u0435\u0434 \u0442\u0435\u0431.
+var GUIDE = `\u041F\u0440\u0435\u0433\u043B\u0435\u0436\u0434\u0430\u0448 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D \u043D\u0430 Nutriin, \u043F\u0440\u0435\u0434\u0438 \u0434\u0430 \u0441\u0442\u0438\u0433\u043D\u0435 \u0434\u043E \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u041F\u0440\u0438 "ok" \u0438\u043B\u0438 "fix" \u043F\u043B\u0430\u043D\u044A\u0442 \u0441\u0442\u0438\u0433\u0430 \u0434\u043E
+\u043A\u043B\u0438\u0435\u043D\u0442\u0430 \u0432\u0435\u0434\u043D\u0430\u0433\u0430 (\u0431\u0435\u0437 \u0440\u0438\u0441\u043A\u043E\u0432 \u043F\u0440\u043E\u0444\u0438\u043B), \u0431\u0435\u0437 \u0434\u0440\u0443\u0433 \u043F\u0440\u0435\u0433\u043B\u0435\u0434 \u2014 \u0437\u0430\u0442\u043E\u0432\u0430 \u043F\u0440\u0438 \u0432\u0441\u044F\u043A\u043E \u0441\u044A\u043C\u043D\u0435\u043D\u0438\u0435 \u0437\u0430 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442: "stop".
 \u041F\u0438\u0448\u0435\u0448 \u043D\u0430 \u0435\u043A\u0438\u043F\u0430, \u043D\u0430 \u0431\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438: \u043A\u0440\u0430\u0442\u043A\u043E, \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u043E, \u0441 \u043C\u044F\u0441\u0442\u043E (\u0434\u0435\u043D, \u0445\u0440\u0430\u043D\u0435\u043D\u0435). \u041D\u0435 \u043F\u0438\u0448\u0435\u0448 \u043D\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430.
 
 \u0413\u043B\u0430\u0432\u043D\u043E\u0442\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u043E: \u043F\u043B\u0430\u043D\u044A\u0442 \u0442\u0440\u044F\u0431\u0432\u0430 \u0434\u0430 \u0431\u044A\u0434\u0435 \u0421\u041F\u0410\u0417\u0415\u041D \u043E\u0442 \u0442\u043E\u0437\u0438 \u0447\u043E\u0432\u0435\u043A. \u041F\u043B\u0430\u043D, \u0442\u043E\u0447\u0435\u043D \u043D\u0430 80%, \u043D\u043E \u043B\u0435\u0441\u0435\u043D \u0438 \u0433\u044A\u0432\u043A\u0430\u0432, \u0434\u0430\u0432\u0430 \u043F\u043E\u0432\u0435\u0447\u0435
@@ -89639,12 +89640,14 @@ function reviewInput(c) {
   }
   return JSON.stringify({ answers: answers2, plan });
 }
-function reviewEffort(answers2) {
+function isRiskyProfile(answers2) {
   const a = answers2 || {};
   const conditions = Array.isArray(a.healthConditions) ? a.healthConditions : [a.healthConditions].filter(Boolean);
   const age = Number(a.age);
-  const risky = conditions.some((x) => MEDICAL_CONDITIONS.has(x)) || a.medications === "\u0414\u0430" || a.postpartumStatus && a.postpartumStatus !== "\u041D\u0435 \u043A\u044A\u0440\u043C\u044F, \u043D\u043E \u043D\u0430\u0441\u043A\u043E\u0440\u043E \u0440\u043E\u0434\u0438\u0445 (\u0434\u043E 1 \u0433\u043E\u0434\u0438\u043D\u0430)" || age > 0 && (age < 18 || age >= 70);
-  return risky ? EFFORT_RISK : EFFORT_BASE;
+  return conditions.some((x) => MEDICAL_CONDITIONS.has(x)) || a.medications === "\u0414\u0430" || Boolean(a.postpartumStatus && a.postpartumStatus !== "\u041D\u0435 \u043A\u044A\u0440\u043C\u044F, \u043D\u043E \u043D\u0430\u0441\u043A\u043E\u0440\u043E \u0440\u043E\u0434\u0438\u0445 (\u0434\u043E 1 \u0433\u043E\u0434\u0438\u043D\u0430)") || age > 0 && (age < 18 || age >= 70);
+}
+function reviewEffort(answers2) {
+  return isRiskyProfile(answers2) ? EFFORT_RISK : EFFORT_BASE;
 }
 var MEAL_PATH = /^\/plan\/weekPlan\/(day\d+)\/meals\/(\d+)$/;
 function toPatches(changes) {
@@ -89797,21 +89800,30 @@ async function handleReviewGet(url, env, { respond, now = Date.now() }) {
   }
   return respond({ review: r, ...queued ? { queued } : {} });
 }
-async function handleReviewApply(request, env, { respond, now = Date.now() }) {
-  const { clientId } = await request.json().catch(() => ({}));
+async function applyReviewCorrection(env, clientId, { now = Date.now() } = {}) {
   const r = JSON.parse(await env.page_content.get(reviewKey(clientId)) || "null");
-  if (!r?.correctedPlan) return respond({ error: "no_correction", message: "\u041D\u044F\u043C\u0430 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u0438 \u0437\u0430 \u043F\u0440\u0438\u043B\u0430\u0433\u0430\u043D\u0435" }, 400);
+  if (!r?.correctedPlan) return { ok: false, status: 400, error: "no_correction", message: "\u041D\u044F\u043C\u0430 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u0438 \u0437\u0430 \u043F\u0440\u0438\u043B\u0430\u0433\u0430\u043D\u0435" };
   const c = JSON.parse(await env.page_content.get(`client:${clientId}`) || "null");
-  if (!isPending(c)) return respond({ error: "not_pending", message: "\u041F\u043B\u0430\u043D\u044A\u0442 \u0432\u0435\u0447\u0435 \u043D\u0435 \u0447\u0430\u043A\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435" }, 409);
+  if (!isPending(c)) return { ok: false, status: 409, error: "not_pending", message: "\u041F\u043B\u0430\u043D\u044A\u0442 \u0432\u0435\u0447\u0435 \u043D\u0435 \u0447\u0430\u043A\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435" };
   if ((c.planUpdatedAt || null) !== r.planUpdatedAt) {
-    return respond({ error: "stale", message: "\u041F\u043B\u0430\u043D\u044A\u0442 \u0435 \u0441\u043C\u0435\u043D\u0435\u043D \u0441\u043B\u0435\u0434 \u043F\u0440\u0435\u0433\u043B\u0435\u0434\u0430 \u2014 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u0438\u0442\u0435 \u043D\u0435 \u0432\u0430\u0436\u0430\u0442 \u0437\u0430 \u043D\u0435\u0433\u043E" }, 409);
+    return { ok: false, status: 409, error: "stale", message: "\u041F\u043B\u0430\u043D\u044A\u0442 \u0435 \u0441\u043C\u0435\u043D\u0435\u043D \u0441\u043B\u0435\u0434 \u043F\u0440\u0435\u0433\u043B\u0435\u0434\u0430 \u2014 \u043A\u043E\u0440\u0435\u043A\u0446\u0438\u0438\u0442\u0435 \u043D\u0435 \u0432\u0430\u0436\u0430\u0442 \u0437\u0430 \u043D\u0435\u0433\u043E" };
   }
   const originalPlan = c.plan;
   c.plan = r.correctedPlan;
   c.planUpdatedAt = new Date(now).toISOString();
   await env.page_content.put(`client:${clientId}`, JSON.stringify(c));
   await env.page_content.put(reviewKey(clientId), JSON.stringify({ ...r, applied: true, appliedAt: now, planUpdatedAt: c.planUpdatedAt, originalPlan }), { expirationTtl: 120 * 86400 });
-  return respond({ success: true, planUpdatedAt: c.planUpdatedAt });
+  return { ok: true, planUpdatedAt: c.planUpdatedAt };
+}
+async function markAutoActivated(env, clientId, { now = Date.now() } = {}) {
+  const r = JSON.parse(await env.page_content.get(reviewKey(clientId)) || "null");
+  if (r) await env.page_content.put(reviewKey(clientId), JSON.stringify({ ...r, autoActivatedAt: now }), { expirationTtl: 120 * 86400 });
+}
+async function handleReviewApply(request, env, { respond, now = Date.now() }) {
+  const { clientId } = await request.json().catch(() => ({}));
+  const res = await applyReviewCorrection(env, clientId, { now });
+  if (!res.ok) return respond({ error: res.error, message: res.message }, res.status);
+  return respond({ success: true, planUpdatedAt: res.planUpdatedAt });
 }
 
 // document-reader.js
@@ -92012,7 +92024,7 @@ async function answerGate(env, data) {
   try {
     const qmap = data._qmap && typeof data._qmap === "object" ? data._qmap : {};
     const followUps = Array.isArray(data.followUps) ? data.followUps : [];
-    const skip = /* @__PURE__ */ new Set(["_qmap", "followUps", "criticalFollowUp", "medicalFiles", "email", "_dq_text_map", "consentHealthData"]);
+    const skip = /* @__PURE__ */ new Set(["_qmap", "followUps", "criticalFollowUp", "medicalFiles", "email", "_dq_text_map", "consentHealthData", "consentAi"]);
     const userData = Object.entries(data).filter(([k, v]) => !skip.has(k) && v !== "" && v != null).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : typeof v === "object" ? JSON.stringify(v) : v}`).join("\n").slice(0, 9e3);
     const template = await requireKvPrompt(env, "admin_answer_gate_prompt");
     const prompt = Object.entries({
@@ -92282,7 +92294,7 @@ async function planReviewOnSave(env, clientId, clientData) {
     if (r !== "off" && r !== "same" && r !== "reviewed") console.log(`[plan-review] ${clientId}: ${r}`);
     if (r === "off" && !await env.page_content.get(`plan_review_mailed:${clientId}:${clientData.planUpdatedAt || ""}`)) {
       await env.page_content.put(`plan_review_mailed:${clientId}:${clientData.planUpdatedAt || ""}`, "1", { expirationTtl: 30 * 86400 });
-      await notifyAdmin(env, null, `\u041F\u043B\u0430\u043D \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435: ${clientData.answers?.name || clientId}`, [["\u041A\u043B\u0438\u0435\u043D\u0442", clientData.answers?.name], ["\u0418\u043C\u0435\u0439\u043B", clientData.answers?.email], ["\u0426\u0435\u043B", clientData.answers?.goal], ["ID", clientId]]);
+      await notifyAdmin(env, null, `\u041F\u043B\u0430\u043D \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435: ${clientId}`, [["ID", clientId], ["\u0426\u0435\u043B", clientData.answers?.goal]]);
     }
   } catch (e) {
     console.warn("[plan-review] on save:", e?.message);
@@ -94178,7 +94190,7 @@ var DEFAULT_EMAIL_TEMPLATE = {
   headerSubtitle: "\u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D",
   greeting: "\u0417\u0434\u0440\u0430\u0432\u0435\u0439, {name}! \u{1F44B}",
   paragraph1: "\u0420\u0430\u0434\u0432\u0430\u043C\u0435 \u0441\u0435 \u0434\u0430 \u0442\u0438 \u0441\u044A\u043E\u0431\u0449\u0438\u043C, \u0447\u0435 \u0442\u0432\u043E\u044F\u0442 <strong>\u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0435\u043D 7-\u0434\u043D\u0435\u0432\u0435\u043D \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043D \u043F\u043B\u0430\u043D</strong> \u0435 \u0433\u043E\u0442\u043E\u0432 \u0438 \u0432\u0435\u0447\u0435 \u0435 \u0434\u043E\u0441\u0442\u044A\u043F\u0435\u043D!",
-  paragraph2: "\u041D\u0430\u0448\u0438\u044F\u0442 \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442 \u0432\u043D\u0438\u043C\u0430\u0442\u0435\u043B\u043D\u043E \u0435 \u0440\u0430\u0437\u0433\u043B\u0435\u0434\u0430\u043B \u0442\u0432\u043E\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u0438 \u0435 \u0438\u0437\u0433\u043E\u0442\u0432\u0438\u043B \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u0435\u043D \u043F\u043B\u0430\u043D, \u0441\u044A\u043E\u0431\u0440\u0430\u0437\u0435\u043D \u0441 \u0442\u0432\u043E\u0438\u0442\u0435 \u0446\u0435\u043B\u0438 \u0438 \u043D\u0443\u0436\u0434\u0438.",
+  paragraph2: "\u041F\u043B\u0430\u043D\u044A\u0442 \u0442\u0438 \u0435 \u0438\u0437\u0433\u043E\u0442\u0432\u0435\u043D \u043F\u043E \u0442\u0432\u043E\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u0438 \u0438 \u0446\u0435\u043B\u0438 \u0438 \u043C\u0438\u043D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0437\u0430 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442.",
   buttonText: "\u0412\u0438\u0436 \u043C\u043E\u044F \u043F\u043B\u0430\u043D \u2192",
   contactEmail: "info@nutriin.app"
 };
@@ -94574,19 +94586,20 @@ function notifyAdmin(env, ctx, subject, rows, extraHtml = "") {
   if (ctx?.waitUntil) ctx.waitUntil(p);
   return p;
 }
-function notifyPlanReviewed(env, client, review) {
+function notifyPlanReviewed(env, client, review, clientId = "", auto = null) {
   const verdict = { ok: "\u2705 \u0433\u043E\u0442\u043E\u0432 \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435", fix: "\u{1F6E0} \u0441 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438", stop: "\u26D4 \u043D\u0443\u0436\u0435\u043D \u0435 \u0447\u043E\u0432\u0435\u043A" }[review.verdict] || review.verdict;
   const sev = { critical: "\u041A\u0440\u0438\u0442\u0438\u0447\u043D\u043E", major: "\u0412\u0430\u0436\u043D\u043E", minor: "\u0414\u0440\u0435\u0431\u043D\u043E" };
   const mealOf = (v) => v && typeof v === "object" && v.name ? `${v.name}${v.calories != null ? ` (${Math.round(v.calories)} kcal)` : ""}` : v == null ? "\u2014" : JSON.stringify(v).slice(0, 160);
   const findings = (review.findings || []).map((f) => `<li><b>${sev[f.severity] || f.severity}</b>${f.where ? " \xB7 " + escapeHtml(f.where) : ""}: ${escapeHtml(f.issue)}${f.fix ? ` <span style="color:#15803d">\u2192 ${escapeHtml(f.fix)}</span>` : ""}</li>`).join("");
   const changes = (review.changes || []).map((ch) => `<li>${escapeHtml(ch.path.replace(/^\/plan\//, ""))}: <span style="color:#dc2626">${escapeHtml(mealOf(ch.before))}</span> \u2192 <span style="color:#15803d">${escapeHtml(ch.op === "remove" ? "\u043F\u0440\u0435\u043C\u0430\u0445\u043D\u0430\u0442\u043E" : mealOf(ch.after))}</span><br><i>${escapeHtml(ch.reason || "")}</i></li>`).join("");
-  const extra = `<h3 style="font-size:15px;margin:16px 0 6px">\u041F\u0440\u0435\u0433\u043B\u0435\u0434\u044A\u0442 \u043D\u0430 Claude: ${verdict}</h3><p>${escapeHtml(review.summary || "")}</p>` + (findings ? `<h4 style="margin:12px 0 4px">\u0417\u0430\u0431\u0435\u043B\u0435\u0436\u043A\u0438</h4><ol>${findings}</ol>` : "") + (changes ? `<h4 style="margin:12px 0 4px">\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438</h4><ol>${changes}</ol>` : "") + '<p style="color:#64748b">\u041F\u043B\u0430\u043D\u044A\u0442 \u0447\u0430\u043A\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435. \u041F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u043D\u0435 \u0433\u0438 \u043E\u0434\u043E\u0431\u0440\u0438\u0442\u0435 \u0432 \u0430\u0434\u043C\u0438\u043D \u043F\u0430\u043D\u0435\u043B\u0430.</p>';
+  const extra = `<h3 style="font-size:15px;margin:16px 0 6px">\u041F\u0440\u0435\u0433\u043B\u0435\u0434\u044A\u0442 \u043D\u0430 Claude: ${verdict}</h3><p>${escapeHtml(review.summary || "")}</p>` + (findings ? `<h4 style="margin:12px 0 4px">\u0417\u0430\u0431\u0435\u043B\u0435\u0436\u043A\u0438</h4><ol>${findings}</ol>` : "") + (changes ? `<h4 style="margin:12px 0 4px">\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438</h4><ol>${changes}</ol>` : "") + (auto === "activated" ? '<p style="color:#15803d">\u041F\u043B\u0430\u043D\u044A\u0442 \u0435 \u0430\u043A\u0442\u0438\u0432\u0438\u0440\u0430\u043D \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E (\u043F\u0440\u043E\u0444\u0438\u043B\u044A\u0442 \u043D\u0435 \u0435 \u0440\u0438\u0441\u043A\u043E\u0432)' + (review.verdict === "fix" ? ", \u0441 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u043F\u043E-\u0433\u043E\u0440\u0435" : "") + " \u0438 \u043A\u043B\u0438\u0435\u043D\u0442\u044A\u0442 \u0432\u0435\u0447\u0435 \u0433\u043E \u0438\u043C\u0430. \u041C\u043E\u0436\u0435 \u0434\u0430 \u0433\u043E \u043F\u0440\u0435\u0433\u043B\u0435\u0434\u0430\u0442\u0435 \u0438 \u043F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u0432 \u0430\u0434\u043C\u0438\u043D \u043F\u0430\u043D\u0435\u043B\u0430.</p>" : '<p style="color:#64748b">\u041F\u043B\u0430\u043D\u044A\u0442 \u0447\u0430\u043A\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435. \u041F\u0440\u043E\u043C\u0435\u043D\u0438\u0442\u0435 \u043D\u0435 \u0441\u0430 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438, \u0434\u043E\u043A\u0430\u0442\u043E \u043D\u0435 \u0433\u0438 \u043E\u0434\u043E\u0431\u0440\u0438\u0442\u0435 \u0432 \u0430\u0434\u043C\u0438\u043D \u043F\u0430\u043D\u0435\u043B\u0430.</p>');
   const a = client?.answers || {};
+  const id = clientId || client?.id || "";
   return notifyAdmin(
     env,
     null,
-    `\u041F\u043B\u0430\u043D \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435: ${a.name || client?.id || ""} \u2014 ${verdict}`,
-    [["\u041A\u043B\u0438\u0435\u043D\u0442", a.name], ["\u0418\u043C\u0435\u0439\u043B", a.email], ["\u0426\u0435\u043B", a.goal], ["ID", client?.id]],
+    auto === "activated" ? `\u041D\u043E\u0432 \u043F\u043B\u0430\u043D, \u0430\u043A\u0442\u0438\u0432\u0438\u0440\u0430\u043D \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E: ${id} \u2014 ${verdict}` : `\u041F\u043B\u0430\u043D \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435: ${id} \u2014 ${verdict}`,
+    [["ID", id], ["\u0426\u0435\u043B", a.goal], ["\u0412\u044A\u0437\u0440\u0430\u0441\u0442", a.age]],
     extra
   );
 }
@@ -94878,7 +94891,7 @@ async function syncPlanToEmailCanonicalStore(env, {
   if (plan && requireApproval && clientData.planStatus === "pending") {
     sendPushNotificationToUser("admin", {
       title: "\u041D\u043E\u0432 \u043F\u043B\u0430\u043D \u0447\u0430\u043A\u0430 \u043F\u0440\u0435\u0433\u043B\u0435\u0434",
-      body: `\u041A\u043B\u0438\u0435\u043D\u0442 ${clientData.answers?.name || resolvedClientId} \u2014 \u0440\u0435\u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u043D \u043F\u043B\u0430\u043D \u043E\u0442 \u043F\u0440\u043E\u0444\u0438\u043B\u0430.`,
+      body: `\u041A\u043B\u0438\u0435\u043D\u0442 ${resolvedClientId} \u2014 \u0440\u0435\u0433\u0435\u043D\u0435\u0440\u0438\u0440\u0430\u043D \u043F\u043B\u0430\u043D \u043E\u0442 \u043F\u0440\u043E\u0444\u0438\u043B\u0430.`,
       url: "/admin.html",
       icon: "/icon-192x192.png",
       notificationType: "admin_plan_pending"
@@ -96716,6 +96729,49 @@ async function handleUpdateClientPlan(request, env, ctx) {
     return jsonResponse2({ error: `Failed to update plan: ${error.message}` }, 500);
   }
 }
+async function activateClientPlan(env, clientId, clientData) {
+  if (clientData.plan?.weekPlan && clientData.plan?.strategy) {
+    await reconcilePlanStructure(clientData.plan, clientData.answers, env);
+  }
+  clientData.planStatus = "activated";
+  clientData.planActivatedAt = (/* @__PURE__ */ new Date()).toISOString();
+  delete clientData.planReplacementPending;
+  delete clientData.planGenerationError;
+  await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+  clientData.planUpdatedAt = clientData.planUpdatedAt || clientData.planActivatedAt;
+  let emailSent = false;
+  let emailError = null;
+  if (clientData.answers?.email) {
+    const emailResult = await deliverPlanUpdateToClient(env, clientData, clientId, "ready");
+    emailSent = !!emailResult.sent;
+    emailError = emailResult.sent ? null : emailResult.error || emailResult.reason || "\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430 \u0433\u0440\u0435\u0448\u043A\u0430";
+  } else {
+    await syncActivatedPlanToUserProfile(env, clientData, clientId);
+    emailError = "\u041D\u044F\u043C\u0430 \u0438\u043C\u0435\u0439\u043B \u0430\u0434\u0440\u0435\u0441 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430";
+  }
+  return { activatedAt: clientData.planActivatedAt, emailSent, emailError };
+}
+async function autoActivateReviewedPlan(env, clientId, review) {
+  try {
+    if (!clientId || !review || !["ok", "fix"].includes(review.verdict)) return null;
+    let c = await kvGetJSON(env, `client:${clientId}`);
+    if (!c?.plan || c.planStatus !== "pending" || (c.planUpdatedAt || null) !== (review.planUpdatedAt || null)) return null;
+    if (isRiskyProfile(c.answers)) return null;
+    if (review.verdict === "fix") {
+      const res = await applyReviewCorrection(env, clientId);
+      if (!res.ok) return null;
+      c = await kvGetJSON(env, `client:${clientId}`);
+      if (!c?.plan) return null;
+    }
+    await activateClientPlan(env, clientId, c);
+    await markAutoActivated(env, clientId);
+    console.log(`[plan-review] ${clientId}: \u0430\u043A\u0442\u0438\u0432\u0438\u0440\u0430\u043D \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E (${review.verdict})`);
+    return "activated";
+  } catch (e) {
+    console.warn(`[plan-review] ${clientId}: \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E\u0442\u043E \u0430\u043A\u0442\u0438\u0432\u0438\u0440\u0430\u043D\u0435 \u043D\u0435 \u043C\u0438\u043D\u0430:`, e?.message);
+    return null;
+  }
+}
 async function handleActivateClientPlan(request, env, ctx) {
   try {
     const { clientId } = await request.json();
@@ -96733,29 +96789,11 @@ async function handleActivateClientPlan(request, env, ctx) {
     if (!clientData.plan) {
       return jsonResponse2({ error: "No plan to activate" }, 400);
     }
-    if (clientData.plan?.weekPlan && clientData.plan?.strategy) {
-      await reconcilePlanStructure(clientData.plan, clientData.answers, env);
-    }
-    clientData.planStatus = "activated";
-    clientData.planActivatedAt = (/* @__PURE__ */ new Date()).toISOString();
-    delete clientData.planReplacementPending;
-    delete clientData.planGenerationError;
-    await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
-    clientData.planUpdatedAt = clientData.planUpdatedAt || clientData.planActivatedAt;
-    let emailSent = false;
-    let emailError = null;
-    if (clientData.answers?.email) {
-      const emailResult = await deliverPlanUpdateToClient(env, clientData, clientId, "ready");
-      emailSent = !!emailResult.sent;
-      emailError = emailResult.sent ? null : emailResult.error || emailResult.reason || "\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430 \u0433\u0440\u0435\u0448\u043A\u0430";
-    } else {
-      await syncActivatedPlanToUserProfile(env, clientData, clientId);
-      emailError = "\u041D\u044F\u043C\u0430 \u0438\u043C\u0435\u0439\u043B \u0430\u0434\u0440\u0435\u0441 \u0437\u0430 \u043A\u043B\u0438\u0435\u043D\u0442\u0430";
-    }
+    const { activatedAt, emailSent, emailError } = await activateClientPlan(env, clientId, clientData);
     return jsonResponse2({
       success: true,
       message: "Plan activated",
-      activatedAt: clientData.planActivatedAt,
+      activatedAt,
       emailSent,
       emailError: emailSent ? null : emailError || "\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430 \u0433\u0440\u0435\u0448\u043A\u0430"
     });
@@ -105751,13 +105789,14 @@ var worker_entry_default = {
             const r = await runPlanReview(env, body, {
               reconcile: (plan, answers2) => reconcilePlanStructure(plan, answers2, env),
               addSpend: (usd) => addSpend(env, usd, { notify: adminSpendNotify(env) }),
-              notify: (client, review) => notifyPlanReviewed(env, client, review)
+              // Без рисков профил и с чиста присъда планът стига до клиента веднага; писмото казва какво е станало.
+              notify: async (client, review) => notifyPlanReviewed(env, client, review, clientId, await autoActivateReviewedPlan(env, clientId, review))
             });
             console.log(`[plan-review] ${clientId}: ${r}`);
           } catch (err2) {
             if ((message.attempts || 1) >= 3) {
               const c = await kvGetJSON(env, `client:${clientId}`);
-              await notifyAdmin(env, null, `\u041F\u043B\u0430\u043D \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435: ${c?.answers?.name || clientId} \u2014 \u0431\u0435\u0437 \u043F\u0440\u0435\u0433\u043B\u0435\u0434`, [["\u041A\u043B\u0438\u0435\u043D\u0442", c?.answers?.name], ["\u0418\u043C\u0435\u0439\u043B", c?.answers?.email], ["ID", clientId], ["\u041F\u0440\u0435\u0433\u043B\u0435\u0434\u044A\u0442 \u043D\u0435 \u043C\u0438\u043D\u0430", String(err2?.message || err2).slice(0, 300)]]);
+              await notifyAdmin(env, null, `\u041F\u043B\u0430\u043D \u0437\u0430 \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435: ${clientId} \u2014 \u0431\u0435\u0437 \u043F\u0440\u0435\u0433\u043B\u0435\u0434`, [["ID", clientId], ["\u0426\u0435\u043B", c?.answers?.goal], ["\u041F\u0440\u0435\u0433\u043B\u0435\u0434\u044A\u0442 \u043D\u0435 \u043C\u0438\u043D\u0430", String(err2?.message || err2).slice(0, 300)]]);
             } else {
               throw err2;
             }

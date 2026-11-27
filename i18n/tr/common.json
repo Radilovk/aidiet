@@ -315,7 +315,16 @@
   "дни упоритост": "gün azim",
   "дни постоянство": "gün istikrar",
   "дни воля": "gün irade",
-  "дни вътрешна сила": "gün iç güç"
+  "дни вътрешна сила": "gün iç güç",
+  "Лимитът за този период е изчерпан.": "Bu dönemin sınırına ulaşıldı.",
+  "Не е включено в профила ти.": "Profiline dahil değil.",
+  "Как Nutriin използва AI": "Nutriin yapay zekâyı nasıl kullanır",
+  "За плана, асистента, снимките на храната и разчитането на изследвания Nutriin изпраща нужните данни — профила, храненето, снимките и документите, които добавиш — на доставчици на изкуствен интелект: Google (Gemini), OpenAI и Anthropic.": "Plan, asistan, yemek fotoğrafları ve tahlil sonuçlarının okunması için Nutriin gerekli verileri — profilini, öğünlerini ve eklediğin fotoğraf ve belgeleri — yapay zekâ sağlayıcılarına gönderir: Google (Gemini), OpenAI ve Anthropic.",
+  "Политика за поверителност": "Gizlilik politikası",
+  "Не сега": "Şimdi değil",
+  "Съгласен съм": "Kabul ediyorum",
+  "Тази функция използва AI. Ще те попитаме пак, когато я отвориш.": "Bu özellik yapay zekâ kullanır. Açtığında tekrar soracağız.",
+  "Изпращат се само за конкретната заявка и не се използват за обучение на модели.": "Yalnızca ilgili istek için gönderilir ve model eğitiminde kullanılmaz."
  },
  "keys": {},
  "patterns": []

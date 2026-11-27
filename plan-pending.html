@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <script src="./i18n.js?v=20261123b"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Твоят персонален план се подготвя от специалист — Nutriin">
+    <meta name="description" content="Твоят персонален план се подготвя — Nutriin">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#EDF5F0" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0A1A1A" media="(prefers-color-scheme: dark)">
@@ -410,14 +410,14 @@
 
         <div class="pp-title">
             <h1>Получихме отговорите ти</h1>
-            <p>Специалист преглежда плана. Ще получиш имейл, когато е готов.</p>
+            <p>Проверяваме плана за безопасност — обикновено до няколко минути. При някои здравни особености го преглежда и нутриционист от екипа; тогава ще получиш имейл, когато е готов.</p>
         </div>
 
         <div class="system-notice" id="systemNotice" hidden>
             <i class="fas fa-info-circle"></i>
             <div>
                 <h4>Системно съобщение</h4>
-                <p id="systemNoticeText">Планът предстои да бъде преразгледан и активиран от специалист. Ще получиш известие на имейл, когато новият план е готов.</p>
+                <p id="systemNoticeText">Новият план минава проверка за безопасност, а при някои здравни особености — и преглед от нутриционист. Ще получиш известие на имейл, когато новият план е готов.</p>
             </div>
         </div>
 
@@ -447,7 +447,7 @@
                 <div class="step-item">
                     <div class="step-dot active"><i class="fas fa-spinner fa-spin" style="font-size:12px;"></i></div>
                     <div class="step-content">
-                        <h4>Преглед от специалист</h4>
+                        <h4>Проверка за безопасност</h4>
                     </div>
                 </div>
                 <div class="step-item">
@@ -495,7 +495,7 @@
             if (icon) icon.className = t === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         })();
 
-        const PLAN_REVIEW_SYSTEM_MSG = 'Новият план по промените ти се преглежда от специалист. Ще получиш имейл, когато е готов.';
+        const PLAN_REVIEW_SYSTEM_MSG = 'Новият план по промените ти минава проверка за безопасност. Ще получиш имейл, когато е готов.';
 
         (function adaptProfileRegenCopy() {
             const source = localStorage.getItem('npPlanReviewSource')
@@ -566,16 +566,19 @@
             }
         }
 
-        // Проверка на одобрението и сама: на 3 минути докато страницата е отворена
-        // и при връщане към нея (най-много веднъж в минута) — едно четене, без запис.
+        // Проверка на одобрението и сама — едно четене, без запис. Обичайният план се активира сам след
+        // автоматичната проверка (до няколко минути): първите 10 минути — на 15 секунди, после на 3 минути
+        // (тогава чака нутриционист), и при връщане към страницата.
         let _lastPendingCheck = 0;
+        const _pendingOpenedAt = Date.now();
         function scheduledPendingCheck() {
             if (document.hidden) return;
-            if (Date.now() - _lastPendingCheck < 60000) return;
+            const early = Date.now() - _pendingOpenedAt < 10 * 60 * 1000;
+            if (Date.now() - _lastPendingCheck < (early ? 14000 : 3 * 60 * 1000 - 1000)) return;
             _lastPendingCheck = Date.now();
             autoCheckPlanStatus();
         }
-        setInterval(scheduledPendingCheck, 3 * 60 * 1000);
+        setInterval(scheduledPendingCheck, 15 * 1000);
         document.addEventListener('visibilitychange', scheduledPendingCheck);
 
         async function autoCheckPlanStatus() {
@@ -638,7 +641,7 @@
                     }
 
                     document.querySelector('.pp-title h1').textContent = 'Твоят план е готов!';
-                    document.querySelector('.pp-title p').textContent = 'Специалистът прегледа твоите данни и одобри персонализирания ти хранителен пакет.';
+                    document.querySelector('.pp-title p').textContent = 'Планът мина проверката за безопасност и е твой.';
                     document.querySelector('.hero-badge i').className = 'fas fa-check-double';
                     document.querySelector('.hero-badge').style.background = 'linear-gradient(135deg, #03939C, #05737D)';
 

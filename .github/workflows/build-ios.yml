@@ -1,0 +1,174 @@
+name: Nutriin — iOS (TestFlight)
+
+# Събира iOS приложението на Nutriin от същите страници като APK-то (scripts/capacitor-shell.sh) и го качва в
+# App Store Connect → TestFlight. Пуска се ръчно: Actions → „Nutriin — iOS (TestFlight)“ → Run workflow.
+# Подписването и качването са като при студиото (studio-app-ios.yml): същият акаунт и същите GitHub секрети —
+#   APPLE_TEAM_ID, APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (ключ с роля Admin).
+# Еднократно преди първото качване (само ти): App Store Connect → My Apps → + → New App, iOS, име „Nutriin“,
+# Bundle ID com.biocode.nutriplan (процесът сам го регистрира в първата стъпка), SKU nutriin-1.
+# Какво влиза в iOS и какво остава в уеб — IOS_APP_STORE_PLAN.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: 'Качи в TestFlight (иначе само проверка, че се събира)'
+        type: boolean
+        default: true
+      version:
+        description: 'Версия за магазина (маркетингова), напр. 1.0.0'
+        type: string
+        default: '1.0.0'
+
+permissions:
+  contents: read
+
+concurrency: nutriin-ios
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      APP_CONFIG: capacitor.config.json
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+      APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+      APPSTORE_KEY_P8: ${{ secrets.APPSTORE_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Най-новият Xcode (Apple иска най-новия SDK за качване)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Проверка на секретите
+        run: |
+          missing=""
+          for v in APPLE_TEAM_ID APPSTORE_KEY_ID APPSTORE_ISSUER_ID APPSTORE_KEY_P8; do
+            if [ -z "${!v}" ]; then missing="$missing $v"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Липсват GitHub секрети:$missing (виж studio-app/README.md, стъпка 3)"
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - name: Уеб обвивката (същата като в APK-то)
+        run: bash scripts/capacitor-shell.sh
+
+      # Само за Android — в iOS пакета не влизат: обновяването на APK-то и цените/плащането (вече изключено в обвивката).
+      - name: Проверка на обвивката за iOS
+        run: |
+          rm -f capacitor-shell/app-update.js
+          bad=$(ls capacitor-shell | grep -E '^(pricing\.html|admin\.html)$' || true)
+          [ -z "$bad" ] || { echo "::error::В пакета има уеб страници, които не са за приложението: $bad"; exit 1; }
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: iOS проект, икона, стартов екран, настройки, манифест за поверителност
+        run: |
+          gem install xcodeproj --no-document
+          npx cap add ios
+          python3 ios-res/patch-ios.py
+          ruby ios-res/add-privacy-manifest.rb
+          ruby ios-res/add-app-sources.rb
+          npx cap sync ios
+          # Плъгините само за Android (Health Connect, Google вход, навигационна лента) не влизат (ios.includePlugins):
+          # HealthKit без разрешение и обяснение е причина за отказ още при качване.
+          if grep -Eiq 'health|google-auth|navigation-bar' ios/App/CapApp-SPM/Package.swift; then
+            echo "::error::В iOS проекта има плъгин само за Android"; cat ios/App/CapApp-SPM/Package.swift; exit 1
+          fi
+
+      - name: Bundle ID (регистрира се, ако го няма)
+        run: node scripts/apple-connect.mjs bundle-id
+
+      - name: Ключ за App Store Connect (за качването)
+        run: |
+          mkdir -p "$HOME/private_keys"
+          printf '%s' "$APPSTORE_KEY_P8" > "$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8"
+          chmod 600 "$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8"
+          echo "KEY_PATH=$HOME/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8" >> "$GITHUB_ENV"
+
+      # Подписването е без регистрирани устройства: сертификат и профил за магазина се правят през API само за това
+      # пускане (профилите са с име „Nutriin AppStore …“ — не пипат тези на студиото).
+      - name: Сертификат и профил за App Store (през API)
+        run: node scripts/apple-signing.mjs prepare
+
+      # отделна стъпка: PROFILE_NAME (от GITHUB_ENV) се вижда чак в следващата
+      - name: Ръчно подписване на приложението (само App целта)
+        run: ruby studio-app/scripts/set-manual-signing.rb
+
+      - name: Компилиране и подписване
+        run: |
+          xcodebuild archive \
+            -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Nutriin.xcarchive" \
+            MARKETING_VERSION="${{ inputs.version }}" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            TARGETED_DEVICE_FAMILY=1
+
+      - name: Проверка на готовия пакет (преди качване)
+        run: |
+          APP=$(find "$RUNNER_TEMP/Nutriin.xcarchive/Products/Applications" -maxdepth 1 -name '*.app' | head -1)
+          [ -n "$APP" ] || { echo "::error::Няма .app в архива"; exit 1; }
+          [ -f "$APP/PrivacyInfo.xcprivacy" ] || { echo "::error::Няма PrivacyInfo.xcprivacy в пакета (Apple го изисква)"; exit 1; }
+          [ -f "$APP/Assets.car" ] || { echo "::error::Няма икони/ресурси (Assets.car)"; exit 1; }
+          [ -f "$APP/public/index.html" ] || { echo "::error::Няма страниците (public/index.html)"; exit 1; }
+          [ ! -f "$APP/public/app-update.js" ] || { echo "::error::app-update.js (APK обновяване) е в iOS пакета"; exit 1; }
+          enc=$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$APP/Info.plist")
+          [ "$enc" = "false" ] || { echo "::error::ITSAppUsesNonExemptEncryption не е false"; exit 1; }
+          family=$(/usr/libexec/PlistBuddy -c 'Print :UIDeviceFamily:0' "$APP/Info.plist")
+          [ "$family" = "1" ] || { echo "::error::Приложението не е само за iPhone (UIDeviceFamily=$family)"; exit 1; }
+          /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$APP/Info.plist" >/dev/null || { echo "::error::Няма обяснение за камерата"; exit 1; }
+          if /usr/libexec/PlistBuddy -c 'Print :NSAppTransportSecurity' "$APP/Info.plist" >/dev/null 2>&1; then
+            echo "::error::Има изключения от ATS (NSAppTransportSecurity) — Apple иска обосновка"; exit 1
+          fi
+          echo "Пакетът е наред: $(basename "$APP")"
+
+      - name: Качване в App Store Connect (TestFlight)
+        id: upload
+        if: ${{ inputs.upload }}
+        run: |
+          BUNDLE_ID=$(node -p "require('./capacitor.config.json').appId")
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key><dict><key>${BUNDLE_ID}</key><string>${PROFILE_NAME}</string></dict>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Nutriin.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
+          || { echo "::error::Качването не мина. Ако пише, че няма приложение с този Bundle ID — направи „New App“ в App Store Connect (виж горе)."; exit 1; }
+          {
+            echo "### Качено в App Store Connect ✓"
+            echo "Nutriin ${{ inputs.version }} (build ${{ github.run_number }}). След 10–30 минути обработка се вижда в TestFlight."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Apple проверява подписа и СЛЕД качването: при успешно качване сертификатът остава до следващото пускане.
+      - name: Чистене на сертификата и профила
+        if: ${{ always() }}
+        env:
+          KEEP_CERT: ${{ steps.upload.outcome == 'success' && '1' || '' }}
+        run: node scripts/apple-signing.mjs cleanup
