@@ -7514,6 +7514,71 @@ async function autoActivateReviewedPlan(env, clientId, review) {
   }
 }
 
+// ─── Admin: Връзка за парола за клиент ───
+/**
+ * POST /api/admin/client-password-link { clientId }
+ * Профил няма → създава се; има → свързва се с клиента (действие на админа). Праща писмо с връзка за
+ * избор на парола и връща връзката на админа, за да я препрати сам, ако писмото не стигне.
+ */
+async function handleAdminClientPasswordLink(request, env) {
+  try {
+    const { clientId } = await request.json().catch(() => ({}));
+    if (!clientId) return jsonResponse({ error: 'Missing clientId' }, 400);
+    const clientData = await kvGetJSON(env, `client:${clientId}`);
+    if (!clientData) return jsonResponse({ error: 'Client not found' }, 404);
+    const email = normalizeEmail(clientData.answers?.email);
+    if (!email) return jsonResponse({ error: 'Клиентът няма имейл' }, 400);
+
+    const adminToken = await getFirebaseAdminToken(env);
+    const auth = { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' };
+    let accountCreated = false;
+    let link = '';
+    const oob = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode', {
+      method: 'POST', headers: auth,
+      body: JSON.stringify({ requestType: 'PASSWORD_RESET', email, returnOobLink: true }),
+    });
+    if (oob.ok) {
+      link = (await oob.json()).oobLink || '';
+      // Профилът съществува — свързва се с клиента, за да намери плана при вход.
+      const lookup = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${encodeURIComponent(env.FIREBASE_PROJECT_ID)}/accounts:lookup`, {
+        method: 'POST', headers: auth, body: JSON.stringify({ email: [email] }),
+      });
+      const uid = ((await lookup.json().catch(() => ({}))).users || [])[0]?.localId || '';
+      if (uid) {
+        clientData.userId = `${FIREBASE_USER_ID_PREFIX}${uid}`;
+        await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
+        await setEmailIndex(env, email, { userId: clientData.userId, clientId });
+      }
+    } else {
+      const errText = await oob.text().catch(() => '');
+      if (!errText.includes('EMAIL_NOT_FOUND')) throw new Error(`Firebase ${oob.status}: ${errText}`);
+      const account = await ensureClientAccount(env, clientData, clientId, { knownMissing: true });
+      if (!account.created) throw new Error('Профилът не можа да се създаде (виж логовете [Account])');
+      accountCreated = true;
+      link = account.setupUrl;
+    }
+    if (!link) throw new Error('Firebase не върна връзка');
+    await syncActivatedPlanToUserProfile(env, clientData, clientId);
+
+    let emailSent = false;
+    let emailError = null;
+    try {
+      const tpl = await getEmailTemplate(env);
+      const lang = String(clientData.answers?.lang || clientData.lang || '').toLowerCase();
+      await sendEmailViaSMTP(env, email, RESET_SUBJECT[lang] || 'Избери парола за Nutriin 🔒',
+        localizeEmailHtml(buildPasswordResetEmailHtml(link, tpl.contactEmail || DEFAULT_EMAIL_TEMPLATE.contactEmail), lang));
+      emailSent = true;
+    } catch (e) {
+      emailError = e.message;
+    }
+    console.log(`[Account] Админ: връзка за парола за ${clientId} (нов профил: ${accountCreated}, писмо: ${emailSent})`);
+    return jsonResponse({ success: true, email, link, accountCreated, emailSent, emailError });
+  } catch (error) {
+    console.error('[Account] Админ връзка за парола:', error.message);
+    return jsonResponse({ error: error.message }, 500);
+  }
+}
+
 // ─── Admin: Activate client plan ───
 async function handleActivateClientPlan(request, env, ctx) {
   try {
@@ -18921,6 +18986,8 @@ export default {
         return await handleReviewApply(request, env, { respond: jsonResponse });
       } else if (url.pathname === '/api/admin/activate-client-plan' && request.method === 'POST') {
         return await handleActivateClientPlan(request, env, ctx);
+      } else if (url.pathname === '/api/admin/client-password-link' && request.method === 'POST') {
+        return await handleAdminClientPasswordLink(request, env);
       } else if (url.pathname === '/api/admin/client-card' && request.method === 'GET') {
         return await handleAdminClientCard(request, env);
       } else if (url.pathname === '/api/admin/client-assistant/session' && request.method === 'POST') {
