@@ -4229,6 +4229,7 @@ function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl, setupUrl = '') {
                     <p style="color:#333;font-size:15px;margin:0 0 8px;font-weight:600;">Профилът ти е активен ✅</p>
                     <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 12px;">Влизаш с този имейл адрес. Избери си парола от бутона по-долу и после влез в приложението.</p>
                     <a href="${escapeHtml(setupUrl)}" style="display:inline-block;padding:10px 24px;background:#05737D;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px;">Избери парола →</a>
+                    <p style="color:#777;font-size:13px;line-height:1.5;margin:12px 0 0;">Връзката важи около час. Ако е изтекла — на входа в приложението натисни „Забравена парола?“ и въведи същия имейл.</p>
                   </td>
                 </tr>
               </table>` : ''}
@@ -5788,25 +5789,20 @@ async function ensureClientAccount(env, clientData, clientId) {
     const res = await call('/accounts', {
       email,
       password: Array.from(pw, b => b.toString(16).padStart(2, '0')).join(''),
-      emailVerified: true,
     });
-    let uid = '';
-    let created = false;
-    if (res.ok) {
-      uid = (await res.json()).localId || '';
-      created = !!uid;
-    } else {
+    // Съществуващ профил с този имейл не се пипа и не се свързва тук: иначе въпросник с чужд имейл
+    // би сменил плана в чуждия профил (подмяната минава през паролата — ensureReplacementAuth).
+    if (!res.ok) {
       const errText = await res.text().catch(() => '');
-      if (!errText.includes('EMAIL_EXISTS')) throw new Error(`Firebase create ${res.status}: ${errText}`);
-      const lookup = await call('/accounts:lookup', { email: [email] });
-      uid = ((await lookup.json().catch(() => ({}))).users || [])[0]?.localId || '';
+      if (errText.includes('EMAIL_EXISTS')) return none;
+      throw new Error(`Firebase create ${res.status}: ${errText}`);
     }
+    const uid = (await res.json()).localId || '';
     if (!uid) return none;
 
     clientData.userId = `${FIREBASE_USER_ID_PREFIX}${uid}`;
     await env.page_content.put(`client:${clientId}`, JSON.stringify(clientData));
     await setEmailIndex(env, email, { userId: clientData.userId, clientId });
-    if (!created) return none;
 
     const oob = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode', {
       method: 'POST',
