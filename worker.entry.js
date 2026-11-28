@@ -4232,7 +4232,7 @@ function buildPlanReadyEmailHtml(clientName, tpl, buttonUrl, setupUrl = '') {
                     <p style="color:#777;font-size:13px;line-height:1.5;margin:12px 0 0;">Връзката важи около час. Ако е изтекла — на входа в приложението натисни „Забравена парола?“ и въведи същия имейл.</p>
                   </td>
                 </tr>
-              </table>` : ''}
+              </table>` : `<p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 30px;">Влизаш в приложението с този имейл. Ако още нямаш парола — на входа натисни „Забравена парола?“ и ще получиш връзка, от която да си избереш.</p>`}
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fffe;border:1px solid #e0f2e9;border-radius:8px;margin-bottom:30px;">
                 <tr>
                   <td style="padding:20px;">
@@ -4550,10 +4550,18 @@ async function handleForgotPassword(request, env) {
       } else {
         const errText = await fbRes.text().catch(() => '');
         if (errText.includes('EMAIL_NOT_FOUND')) {
-          // Do not reveal whether the email exists
-          return jsonResponse({ success: true });
+          // Клиент с план, но без профил (никога не е избирал парола): профилът се създава сега и
+          // връзката от него служи за избор на парола. Иначе — нищо (не разкриваме дали имейлът съществува).
+          const found = await findClientByEmail(env, email);
+          if (found?.clientData?.plan) {
+            const account = await ensureClientAccount(env, found.clientData, found.clientId, { knownMissing: true });
+            oobLink = account.setupUrl || null;
+            if (account.created) await syncActivatedPlanToUserProfile(env, found.clientData, found.clientId);
+          }
+          if (!oobLink) return jsonResponse({ success: true });
+        } else {
+          console.warn(`[ForgotPassword] Firebase Admin API ${fbRes.status}: ${errText}`);
         }
-        console.warn(`[ForgotPassword] Firebase Admin API ${fbRes.status}: ${errText}`);
       }
     } catch (adminErr) {
       console.warn('[ForgotPassword] Admin token error (will use fallback):', adminErr.message);
@@ -5769,12 +5777,13 @@ async function resolveActivatedClientUserId(env, clientData) {
  * връща връзка за избор на парола (setupUrl); при вече съществуващ профил само го свързва с клиента.
  * Не хвърля грешка: активирането на плана не бива да зависи от това.
  */
-async function ensureClientAccount(env, clientData, clientId) {
+async function ensureClientAccount(env, clientData, clientId, { knownMissing = false } = {}) {
   const none = { setupUrl: '', created: false };
   try {
     const email = normalizeEmail(clientData?.answers?.email);
     if (!email || !env.FIREBASE_PROJECT_ID || !env.FIREBASE_SERVICE_ACCOUNT) return none;
-    if ((await resolveActivatedClientUserId(env, clientData)).startsWith('fb_')) return none;
+    // knownMissing: Firebase вече е казал, че профил няма — записаният fb_ userId е остарял.
+    if (!knownMissing && (await resolveActivatedClientUserId(env, clientData)).startsWith('fb_')) return none;
 
     const base = `https://identitytoolkit.googleapis.com/v1/projects/${encodeURIComponent(env.FIREBASE_PROJECT_ID)}`;
     const adminToken = await getFirebaseAdminToken(env);
