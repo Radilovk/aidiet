@@ -772,7 +772,7 @@
                 window.location.href = 'index.html?app=1&tab=plan';
             } catch (e) {
                 const msg = e.code === 'auth/email-already-in-use'
-                    ? 'Вече има акаунт с този имейл. Опитай да влезеш от началната страница.'
+                    ? 'Профилът ти вече е създаден. Избери парола от писмото, което получи, или от „Забравена парола“ на началната страница.'
                     : (e.code === 'auth/weak-password' ? 'Паролата е твърде слаба.' : ('Грешка: ' + e.message));
                 if (errEl) errEl.textContent = msg;
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus"></i> Създай акаунт и виж плана'; }
